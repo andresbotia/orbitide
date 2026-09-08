@@ -8,42 +8,50 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { FEEL } from '@/game/presentation/constants';
 import { orbColors, orbGlow } from '@/theme/colors';
-
-import type { Point } from './layout';
 
 interface PixelProps {
   color: keyof typeof orbColors;
-  center: Point;
+  /** Board-space centre of the cell (primitives, so `memo` holds). */
+  cx: number;
+  cy: number;
   cell: number;
   /** On the current outer boundary — can be cleared right now. */
   reachable: boolean;
-  /** Stagger (ms) applied to this pixel's clear animation. */
-  exitDelay: number;
 }
 
-function PixelComponent({ color, center, cell, reachable, exitDelay }: PixelProps) {
+const ANTICIPATION_MS = 60;
+const COLLAPSE_MS = Math.max(60, FEEL.PIXEL_POP_DURATION - ANTICIPATION_MS);
+
+function PixelComponent({ color, cx, cy, cell, reachable }: PixelProps) {
   const size = Math.max(4, cell - 2);
   const fill = orbColors[color];
   const glow = orbGlow[color];
 
-  // Clear animation: a quick pop bigger, then collapse + fade — staggered so a
-  // multi-pixel clear reads as a sweep rather than a single blink. This only
-  // runs after the engine has already removed the pixel from game state.
+  // The pop: tiny anticipation scale, then a fast collapse + fade. Self
+  // contained and short so consecutive pops stay readable. Runs only after the
+  // engine (via the presented state) has removed this pixel.
   const exiting = () => {
     'worklet';
     return {
       initialValues: { opacity: 1, transform: [{ scale: 1 }] },
       animations: {
-        opacity: withDelay(exitDelay, withTiming(0, { duration: 200 })),
+        opacity: withDelay(
+          ANTICIPATION_MS,
+          withTiming(0, { duration: COLLAPSE_MS }),
+        ),
         transform: [
           {
-            scale: withDelay(
-              exitDelay,
-              withSequence(
-                withTiming(1.35, { duration: 90, easing: Easing.out(Easing.quad) }),
-                withTiming(0, { duration: 170, easing: Easing.in(Easing.cubic) }),
-              ),
+            scale: withSequence(
+              withTiming(1.08, {
+                duration: ANTICIPATION_MS,
+                easing: Easing.out(Easing.quad),
+              }),
+              withTiming(0, {
+                duration: COLLAPSE_MS,
+                easing: Easing.in(Easing.cubic),
+              }),
             ),
           },
         ],
@@ -53,20 +61,20 @@ function PixelComponent({ color, center, cell, reachable, exitDelay }: PixelProp
 
   return (
     <Animated.View
-      entering={FadeIn.duration(160)}
+      entering={FadeIn.duration(150)}
       exiting={exiting}
       style={[
         styles.wrap,
         {
           width: size,
           height: size,
-          left: center.x - size / 2,
-          top: center.y - size / 2,
+          left: cx - size / 2,
+          top: cy - size / 2,
           borderRadius: Math.max(2, cell * 0.22),
           backgroundColor: fill,
-          opacity: reachable ? 1 : 0.55,
+          opacity: reachable ? 1 : 0.5,
           borderColor: glow,
-          borderWidth: reachable ? Math.max(1, cell * 0.08) : 0,
+          borderWidth: reachable ? Math.max(1, cell * 0.09) : 0,
         },
       ]}
     >
@@ -74,7 +82,7 @@ function PixelComponent({ color, center, cell, reachable, exitDelay }: PixelProp
         <View
           style={[
             styles.spark,
-            { backgroundColor: glow, width: size * 0.9, height: size * 0.18 },
+            { backgroundColor: glow, width: size * 0.85, height: size * 0.16 },
           ]}
         />
       ) : null}
@@ -89,11 +97,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     overflow: 'hidden',
   },
-  spark: {
-    marginTop: 2,
-    borderRadius: 999,
-    opacity: 0.5,
-  },
+  spark: { marginTop: 2, borderRadius: 999, opacity: 0.5 },
 });
 
 export const Pixel = memo(PixelComponent);

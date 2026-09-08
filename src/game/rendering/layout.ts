@@ -1,4 +1,5 @@
 import type { GameState } from '@/game/engine/types';
+import { TUNNEL_ENTRY_ANGLE } from '@/game/presentation/constants';
 
 export interface Point {
   x: number;
@@ -22,12 +23,8 @@ export interface BoardLayout {
   chargeRadius: number;
 }
 
-// Ordered to match the on-screen Launch Tunnel bar left-to-right (T1, T2, T3).
-const TUNNEL_ANGLES = [
-  Math.PI - Math.PI / 4.5, // T1 lower-left
-  Math.PI / 2, // T2 bottom (6 o'clock)
-  Math.PI / 4.5, // T3 lower-right
-];
+// Board tunnel-port angles come from the same source the charge flight uses.
+const TUNNEL_ANGLES = TUNNEL_ENTRY_ANGLE;
 
 /** Geometry for a square board rendering a `cols x rows` picture. */
 export function computeBoardLayout(
@@ -48,7 +45,7 @@ export function computeBoardLayout(
     y: center.y - gridHeight / 2,
   };
 
-  const outer = size * 0.47;
+  const outer = size * 0.45;
   const inner = Math.max(
     Math.hypot(gridWidth, gridHeight) / 2 + cell * 0.9,
     outer * 0.7,

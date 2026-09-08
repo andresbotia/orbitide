@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   FadeIn,
+  FadeOut,
   LinearTransition,
 } from 'react-native-reanimated';
 
@@ -52,6 +53,7 @@ export function TunnelBar({ state, disabled, onLaunch }: TunnelBarProps) {
               <Animated.View
                 key={charge.id}
                 entering={FadeIn.duration(200)}
+                exiting={FadeOut.duration(140)}
                 layout={LinearTransition.duration(180)}
                 style={[
                   styles.charge,

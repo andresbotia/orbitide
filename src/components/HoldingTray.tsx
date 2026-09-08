@@ -12,6 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import type { Charge } from '@/game/engine/types';
+import type { TrayCue } from '@/hooks/useGameSession';
 import { orbColors, orbGlow, palette } from '@/theme/colors';
 import { radius, spacing, typography } from '@/theme/spacing';
 
@@ -20,10 +21,11 @@ interface HoldingTrayProps {
   capacity: number;
   /** Tray is full and the level is lost — flash the slots. */
   overflow: boolean;
+  /** Latest land/lift cue from the presentation player. */
+  cue: TrayCue;
 }
 
-/** Parked charges with leftover capacity. Auto-relaunch is engine-driven. */
-export function HoldingTray({ holding, capacity, overflow }: HoldingTrayProps) {
+export function HoldingTray({ holding, capacity, overflow, cue }: HoldingTrayProps) {
   const shake = useSharedValue(0);
   const nearFull = holding.length >= capacity - 1 && !overflow;
 
@@ -56,30 +58,79 @@ export function HoldingTray({ holding, capacity, overflow }: HoldingTrayProps) {
       </Text>
       <Animated.View style={[styles.row, shakeStyle]}>
         {slots.map((charge, index) => (
-          <View
+          <Slot
             key={charge?.id ?? `empty-${index}`}
-            style={[styles.slot, overflow && styles.slotOverflow]}
-          >
-            {charge ? (
-              <Animated.View
-                entering={FadeIn.duration(200)}
-                exiting={FadeOut.duration(180)}
-                layout={LinearTransition.duration(200)}
-                style={[
-                  styles.charge,
-                  {
-                    backgroundColor: orbColors[charge.color],
-                    borderColor: orbGlow[charge.color],
-                  },
-                ]}
-              >
-                <Text style={styles.capacity}>{charge.capacity}</Text>
-              </Animated.View>
-            ) : null}
-          </View>
+            charge={charge}
+            index={index}
+            overflow={overflow}
+            cue={cue}
+          />
         ))}
       </Animated.View>
     </View>
+  );
+}
+
+function Slot({
+  charge,
+  index,
+  overflow,
+  cue,
+}: {
+  charge: Charge | null;
+  index: number;
+  overflow: boolean;
+  cue: TrayCue;
+}) {
+  const react = useSharedValue(0);
+  const glow = useSharedValue(0);
+
+  useEffect(() => {
+    if (cue.signal === 0 || cue.index !== index) return;
+    if (cue.kind === 'land') {
+      react.value = withSequence(
+        withTiming(1, { duration: 90 }),
+        withTiming(0, { duration: 220 }),
+      );
+    } else {
+      glow.value = withSequence(
+        withTiming(1, { duration: 120 }),
+        withTiming(0, { duration: 260 }),
+      );
+    }
+  }, [cue, index, react, glow]);
+
+  const slotStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + react.value * 0.12 }],
+    borderColor:
+      glow.value > 0
+        ? palette.coreGlow
+        : overflow
+          ? palette.danger
+          : palette.surfaceBorder,
+  }));
+
+  return (
+    <Animated.View
+      style={[styles.slot, overflow && styles.slotOverflow, slotStyle]}
+    >
+      {charge ? (
+        <Animated.View
+          entering={FadeIn.duration(180)}
+          exiting={FadeOut.duration(160)}
+          layout={LinearTransition.duration(200)}
+          style={[
+            styles.charge,
+            {
+              backgroundColor: orbColors[charge.color],
+              borderColor: orbGlow[charge.color],
+            },
+          ]}
+        >
+          <Text style={styles.capacity}>{charge.capacity}</Text>
+        </Animated.View>
+      ) : null}
+    </Animated.View>
   );
 }
 
@@ -101,7 +152,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   slotOverflow: {
-    borderColor: palette.danger,
     backgroundColor: 'rgba(255,92,122,0.16)',
   },
   charge: {

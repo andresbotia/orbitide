@@ -6,10 +6,9 @@ import {
   RadialGradient,
   vec,
 } from '@shopify/react-native-skia';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
+import {
   useDerivedValue,
   useSharedValue,
   withSequence,
@@ -18,40 +17,39 @@ import Animated, {
 
 import { reachablePixels } from '@/game/engine/pixels';
 import type { GameState } from '@/game/engine/types';
-import { orbColors, orbGlow, palette } from '@/theme/colors';
+import type { FlightPass } from '@/game/presentation/events';
+import { orbColors, palette } from '@/theme/colors';
 
 import { Starfield } from './effects/Starfield';
 import { cellCenter, computeBoardLayout } from './layout';
+import { OrbitingCharge } from './OrbitingCharge';
 import { Pixel } from './Pixel';
+import { PixelBurst, type BurstSpec } from './PixelBurst';
+
+const MAX_BURSTS = 22;
 
 interface OrbitBoardProps {
   size: number;
+  /** The *presented* state — lags engine truth while a launch is staged. */
   state: GameState;
-  /** Ordered pixel ids cleared by the most recent move (for stagger timing). */
-  clearSequence: string[];
-  /** Bumped when a charge launches; drives the traveling-charge token. */
-  flightSignal: number;
-  /** Index (0-2) of the tunnel the last charge launched from. */
-  flightTunnel: number;
-  /** Fill color of the traveling charge token. */
-  flightColor: string;
-  /** Bumped when the centre should pulse (target/auto-resolve/win). */
+  /** Bumped when the centre should pulse. */
   pulseSignal: number;
   pulseColor: string;
+  /** Bumped once per charge pass. */
+  flightSignal: number;
+  flightPass: FlightPass | null;
+  /** Live capacity to show on the flying charge, or null when none is flying. */
+  flyingCapacity: number | null;
 }
-
-const STAGGER_MS = 40;
-const MAX_STAGGER = 320;
 
 export function OrbitBoard({
   size,
   state,
-  clearSequence,
-  flightSignal,
-  flightTunnel,
-  flightColor,
   pulseSignal,
   pulseColor,
+  flightSignal,
+  flightPass,
+  flyingCapacity,
 }: OrbitBoardProps) {
   const layout = useMemo(
     () => computeBoardLayout(size, state.width, state.height),
@@ -63,53 +61,61 @@ export function OrbitBoard({
     [state],
   );
 
-  const clearIndex = useMemo(() => {
-    const map = new Map<string, number>();
-    clearSequence.forEach((id, i) => map.set(id, i));
+  // Stable per-cell centres — only change on resize / picture size.
+  const centreOf = useMemo(() => {
+    const map = new Map<string, { x: number; y: number }>();
+    for (const p of state.pixels) {
+      map.set(p.id, cellCenter(layout, p.x, p.y));
+    }
     return map;
-  }, [clearSequence]);
+  }, [layout, state.pixels]);
 
-  // Centre pulse.
+  // Spawn a small burst wherever a pixel just became cleared in the presented
+  // state (one per pixel pop). Capped list, dropped after they expire.
+  const clearedRef = useRef<Set<string>>(new Set());
+  const [bursts, setBursts] = useState<BurstSpec[]>([]);
+  useEffect(() => {
+    const prev = clearedRef.current;
+    const now = new Set<string>();
+    const fresh: BurstSpec[] = [];
+    for (const p of state.pixels) {
+      if (!p.cleared) continue;
+      now.add(p.id);
+      if (!prev.has(p.id)) {
+        fresh.push({
+          key: `${p.id}-${Date.now()}`,
+          point: centreOf.get(p.id) ?? cellCenter(layout, p.x, p.y),
+          color: p.color,
+          cell: layout.cell,
+        });
+      }
+    }
+    clearedRef.current = now;
+    if (fresh.length === 0) return;
+    const raf = requestAnimationFrame(() => {
+      setBursts((cur) => [...cur, ...fresh].slice(-MAX_BURSTS));
+    });
+    const timer = setTimeout(() => {
+      setBursts((cur) => cur.filter((b) => !fresh.some((f) => f.key === b.key)));
+    }, 300);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
+  }, [state, layout, centreOf]);
+
   const pulse = useSharedValue(0);
   useEffect(() => {
     if (pulseSignal === 0) return;
     pulse.value = withSequence(
       withTiming(1, { duration: 110 }),
-      withTiming(0, { duration: 420 }),
+      withTiming(0, { duration: 430 }),
     );
   }, [pulseSignal, pulse]);
   const glowRadius = useDerivedValue(
-    () => layout.cell * 2.4 * (1 + pulse.value * 1.4),
+    () => layout.cell * 2.4 * (1 + pulse.value * 1.5),
   );
-  const glowOpacity = useDerivedValue(() => 0.12 + pulse.value * 0.4);
-
-  // Traveling charge token.
-  const flight = useSharedValue(0);
-  useEffect(() => {
-    if (flightSignal === 0) return;
-    flight.value = 0;
-    flight.value = withTiming(1, { duration: 620 });
-  }, [flightSignal, flight]);
-
-  const anchor = layout.tunnelAnchors[flightTunnel] ?? layout.tunnelAnchors[0]!;
-  const startAngle = Math.atan2(
-    anchor.y - layout.center.y,
-    anchor.x - layout.center.x,
-  );
-
-  const tokenStyle = useAnimatedStyle(() => {
-    const t = flight.value;
-    const angle = startAngle + t * Math.PI * 1.6;
-    const rx = layout.orbit[0]!.rx * (1 - t) + layout.cell * 0.6 * t;
-    const ry = layout.orbit[0]!.ry * (1 - t) + layout.cell * 0.6 * t;
-    return {
-      opacity: flightSignal === 0 ? 0 : t < 0.96 ? 1 : 0,
-      transform: [
-        { translateX: layout.center.x + Math.cos(angle) * rx - layout.chargeRadius },
-        { translateY: layout.center.y + Math.sin(angle) * ry - layout.chargeRadius },
-      ],
-    };
-  });
+  const glowOpacity = useDerivedValue(() => 0.1 + pulse.value * 0.42);
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
@@ -132,7 +138,6 @@ export function OrbitBoard({
           ))}
         </Group>
 
-        {/* tunnel ports on the outer orbit */}
         <Group>
           {layout.tunnelAnchors.map((a, i) => (
             <Circle key={i} cx={a.x} cy={a.y} r={layout.cell * 0.5} opacity={0.7}>
@@ -146,8 +151,12 @@ export function OrbitBoard({
           ))}
         </Group>
 
-        {/* soft picture backlight */}
-        <Circle cx={layout.center.x} cy={layout.center.y} r={glowRadius} opacity={glowOpacity}>
+        <Circle
+          cx={layout.center.x}
+          cy={layout.center.y}
+          r={glowRadius}
+          opacity={glowOpacity}
+        >
           <RadialGradient
             c={vec(layout.center.x, layout.center.y)}
             r={layout.cell * 4}
@@ -157,39 +166,40 @@ export function OrbitBoard({
         </Circle>
       </Canvas>
 
-      {/* pixel layer */}
+      {/* pixel layer — one view per uncleared pixel of the presented state */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        {state.pixels.map((p) =>
-          p.cleared ? null : (
+        {state.pixels.map((p) => {
+          if (p.cleared) return null;
+          const c = centreOf.get(p.id);
+          return (
             <Pixel
               key={p.id}
               color={p.color}
-              center={cellCenter(layout, p.x, p.y)}
+              cx={c?.x ?? 0}
+              cy={c?.y ?? 0}
               cell={layout.cell}
               reachable={reachableIds.has(p.id)}
-              exitDelay={Math.min(
-                MAX_STAGGER,
-                (clearIndex.get(p.id) ?? 0) * STAGGER_MS,
-              )}
             />
-          ),
-        )}
+          );
+        })}
       </View>
 
-      {/* traveling charge token */}
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.token,
-          {
-            width: layout.chargeRadius * 2,
-            height: layout.chargeRadius * 2,
-            borderRadius: layout.chargeRadius,
-            backgroundColor: flightColor,
-            borderColor: orbGlow.white,
-          },
-          tokenStyle,
-        ]}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        {bursts.map((b) => (
+          <PixelBurst
+            key={b.key}
+            point={b.point}
+            color={b.color}
+            cell={b.cell}
+          />
+        ))}
+      </View>
+
+      <OrbitingCharge
+        layout={layout}
+        signal={flightSignal}
+        pass={flightPass}
+        capacity={flyingCapacity}
       />
     </View>
   );
@@ -198,11 +208,9 @@ export function OrbitBoard({
 export { orbColors };
 
 const styles = StyleSheet.create({
-  container: { alignSelf: 'center', position: 'relative' },
-  token: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    borderWidth: 1.5,
+  container: {
+    alignSelf: 'center',
+    position: 'relative',
+    overflow: 'visible',
   },
 });

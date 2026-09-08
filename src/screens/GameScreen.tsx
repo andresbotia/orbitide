@@ -57,10 +57,9 @@ export function GameScreen({
           <OrbitBoard
             size={boardSize}
             state={state}
-            clearSequence={session.clearSequence}
             flightSignal={session.flightSignal}
-            flightTunnel={session.flightTunnel}
-            flightColor={session.flightColor}
+            flightPass={session.flightPass}
+            flyingCapacity={session.flyingCapacity}
             pulseSignal={session.pulseSignal}
             pulseColor={session.pulseColor}
           />
@@ -77,6 +76,7 @@ export function GameScreen({
           holding={state.holding}
           capacity={state.holdingCapacity}
           overflow={state.status === 'lost'}
+          cue={session.trayCue}
         />
       </View>
 
@@ -89,7 +89,7 @@ export function GameScreen({
       />
 
       <DebugOverlay
-        state={state}
+        state={session.engineState}
         locked={session.locked}
         onResetProgress={onResetProgress}
       />

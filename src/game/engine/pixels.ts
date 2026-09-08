@@ -111,6 +111,22 @@ export function clearOrder(
 }
 
 /**
+ * Clockwise angular position of a pixel around the picture centre, as a
+ * fraction in [0, 1): 0 is the 12 o'clock direction, increasing clockwise.
+ * This is the same angle the deterministic clear order sorts by, exposed so the
+ * presentation layer can place each pixel on the orbital track.
+ */
+export function pixelAngleFraction(
+  state: Pick<GameState, 'width' | 'height'>,
+  pixel: Pick<Pixel, 'x' | 'y'>,
+): number {
+  const { cx, cy } = pictureCenter(state);
+  const twoPi = Math.PI * 2;
+  const a = Math.atan2(pixel.y - cy, pixel.x - cx) + Math.PI / 2;
+  return (((a % twoPi) + twoPi) % twoPi) / twoPi;
+}
+
+/**
  * Reachable pixels of a given color, already sorted in the deterministic clear
  * order. This is exactly the list a charge of that color would eat into.
  */

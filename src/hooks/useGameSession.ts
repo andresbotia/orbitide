@@ -1,32 +1,40 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 
 import { createGame } from '@/game/engine/createGame';
 import { resolveLaunch } from '@/game/engine/resolveLaunch';
-import type { GameState } from '@/game/engine/types';
-import { haptics } from '@/game/haptics';
+import type { Charge, GameState } from '@/game/engine/types';
+import { feedback } from '@/game/feedback';
 import { requireLevel } from '@/game/levels/levels';
-import { orbColors, palette } from '@/theme/colors';
+import { buildLaunchScript } from '@/game/presentation/buildScript';
+import type { FlightPass, PresentationEvent } from '@/game/presentation/events';
+import { palette } from '@/theme/colors';
 
-/**
- * Interaction lock (ms) after an accepted launch. Long enough for the charge
- * flight + pixel sweep to read, short enough to stay responsive; a little
- * longer when a lot clears or parked charges auto-relaunch.
- */
-const LOCK_BASE_MS = 240;
-const LOCK_BIG_MS = 560;
+export interface TrayCue {
+  signal: number;
+  index: number;
+  kind: 'land' | 'lift';
+}
 
 export interface GameSession {
+  /** The *presented* state — what every UI element renders. Lags engine truth
+   *  while a launch is being staged. */
   state: GameState;
+  /** Ground truth (used by the debug overlay). */
+  engineState: GameState;
+  /** True while a launch is being presented; tunnel taps are gated on it. */
   locked: boolean;
   launch: (tunnelId: string) => void;
   restart: () => void;
-  /** Ordered ids of pixels cleared by the most recent move (stagger timing). */
-  clearSequence: string[];
+
   flightSignal: number;
-  flightTunnel: number;
-  flightColor: string;
+  flightPass: FlightPass | null;
+  flyingCapacity: number | null;
+
   pulseSignal: number;
   pulseColor: string;
+
+  trayCue: TrayCue;
 }
 
 interface Options {
@@ -34,147 +42,245 @@ interface Options {
   onLose?: () => void;
 }
 
-function tunnelIndex(tunnelId: string): number {
-  const n = Number.parseInt(tunnelId.replace('tunnel-', ''), 10);
-  return Number.isFinite(n) ? n : 0;
+function advanceTunnel(state: GameState, tunnelIndex: number): GameState {
+  return {
+    ...state,
+    tunnels: state.tunnels.map((t, i) =>
+      i === tunnelIndex ? { ...t, queue: t.queue.slice(1) } : t,
+    ),
+  };
 }
+
+function markCleared(state: GameState, pixelId: string): GameState {
+  return {
+    ...state,
+    pixels: state.pixels.map((p) =>
+      p.id === pixelId ? { ...p, cleared: true } : p,
+    ),
+  };
+}
+
+function addHeld(state: GameState, charge: Charge): GameState {
+  return { ...state, holding: [...state.holding, charge] };
+}
+
+function removeHeld(state: GameState, chargeId: string): GameState {
+  return { ...state, holding: state.holding.filter((c) => c.id !== chargeId) };
+}
+
+interface PulseState {
+  signal: number;
+  color: string;
+}
+const REST_PULSE: PulseState = { signal: 0, color: palette.coreGlow };
 
 export function useGameSession(levelId: number, options: Options = {}): GameSession {
   const level = useMemo(() => requireLevel(levelId), [levelId]);
-  const [state, setState] = useState<GameState>(() => createGame(level));
+
+  const [presented, setPresented] = useState<GameState>(() => createGame(level));
+  const [engineState, setEngineState] = useState<GameState>(presented);
   const [locked, setLocked] = useState(false);
-  const [clearSequence, setClearSequence] = useState<string[]>([]);
-  const [flight, setFlight] = useState<{
-    signal: number;
-    tunnel: number;
-    color: string;
-  }>({ signal: 0, tunnel: 0, color: palette.coreGlow });
-  const [pulse, setPulse] = useState<{ signal: number; color: string }>({
+  const [flight, setFlight] = useState<{ signal: number; pass: FlightPass | null }>({
     signal: 0,
-    color: palette.coreGlow,
+    pass: null,
   });
+  const [flyingCapacity, setFlyingCapacity] = useState<number | null>(null);
+  const [pulse, setPulse] = useState<PulseState>(REST_PULSE);
+  const [trayCue, setTrayCue] = useState<TrayCue>({ signal: 0, index: 0, kind: 'land' });
 
-  const stateRef = useRef(state);
+  const engineRef = useRef(presented);
+  const workingRef = useRef(presented);
   const lockedRef = useRef(false);
-  const lockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const optionsRef = useRef(options);
-
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
-
   useEffect(() => {
     optionsRef.current = options;
   });
 
-  useEffect(
-    () => () => {
-      if (lockTimer.current) clearTimeout(lockTimer.current);
-    },
-    [],
-  );
+  const clearTimers = useCallback(() => {
+    for (const t of timers.current) clearTimeout(t);
+    timers.current = [];
+  }, []);
 
   const setLockedBoth = useCallback((value: boolean) => {
     lockedRef.current = value;
     setLocked(value);
   }, []);
 
+  const bumpPulse = useCallback((color: string) => {
+    setPulse((p) => ({ signal: p.signal + 1, color }));
+  }, []);
+
+  const settleToTruth = useCallback(() => {
+    clearTimers();
+    workingRef.current = engineRef.current;
+    setPresented(engineRef.current);
+    setFlight((f) => ({ signal: f.signal, pass: null }));
+    setFlyingCapacity(null);
+    setLockedBoth(false);
+  }, [clearTimers, setLockedBoth]);
+
+  // Stop staged animation cleanly if the app backgrounds mid-launch.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next !== 'active' && lockedRef.current) settleToTruth();
+    });
+    return () => sub.remove();
+  }, [settleToTruth]);
+
+  useEffect(() => clearTimers, [clearTimers]);
+
+  const applyEvent = useCallback(
+    (event: PresentationEvent) => {
+      const w = workingRef.current;
+      switch (event.kind) {
+        case 'launch': {
+          const next = advanceTunnel(w, event.tunnelIndex);
+          workingRef.current = next;
+          setPresented(next);
+          feedback.emit('launch');
+          break;
+        }
+        case 'flightStart': {
+          setFlight((f) => ({ signal: f.signal + 1, pass: event.pass }));
+          setFlyingCapacity(event.pass.startCapacity);
+          break;
+        }
+        case 'orbitEnter': {
+          feedback.emit('orbitEnter');
+          break;
+        }
+        case 'pixelClear': {
+          const next = markCleared(w, event.pixelId);
+          workingRef.current = next;
+          setPresented(next);
+          setFlyingCapacity(Math.max(0, event.remaining));
+          feedback.emit('pixelPop');
+          break;
+        }
+        case 'chargeConsumed': {
+          feedback.emit('chargeConsumed');
+          bumpPulse(palette.coreGlow);
+          break;
+        }
+        case 'moveToHolding':
+          break;
+        case 'holdingLanded': {
+          const next = addHeld(w, event.charge);
+          workingRef.current = next;
+          setPresented(next);
+          feedback.emit('holdingLand');
+          setTrayCue((c) => ({
+            signal: c.signal + 1,
+            index: next.holding.length - 1,
+            kind: 'land',
+          }));
+          break;
+        }
+        case 'heldReactivate': {
+          const index = w.holding.findIndex((c) => c.id === event.chargeId);
+          const next = removeHeld(w, event.chargeId);
+          workingRef.current = next;
+          setPresented(next);
+          feedback.emit('heldRelaunch');
+          setTrayCue((c) => ({
+            signal: c.signal + 1,
+            index: Math.max(0, index),
+            kind: 'lift',
+          }));
+          break;
+        }
+        case 'heldReturn': {
+          const next = addHeld(w, event.charge);
+          workingRef.current = next;
+          setPresented(next);
+          setTrayCue((c) => ({
+            signal: c.signal + 1,
+            index: next.holding.length - 1,
+            kind: 'land',
+          }));
+          break;
+        }
+        case 'holdingCritical': {
+          feedback.emit('holdingCritical');
+          break;
+        }
+        case 'win': {
+          workingRef.current = engineRef.current;
+          setPresented(engineRef.current);
+          feedback.emit('win');
+          bumpPulse(palette.success);
+          optionsRef.current.onWin?.();
+          break;
+        }
+        case 'fail': {
+          workingRef.current = engineRef.current;
+          setPresented(engineRef.current);
+          feedback.emit('fail');
+          bumpPulse(palette.danger);
+          optionsRef.current.onLose?.();
+          break;
+        }
+      }
+    },
+    [bumpPulse],
+  );
+
   const launch = useCallback(
     (tunnelId: string) => {
       if (lockedRef.current) return;
-      const current = stateRef.current;
+      const current = engineRef.current;
       if (current.status !== 'playing') return;
 
       const outcome = resolveLaunch(current, tunnelId);
       if (!outcome.accepted) return;
 
-      stateRef.current = outcome.state;
-      setState(outcome.state);
+      engineRef.current = outcome.state;
+      setEngineState(outcome.state);
+      feedback.emit('select');
 
-      const chargeColor = outcome.launchedCharge
-        ? orbColors[outcome.launchedCharge.color]
-        : palette.coreGlow;
+      const script = buildLaunchScript(outcome, current);
 
-      const cleared = [
-        ...outcome.primaryClearedPixelIds,
-        ...outcome.autoResolutions.flatMap((r) => r.clearedPixelIds),
-      ];
-      setClearSequence(cleared);
-      setFlight((f) => ({
-        signal: f.signal + 1,
-        tunnel: tunnelIndex(tunnelId),
-        color: chargeColor,
-      }));
-
-      // Haptics — restrained, and pixel ticks are throttled inside `haptics`.
-      haptics.select();
-      if (cleared.length > 0) {
-        haptics.pixelClear();
-        setTimeout(() => haptics.pixelClear(), 130);
-      }
-      if (outcome.primaryConsumed && outcome.primaryClearedPixelIds.length > 0) {
-        haptics.chargeConsumed();
-      } else if (outcome.heldCharge) {
-        haptics.held();
-      }
-      if (outcome.autoResolutions.length > 0) {
-        haptics.reactivate();
-        setPulse((p) => ({ signal: p.signal + 1, color: palette.coreGlow }));
-      } else if (cleared.length > 0) {
-        setPulse((p) => ({ signal: p.signal + 1, color: chargeColor }));
-      }
-      if (
-        outcome.state.status === 'playing' &&
-        outcome.state.holding.length >= outcome.state.holdingCapacity - 1 &&
-        current.holding.length < outcome.state.holdingCapacity - 1
-      ) {
-        haptics.holdingCritical();
-      }
-
-      const heavy =
-        cleared.length >= 4 || outcome.autoResolutions.length > 0;
+      // Presented state stays at the pre-move snapshot; the player walks it
+      // forward event by event and converges back to truth at the end.
+      clearTimers();
+      workingRef.current = current;
+      setPresented(current);
       setLockedBoth(true);
-      if (lockTimer.current) clearTimeout(lockTimer.current);
-      lockTimer.current = setTimeout(
-        () => setLockedBoth(false),
-        heavy ? LOCK_BIG_MS : LOCK_BASE_MS,
-      );
 
-      if (outcome.state.status === 'won') {
-        haptics.win();
-        setPulse((p) => ({ signal: p.signal + 1, color: palette.success }));
-        optionsRef.current.onWin?.();
-      } else if (outcome.state.status === 'lost') {
-        haptics.fail();
-        setPulse((p) => ({ signal: p.signal + 1, color: palette.danger }));
-        optionsRef.current.onLose?.();
+      for (const event of script.events) {
+        timers.current.push(setTimeout(() => applyEvent(event), event.at));
       }
+      timers.current.push(setTimeout(() => settleToTruth(), script.totalMs));
     },
-    [setLockedBoth],
+    [applyEvent, clearTimers, setLockedBoth, settleToTruth],
   );
 
   const restart = useCallback(() => {
-    if (lockTimer.current) clearTimeout(lockTimer.current);
-    lockTimer.current = null;
+    clearTimers();
     const fresh = createGame(level);
-    stateRef.current = fresh;
-    setState(fresh);
+    engineRef.current = fresh;
+    workingRef.current = fresh;
+    setEngineState(fresh);
+    setPresented(fresh);
+    setFlight({ signal: 0, pass: null });
+    setFlyingCapacity(null);
+    setPulse(REST_PULSE);
+    setTrayCue({ signal: 0, index: 0, kind: 'land' });
     setLockedBoth(false);
-    setClearSequence([]);
-    setFlight({ signal: 0, tunnel: 0, color: palette.coreGlow });
-    setPulse({ signal: 0, color: palette.coreGlow });
-  }, [level, setLockedBoth]);
+  }, [level, clearTimers, setLockedBoth]);
 
   return {
-    state,
+    state: presented,
+    engineState,
     locked,
     launch,
     restart,
-    clearSequence,
     flightSignal: flight.signal,
-    flightTunnel: flight.tunnel,
-    flightColor: flight.color,
+    flightPass: flight.pass,
+    flyingCapacity,
     pulseSignal: pulse.signal,
     pulseColor: pulse.color,
+    trayCue,
   };
 }
