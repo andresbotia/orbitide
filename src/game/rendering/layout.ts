@@ -9,32 +9,41 @@ export interface BoardLayout {
   size: number;
   center: Point;
   coreRadius: number;
-  /** Radii of the concentric orbital guide rings. */
+  /** Radii of the concentric orbital guide rings (one per visible depth). */
   ringRadii: number[];
   orbRadius: number;
   laneCount: number;
 }
 
-const MAX_VISIBLE_DEPTH = 4;
+/** Guide rings drawn / depths positioned without clamping. */
+const VISIBLE_DEPTH = 4;
+/** Centre-to-centre ring spacing as a multiple of the orb radius. */
+const RING_GAP = 2.35;
+/** Core-edge-to-first-ring spacing as a multiple of the orb radius. */
+const CORE_GAP = 2.4;
 
-/** Geometry for a square board of a given pixel size and lane count. */
+/**
+ * Geometry for a square board. Orb radius is derived from the available radial
+ * space so that orbs in the same lane never overlap, down to {@link VISIBLE_DEPTH}.
+ */
 export function computeBoardLayout(size: number, laneCount: number): BoardLayout {
   const center = { x: size / 2, y: size / 2 };
-  const outerPadding = size * 0.06;
-  const coreRadius = size * 0.11;
+  const outerPadding = size * 0.04;
+  const coreRadius = size * 0.1;
+  const usableRadius = size / 2 - outerPadding;
+
+  // usableRadius = coreRadius + CORE_GAP*r + (VISIBLE_DEPTH-1)*RING_GAP*r + r
+  const denom = CORE_GAP + (VISIBLE_DEPTH - 1) * RING_GAP + 1;
   const orbRadius = Math.max(
-    12,
-    Math.min(size * 0.052, (size * 0.5 - coreRadius - outerPadding) / 6),
+    9,
+    Math.min(22, (usableRadius - coreRadius) / denom),
   );
 
-  const innerR = coreRadius + orbRadius * 2.1;
-  const outerR = size / 2 - outerPadding - orbRadius;
-  const rings = Math.max(2, MAX_VISIBLE_DEPTH);
-  const ringRadii: number[] = [];
-  for (let i = 0; i < rings; i += 1) {
-    const t = rings === 1 ? 0 : i / (rings - 1);
-    ringRadii.push(innerR + (outerR - innerR) * t);
-  }
+  const firstRing = coreRadius + CORE_GAP * orbRadius;
+  const ringRadii = Array.from(
+    { length: VISIBLE_DEPTH },
+    (_, i) => firstRing + i * RING_GAP * orbRadius,
+  );
 
   return {
     size,
@@ -53,7 +62,7 @@ export function laneAngle(laneIndex: number, laneCount: number): number {
 
 /**
  * Screen position of the orb at `depth` (0 = exposed) in `laneIndex`.
- * Depths beyond the last guide ring are clamped just outside it.
+ * Depths beyond the last guide ring continue outward at the ring spacing.
  */
 export function orbPosition(
   layout: BoardLayout,
@@ -65,7 +74,7 @@ export function orbPosition(
   const radius =
     depth < layout.ringRadii.length
       ? (layout.ringRadii[depth] ?? lastRing)
-      : lastRing + (depth - layout.ringRadii.length + 1) * layout.orbRadius * 2.2;
+      : lastRing + (depth - layout.ringRadii.length + 1) * RING_GAP * layout.orbRadius;
   return {
     x: layout.center.x + Math.cos(angle) * radius,
     y: layout.center.y + Math.sin(angle) * radius,
