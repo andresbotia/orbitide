@@ -35,14 +35,14 @@ export function ResultOverlay({
     >
       <Animated.View entering={FadeInDown.duration(220)} style={styles.card}>
         <Text style={[styles.heading, won ? styles.win : styles.lose]}>
-          {won ? 'LEVEL COMPLETE' : 'TRAY OVERFLOW'}
+          {won ? 'PICTURE CLEAR' : 'HOLDING FULL'}
         </Text>
         <Text style={styles.sub}>
           {won
             ? hasNextLevel
-              ? 'The Core is aligned.'
-              : 'Milestone 1 cleared — every handcrafted level solved.'
-            : 'No room to hold, no match to make.'}
+              ? 'Level complete.'
+              : 'Milestone 1 cleared — every picture restored.'
+            : 'The tray is jammed and nothing can resolve.'}
         </Text>
 
         {won ? (

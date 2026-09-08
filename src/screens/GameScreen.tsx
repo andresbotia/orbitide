@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -6,8 +6,9 @@ import { DebugOverlay } from '@/components/DebugOverlay';
 import { HoldingTray } from '@/components/HoldingTray';
 import { Hud } from '@/components/Hud';
 import { ResultOverlay } from '@/components/ResultOverlay';
+import { TunnelBar } from '@/components/TunnelBar';
 import { OrbitBoard } from '@/game/rendering/OrbitBoard';
-import { nextLevelId } from '@/game/levels/levels';
+import { nextLevelId, requireLevel } from '@/game/levels/levels';
 import { useGameSession } from '@/hooks/useGameSession';
 import { palette } from '@/theme/colors';
 import { spacing } from '@/theme/spacing';
@@ -28,6 +29,7 @@ export function GameScreen({
   onResetProgress,
 }: GameScreenProps) {
   const [boardSize, setBoardSize] = useState(0);
+  const level = useMemo(() => requireLevel(levelId), [levelId]);
 
   const handleWin = useCallback(() => {
     onWin(levelId);
@@ -47,7 +49,7 @@ export function GameScreen({
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.hud}>
-        <Hud state={state} onRestart={session.restart} />
+        <Hud state={state} title={level.title} onRestart={session.restart} />
       </View>
 
       <View style={styles.boardArea} onLayout={onBoardArea}>
@@ -55,16 +57,22 @@ export function GameScreen({
           <OrbitBoard
             size={boardSize}
             state={state}
-            locked={session.locked}
-            onTapOrb={session.tap}
+            clearSequence={session.clearSequence}
+            flightSignal={session.flightSignal}
+            flightTunnel={session.flightTunnel}
+            flightColor={session.flightColor}
             pulseSignal={session.pulseSignal}
-            pulseStrength={session.pulseStrength}
-            flashColor={session.flashColor}
+            pulseColor={session.pulseColor}
           />
         ) : null}
       </View>
 
-      <View style={styles.tray}>
+      <View style={styles.controls}>
+        <TunnelBar
+          state={state}
+          disabled={session.locked || state.status !== 'playing'}
+          onLaunch={session.launch}
+        />
         <HoldingTray
           holding={state.holding}
           capacity={state.holdingCapacity}
@@ -98,8 +106,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.sm,
   },
-  tray: {
-    paddingVertical: spacing.lg,
+  controls: {
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+    gap: spacing.lg,
     alignItems: 'center',
   },
 });

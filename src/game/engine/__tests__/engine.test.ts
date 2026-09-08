@@ -1,7 +1,12 @@
 import { createGame, restartGame } from '../createGame';
-import { clearOrder, reachablePixels, reachableTargets } from '../pixels';
+import {
+  clearOrder,
+  reachablePixels,
+  reachableTargets,
+  remainingPixelCount,
+} from '../pixels';
 import { resolveLaunch } from '../resolveLaunch';
-import { frontCharge, remainingPixelCount, visibleCharges } from '../selectors';
+import { frontCharge, visibleCharges } from '../selectors';
 import type { GameState, LevelDefinition } from '../types';
 
 /** A 3x3 solid green square with a single blue centre pixel behind it. */

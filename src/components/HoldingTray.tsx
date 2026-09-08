@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   FadeIn,
@@ -9,21 +10,22 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { useEffect } from 'react';
 
-import type { Orb } from '@/game/engine/types';
+import type { Charge } from '@/game/engine/types';
 import { orbColors, orbGlow, palette } from '@/theme/colors';
 import { radius, spacing, typography } from '@/theme/spacing';
 
 interface HoldingTrayProps {
-  holding: Orb[];
+  holding: Charge[];
   capacity: number;
   /** Tray is full and the level is lost — flash the slots. */
   overflow: boolean;
 }
 
+/** Parked charges with leftover capacity. Auto-relaunch is engine-driven. */
 export function HoldingTray({ holding, capacity, overflow }: HoldingTrayProps) {
   const shake = useSharedValue(0);
+  const nearFull = holding.length >= capacity - 1 && !overflow;
 
   useEffect(() => {
     if (overflow) {
@@ -49,29 +51,30 @@ export function HoldingTray({ holding, capacity, overflow }: HoldingTrayProps) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>HOLDING</Text>
+      <Text style={[styles.label, nearFull && styles.labelWarn]}>
+        HOLDING {holding.length}/{capacity}
+      </Text>
       <Animated.View style={[styles.row, shakeStyle]}>
-        {slots.map((orb, index) => (
+        {slots.map((charge, index) => (
           <View
-            key={orb?.id ?? `empty-${index}`}
-            style={[
-              styles.slot,
-              overflow && styles.slotOverflow,
-            ]}
+            key={charge?.id ?? `empty-${index}`}
+            style={[styles.slot, overflow && styles.slotOverflow]}
           >
-            {orb ? (
+            {charge ? (
               <Animated.View
                 entering={FadeIn.duration(200)}
                 exiting={FadeOut.duration(180)}
                 layout={LinearTransition.duration(200)}
                 style={[
-                  styles.orb,
+                  styles.charge,
                   {
-                    backgroundColor: orbColors[orb.color],
-                    borderColor: orbGlow[orb.color],
+                    backgroundColor: orbColors[charge.color],
+                    borderColor: orbGlow[charge.color],
                   },
                 ]}
-              />
+              >
+                <Text style={styles.capacity}>{charge.capacity}</Text>
+              </Animated.View>
             ) : null}
           </View>
         ))}
@@ -80,14 +83,12 @@ export function HoldingTray({ holding, capacity, overflow }: HoldingTrayProps) {
   );
 }
 
-const SLOT = 40;
+const SLOT = 44;
 
 const styles = StyleSheet.create({
   container: { alignItems: 'center', gap: spacing.sm },
-  label: {
-    ...typography.label,
-    color: palette.textFaint,
-  },
+  label: { ...typography.label, color: palette.textFaint },
+  labelWarn: { color: palette.warning },
   row: { flexDirection: 'row', gap: spacing.md },
   slot: {
     width: SLOT,
@@ -103,10 +104,13 @@ const styles = StyleSheet.create({
     borderColor: palette.danger,
     backgroundColor: 'rgba(255,92,122,0.16)',
   },
-  orb: {
-    width: SLOT - 12,
-    height: SLOT - 12,
-    borderRadius: (SLOT - 12) / 2,
+  charge: {
+    width: SLOT - 10,
+    height: SLOT - 10,
+    borderRadius: (SLOT - 10) / 2,
     borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  capacity: { color: '#05060A', fontSize: 15, fontWeight: '800' },
 });

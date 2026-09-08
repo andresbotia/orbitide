@@ -1,30 +1,32 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { createGame } from '@/game/engine/createGame';
-import { resolveMove } from '@/game/engine/resolveMove';
-import type { GameState, OrbColor } from '@/game/engine/types';
+import { resolveLaunch } from '@/game/engine/resolveLaunch';
+import type { GameState } from '@/game/engine/types';
 import { haptics } from '@/game/haptics';
 import { requireLevel } from '@/game/levels/levels';
 import { orbColors, palette } from '@/theme/colors';
 
 /**
- * Base interaction lock (ms) after an accepted move — long enough for the orb
- * exit + reflow to read, short enough to feel responsive. A little longer when
- * a target completes or held orbs auto-resolve.
+ * Interaction lock (ms) after an accepted launch. Long enough for the charge
+ * flight + pixel sweep to read, short enough to stay responsive; a little
+ * longer when a lot clears or parked charges auto-relaunch.
  */
-const LOCK_BASE_MS = 190;
-const LOCK_RESOLVE_MS = 320;
+const LOCK_BASE_MS = 240;
+const LOCK_BIG_MS = 560;
 
 export interface GameSession {
   state: GameState;
-  /** True while a move is resolving visually — used to gate taps in the UI. */
   locked: boolean;
-  tap: (orbId: string) => void;
+  launch: (tunnelId: string) => void;
   restart: () => void;
-  /** Bumped every time the Core should pulse. */
+  /** Ordered ids of pixels cleared by the most recent move (stagger timing). */
+  clearSequence: string[];
+  flightSignal: number;
+  flightTunnel: number;
+  flightColor: string;
   pulseSignal: number;
-  pulseStrength: number;
-  flashColor: string;
+  pulseColor: string;
 }
 
 interface Options {
@@ -32,28 +34,26 @@ interface Options {
   onLose?: () => void;
 }
 
-interface PulseState {
-  signal: number;
-  strength: number;
-  color: string;
+function tunnelIndex(tunnelId: string): number {
+  const n = Number.parseInt(tunnelId.replace('tunnel-', ''), 10);
+  return Number.isFinite(n) ? n : 0;
 }
 
-const REST_PULSE: PulseState = { signal: 0, strength: 0.5, color: palette.coreGlow };
-
-/**
- * Owns a single level's engine state plus the (purely cosmetic) interaction
- * lock and pulse signal. The caller is expected to remount this hook when the
- * level changes (the game route keys `GameScreen` by level id), so there is no
- * level-change effect here.
- */
 export function useGameSession(levelId: number, options: Options = {}): GameSession {
   const level = useMemo(() => requireLevel(levelId), [levelId]);
   const [state, setState] = useState<GameState>(() => createGame(level));
   const [locked, setLocked] = useState(false);
-  const [pulse, setPulse] = useState<PulseState>(REST_PULSE);
+  const [clearSequence, setClearSequence] = useState<string[]>([]);
+  const [flight, setFlight] = useState<{
+    signal: number;
+    tunnel: number;
+    color: string;
+  }>({ signal: 0, tunnel: 0, color: palette.coreGlow });
+  const [pulse, setPulse] = useState<{ signal: number; color: string }>({
+    signal: 0,
+    color: palette.coreGlow,
+  });
 
-  // The engine state is the source of truth; this ref lets `tap` read the
-  // latest committed state without doing side effects inside a setState updater.
   const stateRef = useRef(state);
   const lockedRef = useRef(false);
   const lockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -62,11 +62,6 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
-
-  const setLockedBoth = useCallback((value: boolean) => {
-    lockedRef.current = value;
-    setLocked(value);
-  }, []);
 
   useEffect(() => {
     optionsRef.current = options;
@@ -79,56 +74,83 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     [],
   );
 
-  const firePulse = useCallback((strength: number, color: string) => {
-    setPulse((p) => ({ signal: p.signal + 1, strength, color }));
+  const setLockedBoth = useCallback((value: boolean) => {
+    lockedRef.current = value;
+    setLocked(value);
   }, []);
 
-  const tap = useCallback(
-    (orbId: string) => {
+  const launch = useCallback(
+    (tunnelId: string) => {
       if (lockedRef.current) return;
-
       const current = stateRef.current;
       if (current.status !== 'playing') return;
 
-      const outcome = resolveMove(current, orbId);
+      const outcome = resolveLaunch(current, tunnelId);
       if (!outcome.accepted) return;
 
       stateRef.current = outcome.state;
       setState(outcome.state);
 
-      const color = outcome.movedOrb?.color as OrbColor | undefined;
-      if (outcome.kind === 'core') {
-        haptics.absorb();
-        firePulse(0.5, color ? orbColors[color] : palette.coreGlow);
-      } else {
-        haptics.select();
+      const chargeColor = outcome.launchedCharge
+        ? orbColors[outcome.launchedCharge.color]
+        : palette.coreGlow;
+
+      const cleared = [
+        ...outcome.primaryClearedPixelIds,
+        ...outcome.autoResolutions.flatMap((r) => r.clearedPixelIds),
+      ];
+      setClearSequence(cleared);
+      setFlight((f) => ({
+        signal: f.signal + 1,
+        tunnel: tunnelIndex(tunnelId),
+        color: chargeColor,
+      }));
+
+      // Haptics — restrained, and pixel ticks are throttled inside `haptics`.
+      haptics.select();
+      if (cleared.length > 0) {
+        haptics.pixelClear();
+        setTimeout(() => haptics.pixelClear(), 130);
+      }
+      if (outcome.primaryConsumed && outcome.primaryClearedPixelIds.length > 0) {
+        haptics.chargeConsumed();
+      } else if (outcome.heldCharge) {
+        haptics.held();
+      }
+      if (outcome.autoResolutions.length > 0) {
+        haptics.reactivate();
+        setPulse((p) => ({ signal: p.signal + 1, color: palette.coreGlow }));
+      } else if (cleared.length > 0) {
+        setPulse((p) => ({ signal: p.signal + 1, color: chargeColor }));
+      }
+      if (
+        outcome.state.status === 'playing' &&
+        outcome.state.holding.length >= outcome.state.holdingCapacity - 1 &&
+        current.holding.length < outcome.state.holdingCapacity - 1
+      ) {
+        haptics.holdingCritical();
       }
 
-      const resolvedSomething =
-        outcome.autoResolved.length > 0 || outcome.completedTarget;
-      if (resolvedSomething) {
-        haptics.targetComplete();
-        firePulse(1, palette.coreGlow);
-      }
-
+      const heavy =
+        cleared.length >= 4 || outcome.autoResolutions.length > 0;
       setLockedBoth(true);
       if (lockTimer.current) clearTimeout(lockTimer.current);
       lockTimer.current = setTimeout(
         () => setLockedBoth(false),
-        resolvedSomething ? LOCK_RESOLVE_MS : LOCK_BASE_MS,
+        heavy ? LOCK_BIG_MS : LOCK_BASE_MS,
       );
 
       if (outcome.state.status === 'won') {
         haptics.win();
-        firePulse(1, palette.success);
+        setPulse((p) => ({ signal: p.signal + 1, color: palette.success }));
         optionsRef.current.onWin?.();
       } else if (outcome.state.status === 'lost') {
         haptics.fail();
-        firePulse(0.8, palette.danger);
+        setPulse((p) => ({ signal: p.signal + 1, color: palette.danger }));
         optionsRef.current.onLose?.();
       }
     },
-    [firePulse, setLockedBoth],
+    [setLockedBoth],
   );
 
   const restart = useCallback(() => {
@@ -138,16 +160,21 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     stateRef.current = fresh;
     setState(fresh);
     setLockedBoth(false);
-    setPulse(REST_PULSE);
+    setClearSequence([]);
+    setFlight({ signal: 0, tunnel: 0, color: palette.coreGlow });
+    setPulse({ signal: 0, color: palette.coreGlow });
   }, [level, setLockedBoth]);
 
   return {
     state,
     locked,
-    tap,
+    launch,
     restart,
+    clearSequence,
+    flightSignal: flight.signal,
+    flightTunnel: flight.tunnel,
+    flightColor: flight.color,
     pulseSignal: pulse.signal,
-    pulseStrength: pulse.strength,
-    flashColor: pulse.color,
+    pulseColor: pulse.color,
   };
 }

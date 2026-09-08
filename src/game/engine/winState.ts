@@ -1,4 +1,5 @@
-import { anyLaunchAvailable, holdingIsFull, remainingPixelCount } from './selectors';
+import { remainingPixelCount } from './pixels';
+import { anyLaunchAvailable, holdingIsFull } from './selectors';
 import type { GameState, GameStatus } from './types';
 
 /** Win: every pixel of the picture is cleared. */

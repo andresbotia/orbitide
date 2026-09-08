@@ -1,7 +1,4 @@
-import { reachablePixels, reachableTargets, remainingPixelCount } from './pixels';
 import type { Charge, GameState, OrbColor, TunnelState } from './types';
-
-export { reachablePixels, reachableTargets, remainingPixelCount };
 
 /** The visible front charge of a tunnel, or `null` when its queue is empty. */
 export function frontCharge(tunnel: TunnelState): Charge | null {

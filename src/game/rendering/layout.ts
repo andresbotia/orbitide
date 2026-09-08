@@ -8,105 +8,94 @@ export interface Point {
 export interface BoardLayout {
   size: number;
   center: Point;
-  coreRadius: number;
-  /** Radii of the concentric orbital guide rings (one per visible depth). */
-  ringRadii: number[];
-  orbRadius: number;
-  laneCount: number;
+  /** Pixel-art cell edge length. */
+  cell: number;
+  /** Top-left of the pixel-art grid, in board coordinates. */
+  gridOrigin: Point;
+  gridWidth: number;
+  gridHeight: number;
+  /** Radii of the two elliptical orbital guides. */
+  orbit: { rx: number; ry: number }[];
+  /** Anchor points for the three Launch Tunnels, around the orbit. */
+  tunnelAnchors: Point[];
+  /** Radius used for the traveling charge token. */
+  chargeRadius: number;
 }
 
-/** Guide rings drawn / depths positioned without clamping. */
-const VISIBLE_DEPTH = 4;
-/** Centre-to-centre ring spacing as a multiple of the orb radius. */
-const RING_GAP = 2.35;
-/** Core-edge-to-first-ring spacing as a multiple of the orb radius. */
-const CORE_GAP = 2.4;
+const TUNNEL_ANGLES = [
+  Math.PI / 2, // bottom  (6 o'clock)
+  Math.PI - Math.PI / 5, // lower-left
+  Math.PI / 5, // lower-right
+];
 
-/**
- * Geometry for a square board. Orb radius is derived from the available radial
- * space so that orbs in the same lane never overlap, down to {@link VISIBLE_DEPTH}.
- */
-export function computeBoardLayout(size: number, laneCount: number): BoardLayout {
+/** Geometry for a square board rendering a `cols x rows` picture. */
+export function computeBoardLayout(
+  size: number,
+  cols: number,
+  rows: number,
+): BoardLayout {
   const center = { x: size / 2, y: size / 2 };
-  const outerPadding = size * 0.04;
-  const coreRadius = size * 0.1;
-  const usableRadius = size / 2 - outerPadding;
-
-  // usableRadius = coreRadius + CORE_GAP*r + (VISIBLE_DEPTH-1)*RING_GAP*r + r
-  const denom = CORE_GAP + (VISIBLE_DEPTH - 1) * RING_GAP + 1;
-  const orbRadius = Math.max(
-    9,
-    Math.min(22, (usableRadius - coreRadius) / denom),
+  const maxGrid = size * 0.52;
+  const cell = Math.max(
+    6,
+    Math.floor(Math.min(maxGrid / Math.max(1, cols), maxGrid / Math.max(1, rows))),
   );
+  const gridWidth = cell * cols;
+  const gridHeight = cell * rows;
+  const gridOrigin = {
+    x: center.x - gridWidth / 2,
+    y: center.y - gridHeight / 2,
+  };
 
-  const firstRing = coreRadius + CORE_GAP * orbRadius;
-  const ringRadii = Array.from(
-    { length: VISIBLE_DEPTH },
-    (_, i) => firstRing + i * RING_GAP * orbRadius,
+  const outer = size * 0.47;
+  const inner = Math.max(
+    Math.hypot(gridWidth, gridHeight) / 2 + cell * 0.9,
+    outer * 0.7,
   );
+  const orbit = [
+    { rx: outer, ry: outer * 0.9 },
+    { rx: inner, ry: inner * 0.9 },
+  ];
+
+  const tunnelAnchors = TUNNEL_ANGLES.map((a) => ({
+    x: center.x + Math.cos(a) * orbit[0]!.rx,
+    y: center.y + Math.sin(a) * orbit[0]!.ry,
+  }));
 
   return {
     size,
     center,
-    coreRadius,
-    ringRadii,
-    orbRadius,
-    laneCount: Math.max(1, laneCount),
+    cell,
+    gridOrigin,
+    gridWidth,
+    gridHeight,
+    orbit,
+    tunnelAnchors,
+    chargeRadius: Math.max(7, cell * 0.55),
   };
 }
 
-/** Angle (radians) of a lane's spoke. Lane 0 points straight up. */
-export function laneAngle(laneIndex: number, laneCount: number): number {
-  return -Math.PI / 2 + (laneIndex * 2 * Math.PI) / Math.max(1, laneCount);
-}
-
-/**
- * Screen position of the orb at `depth` (0 = exposed) in `laneIndex`.
- * Depths beyond the last guide ring continue outward at the ring spacing.
- */
-export function orbPosition(
-  layout: BoardLayout,
-  laneIndex: number,
-  depth: number,
-): Point {
-  const angle = laneAngle(laneIndex, layout.laneCount);
-  const lastRing = layout.ringRadii[layout.ringRadii.length - 1] ?? 0;
-  const radius =
-    depth < layout.ringRadii.length
-      ? (layout.ringRadii[depth] ?? lastRing)
-      : lastRing + (depth - layout.ringRadii.length + 1) * RING_GAP * layout.orbRadius;
+/** Board-space centre of pixel-art cell (x, y). */
+export function cellCenter(layout: BoardLayout, x: number, y: number): Point {
   return {
-    x: layout.center.x + Math.cos(angle) * radius,
-    y: layout.center.y + Math.sin(angle) * radius,
+    x: layout.gridOrigin.x + x * layout.cell + layout.cell / 2,
+    y: layout.gridOrigin.y + y * layout.cell + layout.cell / 2,
   };
 }
 
-export interface PositionedOrb {
-  id: string;
-  color: GameState['lanes'][number][number]['color'];
-  laneIndex: number;
-  depth: number;
-  point: Point;
-  isExposed: boolean;
+/** Point on the outer orbit at a given angle (radians). */
+export function orbitPoint(layout: BoardLayout, angle: number): Point {
+  return {
+    x: layout.center.x + Math.cos(angle) * layout.orbit[0]!.rx,
+    y: layout.center.y + Math.sin(angle) * layout.orbit[0]!.ry,
+  };
 }
 
-/** Flatten the lanes of a game state into positioned, drawable orbs. */
-export function layoutOrbs(
-  state: GameState,
-  layout: BoardLayout,
-): PositionedOrb[] {
-  const orbs: PositionedOrb[] = [];
-  state.lanes.forEach((lane, laneIndex) => {
-    lane.forEach((orb, depth) => {
-      orbs.push({
-        id: orb.id,
-        color: orb.color,
-        laneIndex,
-        depth,
-        point: orbPosition(layout, laneIndex, depth),
-        isExposed: depth === 0,
-      });
-    });
-  });
-  return orbs;
+export interface PositionedPixel {
+  id: string;
+  color: GameState['pixels'][number]['color'];
+  x: number;
+  y: number;
+  center: Point;
+  reachable: boolean;
 }
