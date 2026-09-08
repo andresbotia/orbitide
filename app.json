@@ -10,7 +10,8 @@
     "backgroundColor": "#05060A",
     "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.andresbotia.orbitide"
     },
     "android": {
       "adaptiveIcon": {
