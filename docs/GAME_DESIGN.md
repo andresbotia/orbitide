@@ -1,3 +1,5 @@
+> Historical design document. Current implemented M1 interaction rules and validation are in [M1_INTERACTION_REVAMP.md](M1_INTERACTION_REVAMP.md).
+
 # ORBITIDE — Game Design Baseline
 
 ## Fantasy

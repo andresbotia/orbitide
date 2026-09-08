@@ -6,3 +6,5 @@ export * from './selectors';
 export * from './resolveHolding';
 export * from './resolveLaunch';
 export * from './winState';
+export * from './pass';
+export * from './actions';

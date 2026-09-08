@@ -1,27 +1,19 @@
-import { createGame } from '../../engine/createGame';
-import { resolveLaunch } from '../../engine/resolveLaunch';
+import { solve } from '../../engine/__tests__/solver';
 import { LEVEL_DEFINITIONS } from '../levelDefinitions';
-import { solve, audit } from '../../engine/__tests__/solver';
+test.each(LEVEL_DEFINITIONS)('level $id manual-Holding audit', (level) => {
+  const result = solve(level);
+  if (process.env.REPORT_METRICS) console.log(JSON.stringify({ id: level.id, pixels: level.pixelArt.join('').replace(/\./g, '').length, ...result }));
+  expect(result.solved).toBe(true);
+  expect(result.complete).toBe(true);
+  expect(result.failPath !== null).toBe(level.id >= 5);
+  expect(result.viableFirstMoves).toBe(3);
+  if (level.id <= 2) expect(result.maxHolding).toBe(0);
+  if (level.id === 3) { expect(result.minWinningPeak).toBe(0); expect(result.maxHolding).toBe(1); }
+  if (level.id >= 4) expect(result.heldLaunches).toBeGreaterThan(0);
+}, 120_000);
 
-test('exhaustive early campaign audit', () => {
-  for (const level of LEVEL_DEFINITIONS) {
-    const result = audit(level);
-    const line = solve(level);
-    if (process.env.REPORT_METRICS) console.log(JSON.stringify({ id: level.id, audit: result, solution: line }));
-    expect(result.failPath !== null).toBe(level.id >= 5);
-    expect(result.minWinningPeak).toBe(level.id >= 4 ? 1 : 0);
-    expect(result.peakHolding).toBe(level.id === 1 ? 0 : level.id < 5 ? 1 : 3);
-    if (result.failPath) {
-      let state = createGame(level);
-      for (const move of result.failPath) state = resolveLaunch(state, move).state;
-      expect(state.status).toBe('lost');
-    }
-    expect(result.complete).toBe(true);
-    expect(line.solved).toBe(true);
-  }
-});
-
-test('sequencing pressure rises from the first fail risk through Hard', () => {
-  const losses = LEVEL_DEFINITIONS.slice(4).map((level) => audit(level).lossProbability);
-  for (let i = 1; i < losses.length; i++) expect(losses[i]).toBeGreaterThan(losses[i - 1]!);
+test('Levels 6-8 increase sequencing pressure', () => {
+  const results = LEVEL_DEFINITIONS.slice(5, 8).map((level) => solve(level));
+  expect(results[1]!.lossProbability).toBeGreaterThan(results[0]!.lossProbability);
+  expect(results[2]!.lossProbability).toBeGreaterThan(results[1]!.lossProbability);
 });

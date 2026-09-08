@@ -1,49 +1,51 @@
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 import { StyleSheet } from 'react-native';
-import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-
-import { FEEL } from '@/game/presentation/constants';
-import type { EnergyShot as Shot } from '@/game/presentation/events';
+import Animated, { useAnimatedStyle, useDerivedValue, type SharedValue } from 'react-native-reanimated';
+import type { FlightPass, Shot } from '@/game/presentation/events';
 import { orbColors } from '@/theme/colors';
-import { orbitPoint, type BoardLayout, type Point } from './layout';
-
-/** A pass-scoped visual only: removal and capacity are driven by the script. */
-export const EnergyShot = memo(function EnergyShot({ shot, layout, target }: {
-  shot: Shot; layout: BoardLayout; target: Point;
+import type { BoardLayout } from './layout';
+import { flightPosition } from './flightGeometry';
+/** Exactly two views per pass; the active shot is selected entirely on the UI thread. */
+export const EnergyShot = memo(function EnergyShot({ pass, layout, clock }: {
+  pass: FlightPass; layout: BoardLayout; clock: SharedValue<number>;
 }) {
-  const clock = useSharedValue(0);
-  const from = orbitPoint(layout, shot.originFraction * Math.PI * 2 - Math.PI / 2);
-  const angle = Math.atan2(target.y - from.y, target.x - from.x);
-  const length = Math.min(14, layout.cell * 0.65);
-  useEffect(() => {
-    clock.value = 0;
-    clock.value = withTiming(FEEL.ENERGY_SHOT_DURATION, {
-      duration: FEEL.ENERGY_SHOT_DURATION, easing: Easing.linear,
-    });
-    return () => cancelAnimation(clock);
-  }, [clock]);
-  const streak = useAnimatedStyle(() => {
-    const p = Math.min(1, clock.value / FEEL.ENERGY_TRAVEL_DURATION);
-    return {
-      opacity: clock.value < FEEL.ENERGY_TRAVEL_DURATION ? 0.95 : 0,
-      transform: [
-        { translateX: from.x + (target.x - from.x) * p - length / 2 },
-        { translateY: from.y + (target.y - from.y) * p - 1.5 },
-        { rotate: `${angle}rad` },
-      ],
-    };
+  const active = useDerivedValue(() => {
+    let current: Shot | null = null;
+    for (const shot of pass.shots) {
+      if (clock.value < shot.anticipateAt) break;
+      current = shot;
+    }
+    return current;
   });
-  const flash = useAnimatedStyle(() => ({
-    opacity: clock.value >= FEEL.ENERGY_TRAVEL_DURATION ? 0.85 : 0,
-    transform: [{ scale: 1 + 0.08 * Math.max(0, (clock.value - FEEL.ENERGY_TRAVEL_DURATION) / 25) }],
-  }));
+  const length = Math.min(14, layout.cell * 0.7);
+  const streak = useAnimatedStyle(() => {
+    const shot = active.value;
+    if (!shot) return { opacity: 0 };
+    const from = flightPosition(pass, layout, shot.fireAt);
+    const target = { x: layout.gridOrigin.x + (shot.target.x + 0.5) * layout.cell,
+      y: layout.gridOrigin.y + (shot.target.y + 0.5) * layout.cell };
+    const angle = Math.atan2(target.y - from.y, target.x - from.x);
+    const t = clock.value;
+    const p = Math.max(0, Math.min(1, (t - shot.fireAt) / (shot.impactAt - shot.fireAt)));
+    return { opacity: t >= shot.fireAt && t < shot.impactAt ? 1 : 0,
+      transform: [{ translateX: from.x + (target.x - from.x) * p - length / 2 },
+        { translateY: from.y + (target.y - from.y) * p - 1.5 }, { rotate: `${angle}rad` }] };
+  });
+  const flash = useAnimatedStyle(() => {
+    const shot = active.value;
+    if (!shot) return { opacity: 0 };
+    const t = clock.value;
+    const pop = Math.max(0, Math.min(1, (t - shot.clearAt) / 100));
+    return { opacity: t < shot.impactAt ? 0.35 : (1 - pop) * 0.9,
+      transform: [{ translateX: layout.gridOrigin.x + shot.target.x * layout.cell },
+        { translateY: layout.gridOrigin.y + shot.target.y * layout.cell },
+        { scale: t < shot.clearAt ? 1.06 : 1.06 + pop * 0.7 }] };
+  });
   return <>
     <Animated.View pointerEvents="none" style={[styles.effect,
-      { width: length, height: 3, borderRadius: 2, backgroundColor: orbColors[shot.color] }, streak]} />
+      { width: length, height: 3, borderRadius: 2, backgroundColor: orbColors[pass.charge.color] }, streak]} />
     <Animated.View pointerEvents="none" style={[styles.effect, {
-      left: target.x - layout.cell / 2, top: target.y - layout.cell / 2,
-      width: layout.cell, height: layout.cell, borderRadius: 3,
-      borderWidth: 2, borderColor: '#FFFFFF', backgroundColor: '#FFFFFF55',
+      width: layout.cell, height: layout.cell, borderRadius: 3, borderWidth: 2, borderColor: '#FFFFFF',
     }, flash]} />
   </>;
 });

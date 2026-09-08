@@ -1,216 +1,64 @@
 import { createGame } from '@/game/engine/createGame';
 import { resolveLaunch } from '@/game/engine/resolveLaunch';
 import type { LevelDefinition } from '@/game/engine/types';
-
 import { buildLaunchScript } from '../buildScript';
 import { FEEL } from '../constants';
-import type { PresentationEvent } from '../events';
-
-function ofKind<K extends PresentationEvent['kind']>(
-  events: PresentationEvent[],
-  kind: K,
-) {
-  return events.filter((e): e is Extract<PresentationEvent, { kind: K }> => e.kind === kind);
-}
-
-const ringLevel: LevelDefinition = {
-  id: 800,
-  title: 'T',
-  themeId: 't',
-  difficulty: 'easy',
-  holdingCapacity: 3,
-  // green shell, blue centre
-  pixelArt: ['GGGGG', 'G...G', 'G.B.G', 'G...G', 'GGGGG'],
-  tunnels: [
-    [{ color: 'green', capacity: 16 }, { color: 'blue', capacity: 1 }],
-    [{ color: 'blue', capacity: 1 }],
-    [{ color: 'green', capacity: 20 }],
-  ],
+import { capacityAt, eventCountAt, progressAt } from '../motion';
+import { computeBoardLayout } from '@/game/rendering/layout';
+import { flightPosition } from '@/game/rendering/flightGeometry';
+const level: LevelDefinition = { id: 800, title: 'Timeline', themeId: 'test', difficulty: 'easy', holdingCapacity: 3,
+  pixelArt: ['WWWWW','WWWWW','WWWWW','WWWWW','WWWWW'],
+  tunnels: [[{ color: 'white', capacity: 25 }],[{ color: 'blue', capacity: 1 }],[]],
 };
-
-describe('buildLaunchScript', () => {
-  it('starts with a launch event at t=0 and returns events sorted by time', () => {
-    const s = createGame(ringLevel);
-    const outcome = resolveLaunch(s, 'tunnel-0'); // green:16 clears the shell
-    const script = buildLaunchScript(outcome, s);
-
-    expect(script.events[0]).toMatchObject({ kind: 'launch', at: 0 });
-    for (let i = 1; i < script.events.length; i += 1) {
-      expect(script.events[i]!.at).toBeGreaterThanOrEqual(script.events[i - 1]!.at);
-    }
-  });
-
-  it('stages one pixelClear per cleared pixel with a decreasing counter', () => {
-    const s = createGame(ringLevel);
-    const outcome = resolveLaunch(s, 'tunnel-0');
-    const script = buildLaunchScript(outcome, s);
-    const pops = ofKind(script.events, 'pixelClear');
-
-    expect(pops).toHaveLength(outcome.primaryClearedPixelIds.length);
-    const cap = outcome.launchedCharge!.capacity;
-    pops.forEach((p, i) => expect(p.remaining).toBe(cap - (i + 1)));
-    // every cleared pixel id is represented exactly once
-    expect(new Set(pops.map((p) => p.pixelId))).toEqual(
-      new Set(outcome.primaryClearedPixelIds),
-    );
-  });
-
-  it('spaces consecutive pixel pops by at least PIXEL_CLEAR_INTERVAL', () => {
-    const s = createGame(ringLevel);
-    const outcome = resolveLaunch(s, 'tunnel-0');
-    const pops = ofKind(buildLaunchScript(outcome, s).events, 'pixelClear');
-    for (let i = 1; i < pops.length; i += 1) {
-      expect(pops[i]!.at - pops[i - 1]!.at).toBeGreaterThanOrEqual(
-        FEEL.PIXEL_CLEAR_INTERVAL - 1e-6,
-      );
-    }
-  });
-
-  it('a consumed charge bursts and never lands in Holding', () => {
-    const s = createGame(ringLevel);
-    const outcome = resolveLaunch(s, 'tunnel-0'); // green:16 fully consumed
-    expect(outcome.primaryConsumed).toBe(true);
-    const script = buildLaunchScript(outcome, s);
-    expect(ofKind(script.events, 'chargeConsumed')).toHaveLength(1);
-    expect(ofKind(script.events, 'holdingLanded')).toHaveLength(0);
-  });
-
-  it('a leftover charge moves to and lands in Holding', () => {
-    const level: LevelDefinition = {
-      ...ringLevel,
-      id: 801,
-      tunnels: [
-        [{ color: 'green', capacity: 20 }], // 16 shell -> 4 leftover
-        [{ color: 'blue', capacity: 1 }],
-        [{ color: 'green', capacity: 4 }],
-      ],
-    };
-    const s = createGame(level);
-    const outcome = resolveLaunch(s, 'tunnel-0');
-    expect(outcome.primaryConsumed).toBe(false);
-    const script = buildLaunchScript(outcome, s);
-
-    expect(ofKind(script.events, 'moveToHolding')).toHaveLength(1);
-    const landed = ofKind(script.events, 'holdingLanded');
-    expect(landed).toHaveLength(1);
-    expect(landed[0]!.charge.capacity).toBe(4);
-    // landing happens after the orbit
-    const orbitEnter = ofKind(script.events, 'orbitEnter')[0]!;
-    expect(landed[0]!.at).toBeGreaterThan(orbitEnter.at);
-  });
-
-  it('stages held-charge auto-resolutions after the primary pass, in order', () => {
-    const level: LevelDefinition = {
-      id: 802,
-      title: 'T',
-      themeId: 't',
-      difficulty: 'easy',
-      holdingCapacity: 3,
-      // blue shell / green ring / red core
-      pixelArt: ['BBBBB', 'BGGGB', 'BGRGB', 'BGGGB', 'BBBBB'],
-      tunnels: [
-        [{ color: 'red', capacity: 1 }, { color: 'green', capacity: 8 }],
-        [{ color: 'blue', capacity: 16 }],
-        [{ color: 'green', capacity: 8 }],
-      ],
-    };
-    let s = createGame(level);
-    s = resolveLaunch(s, 'tunnel-0').state; // park red
-    s = resolveLaunch(s, 'tunnel-2').state; // park green:8
-    const prev = s;
-    const outcome = resolveLaunch(s, 'tunnel-1'); // blue:16 -> green then red auto-resolve
-    expect(outcome.autoResolutions.map((r) => r.color)).toEqual(['green', 'red']);
-
-    const script = buildLaunchScript(outcome, prev);
-    const react = ofKind(script.events, 'heldReactivate');
-    expect(react).toHaveLength(2);
-    // both reactivations occur after the primary pass's own pops
-    const lastPrimaryPop = Math.max(
-      ...ofKind(script.events, 'pixelClear')
-        .filter((p) => outcome.primaryClearedPixelIds.includes(p.pixelId))
-        .map((p) => p.at),
-    );
-    for (const r of react) expect(r.at).toBeGreaterThan(lastPrimaryPop);
-    expect(script.events.at(-1)).toMatchObject({ kind: 'win' });
-  });
-
-  it('emits a win event and totalMs past it when the level is solved', () => {
-    const level: LevelDefinition = {
-      ...ringLevel,
-      id: 803,
-      pixelArt: ['GGG', 'GGG', 'GGG'],
-      tunnels: [
-        [{ color: 'green', capacity: 9 }],
-        [{ color: 'green', capacity: 1 }],
-        [{ color: 'green', capacity: 1 }],
-      ],
-    };
-    const s = createGame(level);
-    const outcome = resolveLaunch(s, 'tunnel-0');
-    expect(outcome.state.status).toBe('won');
-    const script = buildLaunchScript(outcome, s);
-    const win = ofKind(script.events, 'win');
-    expect(win).toHaveLength(1);
-    expect(script.totalMs).toBeGreaterThan(win[0]!.at);
-  });
-
-  it('deferredPixelIds is exactly the set of pixels the script clears', () => {
-    const s = createGame(ringLevel);
-    const outcome = resolveLaunch(s, 'tunnel-0');
-    const script = buildLaunchScript(outcome, s);
-    const fromEvents = new Set(
-      ofKind(script.events, 'pixelClear').map((p) => p.pixelId),
-    );
-    expect(new Set(script.deferredPixelIds)).toEqual(fromEvents);
-  });
-
-  it('the flight pass covers at least one full lap', () => {
-    const s = createGame(ringLevel);
-    const script = buildLaunchScript(resolveLaunch(s, 'tunnel-0'), s);
-    const flight = ofKind(script.events, 'flightStart')[0]!;
-    expect(flight.pass.sweepTurns).toBeGreaterThanOrEqual(1);
-    expect(flight.pass.endKind).toBe('burst');
-    expect(script.totalMs).toBeGreaterThanOrEqual(
-      FEEL.LAUNCH_DURATION + FEEL.ORBIT_DURATION,
-    );
-  });
-});
-
-
-test('every shot precedes its clear by 100ms in the exact engine order, including Holding', () => {
-  let state = createGame({ ...ringLevel, tunnels: [
-    [{ color: 'green', capacity: 16 }], [{ color: 'blue', capacity: 1 }], [],
-  ] });
-  state = resolveLaunch(state, 'tunnel-1').state;
+function script() { const state = createGame(level); return buildLaunchScript(resolveLaunch(state, 'tunnel-0'), state).pass; }
+test('script consumes exact engine encounters with no reordering or new target decisions', () => {
+  const state = createGame(level);
   const result = resolveLaunch(state, 'tunnel-0');
-  const script = buildLaunchScript(result, state);
-  const pops = ofKind(script.events, 'pixelClear');
-  const shots = ofKind(script.events, 'energyShot');
-  expect(pops.map((p) => p.pixelId)).toEqual([
-    ...result.primaryClearedPixelIds, ...result.autoResolutions.flatMap((r) => r.clearedPixelIds),
-  ]);
-  expect(shots).toHaveLength(pops.length);
-  shots.forEach((shot, i) => {
-    const pop = pops[i]!;
-    expect(pop.pixelId).toBe(shot.pixelId);
-    expect(pop.passId).toBe(shot.passId);
-    expect(pop.at - shot.at).toBeCloseTo(100);
-    const start = ofKind(script.events, 'flightStart').find((e) => e.pass.passId === shot.passId)!;
-    expect(shot.at).toBeGreaterThanOrEqual(start.at + start.pass.liftMs);
-    // The streak leaves the charge's actual orbit position at dispatch, even
-    // when cadence pushes it beyond the target's nearest encounter.
-    expect(shot.originFraction).toBeCloseTo(start.pass.entryFraction +
-      (shot.at - start.at - start.pass.liftMs) / 1800);
-  });
-  expect(buildLaunchScript(result, state)).toEqual(script);
+  const pass = buildLaunchScript(result, state).pass;
+  expect(pass.shots.map((s) => s.pixelId)).toEqual(result.pass!.encounters.map((e) => e.pixelId));
+  expect(pass.shots.map((s) => s.progress)).toEqual(result.pass!.encounters.map((e) => e.progress));
+  expect(buildLaunchScript(result, state)).toEqual(buildLaunchScript(result, state));
 });
-
-test('dense clears never outlive their flight or overlap a following pass', () => {
-  const state = createGame({ ...ringLevel, pixelArt: ['G'.repeat(64)],
-    tunnels: [[{ color: 'green', capacity: 64 }], [], []] });
-  const script = buildLaunchScript(resolveLaunch(state, 'tunnel-0'), state);
-  const lastPop = ofKind(script.events, 'pixelClear').at(-1)!;
-  const consumed = ofKind(script.events, 'chargeConsumed')[0]!;
-  expect(consumed.at).toBeGreaterThan(lastPop.at);
-  expect(script.totalMs).toBeGreaterThan(consumed.at);
+test('every shot holds the orb at contact and uses its actual rendered position', () => {
+  const pass = script();
+  const layout = computeBoardLayout(358, 5, 5);
+  for (const shot of pass.shots) {
+    expect(shot.fireAt - shot.anticipateAt).toBe(20);
+    expect(shot.impactAt - shot.fireAt).toBe(80);
+    expect(shot.clearAt - shot.impactAt).toBe(10);
+    expect(progressAt(pass, shot.fireAt)).toBe(shot.progress);
+    const source = flightPosition(pass, layout, shot.fireAt);
+    expect(flightPosition(pass, layout, shot.anticipateAt)).toEqual(source);
+    expect(flightPosition(pass, layout, shot.impactAt)).toEqual(source);
+    expect(capacityAt(pass, shot.clearAt - 0.01)).toBe(shot.remaining + 1);
+    expect(capacityAt(pass, shot.clearAt)).toBe(shot.remaining);
+  }
+});
+test('same-angle shots stay at the same source and maintain 110ms minimum clear spacing', () => {
+  const pass = script();
+  expect(pass.shots[0]!.progress).toBe(pass.shots[1]!.progress);
+  for (let i = 1; i < pass.shots.length; i++) {
+    expect(pass.shots[i]!.clearAt - pass.shots[i-1]!.clearAt).toBeGreaterThanOrEqual(110 - 1e-8);
+  }
+  expect(pass.orbitEndAt).toBeGreaterThanOrEqual(pass.shots.at(-1)!.clearAt - 1e-8);
+});
+test('a miss takes exactly one 1800ms moving lap then lands, without any automatic second pass', () => {
+  const state = createGame(level);
+  const pass = buildLaunchScript(resolveLaunch(state, 'tunnel-1'), state).pass;
+  expect(pass.shots).toEqual([]);
+  expect(pass.orbitEndAt - pass.liftMs).toBe(FEEL.ORBIT_DURATION);
+  expect(pass.endKind).toBe('toHolding');
+  expect(pass.events.filter((e) => e.kind === 'holdingLanded')).toHaveLength(1);
+});
+test('events are sorted, counted at exact boundaries, and complete after landing/result', () => {
+  const pass = script();
+  for (let i = 1; i < pass.events.length; i++) expect(pass.events[i]!.at).toBeGreaterThanOrEqual(pass.events[i-1]!.at);
+  expect(eventCountAt(pass, 0)).toBe(0);
+  expect(eventCountAt(pass, pass.totalMs)).toBe(pass.events.length);
+  expect(pass.events.at(-1)!.kind).toBe('complete');
+  expect(pass.totalMs).toBeGreaterThan(pass.landingAt);
+});
+test('rejected actions cannot produce a visual flight', () => {
+  const state = createGame(level);
+  expect(() => buildLaunchScript(resolveLaunch(state, 'missing'), state)).toThrow('rejected');
 });

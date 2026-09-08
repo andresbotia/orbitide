@@ -1,4 +1,4 @@
-import { clockwiseGap } from './orbit';
+import { clockwiseGap, ORBIT_ENTRY_FRACTION } from './orbit';
 import type { GameState, OrbColor, Pixel } from './types';
 
 /**
@@ -83,13 +83,13 @@ export function reachablePixels(state: GameState): Pixel[] {
 }
 
 /**
- * Clockwise orbital ordering key, starting from the charge's entry (default: 12 o'clock). Lower sorts first.
+ * Clockwise orbital ordering key, starting from the charge's entry (default: bottom-centre). Lower sorts first.
  * Ties on angle are broken by larger radius first (outer pixels clear first),
  * then by pixel id for total determinism.
  */
 export function clearOrder(
   state: Pick<GameState, 'width' | 'height'>,
-  entryFraction = 0,
+  entryFraction = ORBIT_ENTRY_FRACTION,
 ): (a: Pixel, b: Pixel) => number {
   const { cx, cy } = pictureCenter(state);
   const angleOf = (p: Pixel) => clockwiseGap(entryFraction, pixelEncounterFraction(state, p, entryFraction));
@@ -124,9 +124,9 @@ export function pixelAngleFraction(
 
 /**
  * Reachable pixels of a given color, already sorted in the deterministic clear
- * order. This is exactly the list a charge of that color would eat into.
+ * order. This is a current-exposure query; a pass rechecks exposure after each clear.
  */
-export function reachableTargets(state: GameState, color: OrbColor, entryFraction = 0): Pixel[] {
+export function reachableTargets(state: GameState, color: OrbColor, entryFraction = ORBIT_ENTRY_FRACTION): Pixel[] {
   return reachablePixels(state)
     .filter((p) => p.color === color)
     .sort(clearOrder(state, entryFraction));
@@ -136,33 +136,6 @@ export function remainingPixelCount(state: GameState): number {
   let n = 0;
   for (const p of state.pixels) if (!p.cleared) n += 1;
   return n;
-}
-
-export interface ChargePassResult {
-  /** Ids of pixels cleared by this pass, in the order they were cleared. */
-  clearedPixelIds: string[];
-}
-
-/**
- * Run one charge pass against the board: clear up to `capacity` reachable
- * pixels of `color`, in the deterministic clear order. **Mutates** `state.pixels`
- * (sets `cleared`), so callers pass a working copy. Returns the cleared ids.
- */
-export function applyChargePass(
-  state: GameState,
-  color: OrbColor,
-  capacity: number,
-  entryFraction = 0,
-): ChargePassResult {
-  if (capacity <= 0) return { clearedPixelIds: [] };
-  const targets = reachableTargets(state, color, entryFraction).slice(0, capacity);
-  const targetIds = new Set(targets.map((p) => p.id));
-  if (targetIds.size === 0) return { clearedPixelIds: [] };
-
-  for (const pixel of state.pixels) {
-    if (targetIds.has(pixel.id)) pixel.cleared = true;
-  }
-  return { clearedPixelIds: targets.map((p) => p.id) };
 }
 
 /** Nearest point on a circular orbit; a centre pixel is equally near at entry. */

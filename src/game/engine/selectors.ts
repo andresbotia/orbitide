@@ -1,3 +1,4 @@
+import { actionRejection } from './actions';
 import type { Charge, GameState, OrbColor, TunnelState } from './types';
 
 /** The visible front charge of a tunnel, or `null` when its queue is empty. */
@@ -27,9 +28,7 @@ export function findTunnel(
 
 /** Whether tapping `tunnelId` right now is a legal move. */
 export function isTunnelSelectable(state: GameState, tunnelId: string): boolean {
-  if (state.status !== 'playing') return false;
-  const tunnel = findTunnel(state, tunnelId);
-  return !!tunnel && tunnel.queue.length > 0;
+  return actionRejection(state, { kind: 'tunnel', id: tunnelId }) === null;
 }
 
 /** Whether any tunnel still has a charge to launch. */

@@ -1,206 +1,45 @@
-import { clockwiseGap, HELD_ENTRY_FRACTION } from '../engine/orbit';
-import { pixelEncounterFraction } from '@/game/engine/pixels';
 import type { LaunchOutcome } from '@/game/engine/resolveLaunch';
-import type { Charge, GameState, OrbColor } from '@/game/engine/types';
+import type { GameState } from '@/game/engine/types';
+import { FEEL } from './constants';
+import type { FlightPass, Point, PresentationScript, PlaybackEvent } from './events';
 
-import { FEEL, TUNNEL_ENTRY_FRACTION } from './constants';
-import type { FlightPass, PresentationEvent, PresentationScript } from './events';
-
-const BURST_MS = 190;
-
-interface PassInput {
-  startAt: number;
-  origin: 'tunnel' | 'holding';
-  tunnelIndex: number;
-  entryFraction: number;
-  liftMs: number;
-  color: OrbColor;
-  startCapacity: number;
-  clearedPixelIds: string[];
-  consumed: boolean;
-}
-
-interface PassOutput {
-  events: PresentationEvent[];
-  /** When this pass (including any holding landing) is fully done. */
-  endAt: number;
-  /** Clock time the orbit portion ends (used to place the next thing). */
-  orbitEndAt: number;
-}
-
-function schedulePass(
-  input: PassInput,
-  state: Pick<GameState, 'width' | 'height' | 'pixels'>,
-  passId: number,
-): PassOutput {
-  const events: PresentationEvent[] = [];
-  const orbitStartAt = input.startAt + input.liftMs;
-
-  // Preserve the engine's exact ordered selection; presentation never re-sorts.
-  const byArrival = input.clearedPixelIds.map((id) => {
-    const pixel = state.pixels.find((p) => p.id === id);
-    if (!pixel) throw new Error(`Unknown cleared pixel: ${id}`);
-    return { id, offset: clockwiseGap(input.entryFraction, pixelEncounterFraction(state, pixel, input.entryFraction)) };
+export function buildLaunchScript(outcome: LaunchOutcome, prevState: GameState,
+  passId = 1, from?: Point, holdingTarget?: Point): PresentationScript {
+  if (!outcome.accepted || !outcome.pass || !outcome.launchedCharge) throw new Error('Cannot present a rejected action');
+  const chargePass = outcome.pass;
+  const shots = chargePass.encounters.map((encounter, i) => {
+    const target = prevState.pixels.find((p) => p.id === encounter.pixelId);
+    if (!target) throw new Error(`Unknown target ${encounter.pixelId}`);
+    const anticipateAt = FEEL.LAUNCH_DURATION + encounter.progress * FEEL.ORBIT_DURATION + i * FEEL.PIXEL_CLEAR_INTERVAL;
+    const fireAt = anticipateAt + FEEL.ANTICIPATION_DURATION;
+    const impactAt = fireAt + FEEL.ENERGY_TRAVEL_DURATION;
+    return { ...encounter, target: { x: target.x, y: target.y }, anticipateAt, fireAt, impactAt,
+      clearAt: impactAt + FEEL.IMPACT_DURATION };
   });
-
-  let lastPopAt = orbitStartAt;
-  byArrival.forEach((entry, k) => {
-    const wanted = orbitStartAt + entry.offset * FEEL.ORBIT_DURATION;
-    const spaced = k === 0 ? orbitStartAt : lastPopAt + FEEL.PIXEL_CLEAR_INTERVAL;
-    const at = Math.max(wanted + FEEL.ENERGY_SHOT_DURATION, spaced, orbitStartAt + FEEL.ENERGY_SHOT_DURATION);
-    const shotAt = at - FEEL.ENERGY_SHOT_DURATION;
-    events.push({ kind: 'energyShot', at: shotAt, passId, pixelId: entry.id,
-      color: input.color, originFraction: input.entryFraction + (shotAt - orbitStartAt) / FEEL.ORBIT_DURATION });
-    lastPopAt = at;
-    events.push({
-      kind: 'pixelClear',
-      passId,
-      at,
-      pixelId: entry.id,
-      remaining: input.startCapacity - (k + 1),
-    });
-  });
-
-  const minOrbitEnd = orbitStartAt + FEEL.ORBIT_DURATION;
-  const coastEnd =
-    (byArrival.length > 0 ? lastPopAt : orbitStartAt) +
-    FEEL.ORBIT_DURATION * FEEL.ORBIT_TAIL_FRACTION;
-  const orbitEndAt = Math.max(minOrbitEnd, coastEnd);
-  const orbitMs = orbitEndAt - orbitStartAt;
-
-  const pass: FlightPass = {
-    passId,
-    origin: input.origin,
-    tunnelIndex: input.tunnelIndex,
-    entryFraction: input.entryFraction,
-    liftMs: input.liftMs,
-    orbitMs,
-    sweepTurns: Math.max(1, orbitMs / FEEL.ORBIT_DURATION),
-    endKind: input.consumed ? 'burst' : 'toHolding',
-    color: input.color,
-    startCapacity: input.startCapacity,
-  };
-  events.push({ kind: 'flightStart', at: input.startAt, pass });
-  events.push({ kind: 'orbitEnter', at: orbitStartAt });
-
-  let endAt: number;
-  if (input.consumed) {
-    events.push({ kind: 'chargeConsumed', at: orbitEndAt });
-    endAt = orbitEndAt + BURST_MS;
-  } else {
-    events.push({ kind: 'moveToHolding', at: orbitEndAt });
-    endAt = orbitEndAt + FEEL.HOLDING_TRAVEL_DURATION;
-  }
-
-  return { events, endAt, orbitEndAt };
-}
-
-/**
- * Translate an already-committed {@link LaunchOutcome} into a timed
- * {@link PresentationScript}. Pure and deterministic — no rendering imports, no
- * side effects — so it is unit-testable on its own.
- */
-export function buildLaunchScript(
-  outcome: LaunchOutcome,
-  prevState: GameState,
-): PresentationScript {
-  let passId = 0;
-  const nextPassId = () => (passId += 1);
-  const events: PresentationEvent[] = [];
-  const post = outcome.state;
-  const capacity = prevState.holdingCapacity;
-
-  const tunnelIndex = Math.max(0, prevState.tunnels.findIndex((t) => t.id === outcome.tunnelId));
-  events.push({ kind: 'launch', at: 0, tunnelIndex });
-
-  let heldCount = prevState.holding.length;
-  const bumpHeld = (delta: number, at: number) => {
-    heldCount += delta;
-    if (delta > 0 && heldCount === capacity - 1) {
-      events.push({ kind: 'holdingCritical', at: at + 40 });
-    }
-  };
-
-  // --- primary pass ---
-  const launched = outcome.launchedCharge;
-  const primary = schedulePass(
-    {
-      startAt: 0,
-      origin: 'tunnel',
-      tunnelIndex,
-      entryFraction: TUNNEL_ENTRY_FRACTION[tunnelIndex] ?? 0.5,
-      liftMs: FEEL.LAUNCH_DURATION,
-      color: launched?.color ?? 'white',
-      startCapacity: launched?.capacity ?? 0,
-      clearedPixelIds: outcome.primaryClearedPixelIds,
-      consumed: outcome.primaryConsumed,
-    },
-    post,
-    nextPassId(),
-  );
-  events.push(...primary.events);
-
-  let cursor = primary.endAt;
-  if (!outcome.primaryConsumed && outcome.heldCharge) {
-    const landed: Charge = { ...outcome.heldCharge };
-    events.push({ kind: 'holdingLanded', at: primary.endAt, charge: landed });
-    bumpHeld(1, primary.endAt);
-  }
-
-  // --- held-charge auto-resolutions, one at a time ---
-  for (const ar of outcome.autoResolutions) {
-    const startAt = cursor + FEEL.HELD_RELAUNCH_GAP;
-    events.push({ kind: 'heldReactivate', at: startAt, chargeId: ar.chargeId });
-    bumpHeld(-1, startAt);
-
-    const before = ar.remainingCapacity + ar.clearedPixelIds.length;
-    const pass = schedulePass(
-      {
-        startAt,
-        origin: 'holding',
-        tunnelIndex: 0,
-        entryFraction: HELD_ENTRY_FRACTION,
-        liftMs: FEEL.HELD_LIFT_DURATION,
-        color: ar.color,
-        startCapacity: before,
-        clearedPixelIds: ar.clearedPixelIds,
-        consumed: ar.consumed,
-      },
-      post,
-      nextPassId(),
-    );
-    events.push(...pass.events);
-    cursor = pass.endAt;
-
-    if (!ar.consumed) {
-      const returned: Charge = {
-        id: ar.chargeId,
-        color: ar.color,
-        capacity: ar.remainingCapacity,
-      };
-      events.push({ kind: 'heldReturn', at: pass.endAt, charge: returned });
-      bumpHeld(1, pass.endAt);
-    }
-  }
-
-  // --- resolution ---
-  let totalMs: number;
-  if (post.status === 'won') {
-    events.push({ kind: 'win', at: cursor + FEEL.WIN_DELAY });
-    totalMs = cursor + FEEL.WIN_DELAY + 120;
-  } else if (post.status === 'lost') {
-    events.push({ kind: 'fail', at: cursor + FEEL.FAIL_DELAY });
-    totalMs = cursor + FEEL.FAIL_DELAY + 120;
-  } else {
-    totalMs = cursor + 80;
-  }
-
-  events.sort((a, b) => a.at - b.at);
-
-  const deferredPixelIds = [
-    ...outcome.primaryClearedPixelIds,
-    ...outcome.autoResolutions.flatMap((r) => r.clearedPixelIds),
+  const orbitEndAt = chargePass.charge.capacity === 0 && shots.length > 0
+    ? shots[shots.length - 1]!.clearAt
+    : FEEL.LAUNCH_DURATION + chargePass.progress * FEEL.ORBIT_DURATION + shots.length * FEEL.PIXEL_CLEAR_INTERVAL;
+  const landingAt = orbitEndAt + (outcome.heldCharge ? FEEL.HOLDING_TRAVEL_DURATION : FEEL.BURST_DURATION);
+  const events: PlaybackEvent[] = [
+    { kind: 'orbitEnter', at: FEEL.LAUNCH_DURATION },
+    ...shots.map((s) => ({ kind: 'pixelClear' as const, at: s.clearAt, pixelId: s.pixelId, remaining: s.remaining })),
+    { kind: outcome.heldCharge ? 'holdingLanded' : 'chargeConsumed', at: outcome.heldCharge ? landingAt : orbitEndAt },
   ];
-
-  return { events, totalMs, deferredPixelIds };
+  if (outcome.heldCharge) {
+    const before = prevState.holding.length - (outcome.action.kind === 'holding' ? 1 : 0);
+    const after = outcome.state.holding.length;
+    // Returning to the same occupancy is not a new pressure warning.
+    if (after > prevState.holding.length && after === 2 && before < 2) events.push({ kind: 'holdingCritical', at: landingAt });
+    if (after > prevState.holding.length && after === 3 && outcome.state.status !== 'lost') events.push({ kind: 'holdingFull', at: landingAt });
+  }
+  const resultAt = landingAt + (outcome.state.status === 'won' ? FEEL.WIN_DELAY : FEEL.FAIL_DELAY);
+  if (outcome.state.status !== 'playing') events.push({ kind: outcome.state.status === 'won' ? 'win' : 'fail', at: resultAt });
+  const totalMs = (outcome.state.status === 'playing' ? landingAt : resultAt) + 20;
+  events.push({ kind: 'complete', at: totalMs });
+  events.sort((a, b) => a.at - b.at);
+  const pass: FlightPass = { passId, origin: outcome.action.kind, sourceIndex: outcome.sourceIndex,
+    from, holdingTarget, charge: outcome.launchedCharge, shots, liftMs: FEEL.LAUNCH_DURATION,
+    orbitEndAt, endProgress: chargePass.progress, landingAt, totalMs,
+    endKind: outcome.heldCharge ? 'toHolding' : 'burst', events };
+  return { pass, totalMs };
 }

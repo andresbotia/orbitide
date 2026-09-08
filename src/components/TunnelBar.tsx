@@ -1,9 +1,7 @@
+import { useEffect, useRef } from 'react';
+import type { Point } from '@/game/presentation/events';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  FadeIn,
-  FadeOut,
-  LinearTransition,
-} from 'react-native-reanimated';
+
 
 import { visibleCharges } from '@/game/engine/selectors';
 import type { GameState } from '@/game/engine/types';
@@ -12,8 +10,10 @@ import { radius, spacing, typography } from '@/theme/spacing';
 
 interface TunnelBarProps {
   state: GameState;
+  layoutVersion: number;
   disabled: boolean;
   onLaunch: (tunnelId: string) => void;
+  onSourceLayout: (key: string, point: Point) => void;
 }
 
 /**
@@ -21,8 +21,13 @@ interface TunnelBarProps {
  * rest of the authored queue stays hidden (a dim "more" pip just signals that
  * the tunnel is not empty).
  */
-export function TunnelBar({ state, disabled, onLaunch }: TunnelBarProps) {
+export function TunnelBar({ state, disabled, onLaunch, onSourceLayout, layoutVersion }: TunnelBarProps) {
   const charges = visibleCharges(state);
+  const sources = useRef<(View | null)[]>([]);
+  useEffect(() => {
+    sources.current.forEach((node, index) => node?.measureInWindow((x, y, width, height) =>
+      onSourceLayout(`tunnel-${index}`, { x: x + width / 2, y: y + height / 2 })));
+  }, [layoutVersion, onSourceLayout]);
 
   return (
     <View style={styles.row}>
@@ -35,7 +40,8 @@ export function TunnelBar({ state, disabled, onLaunch }: TunnelBarProps) {
           <Pressable
             key={tunnelId}
             disabled={disabled || empty}
-            onPress={() => onLaunch(tunnelId)}
+            onPressIn={() => onLaunch(tunnelId)}
+            accessibilityState={{ disabled: disabled || empty }}
             accessibilityRole="button"
             accessibilityLabel={
               charge
@@ -50,11 +56,12 @@ export function TunnelBar({ state, disabled, onLaunch }: TunnelBarProps) {
           >
             <Text style={styles.tunnelLabel}>T{index + 1}</Text>
             {charge ? (
-              <Animated.View
+              <View
+                ref={(node: View | null) => { sources.current[index] = node; }}
+                onLayout={() => sources.current[index]?.measureInWindow((x, y, width, height) =>
+                  onSourceLayout(tunnelId, { x: x + width / 2, y: y + height / 2 }))}
+                collapsable={false}
                 key={charge.id}
-                entering={FadeIn.duration(200)}
-                exiting={FadeOut.duration(140)}
-                layout={LinearTransition.duration(180)}
                 style={[
                   styles.charge,
                   {
@@ -64,7 +71,7 @@ export function TunnelBar({ state, disabled, onLaunch }: TunnelBarProps) {
                 ]}
               >
                 <Text style={styles.capacity}>{charge.capacity}</Text>
-              </Animated.View>
+              </View>
             ) : (
               <View style={[styles.charge, styles.chargeEmpty]}>
                 <Text style={styles.emptyMark}>—</Text>

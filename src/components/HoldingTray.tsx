@@ -1,166 +1,56 @@
-import { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  FadeIn,
-  FadeOut,
-  LinearTransition,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
-
+import { useEffect, useRef } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Charge } from '@/game/engine/types';
-import type { TrayCue } from '@/hooks/useGameSession';
-import { orbColors, orbGlow, palette } from '@/theme/colors';
-import { radius, spacing, typography } from '@/theme/spacing';
-
+import type { Point } from '@/game/presentation/events';
+import { orbColors, orbLabel, palette } from '@/theme/colors';
+import { spacing, typography } from '@/theme/spacing';
 interface HoldingTrayProps {
-  holding: Charge[];
-  capacity: number;
-  /** Tray is full and the level is lost — flash the slots. */
-  overflow: boolean;
-  /** Latest land/lift cue from the presentation player. */
-  cue: TrayCue;
+  holding: Charge[]; capacity: number; overflow: boolean; disabled: boolean;
+  usefulIds: Set<string>;
+  onLaunch: (id: string) => void;
+  onSourceLayout: (key: string, point: Point) => void;
+  message: string;
+  layoutVersion: number;
 }
-
-export function HoldingTray({ holding, capacity, overflow, cue }: HoldingTrayProps) {
-  const shake = useSharedValue(0);
-  const nearFull = holding.length >= capacity - 1 && !overflow;
-
+export function HoldingTray({ holding, capacity, overflow, disabled, usefulIds, onLaunch, onSourceLayout, message, layoutVersion }: HoldingTrayProps) {
+  const slots = useRef<(View | null)[]>([]);
   useEffect(() => {
-    if (overflow) {
-      shake.value = withRepeat(
-        withSequence(
-          withTiming(1, { duration: 90 }),
-          withTiming(-1, { duration: 90 }),
-          withTiming(0, { duration: 90 }),
-        ),
-        2,
-        false,
-      );
-    } else {
-      shake.value = 0;
-    }
-  }, [overflow, shake]);
-
-  const shakeStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: shake.value * 4 }],
-  }));
-
-  const slots = Array.from({ length: capacity }, (_, i) => holding[i] ?? null);
-
-  return (
-    <View style={styles.container}>
-      <Text style={[styles.label, nearFull && styles.labelWarn]}>
-        HOLDING {holding.length}/{capacity}
-      </Text>
-      <Animated.View style={[styles.row, shakeStyle]}>
-        {slots.map((charge, index) => (
-          <Slot
-            key={charge?.id ?? `empty-${index}`}
-            charge={charge}
-            index={index}
-            overflow={overflow}
-            cue={cue}
-          />
-        ))}
-      </Animated.View>
-    </View>
-  );
+    slots.current.forEach((node, index) => node?.measureInWindow((x, y, width, height) =>
+      onSourceLayout(`holding-${index}`, { x: x + width / 2, y: y + height / 2 })));
+  }, [layoutVersion, onSourceLayout]);
+  return <View style={styles.container}>
+    <Text style={[styles.label, holding.length >= 2 && { color: palette.warning }]}>
+      HOLDING {holding.length}/{capacity}
+    </Text>
+    <View style={styles.row}>{Array.from({ length: capacity }, (_, index) => {
+      const charge = holding[index];
+      const useful = !!charge && usefulIds.has(charge.id);
+      return <Pressable key={index} ref={(node) => { slots.current[index] = node; }} collapsable={false}
+        onLayout={() => slots.current[index]?.measureInWindow((x, y, width, height) =>
+          onSourceLayout(`holding-${index}`, { x: x + width / 2, y: y + height / 2 }))}
+        disabled={disabled || !charge} onPressIn={() => charge && onLaunch(charge.id)}
+        accessibilityRole="button" accessibilityState={{ disabled: disabled || !charge }}
+        accessibilityLabel={charge ? `Relaunch ${orbLabel[charge.color]} charge, capacity ${charge.capacity}` : `Holding slot ${index + 1}, empty`}
+        accessibilityHint={useful ? 'Tap to launch again' : 'No exposed matching pixels yet'}
+        style={({ pressed }) => [styles.slot, useful && styles.ready, overflow && styles.failed,
+          pressed && { transform: [{ scale: 0.94 }], backgroundColor: palette.surfaceBorder }]}>
+        {charge ? <View style={[styles.charge, { backgroundColor: orbColors[charge.color], opacity: useful ? 1 : 0.65 }]}>
+          <Text style={styles.count}>{charge.capacity}</Text>
+        </View> : null}
+      </Pressable>;
+    })}</View>
+    <Text accessibilityLiveRegion="polite" style={styles.help}>{message || (holding.length ? 'Tap a held charge to launch it again.' : ' ')}</Text>
+  </View>;
 }
-
-function Slot({
-  charge,
-  index,
-  overflow,
-  cue,
-}: {
-  charge: Charge | null;
-  index: number;
-  overflow: boolean;
-  cue: TrayCue;
-}) {
-  const react = useSharedValue(0);
-  const glow = useSharedValue(0);
-
-  useEffect(() => {
-    if (cue.signal === 0 || cue.index !== index) return;
-    if (cue.kind === 'land') {
-      react.value = withSequence(
-        withTiming(1, { duration: 90 }),
-        withTiming(0, { duration: 220 }),
-      );
-    } else {
-      glow.value = withSequence(
-        withTiming(1, { duration: 120 }),
-        withTiming(0, { duration: 260 }),
-      );
-    }
-  }, [cue, index, react, glow]);
-
-  const slotStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: 1 + react.value * 0.12 }],
-    borderColor:
-      glow.value > 0
-        ? palette.coreGlow
-        : overflow
-          ? palette.danger
-          : palette.surfaceBorder,
-  }));
-
-  return (
-    <Animated.View
-      style={[styles.slot, overflow && styles.slotOverflow, slotStyle]}
-    >
-      {charge ? (
-        <Animated.View
-          entering={FadeIn.duration(180)}
-          exiting={FadeOut.duration(160)}
-          layout={LinearTransition.duration(200)}
-          style={[
-            styles.charge,
-            {
-              backgroundColor: orbColors[charge.color],
-              borderColor: orbGlow[charge.color],
-            },
-          ]}
-        >
-          <Text style={styles.capacity}>{charge.capacity}</Text>
-        </Animated.View>
-      ) : null}
-    </Animated.View>
-  );
-}
-
-const SLOT = 44;
-
 const styles = StyleSheet.create({
   container: { alignItems: 'center', gap: spacing.sm },
   label: { ...typography.label, color: palette.textFaint },
-  labelWarn: { color: palette.warning },
   row: { flexDirection: 'row', gap: spacing.md },
-  slot: {
-    width: SLOT,
-    height: SLOT,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: palette.surfaceBorder,
-    backgroundColor: palette.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  slotOverflow: {
-    backgroundColor: 'rgba(255,92,122,0.16)',
-  },
-  charge: {
-    width: SLOT - 10,
-    height: SLOT - 10,
-    borderRadius: (SLOT - 10) / 2,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  capacity: { color: '#05060A', fontSize: 15, fontWeight: '800' },
+  slot: { width: 54, height: 54, borderRadius: 12, borderWidth: 1, borderColor: palette.surfaceBorder,
+    backgroundColor: palette.surface, alignItems: 'center', justifyContent: 'center' },
+  ready: { borderColor: palette.coreGlow, borderWidth: 2 },
+  failed: { borderColor: palette.danger },
+  charge: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  count: { color: '#05060A', fontSize: 16, fontWeight: '800' },
+  help: { color: palette.textSecondary, fontSize: 12, minHeight: 16, textAlign: 'center', paddingHorizontal: 12 },
 });

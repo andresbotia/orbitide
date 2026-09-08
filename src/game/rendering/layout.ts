@@ -1,5 +1,5 @@
 import type { GameState } from '@/game/engine/types';
-import { TUNNEL_ENTRY_ANGLE } from '@/game/presentation/constants';
+import { ORBIT_ENTRY_FRACTION } from '@/game/engine/orbit';
 
 export interface Point {
   x: number;
@@ -17,14 +17,12 @@ export interface BoardLayout {
   gridHeight: number;
   /** Radii of the two circular orbital guides. */
   orbit: { rx: number; ry: number }[];
-  /** Anchor points for the three Launch Tunnels, around the orbit. */
-  tunnelAnchors: Point[];
+  /** One canonical insertion point for every tunnel and held charge. */
+  insertion: Point;
   /** Radius used for the traveling charge token. */
   chargeRadius: number;
 }
 
-// Board tunnel-port angles come from the same source the charge flight uses.
-const TUNNEL_ANGLES = TUNNEL_ENTRY_ANGLE;
 
 /** Geometry for a square board rendering a `cols x rows` picture. */
 export function computeBoardLayout(
@@ -33,7 +31,7 @@ export function computeBoardLayout(
   rows: number,
 ): BoardLayout {
   const center = { x: size / 2, y: size / 2 };
-  const maxGrid = size * 0.52;
+  const maxGrid = size * 0.58;
   const cell = Math.max(
     6,
     Math.floor(Math.min(maxGrid / Math.max(1, cols), maxGrid / Math.max(1, rows))),
@@ -56,10 +54,8 @@ export function computeBoardLayout(
     { rx: inner, ry: inner },
   ];
 
-  const tunnelAnchors = TUNNEL_ANGLES.map((a) => ({
-    x: center.x + Math.cos(a) * orbit[0]!.rx,
-    y: center.y + Math.sin(a) * orbit[0]!.ry,
-  }));
+  const angle = ORBIT_ENTRY_FRACTION * Math.PI * 2 - Math.PI / 2;
+  const insertion = { x: center.x + Math.cos(angle) * outer, y: center.y + Math.sin(angle) * outer };
 
   return {
     size,
@@ -69,7 +65,7 @@ export function computeBoardLayout(
     gridWidth,
     gridHeight,
     orbit,
-    tunnelAnchors,
+    insertion,
     chargeRadius,
   };
 }

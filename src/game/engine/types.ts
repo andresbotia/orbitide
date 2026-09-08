@@ -1,35 +1,5 @@
-/**
- * ORBITIDE core game model — pixel-clearing orbital-charge mechanic.
- *
- * Everything in this file is a plain, serializable TypeScript type. There are no
- * React, React Native, or Skia imports anywhere in `src/game/engine` so the
- * engine can be unit-tested (and fed to the test-only solver) in a plain Node
- * environment.
- *
- * ---------------------------------------------------------------------------
- * MECHANIC SUMMARY
- * ---------------------------------------------------------------------------
- * The puzzle board is a handcrafted pixel-art picture. Around it sit exactly
- * three Launch Tunnels; each tunnel has a fixed authored queue of charges and
- * only its front charge is visible/selectable. Tapping a tunnel launches its
- * front charge into orbit: it clears up to `capacity` matching pixels that are
- * currently *reachable* (on the outer boundary of the remaining picture), one
- * per pixel. If the charge empties it vanishes; if capacity remains it parks in
- * the Holding tray, where it auto-relaunches later once matching pixels become
- * reachable. Win = every pixel cleared. Lose = Holding full with no resolution,
- * or no launch left to make while pixels remain.
- *
- * EXPOSED/REACHABLE RULE: a pixel is reachable iff at least one of its four
- * orthogonal neighbours is "exterior" — off the grid, or an empty cell that is
- * connected to the grid border through other empty cells. Fully enclosed pixels
- * wait until an outer layer is cleared. See `pixels.ts`.
- *
- * DETERMINISTIC CLEAR ORDER: matching reachable pixels are cleared in clockwise
- * orbital order starting from the tunnel (or Holding) entry around the picture
- * centre; ties (same angle) clear the outer pixel first, then by id. The solver
- * and the renderer both consume this same ordering.
- */
-
+/** Pure, serializable game state. Manual Holding and encounter rules live in
+ * actions.ts/pass.ts; rendering and clocks never determine outcomes. */
 export type OrbColor =
   | 'blue'
   | 'cyan'

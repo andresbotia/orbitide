@@ -1,6 +1,6 @@
 # ORBITIDE
 
-A one-thumb mobile color puzzle game built around orbital lanes, a changing central core, and limited holding slots.
+A one-thumb mobile color puzzle game built around handcrafted pixel art, orbital charges, and three manual Holding slots.
 
 ## Product goal
 
@@ -8,12 +8,15 @@ Build a polished casual puzzle game with deterministic progression from Level 1 
 
 ## Core loop
 
-1. The center Core requests a color.
-2. The player taps the exposed orb at the head of any orbital lane.
-3. A matching orb flies into the Core and clears.
-4. A non-matching orb moves into a limited holding tray.
-5. When the Core advances to a held color, matching held orbs auto-clear.
-6. Clear every orb to win. Fill the holding tray with no valid resolution to lose.
+1. Tap a tunnel head or a useful held charge.
+2. The charge travels from its button to one shared bottom-centre insertion point.
+3. It orbits bottom -> left -> top -> right, shooting exposed matching pixels in encounter order.
+4. Each clear consumes one capacity; exposure is recomputed after every shot.
+5. Leftover capacity parks in Holding until the player taps it again.
+6. Clear the picture to win. Lose only when pixels remain and no legal action exists.
+
+See [M1 interaction revamp](docs/M1_INTERACTION_REVAMP.md) for the current rules,
+solver witnesses, timings, and validation. Earlier design documents describe historical models.
 
 ## Technical direction
 
