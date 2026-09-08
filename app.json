@@ -8,10 +8,15 @@
     "scheme": "orbitide",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#05060A",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.andresbotia.orbitide"
+      "bundleIdentifier": "com.andresbotia.orbitide",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -40,6 +45,18 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "07cb395c-b299-49d3-9100-f360874eaea5"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/07cb395c-b299-49d3-9100-f360874eaea5"
     }
   }
 }
