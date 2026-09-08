@@ -8,11 +8,6 @@
     "scheme": "orbitide",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#05060A",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#05060A"
-    },
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": false
@@ -30,7 +25,18 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "plugins": ["expo-router", "expo-font"],
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#05060A"
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
     }
