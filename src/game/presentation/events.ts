@@ -32,11 +32,19 @@ export interface FlightPass {
  * these to the *presented* state over time; the engine result itself never
  * depends on them.
  */
+export interface EnergyShot {
+  passId: number;
+  pixelId: string;
+  color: OrbColor;
+  originFraction: number;
+}
+
 export type PresentationEvent =
   | { kind: 'launch'; at: number; tunnelIndex: number }
   | { kind: 'flightStart'; at: number; pass: FlightPass }
   | { kind: 'orbitEnter'; at: number }
-  | { kind: 'pixelClear'; at: number; pixelId: string; remaining: number }
+  | ({ kind: 'energyShot'; at: number } & EnergyShot)
+  | { kind: 'pixelClear'; at: number; passId: number; pixelId: string; remaining: number }
   | { kind: 'chargeConsumed'; at: number }
   | { kind: 'moveToHolding'; at: number }
   | { kind: 'holdingLanded'; at: number; charge: Charge }

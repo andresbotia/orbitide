@@ -1,3 +1,4 @@
+import { HELD_ENTRY_FRACTION } from './orbit';
 import { applyChargePass } from './pixels';
 import type { GameState, OrbColor } from './types';
 
@@ -43,7 +44,7 @@ export function settleHolding(state: GameState): AutoResolution[] {
       const charge = state.holding[i];
       if (!charge) continue;
 
-      const pass = applyChargePass(state, charge.color, charge.capacity);
+      const pass = applyChargePass(state, charge.color, charge.capacity, HELD_ENTRY_FRACTION);
       if (pass.clearedPixelIds.length === 0) continue;
 
       charge.capacity -= pass.clearedPixelIds.length;

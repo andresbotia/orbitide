@@ -320,9 +320,9 @@ describe('deterministic clear order', () => {
     const twice = [...order].sort(clearOrder(state));
     expect(twice).toEqual(order);
 
-    // A capacity-1 green charge always clears the top pixel first.
+    // T1 enters below-left and encounters the left pixel before the top.
     const outcome = resolveLaunch(state, 'tunnel-0');
-    expect(outcome.primaryClearedPixelIds).toEqual([order[0]?.id]);
+    expect(outcome.primaryClearedPixelIds).toEqual([order[3]?.id]);
   });
 
   it('is fully deterministic — the same launch sequence yields identical state', () => {

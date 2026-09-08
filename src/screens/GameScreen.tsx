@@ -60,6 +60,7 @@ export function GameScreen({
             flightSignal={session.flightSignal}
             flightPass={session.flightPass}
             flyingCapacity={session.flyingCapacity}
+            shots={session.shots}
             pulseSignal={session.pulseSignal}
             pulseColor={session.pulseColor}
           />

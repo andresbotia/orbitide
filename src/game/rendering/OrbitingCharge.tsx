@@ -1,6 +1,7 @@
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   useAnimatedStyle,
   useSharedValue,
@@ -54,8 +55,8 @@ function OrbitingChargeComponent({
     const origin: Point =
       pass.origin === 'tunnel'
         ? {
-            x: layout.center.x + (entryPoint.x - layout.center.x) * 1.22,
-            y: layout.center.y + (entryPoint.y - layout.center.y) * 1.22,
+            x: Math.max(layout.chargeRadius, Math.min(layout.size - layout.chargeRadius, layout.center.x + (entryPoint.x - layout.center.x) * 1.12)),
+            y: Math.max(layout.chargeRadius, Math.min(layout.size - layout.chargeRadius, layout.center.y + (entryPoint.y - layout.center.y) * 1.12)),
           }
         : { x: layout.center.x, y: layout.size + layout.chargeRadius * 2 };
     const endAngle = entryAngle + pass.sweepTurns * TWO_PI;
@@ -83,6 +84,7 @@ function OrbitingChargeComponent({
       duration: geom.total,
       easing: Easing.linear,
     });
+    return () => cancelAnimation(clock);
   }, [signal, geom, clock]);
 
   const style = useAnimatedStyle(() => {

@@ -1,6 +1,7 @@
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   useAnimatedStyle,
   useSharedValue,
@@ -35,6 +36,7 @@ function PixelBurstComponent({ point, color, cell }: Omit<BurstSpec, 'key'>) {
   const t = useSharedValue(0);
   useEffect(() => {
     t.value = withTiming(1, { duration: DURATION, easing: Easing.out(Easing.quad) });
+    return () => cancelAnimation(t);
   }, [t]);
 
   const ring = useAnimatedStyle(() => ({

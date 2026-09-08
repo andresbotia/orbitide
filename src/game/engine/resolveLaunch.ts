@@ -1,3 +1,4 @@
+import { TUNNEL_ENTRY_FRACTION } from './orbit';
 import { applyChargePass } from './pixels';
 import { settleHolding, type AutoResolution } from './resolveHolding';
 import { findTunnel } from './selectors';
@@ -81,7 +82,10 @@ export function resolveLaunch(state: GameState, tunnelId: string): LaunchOutcome
   const launchedCharge: Charge = { ...(launched as Charge) };
 
   // Primary pass.
-  const pass = applyChargePass(next, launchedCharge.color, launchedCharge.capacity);
+  const pass = applyChargePass(
+    next, launchedCharge.color, launchedCharge.capacity,
+    TUNNEL_ENTRY_FRACTION[state.tunnels.indexOf(sourceTunnel)] ?? 0.5,
+  );
   const leftover = launchedCharge.capacity - pass.clearedPixelIds.length;
   const primaryConsumed = leftover <= 0;
 

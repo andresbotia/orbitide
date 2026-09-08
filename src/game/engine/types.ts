@@ -25,7 +25,7 @@
  * wait until an outer layer is cleared. See `pixels.ts`.
  *
  * DETERMINISTIC CLEAR ORDER: matching reachable pixels are cleared in clockwise
- * orbital order starting from the 12 o'clock direction around the picture
+ * orbital order starting from the tunnel (or Holding) entry around the picture
  * centre; ties (same angle) clear the outer pixel first, then by id. The solver
  * and the renderer both consume this same ordering.
  */

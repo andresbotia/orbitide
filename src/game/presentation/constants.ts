@@ -10,14 +10,15 @@ export const FEEL = {
   ORBIT_DURATION: 1800,
   /** Extra fraction of a lap the charge coasts after its last pixel pop. */
   ORBIT_TAIL_FRACTION: 0.14,
-  /** Hard cap on laps for very large clears. */
-  MAX_ORBIT_LAPS: 3,
 
   /** Tunnel → orbit entry. */
   LAUNCH_DURATION: 340,
 
   /** Minimum spacing between consecutive pixel pops. */
   PIXEL_CLEAR_INTERVAL: 110,
+  /** Short streak travel followed by target anticipation, before the clear. */
+  ENERGY_SHOT_DURATION: 100,
+  ENERGY_TRAVEL_DURATION: 75,
   /** One pixel's pop (anticipation + collapse). */
   PIXEL_POP_DURATION: 160,
 
@@ -36,20 +37,4 @@ export const FEEL = {
   COUNTDOWN_TWEEN: 130,
 } as const;
 
-/**
- * Canonical entry angle (screen radians) for each Launch Tunnel, ordered to
- * match the on-screen T1/T2/T3 bar left-to-right. `layout.ts` derives the board
- * tunnel-port positions from this same array so the charge always launches from
- * where the port is drawn.
- */
-export const TUNNEL_ENTRY_ANGLE = [
-  Math.PI - Math.PI / 4.5, // T1 lower-left
-  Math.PI / 2, // T2 bottom
-  Math.PI / 4.5, // T3 lower-right
-] as const;
-
-/** The same entry angles expressed as clock fractions in [0, 1) (0 = top). */
-export const TUNNEL_ENTRY_FRACTION = TUNNEL_ENTRY_ANGLE.map((a) => {
-  const twoPi = Math.PI * 2;
-  return (((a + Math.PI / 2) % twoPi) + twoPi) % twoPi / twoPi;
-});
+export { TUNNEL_ENTRY_ANGLE, TUNNEL_ENTRY_FRACTION } from '../engine/orbit';

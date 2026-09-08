@@ -7,8 +7,9 @@ import {
   vec,
 } from '@shopify/react-native-skia';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import {
+  cancelAnimation,
   useDerivedValue,
   useSharedValue,
   withSequence,
@@ -17,9 +18,10 @@ import {
 
 import { reachablePixels } from '@/game/engine/pixels';
 import type { GameState } from '@/game/engine/types';
-import type { FlightPass } from '@/game/presentation/events';
+import type { EnergyShot as EnergyShotSpec, FlightPass } from '@/game/presentation/events';
 import { orbColors, palette } from '@/theme/colors';
 
+import { EnergyShot } from './EnergyShot';
 import { Starfield } from './effects/Starfield';
 import { cellCenter, computeBoardLayout } from './layout';
 import { OrbitingCharge } from './OrbitingCharge';
@@ -40,6 +42,7 @@ interface OrbitBoardProps {
   flightPass: FlightPass | null;
   /** Live capacity to show on the flying charge, or null when none is flying. */
   flyingCapacity: number | null;
+  shots: EnergyShotSpec[];
 }
 
 export function OrbitBoard({
@@ -50,7 +53,9 @@ export function OrbitBoard({
   flightSignal,
   flightPass,
   flyingCapacity,
+  shots,
 }: OrbitBoardProps) {
+  const [active, setActive] = useState(AppState.currentState === 'active');
   const layout = useMemo(
     () => computeBoardLayout(size, state.width, state.height),
     [size, state.width, state.height],
@@ -91,7 +96,7 @@ export function OrbitBoard({
       }
     }
     clearedRef.current = now;
-    if (fresh.length === 0) return;
+    if (!active || fresh.length === 0) return;
     const raf = requestAnimationFrame(() => {
       setBursts((cur) => [...cur, ...fresh].slice(-MAX_BURSTS));
     });
@@ -102,16 +107,28 @@ export function OrbitBoard({
       cancelAnimationFrame(raf);
       clearTimeout(timer);
     };
-  }, [state, layout, centreOf]);
+  }, [state, layout, centreOf, active]);
 
   const pulse = useSharedValue(0);
   useEffect(() => {
-    if (pulseSignal === 0) return;
-    pulse.value = withSequence(
+    const sub = AppState.addEventListener('change', (next) => {
+      setActive(next === 'active');
+      if (next !== 'active') {
+        cancelAnimation(pulse);
+        pulse.set(0);
+        setBursts([]);
+      }
+    });
+    return () => sub.remove();
+  }, [pulse]);
+  useEffect(() => {
+    if (!active || pulseSignal === 0) return;
+    pulse.set(withSequence(
       withTiming(1, { duration: 110 }),
       withTiming(0, { duration: 430 }),
-    );
-  }, [pulseSignal, pulse]);
+    ));
+    return () => cancelAnimation(pulse);
+  }, [pulseSignal, pulse, active]);
   const glowRadius = useDerivedValue(
     () => layout.cell * 2.4 * (1 + pulse.value * 1.5),
   );
@@ -179,13 +196,14 @@ export function OrbitBoard({
               cy={c?.y ?? 0}
               cell={layout.cell}
               reachable={reachableIds.has(p.id)}
+              motionEnabled={active}
             />
           );
         })}
       </View>
 
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        {bursts.map((b) => (
+        {(active ? bursts : []).map((b) => (
           <PixelBurst
             key={b.key}
             point={b.point}
@@ -195,10 +213,16 @@ export function OrbitBoard({
         ))}
       </View>
 
+      {(active ? shots : []).map((shot) => {
+        const target = centreOf.get(shot.pixelId);
+        return target ? <EnergyShot key={`${shot.passId}-${shot.pixelId}`}
+          shot={shot} layout={layout} target={target} /> : null;
+      })}
+
       <OrbitingCharge
         layout={layout}
         signal={flightSignal}
-        pass={flightPass}
+        pass={active ? flightPass : null}
         capacity={flyingCapacity}
       />
     </View>

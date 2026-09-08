@@ -175,3 +175,42 @@ describe('buildLaunchScript', () => {
     );
   });
 });
+
+
+test('every shot precedes its clear by 100ms in the exact engine order, including Holding', () => {
+  let state = createGame({ ...ringLevel, tunnels: [
+    [{ color: 'green', capacity: 16 }], [{ color: 'blue', capacity: 1 }], [],
+  ] });
+  state = resolveLaunch(state, 'tunnel-1').state;
+  const result = resolveLaunch(state, 'tunnel-0');
+  const script = buildLaunchScript(result, state);
+  const pops = ofKind(script.events, 'pixelClear');
+  const shots = ofKind(script.events, 'energyShot');
+  expect(pops.map((p) => p.pixelId)).toEqual([
+    ...result.primaryClearedPixelIds, ...result.autoResolutions.flatMap((r) => r.clearedPixelIds),
+  ]);
+  expect(shots).toHaveLength(pops.length);
+  shots.forEach((shot, i) => {
+    const pop = pops[i]!;
+    expect(pop.pixelId).toBe(shot.pixelId);
+    expect(pop.passId).toBe(shot.passId);
+    expect(pop.at - shot.at).toBeCloseTo(100);
+    const start = ofKind(script.events, 'flightStart').find((e) => e.pass.passId === shot.passId)!;
+    expect(shot.at).toBeGreaterThanOrEqual(start.at + start.pass.liftMs);
+    // The streak leaves the charge's actual orbit position at dispatch, even
+    // when cadence pushes it beyond the target's nearest encounter.
+    expect(shot.originFraction).toBeCloseTo(start.pass.entryFraction +
+      (shot.at - start.at - start.pass.liftMs) / 1800);
+  });
+  expect(buildLaunchScript(result, state)).toEqual(script);
+});
+
+test('dense clears never outlive their flight or overlap a following pass', () => {
+  const state = createGame({ ...ringLevel, pixelArt: ['G'.repeat(64)],
+    tunnels: [[{ color: 'green', capacity: 64 }], [], []] });
+  const script = buildLaunchScript(resolveLaunch(state, 'tunnel-0'), state);
+  const lastPop = ofKind(script.events, 'pixelClear').at(-1)!;
+  const consumed = ofKind(script.events, 'chargeConsumed')[0]!;
+  expect(consumed.at).toBeGreaterThan(lastPop.at);
+  expect(script.totalMs).toBeGreaterThan(consumed.at);
+});

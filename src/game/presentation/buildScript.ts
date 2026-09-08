@@ -1,16 +1,11 @@
-import { pixelAngleFraction } from '@/game/engine/pixels';
+import { clockwiseGap, HELD_ENTRY_FRACTION } from '../engine/orbit';
+import { pixelEncounterFraction } from '@/game/engine/pixels';
 import type { LaunchOutcome } from '@/game/engine/resolveLaunch';
 import type { Charge, GameState, OrbColor } from '@/game/engine/types';
 
 import { FEEL, TUNNEL_ENTRY_FRACTION } from './constants';
 import type { FlightPass, PresentationEvent, PresentationScript } from './events';
 
-function tunnelIndexOf(tunnelId: string | undefined): number {
-  const n = Number.parseInt((tunnelId ?? '').replace('tunnel-', ''), 10);
-  return Number.isFinite(n) ? n : 0;
-}
-
-const HELD_ENTRY_FRACTION = 0.5; // held charges rise from the tray (bottom)
 const BURST_MS = 190;
 
 interface PassInput {
@@ -33,11 +28,6 @@ interface PassOutput {
   orbitEndAt: number;
 }
 
-/** Clockwise distance from `from` to `to` as a fraction in [0, 1). */
-function clockwiseGap(from: number, to: number): number {
-  return ((to - from) % 1 + 1) % 1;
-}
-
 function schedulePass(
   input: PassInput,
   state: Pick<GameState, 'width' | 'height' | 'pixels'>,
@@ -46,25 +36,25 @@ function schedulePass(
   const events: PresentationEvent[] = [];
   const orbitStartAt = input.startAt + input.liftMs;
 
-  // Order the pixels the way the charge actually sweeps past them: clockwise
-  // from the entry point. (Which pixels clear is fixed by the engine; only the
-  // pop order/timing is cosmetic.)
-  const byArrival = input.clearedPixelIds
-    .map((id) => {
-      const pixel = state.pixels.find((p) => p.id === id);
-      const frac = pixel ? pixelAngleFraction(state, pixel) : 0;
-      return { id, offset: clockwiseGap(input.entryFraction, frac) };
-    })
-    .sort((a, b) => a.offset - b.offset);
+  // Preserve the engine's exact ordered selection; presentation never re-sorts.
+  const byArrival = input.clearedPixelIds.map((id) => {
+    const pixel = state.pixels.find((p) => p.id === id);
+    if (!pixel) throw new Error(`Unknown cleared pixel: ${id}`);
+    return { id, offset: clockwiseGap(input.entryFraction, pixelEncounterFraction(state, pixel, input.entryFraction)) };
+  });
 
   let lastPopAt = orbitStartAt;
   byArrival.forEach((entry, k) => {
     const wanted = orbitStartAt + entry.offset * FEEL.ORBIT_DURATION;
     const spaced = k === 0 ? orbitStartAt : lastPopAt + FEEL.PIXEL_CLEAR_INTERVAL;
-    const at = Math.max(wanted, spaced);
+    const at = Math.max(wanted + FEEL.ENERGY_SHOT_DURATION, spaced, orbitStartAt + FEEL.ENERGY_SHOT_DURATION);
+    const shotAt = at - FEEL.ENERGY_SHOT_DURATION;
+    events.push({ kind: 'energyShot', at: shotAt, passId, pixelId: entry.id,
+      color: input.color, originFraction: input.entryFraction + (shotAt - orbitStartAt) / FEEL.ORBIT_DURATION });
     lastPopAt = at;
     events.push({
       kind: 'pixelClear',
+      passId,
       at,
       pixelId: entry.id,
       remaining: input.startCapacity - (k + 1),
@@ -75,8 +65,7 @@ function schedulePass(
   const coastEnd =
     (byArrival.length > 0 ? lastPopAt : orbitStartAt) +
     FEEL.ORBIT_DURATION * FEEL.ORBIT_TAIL_FRACTION;
-  const cap = orbitStartAt + FEEL.ORBIT_DURATION * FEEL.MAX_ORBIT_LAPS;
-  const orbitEndAt = Math.min(Math.max(minOrbitEnd, coastEnd), cap);
+  const orbitEndAt = Math.max(minOrbitEnd, coastEnd);
   const orbitMs = orbitEndAt - orbitStartAt;
 
   const pass: FlightPass = {
@@ -121,7 +110,7 @@ export function buildLaunchScript(
   const post = outcome.state;
   const capacity = prevState.holdingCapacity;
 
-  const tunnelIndex = tunnelIndexOf(outcome.tunnelId);
+  const tunnelIndex = Math.max(0, prevState.tunnels.findIndex((t) => t.id === outcome.tunnelId));
   events.push({ kind: 'launch', at: 0, tunnelIndex });
 
   let heldCount = prevState.holding.length;

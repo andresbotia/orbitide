@@ -7,7 +7,7 @@ import type { Charge, GameState } from '@/game/engine/types';
 import { feedback } from '@/game/feedback';
 import { requireLevel } from '@/game/levels/levels';
 import { buildLaunchScript } from '@/game/presentation/buildScript';
-import type { FlightPass, PresentationEvent } from '@/game/presentation/events';
+import type { EnergyShot, FlightPass, PresentationEvent } from '@/game/presentation/events';
 import { palette } from '@/theme/colors';
 
 export interface TrayCue {
@@ -27,6 +27,7 @@ export interface GameSession {
   launch: (tunnelId: string) => void;
   restart: () => void;
 
+  shots: EnergyShot[];
   flightSignal: number;
   flightPass: FlightPass | null;
   flyingCapacity: number | null;
@@ -84,6 +85,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     signal: 0,
     pass: null,
   });
+  const [shots, setShots] = useState<EnergyShot[]>([]);
   const [flyingCapacity, setFlyingCapacity] = useState<number | null>(null);
   const [pulse, setPulse] = useState<PulseState>(REST_PULSE);
   const [trayCue, setTrayCue] = useState<TrayCue>({ signal: 0, index: 0, kind: 'land' });
@@ -117,6 +119,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     setPresented(engineRef.current);
     setFlight((f) => ({ signal: f.signal, pass: null }));
     setFlyingCapacity(null);
+    setShots([]);
     setLockedBoth(false);
   }, [clearTimers, setLockedBoth]);
 
@@ -150,7 +153,13 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
           feedback.emit('orbitEnter');
           break;
         }
+        case 'energyShot': {
+          setShots((current) => [...current, event]);
+          break;
+        }
         case 'pixelClear': {
+          setShots((current) => current.filter((shot) =>
+            shot.passId !== event.passId || shot.pixelId !== event.pixelId));
           const next = markCleared(w, event.pixelId);
           workingRef.current = next;
           setPresented(next);
@@ -265,6 +274,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     setPresented(fresh);
     setFlight({ signal: 0, pass: null });
     setFlyingCapacity(null);
+    setShots([]);
     setPulse(REST_PULSE);
     setTrayCue({ signal: 0, index: 0, kind: 'land' });
     setLockedBoth(false);
@@ -276,6 +286,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     locked,
     launch,
     restart,
+    shots,
     flightSignal: flight.signal,
     flightPass: flight.pass,
     flyingCapacity,

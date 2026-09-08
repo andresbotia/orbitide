@@ -3,8 +3,6 @@ import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
-  withDelay,
-  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -19,50 +17,34 @@ interface PixelProps {
   cell: number;
   /** On the current outer boundary — can be cleared right now. */
   reachable: boolean;
+  motionEnabled?: boolean;
 }
 
-const ANTICIPATION_MS = 60;
-const COLLAPSE_MS = Math.max(60, FEEL.PIXEL_POP_DURATION - ANTICIPATION_MS);
+const COLLAPSE_MS = FEEL.PIXEL_POP_DURATION - 60;
 
-function PixelComponent({ color, cx, cy, cell, reachable }: PixelProps) {
+function PixelComponent({ color, cx, cy, cell, reachable, motionEnabled = true }: PixelProps) {
   const size = Math.max(4, cell - 2);
   const fill = orbColors[color];
   const glow = orbGlow[color];
 
-  // The pop: tiny anticipation scale, then a fast collapse + fade. Self
-  // contained and short so consecutive pops stay readable. Runs only after the
-  // engine (via the presented state) has removed this pixel.
+  // Anticipation is the incoming shot's impact flash. Collapse at pixelClear.
   const exiting = () => {
     'worklet';
     return {
-      initialValues: { opacity: 1, transform: [{ scale: 1 }] },
+      initialValues: { opacity: 1, transform: [{ scale: 1.08 }] },
       animations: {
-        opacity: withDelay(
-          ANTICIPATION_MS,
-          withTiming(0, { duration: COLLAPSE_MS }),
-        ),
-        transform: [
-          {
-            scale: withSequence(
-              withTiming(1.08, {
-                duration: ANTICIPATION_MS,
-                easing: Easing.out(Easing.quad),
-              }),
-              withTiming(0, {
-                duration: COLLAPSE_MS,
-                easing: Easing.in(Easing.cubic),
-              }),
-            ),
-          },
-        ],
+        opacity: withTiming(0, { duration: COLLAPSE_MS }),
+        transform: [{ scale: withTiming(0, {
+          duration: COLLAPSE_MS, easing: Easing.in(Easing.cubic),
+        }) }],
       },
     };
   };
 
   return (
     <Animated.View
-      entering={FadeIn.duration(150)}
-      exiting={exiting}
+      entering={motionEnabled ? FadeIn.duration(150) : undefined}
+      exiting={motionEnabled ? exiting : undefined}
       style={[
         styles.wrap,
         {

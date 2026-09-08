@@ -15,7 +15,7 @@ export interface BoardLayout {
   gridOrigin: Point;
   gridWidth: number;
   gridHeight: number;
-  /** Radii of the two elliptical orbital guides. */
+  /** Radii of the two circular orbital guides. */
   orbit: { rx: number; ry: number }[];
   /** Anchor points for the three Launch Tunnels, around the orbit. */
   tunnelAnchors: Point[];
@@ -45,14 +45,15 @@ export function computeBoardLayout(
     y: center.y - gridHeight / 2,
   };
 
-  const outer = size * 0.45;
+  const chargeRadius = Math.min(size * 0.045, Math.max(7, cell * 0.55));
+  const outer = Math.min(size * 0.45, size / 2 - chargeRadius - 2);
   const inner = Math.max(
     Math.hypot(gridWidth, gridHeight) / 2 + cell * 0.9,
     outer * 0.7,
   );
   const orbit = [
-    { rx: outer, ry: outer * 0.9 },
-    { rx: inner, ry: inner * 0.9 },
+    { rx: outer, ry: outer },
+    { rx: inner, ry: inner },
   ];
 
   const tunnelAnchors = TUNNEL_ANGLES.map((a) => ({
@@ -69,7 +70,7 @@ export function computeBoardLayout(
     gridHeight,
     orbit,
     tunnelAnchors,
-    chargeRadius: Math.max(7, cell * 0.55),
+    chargeRadius,
   };
 }
 

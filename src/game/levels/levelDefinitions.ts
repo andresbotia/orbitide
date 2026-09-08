@@ -17,8 +17,7 @@ import type { LevelDefinition } from '../engine/types';
  *         R red · G green · '.' empty
  */
 export const LEVEL_DEFINITIONS: LevelDefinition[] = [
-  // L1 — MOON. One color, solid disc. Tap white, clear the exposed ring, the
-  // inner pixels become reachable, clear those. No Holding pressure.
+  // L1 - MOON. Three equal white charges; every launch order wins; brief leftover auto-resolution is harmless.
   {
     id: 1,
     title: 'Moon',
@@ -33,14 +32,13 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
       '.WWW.',
     ],
     tunnels: [
-      [{ color: 'white', capacity: 12 }, { color: 'white', capacity: 2 }],
-      [{ color: 'white', capacity: 5 }],
-      [{ color: 'white', capacity: 2 }],
+      [{ color: 'white', capacity: 7 }],
+      [{ color: 'white', capacity: 7 }],
+      [{ color: 'white', capacity: 7 }],
     ],
   },
 
-  // L2 — STAR. Two colors. Clear the white points, then the arms, then the
-  // yellow core. Any white tunnel works — multiple obvious choices.
+  // L2 - STAR. Unchanged: white arms teach capacity, then the yellow heart.
   {
     id: 2,
     title: 'Star',
@@ -61,9 +59,7 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
     ],
   },
 
-  // L3 — SMALL PLANET. A deliberately over-large cyan charge overshoots the
-  // exposed ring; the leftover parks in Holding and auto-clears the inner cyan
-  // once it is reachable.
+  // L3 - SMALL PLANET. Buried white at T1: peel cyan first or safely park white.
   {
     id: 3,
     title: 'Small Planet',
@@ -78,14 +74,13 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
       '.CCC.',
     ],
     tunnels: [
-      [{ color: 'cyan', capacity: 14 }, { color: 'white', capacity: 1 }],
+      [{ color: 'white', capacity: 1 }, { color: 'cyan', capacity: 14 }],
       [{ color: 'cyan', capacity: 4 }],
       [{ color: 'cyan', capacity: 2 }],
     ],
   },
 
-  // L4 — ROCKET. Three colors plus flame. Clear the red nose to expose the
-  // last red; clear the white hull to expose the blue window.
+  // L4 - ROCKET. Blue must park to unlock the white hull; one safe Holding slot.
   {
     id: 4,
     title: 'Rocket',
@@ -101,14 +96,13 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
       '.O.O.',
     ],
     tunnels: [
-      [{ color: 'red', capacity: 3 }, { color: 'white', capacity: 3 }, { color: 'blue', capacity: 1 }],
-      [{ color: 'red', capacity: 1 }, { color: 'white', capacity: 3 }],
-      [{ color: 'white', capacity: 2 }, { color: 'orange', capacity: 2 }],
+      [{ color: 'blue', capacity: 1 }, { color: 'white', capacity: 4 }, { color: 'white', capacity: 4 }],
+      [{ color: 'red', capacity: 4 }],
+      [{ color: 'orange', capacity: 2 }],
     ],
   },
 
-  // L5 — COMET. Four colors. A bright white head over a cyan core, trailing a
-  // two-tone tail. Several tunnel orders work.
+  // L5 - COMET. Clear white between cyan launches; purple provides a forgiving first tap.
   {
     id: 5,
     title: 'Comet',
@@ -125,15 +119,13 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
       'KP.....',
     ],
     tunnels: [
-      [{ color: 'white', capacity: 5 }, { color: 'cyan', capacity: 2 }, { color: 'pink', capacity: 3 }],
-      [{ color: 'white', capacity: 4 }, { color: 'cyan', capacity: 2 }],
-      [{ color: 'white', capacity: 2 }, { color: 'purple', capacity: 3 }],
+      [{ color: 'cyan', capacity: 1 }, { color: 'white', capacity: 5 }, { color: 'pink', capacity: 3 }],
+      [{ color: 'cyan', capacity: 1 }, { color: 'white', capacity: 4 }],
+      [{ color: 'purple', capacity: 3 }, { color: 'cyan', capacity: 2 }, { color: 'white', capacity: 2 }],
     ],
   },
 
-  // L6 — RINGED PLANET. Five colors. A ring of cyan/orange across a purple
-  // planet with a blue mantle and a pink core. Sequencing matters: the ring and
-  // outer purple must go before the blue, and the blue before the core.
+  // L6 - RINGED PLANET. Blue fronts and an oversized cyan front; interleave shell clears.
   {
     id: 6,
     title: 'Ringed Planet',
@@ -148,17 +140,13 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
       '..PPP..',
     ],
     tunnels: [
-      [{ color: 'purple', capacity: 5 }, { color: 'blue', capacity: 3 }, { color: 'pink', capacity: 1 }],
-      [{ color: 'purple', capacity: 3 }, { color: 'cyan', capacity: 3 }, { color: 'orange', capacity: 2 }],
-      [{ color: 'purple', capacity: 2 }, { color: 'blue', capacity: 2 }, { color: 'cyan', capacity: 2 }],
+      [{ color: 'blue', capacity: 3 }, { color: 'purple', capacity: 5 }, { color: 'pink', capacity: 1 }],
+      [{ color: 'cyan', capacity: 3 }, { color: 'purple', capacity: 3 }, { color: 'orange', capacity: 2 }],
+      [{ color: 'blue', capacity: 2 }, { color: 'purple', capacity: 2 }, { color: 'cyan', capacity: 2 }],
     ],
   },
 
-  // L7 — SATELLITE. First realistic Holding danger. A blue shell wraps a pink
-  // hull around a white core. Every tunnel's front charge is pink, which is
-  // still buried: launch all three before opening the shell and Holding fills
-  // and the level is lost. Interleave — open some blue, let the parked pink
-  // auto-clear — and it is comfortable.
+  // L7 - SATELLITE. Pink then white in T1 creates a second Holding commitment.
   {
     id: 7,
     title: 'Satellite',
@@ -173,15 +161,13 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
       'BBBBB',
     ],
     tunnels: [
-      [{ color: 'pink', capacity: 3 }, { color: 'blue', capacity: 6 }, { color: 'white', capacity: 1 }],
+      [{ color: 'pink', capacity: 3 }, { color: 'white', capacity: 1 }, { color: 'blue', capacity: 6 }],
       [{ color: 'pink', capacity: 3 }, { color: 'blue', capacity: 6 }],
       [{ color: 'pink', capacity: 2 }, { color: 'blue', capacity: 4 }],
     ],
   },
 
-  // L8 — NEBULA. Five colors in concentric shells (cyan corners, purple cloud,
-  // pink and green mid layers, a yellow heart). More than one order of shells
-  // works.
+  // L8 - NEBULA. Two buried colors in T3 require planning around the purple opener.
   {
     id: 8,
     title: 'Nebula',
@@ -196,15 +182,13 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
       'CPPPC',
     ],
     tunnels: [
-      [{ color: 'purple', capacity: 6 }, { color: 'pink', capacity: 2 }, { color: 'yellow', capacity: 1 }],
-      [{ color: 'cyan', capacity: 2 }, { color: 'purple', capacity: 6 }, { color: 'green', capacity: 2 }],
-      [{ color: 'cyan', capacity: 2 }, { color: 'pink', capacity: 2 }, { color: 'green', capacity: 2 }],
+      [{ color: 'pink', capacity: 2 }, { color: 'purple', capacity: 6 }, { color: 'yellow', capacity: 1 }],
+      [{ color: 'green', capacity: 2 }, { color: 'cyan', capacity: 2 }, { color: 'purple', capacity: 6 }],
+      [{ color: 'pink', capacity: 2 }, { color: 'green', capacity: 2 }, { color: 'cyan', capacity: 2 }],
     ],
   },
 
-  // L9 — CONSTELLATION. Medium. A blue-shelled object with a white mantle and
-  // pink core, four lone corner stars. The tunnel queues interleave the corner
-  // colors with the shells, so launches must be ordered with more care.
+  // L9 - CONSTELLATION. Medium: interleaved white, core and stars delay blue access.
   {
     id: 9,
     title: 'Constellation',
@@ -221,15 +205,13 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
       'O.....P',
     ],
     tunnels: [
-      [{ color: 'green', capacity: 1 }, { color: 'blue', capacity: 6 }, { color: 'white', capacity: 4 }, { color: 'pink', capacity: 1 }],
-      [{ color: 'cyan', capacity: 1 }, { color: 'blue', capacity: 6 }, { color: 'white', capacity: 4 }],
-      [{ color: 'orange', capacity: 1 }, { color: 'purple', capacity: 1 }, { color: 'blue', capacity: 4 }],
+      [{ color: 'white', capacity: 3 }, { color: 'pink', capacity: 1 }, { color: 'green', capacity: 1 }, { color: 'blue', capacity: 6 }],
+      [{ color: 'white', capacity: 4 }, { color: 'cyan', capacity: 1 }, { color: 'blue', capacity: 6 }],
+      [{ color: 'orange', capacity: 1 }, { color: 'white', capacity: 1 }, { color: 'blue', capacity: 4 }, { color: 'purple', capacity: 1 }],
     ],
   },
 
-  // L10 — ECLIPSE. Hard. A yellow corona over a white ring over a dark core,
-  // orange edge flares. Concentric so it plays outside-in, but the generous
-  // split across tunnels leaves more than one workable order.
+  // L10 - ECLIPSE. Hard: buried pink and white precede corona clears in multiple tunnels.
   {
     id: 10,
     title: 'Eclipse',
@@ -245,9 +227,9 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
       '.YYYY.',
     ],
     tunnels: [
-      [{ color: 'yellow', capacity: 6 }, { color: 'white', capacity: 5 }, { color: 'pink', capacity: 2 }],
-      [{ color: 'yellow', capacity: 5 }, { color: 'white', capacity: 4 }, { color: 'orange', capacity: 1 }],
-      [{ color: 'yellow', capacity: 3 }, { color: 'white', capacity: 3 }, { color: 'pink', capacity: 2 }, { color: 'orange', capacity: 1 }],
+      [{ color: 'pink', capacity: 2 }, { color: 'white', capacity: 5 }, { color: 'yellow', capacity: 6 }],
+      [{ color: 'white', capacity: 4 }, { color: 'orange', capacity: 1 }, { color: 'yellow', capacity: 5 }],
+      [{ color: 'pink', capacity: 2 }, { color: 'white', capacity: 3 }, { color: 'yellow', capacity: 3 }, { color: 'orange', capacity: 1 }],
     ],
   },
 ];
