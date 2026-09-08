@@ -325,6 +325,79 @@ describe('deterministic clear order', () => {
     expect(outcome.primaryClearedPixelIds).toEqual([order[0]?.id]);
   });
 
+  it('is fully deterministic — the same launch sequence yields identical state', () => {
+    const run = () => {
+      let s = createGame(squareLevel);
+      for (const t of ['tunnel-0', 'tunnel-1', 'tunnel-2', 'tunnel-0']) {
+        s = resolveLaunch(s, t).state;
+      }
+      return s;
+    };
+    expect(run()).toEqual(run());
+  });
+
+  it('survives rapid random launches without corrupting state', () => {
+    const level: LevelDefinition = {
+      id: 909,
+      title: 'Test Stress',
+      themeId: 'test',
+      difficulty: 'easy',
+      holdingCapacity: 3,
+      pixelArt: ['BBBBB', 'BKGKB', 'BGWGB', 'BKGKB', 'BBBBB'],
+      tunnels: [
+        [
+          { color: 'blue', capacity: 4 },
+          { color: 'pink', capacity: 2 },
+          { color: 'green', capacity: 3 },
+          { color: 'white', capacity: 1 },
+        ],
+        [
+          { color: 'blue', capacity: 8 },
+          { color: 'green', capacity: 2 },
+          { color: 'pink', capacity: 2 },
+        ],
+        [{ color: 'blue', capacity: 4 }, { color: 'green', capacity: 1 }],
+      ],
+    };
+
+    // Deterministic pseudo-random tap stream.
+    let seed = 12345;
+    const rnd = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed / 0x7fffffff;
+    };
+
+    let state = createGame(level);
+    const totalPixels = state.pixels.length;
+
+    for (let i = 0; i < 300; i += 1) {
+      const target = `tunnel-${Math.floor(rnd() * 4)}`; // sometimes tunnel-3 (invalid)
+      const before = state;
+      const outcome = resolveLaunch(state, target);
+      state = outcome.state;
+
+      if (!outcome.accepted) {
+        expect(state).toBe(before); // rejected launches never change state
+      }
+
+      // Invariants that must always hold.
+      expect(state.pixels).toHaveLength(totalPixels);
+      const clearedCount = state.pixels.filter((p) => p.cleared).length;
+      expect(clearedCount).toBeGreaterThanOrEqual(0);
+      expect(state.holding.length).toBeLessThanOrEqual(state.holdingCapacity + 1);
+      for (const c of state.holding) expect(c.capacity).toBeGreaterThan(0);
+      const ids = state.holding.map((c) => c.id);
+      expect(new Set(ids).size).toBe(ids.length); // no duplicate held charges
+      for (const t of state.tunnels) {
+        for (const c of t.queue) expect(c.capacity).toBeGreaterThan(0);
+      }
+
+      if (state.status !== 'playing') break;
+    }
+
+    expect(['playing', 'won', 'lost']).toContain(state.status);
+  });
+
   it('visibleCharges reports one entry per tunnel, front first', () => {
     const state = createGame(squareLevel);
     expect(visibleCharges(state)).toEqual([

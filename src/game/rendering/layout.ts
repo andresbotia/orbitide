@@ -22,10 +22,11 @@ export interface BoardLayout {
   chargeRadius: number;
 }
 
+// Ordered to match the on-screen Launch Tunnel bar left-to-right (T1, T2, T3).
 const TUNNEL_ANGLES = [
-  Math.PI / 2, // bottom  (6 o'clock)
-  Math.PI - Math.PI / 5, // lower-left
-  Math.PI / 5, // lower-right
+  Math.PI - Math.PI / 4.5, // T1 lower-left
+  Math.PI / 2, // T2 bottom (6 o'clock)
+  Math.PI / 4.5, // T3 lower-right
 ];
 
 /** Geometry for a square board rendering a `cols x rows` picture. */
