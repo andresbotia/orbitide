@@ -1,27 +1,42 @@
-import type { GameState, LevelDefinition, Orb } from './types';
+import { DEFAULT_ART_LEGEND, parsePixelArt } from './art';
+import type { Charge, GameState, LevelDefinition, TunnelState } from './types';
+
+export const TUNNEL_COUNT = 3;
 
 /**
  * Build a fresh {@link GameState} from a {@link LevelDefinition}.
  *
  * Deterministic: the same level definition always produces an identical state
- * (same orb ids, same ordering), which is what makes "restart" a simple call to
- * this function and what test #10 relies on.
+ * (same pixel ids, same charge ids, same ordering). That is what makes "restart"
+ * a plain call to this function and what the restart test relies on.
  */
 export function createGame(level: LevelDefinition): GameState {
-  const lanes: Orb[][] = level.lanes.map((lane, laneIndex) =>
-    lane.map((color, position) => ({
-      id: `L${level.id}-lane${laneIndex}-pos${position}`,
-      color,
-    })),
-  );
+  const legend = { ...DEFAULT_ART_LEGEND, ...(level.legend ?? {}) };
+  const { width, height, pixels } = parsePixelArt(level.id, level.pixelArt, legend);
+
+  if (level.tunnels.length !== TUNNEL_COUNT) {
+    throw new Error(
+      `Level ${level.id}: expected exactly ${TUNNEL_COUNT} tunnels, got ${level.tunnels.length}`,
+    );
+  }
+
+  const tunnels: TunnelState[] = level.tunnels.map((specs, tunnelIndex) => {
+    const queue: Charge[] = specs.map((spec, chargeIndex) => ({
+      id: `L${level.id}-t${tunnelIndex}-c${chargeIndex}`,
+      color: spec.color,
+      capacity: spec.capacity,
+    }));
+    return { id: `tunnel-${tunnelIndex}`, queue };
+  });
 
   return {
     levelId: level.id,
     holdingCapacity: level.holdingCapacity,
-    lanes,
+    width,
+    height,
+    pixels,
+    tunnels,
     holding: [],
-    targets: level.coreTargets.map((target) => ({ ...target })),
-    activeTargetIndex: 0,
     status: 'playing',
     movesApplied: 0,
   };

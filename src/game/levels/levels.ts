@@ -1,4 +1,4 @@
-import type { LevelDefinition } from '../engine/types';
+import type { LevelDefinition, OrbColor } from '../engine/types';
 import { LEVEL_DEFINITIONS } from './levelDefinitions';
 
 export { LEVEL_DEFINITIONS };
@@ -34,11 +34,13 @@ export function nextLevelId(levelId: number): number | undefined {
   return levelExists(levelId + 1) ? levelId + 1 : undefined;
 }
 
-/** Colors used anywhere in the M1 campaign, in first-appearance order. */
-export const CAMPAIGN_COLORS = Array.from(
-  new Set(
-    LEVEL_DEFINITIONS.flatMap((level) =>
-      level.coreTargets.map((target) => target.color),
-    ),
-  ),
-);
+/** Every color used by any pixel in any campaign level, in first-seen order. */
+export const CAMPAIGN_COLORS: OrbColor[] = (() => {
+  const seen = new Set<OrbColor>();
+  for (const level of LEVEL_DEFINITIONS) {
+    for (const tunnel of level.tunnels) {
+      for (const spec of tunnel) seen.add(spec.color);
+    }
+  }
+  return [...seen];
+})();

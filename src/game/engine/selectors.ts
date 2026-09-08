@@ -1,56 +1,59 @@
-import type { CoreTarget, GameState, Lane, Orb } from './types';
+import { reachablePixels, reachableTargets, remainingPixelCount } from './pixels';
+import type { Charge, GameState, OrbColor, TunnelState } from './types';
 
-/** The exposed (selectable) orb of a lane, or `undefined` if the lane is empty. */
-export function getExposedOrb(lane: Lane): Orb | undefined {
-  return lane[0];
+export { reachablePixels, reachableTargets, remainingPixelCount };
+
+/** The visible front charge of a tunnel, or `null` when its queue is empty. */
+export function frontCharge(tunnel: TunnelState): Charge | null {
+  return tunnel.queue[0] ?? null;
 }
 
-export interface ExposedOrb {
-  laneIndex: number;
-  orb: Orb;
+export interface VisibleCharge {
+  tunnelId: string;
+  charge: Charge | null;
 }
 
-/** Every currently selectable orb, one per non-empty lane. */
-export function getExposedOrbs(state: GameState): ExposedOrb[] {
-  const result: ExposedOrb[] = [];
-  state.lanes.forEach((lane, laneIndex) => {
-    const orb = lane[0];
-    if (orb) result.push({ laneIndex, orb });
-  });
-  return result;
+/** The three visible front charges (one per tunnel), in tunnel order. */
+export function visibleCharges(state: GameState): VisibleCharge[] {
+  return state.tunnels.map((tunnel) => ({
+    tunnelId: tunnel.id,
+    charge: frontCharge(tunnel),
+  }));
 }
 
-/** The Core target awaiting resolution, or `undefined` once all are complete. */
-export function getActiveTarget(state: GameState): CoreTarget | undefined {
-  return state.targets[state.activeTargetIndex];
+export function findTunnel(
+  state: GameState,
+  tunnelId: string,
+): TunnelState | undefined {
+  return state.tunnels.find((tunnel) => tunnel.id === tunnelId);
 }
 
-/** The active Core color, or `undefined` once every target is complete. */
-export function getActiveColor(state: GameState) {
-  return getActiveTarget(state)?.color;
+/** Whether tapping `tunnelId` right now is a legal move. */
+export function isTunnelSelectable(state: GameState, tunnelId: string): boolean {
+  if (state.status !== 'playing') return false;
+  const tunnel = findTunnel(state, tunnelId);
+  return !!tunnel && tunnel.queue.length > 0;
 }
 
-/** Remaining count on the active target (0 when the sequence is complete). */
-export function getRemainingCount(state: GameState): number {
-  return getActiveTarget(state)?.count ?? 0;
-}
-
-export function allLanesEmpty(state: GameState): boolean {
-  return state.lanes.every((lane) => lane.length === 0);
+/** Whether any tunnel still has a charge to launch. */
+export function anyLaunchAvailable(state: GameState): boolean {
+  return state.tunnels.some((tunnel) => tunnel.queue.length > 0);
 }
 
 export function holdingIsFull(state: GameState): boolean {
   return state.holding.length >= state.holdingCapacity;
 }
 
-export function allTargetsComplete(state: GameState): boolean {
-  return state.targets.every((target) => target.count === 0);
+/** Count of uncleared pixels of a given color (reachable or not). */
+export function pixelsRemainingOfColor(state: GameState, color: OrbColor): number {
+  let n = 0;
+  for (const p of state.pixels) if (!p.cleared && p.color === color) n += 1;
+  return n;
 }
 
-/**
- * Whether `orbId` names the exposed orb of some lane in the current state.
- * The single source of truth for "is this tap legal".
- */
-export function isSelectable(state: GameState, orbId: string): boolean {
-  return state.lanes.some((lane) => lane[0]?.id === orbId);
+/** Distinct colors still present in the picture, in first-seen pixel order. */
+export function remainingColors(state: GameState): OrbColor[] {
+  const seen = new Set<OrbColor>();
+  for (const p of state.pixels) if (!p.cleared) seen.add(p.color);
+  return [...seen];
 }

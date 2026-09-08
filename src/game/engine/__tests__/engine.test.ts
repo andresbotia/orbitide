@@ -1,269 +1,331 @@
 import { createGame, restartGame } from '../createGame';
-import { resolveMove } from '../resolveMove';
-import { getExposedOrbs } from '../selectors';
-import type { LevelDefinition } from '../types';
+import { clearOrder, reachablePixels, reachableTargets } from '../pixels';
+import { resolveLaunch } from '../resolveLaunch';
+import { frontCharge, remainingPixelCount, visibleCharges } from '../selectors';
+import type { GameState, LevelDefinition } from '../types';
 
-/** Tap the exposed orb of a given lane and return the resulting outcome. */
-function tapLane(state: Parameters<typeof resolveMove>[0], laneIndex: number) {
-  const orb = state.lanes[laneIndex]?.[0];
-  if (!orb) throw new Error(`Lane ${laneIndex} is empty`);
-  return resolveMove(state, orb.id);
-}
-
-const twoColorLevel: LevelDefinition = {
-  id: 101,
+/** A 3x3 solid green square with a single blue centre pixel behind it. */
+const squareLevel: LevelDefinition = {
+  id: 900,
+  title: 'Test Square',
+  themeId: 'test',
+  difficulty: 'easy',
   holdingCapacity: 3,
-  coreTargets: [
-    { color: 'blue', count: 1 },
-    { color: 'red', count: 1 },
+  pixelArt: ['GGG', 'GBG', 'GGG'],
+  tunnels: [
+    [{ color: 'green', capacity: 8 }, { color: 'blue', capacity: 1 }],
+    [{ color: 'green', capacity: 4 }],
+    [{ color: 'blue', capacity: 1 }],
   ],
-  lanes: [['blue'], ['red']],
 };
 
-describe('resolveMove — matching orb', () => {
-  it('1. a matching orb clears from its lane and resolves into the Core', () => {
-    const state = createGame(twoColorLevel);
-    const { state: next, accepted, kind } = tapLane(state, 0);
+function frontOf(state: GameState, tunnelIndex: number) {
+  const tunnel = state.tunnels[tunnelIndex];
+  if (!tunnel) throw new Error(`no tunnel ${tunnelIndex}`);
+  return tunnel;
+}
 
+describe('tunnel selection', () => {
+  it('1. launching a tunnel removes its front charge', () => {
+    const state = createGame(squareLevel);
+    expect(frontCharge(frontOf(state, 0))?.capacity).toBe(8);
+
+    const { state: next, accepted, launchedCharge } = resolveLaunch(state, 'tunnel-0');
     expect(accepted).toBe(true);
-    expect(kind).toBe('core');
-    expect(next.lanes[0]).toEqual([]);
-    expect(next.holding).toEqual([]);
-    expect(next.targets[0]?.count).toBe(0);
+    expect(launchedCharge?.color).toBe('green');
+    expect(next.tunnels[0]?.queue).toHaveLength(1);
     // input state untouched
-    expect(state.lanes[0]).toHaveLength(1);
+    expect(state.tunnels[0]?.queue).toHaveLength(2);
+  });
+
+  it('2. the next authored charge becomes the visible front charge', () => {
+    const state = createGame(squareLevel);
+    const outcome = resolveLaunch(state, 'tunnel-0');
+    expect(outcome.revealedCharge?.color).toBe('blue');
+    expect(frontCharge(frontOf(outcome.state, 0))?.color).toBe('blue');
   });
 });
 
-describe('resolveMove — non-matching orb', () => {
-  it('2. a non-matching orb leaves its lane and enters the holding tray', () => {
-    const state = createGame(twoColorLevel);
-    const { state: next, kind } = tapLane(state, 1); // red while blue active
+describe('pixel clearing', () => {
+  it('3. a charge clears matching reachable pixels', () => {
+    const state = createGame(squareLevel);
+    const outcome = resolveLaunch(state, 'tunnel-0'); // green:8
+    expect(outcome.primaryClearedPixelIds).toHaveLength(8);
+    expect(outcome.primaryConsumed).toBe(true);
+    expect(remainingPixelCount(outcome.state)).toBe(1); // only the blue centre
+  });
 
-    expect(kind).toBe('held');
-    expect(next.lanes[1]).toEqual([]);
-    expect(next.holding.map((o) => o.color)).toEqual(['red']);
-    expect(next.status).toBe('playing');
+  it('4. interior pixels do not clear until an outer layer exposes them', () => {
+    const state = createGame(squareLevel);
+    // The blue centre is enclosed by the 8 green pixels.
+    expect(reachablePixels(state).some((p) => p.color === 'blue')).toBe(false);
+
+    // A blue charge launched now finds nothing and parks.
+    const blueFirst = resolveLaunch(state, 'tunnel-2'); // blue:1
+    expect(blueFirst.primaryClearedPixelIds).toHaveLength(0);
+    expect(blueFirst.heldCharge?.color).toBe('blue');
+    expect(blueFirst.heldCharge?.capacity).toBe(1);
+
+    // Independently: once the green shell is cleared the blue is reachable.
+    const afterGreen = resolveLaunch(state, 'tunnel-0'); // green:8, no held blue
+    expect(afterGreen.state.status).toBe('playing');
+    expect(
+      reachablePixels(afterGreen.state).some((p) => p.color === 'blue'),
+    ).toBe(true);
+  });
+
+  it('5. charge capacity decreases by the number of pixels cleared', () => {
+    const level: LevelDefinition = {
+      ...squareLevel,
+      id: 901,
+      tunnels: [
+        [{ color: 'green', capacity: 5 }],
+        [{ color: 'green', capacity: 3 }],
+        [{ color: 'blue', capacity: 1 }],
+      ],
+    };
+    const state = createGame(level);
+    const outcome = resolveLaunch(state, 'tunnel-0'); // green:5, 8 reachable
+    expect(outcome.primaryClearedPixelIds).toHaveLength(5);
+    expect(outcome.primaryConsumed).toBe(true);
+    expect(outcome.heldCharge).toBeNull();
+  });
+
+  it('6. a charge that reaches zero capacity disappears (not held)', () => {
+    const state = createGame(squareLevel);
+    const outcome = resolveLaunch(state, 'tunnel-1'); // green:4, clears 4, consumed
+    expect(outcome.primaryConsumed).toBe(true);
+    expect(outcome.state.holding).toHaveLength(0);
   });
 });
 
-describe('target advancement', () => {
-  it('3. the active target advances when its count reaches zero', () => {
+describe('holding', () => {
+  it('7. a charge with leftover capacity enters Holding', () => {
     const level: LevelDefinition = {
-      id: 102,
-      holdingCapacity: 3,
-      coreTargets: [
-        { color: 'blue', count: 2 },
-        { color: 'red', count: 1 },
-      ],
-      lanes: [['blue'], ['blue'], ['red']],
-    };
-    let state = createGame(level);
-    expect(state.activeTargetIndex).toBe(0);
-
-    state = tapLane(state, 0).state;
-    expect(state.activeTargetIndex).toBe(0); // still on blue, 1 remaining
-    expect(state.targets[0]?.count).toBe(1);
-
-    const outcome = tapLane(state, 1);
-    expect(outcome.completedTarget).toBe(true);
-    expect(outcome.state.activeTargetIndex).toBe(1); // advanced to red
-  });
-});
-
-describe('automatic held-orb resolution', () => {
-  it('4. matching held orbs auto-resolve when their color becomes active', () => {
-    const level: LevelDefinition = {
-      id: 103,
-      holdingCapacity: 3,
-      coreTargets: [
-        { color: 'blue', count: 1 },
-        { color: 'red', count: 1 },
-      ],
-      lanes: [
-        ['red', 'blue'], // must hold red to reach blue
+      ...squareLevel,
+      id: 902,
+      tunnels: [
+        [{ color: 'green', capacity: 12 }], // 8 reachable -> 4 leftover
+        [{ color: 'green', capacity: 4 }],
+        [{ color: 'blue', capacity: 1 }],
       ],
     };
-    let state = createGame(level);
-
-    let outcome = tapLane(state, 0); // hold red
-    state = outcome.state;
-    expect(state.holding.map((o) => o.color)).toEqual(['red']);
-
-    outcome = tapLane(state, 0); // tap blue -> completes blue -> red becomes active
-    expect(outcome.autoResolved.map((o) => o.color)).toEqual(['red']);
-    expect(outcome.state.holding).toEqual([]);
-    expect(outcome.state.status).toBe('won');
+    const state = createGame(level);
+    const outcome = resolveLaunch(state, 'tunnel-0');
+    expect(outcome.primaryClearedPixelIds).toHaveLength(8);
+    expect(outcome.primaryConsumed).toBe(false);
+    expect(outcome.state.holding.map((c) => `${c.color}:${c.capacity}`)).toEqual([
+      'green:4',
+    ]);
   });
 
-  it('5. auto-resolution chains through multiple targets', () => {
+  it('8. a held charge auto-reactivates once matching pixels are exposed', () => {
     const level: LevelDefinition = {
-      id: 104,
+      id: 903,
+      title: 'Test Held',
+      themeId: 'test',
+      difficulty: 'easy',
       holdingCapacity: 3,
-      coreTargets: [
-        { color: 'blue', count: 1 },
-        { color: 'red', count: 1 },
-        { color: 'yellow', count: 1 },
-      ],
-      lanes: [
-        ['yellow', 'red', 'blue'], // hold yellow, hold red, then tap blue
+      // green ring, red centre
+      pixelArt: ['GGG', 'GRG', 'GGG'],
+      tunnels: [
+        [{ color: 'red', capacity: 1 }], // parks: red centre is buried
+        [{ color: 'green', capacity: 8 }], // opens the shell -> red auto-clears
+        [{ color: 'green', capacity: 1 }],
       ],
     };
     let state = createGame(level);
-    state = tapLane(state, 0).state; // hold yellow
-    state = tapLane(state, 0).state; // hold red
-    expect(state.holding.map((o) => o.color)).toEqual(['yellow', 'red']);
+    const held = resolveLaunch(state, 'tunnel-0');
+    state = held.state;
+    expect(state.holding.map((c) => c.color)).toEqual(['red']);
 
-    const outcome = tapLane(state, 0); // tap blue -> chains red then yellow
-    expect(outcome.autoResolved.map((o) => o.color)).toEqual(['red', 'yellow']);
-    expect(outcome.state.activeTargetIndex).toBe(3);
-    expect(outcome.state.status).toBe('won');
+    const opened = resolveLaunch(state, 'tunnel-1'); // green:8
+    expect(opened.autoResolutions).toHaveLength(1);
+    expect(opened.autoResolutions[0]?.color).toBe('red');
+    expect(opened.autoResolutions[0]?.consumed).toBe(true);
+    expect(opened.state.holding).toHaveLength(0);
+    expect(opened.state.status).toBe('won');
   });
-});
 
-describe('failure', () => {
-  it('6. a full holding tray with no possible auto-resolution loses the level', () => {
+  it('9. auto-resolution chains safely through several layers', () => {
     const level: LevelDefinition = {
-      id: 105,
+      id: 904,
+      title: 'Test Chain',
+      themeId: 'test',
+      difficulty: 'easy',
       holdingCapacity: 3,
-      coreTargets: [{ color: 'blue', count: 1 }],
-      lanes: [['red'], ['red'], ['red'], ['blue']],
+      // blue shell / green ring / red core
+      pixelArt: ['BBBBB', 'BGGGB', 'BGRGB', 'BGGGB', 'BBBBB'],
+      tunnels: [
+        [{ color: 'red', capacity: 1 }, { color: 'green', capacity: 8 }],
+        [{ color: 'blue', capacity: 16 }],
+        [{ color: 'green', capacity: 8 }],
+      ],
     };
     let state = createGame(level);
-    state = tapLane(state, 0).state; // hold red (1/3)
-    state = tapLane(state, 1).state; // hold red (2/3)
+    state = resolveLaunch(state, 'tunnel-0').state; // park red:1
+    state = resolveLaunch(state, 'tunnel-2').state; // park green:8 (still buried)
+    expect(state.holding.map((c) => c.color).sort()).toEqual(['green', 'red']);
+
+    const boom = resolveLaunch(state, 'tunnel-1'); // blue:16 opens everything
+    // green resolves first (exposed by the blue), then red (exposed by green)
+    expect(boom.autoResolutions.map((r) => r.color)).toEqual(['green', 'red']);
+    expect(boom.state.holding).toHaveLength(0);
+    expect(boom.state.status).toBe('won');
+  });
+
+  it('10. a full Holding tray with no possible resolution loses the level', () => {
+    const level: LevelDefinition = {
+      id: 905,
+      title: 'Test Overflow',
+      themeId: 'test',
+      difficulty: 'easy',
+      holdingCapacity: 3,
+      // blue shell around a pink hull — every tunnel front is buried pink
+      pixelArt: ['BBBBB', 'BKKKB', 'BKWKB', 'BKKKB', 'BBBBB'],
+      tunnels: [
+        [{ color: 'pink', capacity: 3 }, { color: 'blue', capacity: 8 }],
+        [{ color: 'pink', capacity: 3 }, { color: 'blue', capacity: 8 }],
+        [{ color: 'pink', capacity: 2 }],
+      ],
+    };
+    let state = createGame(level);
+    state = resolveLaunch(state, 'tunnel-0').state; // park pink:3
+    state = resolveLaunch(state, 'tunnel-1').state; // park pink:3
     expect(state.status).toBe('playing');
-    const outcome = tapLane(state, 2); // hold red (3/3) -> lost
-    expect(outcome.state.status).toBe('lost');
+    const dead = resolveLaunch(state, 'tunnel-2'); // park pink:2 -> 3/3, stuck
+    expect(dead.state.holding).toHaveLength(3);
+    expect(dead.state.status).toBe('lost');
   });
 
-  it('7. a full tray does NOT fail when auto-resolution frees a slot in the same move', () => {
+  it('11. a full tray does NOT fail when auto-resolution frees a slot the same move', () => {
     const level: LevelDefinition = {
-      id: 106,
+      id: 907,
+      title: 'Test Rescue 2',
+      themeId: 'test',
+      difficulty: 'easy',
       holdingCapacity: 3,
-      coreTargets: [
-        { color: 'blue', count: 1 },
-        { color: 'red', count: 2 },
-      ],
-      lanes: [
-        ['red', 'blue'], // hold red (1/3), then tap blue
-        ['red'],
-        ['blue'], // spare blue to hold
+      pixelArt: ['BBBBB', 'BKKKB', 'BKWKB', 'BKKKB', 'BBBBB'],
+      tunnels: [
+        [{ color: 'blue', capacity: 16 }, { color: 'pink', capacity: 4 }],
+        [{ color: 'pink', capacity: 3 }],
+        [{ color: 'pink', capacity: 3 }],
       ],
     };
     let state = createGame(level);
-    const afterHold = tapLane(state, 0); // hold red (1/3)
-    state = afterHold.state;
-    expect(state.holding.map((o) => o.color)).toEqual(['red']);
-
-    // Tap the spare blue: blue is active so it resolves into the Core, completing
-    // the blue target. Red becomes active and the held red auto-resolves the
-    // same move — the tray never fails even though it briefly held an orb.
-    const outcome = tapLane(state, 2);
-    expect(outcome.autoResolved.map((o) => o.color)).toEqual(['red']);
-    expect(outcome.state.activeTargetIndex).toBe(1);
-    expect(outcome.state.holding).toEqual([]);
-    expect(outcome.state.status).toBe('playing');
-  });
-
-  it('7b. chained auto-resolution can rescue a tray that is one orb from full', () => {
-    const level: LevelDefinition = {
-      id: 107,
-      holdingCapacity: 3,
-      coreTargets: [
-        { color: 'blue', count: 1 },
-        { color: 'red', count: 1 },
-        { color: 'yellow', count: 1 },
-      ],
-      lanes: [['yellow', 'red', 'blue']],
-    };
-    let state = createGame(level);
-    state = tapLane(state, 0).state; // hold yellow (1/3)
-    state = tapLane(state, 0).state; // hold red (2/3)
+    state = resolveLaunch(state, 'tunnel-1').state; // park pink:3 (1/3)
+    state = resolveLaunch(state, 'tunnel-2').state; // park pink:3 (2/3)
     expect(state.holding).toHaveLength(2);
-    const outcome = tapLane(state, 0); // tap blue -> red then yellow chain out
-    expect(outcome.autoResolved.map((o) => o.color)).toEqual(['red', 'yellow']);
-    expect(outcome.state.holding).toEqual([]);
-    expect(outcome.state.status).toBe('won');
+
+    const opened = resolveLaunch(state, 'tunnel-0'); // blue:16 clears the shell
+    // both parked pink charges now find work; tray drains, not a loss
+    expect(opened.autoResolutions.length).toBeGreaterThan(0);
+    expect(opened.state.holding.length).toBeLessThan(3);
+    expect(opened.state.status).toBe('playing');
   });
 });
 
 describe('win', () => {
-  it('8. clearing every lane, emptying the tray and finishing all targets wins', () => {
-    const state = createGame(twoColorLevel);
-    const afterBlue = tapLane(state, 0).state;
-    const afterRed = tapLane(afterBlue, 1).state;
-    expect(afterRed.status).toBe('won');
+  it('12. clearing every pixel produces a win', () => {
+    let state = createGame(squareLevel);
+    state = resolveLaunch(state, 'tunnel-0').state; // green:8
+    expect(state.status).toBe('playing');
+    const done = resolveLaunch(state, 'tunnel-2'); // blue:1 on the now-exposed centre
+    expect(remainingPixelCount(done.state)).toBe(0);
+    expect(done.state.status).toBe('won');
   });
 });
 
 describe('input guards', () => {
-  it('9a. tapping a non-exposed orb does not mutate state', () => {
-    const level: LevelDefinition = {
-      id: 108,
-      holdingCapacity: 3,
-      coreTargets: [{ color: 'blue', count: 2 }],
-      lanes: [['blue', 'blue']],
-    };
-    const state = createGame(level);
-    const buriedOrbId = state.lanes[0]?.[1]?.id as string;
-    const outcome = resolveMove(state, buriedOrbId);
+  it('13a. launching an empty tunnel does not mutate state', () => {
+    let state = createGame(squareLevel);
+    state = resolveLaunch(state, 'tunnel-2').state; // empties tunnel-2 (blue:1)
+    const outcome = resolveLaunch(state, 'tunnel-2');
     expect(outcome.accepted).toBe(false);
     expect(outcome.state).toBe(state); // same reference
   });
 
-  it('9b. re-tapping an already consumed orb id is a no-op', () => {
-    const state = createGame(twoColorLevel);
-    const orbId = state.lanes[0]?.[0]?.id as string;
-    const first = resolveMove(state, orbId);
-    expect(first.accepted).toBe(true);
-    const second = resolveMove(first.state, orbId); // stale id
-    expect(second.accepted).toBe(false);
-    expect(second.state).toBe(first.state);
+  it('13b. an unknown tunnel id is rejected', () => {
+    const state = createGame(squareLevel);
+    const outcome = resolveLaunch(state, 'tunnel-9');
+    expect(outcome.accepted).toBe(false);
+    expect(outcome.state).toBe(state);
   });
 
-  it('9c. any tap after the game is over is rejected', () => {
-    let state = createGame(twoColorLevel);
-    state = tapLane(state, 0).state;
-    state = tapLane(state, 1).state;
+  it('13c. any launch after the game is over is rejected', () => {
+    let state = createGame(squareLevel);
+    state = resolveLaunch(state, 'tunnel-0').state;
+    state = resolveLaunch(state, 'tunnel-2').state;
     expect(state.status).toBe('won');
-    const exposed = getExposedOrbs(state);
-    expect(exposed).toHaveLength(0);
-    const outcome = resolveMove(state, 'anything');
+    const outcome = resolveLaunch(state, 'tunnel-1');
     expect(outcome.accepted).toBe(false);
   });
 
-  it('9d. rapid repeated taps on the same orb resolve exactly once', () => {
-    const level: LevelDefinition = {
-      id: 109,
-      holdingCapacity: 3,
-      coreTargets: [{ color: 'blue', count: 3 }],
-      lanes: [['blue'], ['blue'], ['blue']],
-    };
-    const state = createGame(level);
-    const orbId = state.lanes[0]?.[0]?.id as string;
+  it('13d. rapid repeated launches on one tunnel each consume exactly one charge', () => {
+    const state = createGame(squareLevel);
     let s = state;
-    for (let i = 0; i < 10; i += 1) {
-      const o = resolveMove(s, orbId);
-      if (o.accepted) s = o.state;
+    let applied = 0;
+    for (let i = 0; i < 8; i += 1) {
+      const o = resolveLaunch(s, 'tunnel-1'); // only 1 charge in tunnel-1
+      if (o.accepted) {
+        s = o.state;
+        applied += 1;
+      }
     }
-    // only the first tap counted
-    expect(s.lanes[0]).toEqual([]);
-    expect(s.targets[0]?.count).toBe(2);
+    expect(applied).toBe(1);
+    expect(s.tunnels[1]?.queue).toHaveLength(0);
     expect(s.movesApplied).toBe(1);
   });
 });
 
 describe('restart', () => {
-  it('10. restarting recreates the exact initial level state', () => {
-    const level = twoColorLevel;
-    const initial = createGame(level);
-    let played = tapLane(initial, 0).state;
-    played = tapLane(played, 1).state;
+  it('14. restarting recreates the exact initial state', () => {
+    const initial = createGame(squareLevel);
+    let played = resolveLaunch(initial, 'tunnel-0').state;
+    played = resolveLaunch(played, 'tunnel-2').state;
     expect(played.status).toBe('won');
 
-    const restarted = restartGame(level);
+    const restarted = restartGame(squareLevel);
     expect(restarted).toEqual(initial);
     expect(restarted).not.toBe(initial);
+  });
+});
+
+describe('deterministic clear order', () => {
+  it('16. the clockwise clear order is stable and starts from the top', () => {
+    const level: LevelDefinition = {
+      id: 908,
+      title: 'Test Ring',
+      themeId: 'test',
+      difficulty: 'easy',
+      holdingCapacity: 3,
+      pixelArt: ['.G.', 'G.G', '.G.'],
+      tunnels: [
+        [{ color: 'green', capacity: 1 }],
+        [{ color: 'green', capacity: 1 }],
+        [{ color: 'green', capacity: 2 }],
+      ],
+    };
+    const state = createGame(level);
+    const order = reachableTargets(state, 'green');
+    // top, right, bottom, left
+    expect(order.map((p) => `${p.x},${p.y}`)).toEqual(['1,0', '2,1', '1,2', '0,1']);
+
+    // Sorting is a pure comparator; applying it twice is idempotent.
+    const twice = [...order].sort(clearOrder(state));
+    expect(twice).toEqual(order);
+
+    // A capacity-1 green charge always clears the top pixel first.
+    const outcome = resolveLaunch(state, 'tunnel-0');
+    expect(outcome.primaryClearedPixelIds).toEqual([order[0]?.id]);
+  });
+
+  it('visibleCharges reports one entry per tunnel, front first', () => {
+    const state = createGame(squareLevel);
+    expect(visibleCharges(state)).toEqual([
+      { tunnelId: 'tunnel-0', charge: state.tunnels[0]?.queue[0] },
+      { tunnelId: 'tunnel-1', charge: state.tunnels[1]?.queue[0] },
+      { tunnelId: 'tunnel-2', charge: state.tunnels[2]?.queue[0] },
+    ]);
   });
 });

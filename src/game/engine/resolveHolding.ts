@@ -1,52 +1,69 @@
-import type { CoreTarget, HoldingTray } from './types';
+import { applyChargePass } from './pixels';
+import type { GameState, OrbColor } from './types';
 
-export interface SettleResult {
-  activeTargetIndex: number;
-  /** Orbs that were auto-consumed from the tray, in the order they resolved. */
-  autoResolved: HoldingTray;
+export interface AutoResolution {
+  chargeId: string;
+  color: OrbColor;
+  /** Pixels this held charge cleared this settle pass, in clear order. */
+  clearedPixelIds: string[];
+  /** True when the held charge emptied and left the tray. */
+  consumed: boolean;
+  /** Capacity left on the charge afterwards (0 when consumed). */
+  remainingCapacity: number;
 }
 
 /**
- * Automatic held-orb resolution.
+ * Automatic Holding resolution.
  *
- * Given the current targets, the holding tray, and the active target index,
- * repeatedly consume any held orb whose color matches the active target. Each
- * consumed orb decrements the active target; when a target hits 0 the active
- * index advances and the process continues, so a single completion can chain
- * through several targets ("continue this process if automatically consumed
- * orbs complete another Core target").
+ * After the primary launch, repeatedly let parked charges relaunch: the first
+ * held charge (in tray order) that can clear at least one currently reachable
+ * matching pixel does so, up to its capacity. If it empties it leaves the tray;
+ * otherwise it stays with reduced capacity. Any change restarts the scan, since
+ * a cleared pixel can expose new pixels for a different held charge.
  *
- * Mutates the passed `targets` and `holding` arrays in place — callers in the
- * engine always hand in fresh copies. Returns the new active index and the list
- * of orbs that were absorbed (for animation).
+ * **Mutates** the passed `state` (its `pixels` and `holding`). Callers hand in a
+ * working copy.
+ *
+ * Termination: every productive iteration clears at least one pixel and pixels
+ * never un-clear, so the loop runs at most (pixel count) times — no infinite
+ * auto-resolution loop is possible.
  */
-export function settle(
-  targets: CoreTarget[],
-  holding: HoldingTray,
-  activeTargetIndex: number,
-): SettleResult {
-  const autoResolved: HoldingTray = [];
-  let index = activeTargetIndex;
+export function settleHolding(state: GameState): AutoResolution[] {
+  const resolutions: AutoResolution[] = [];
+  const maxIterations = state.pixels.length + 1;
+  let iterations = 0;
 
-  // Loop until the active target has no matching held orb (or targets run out).
   for (;;) {
-    const target = targets[index];
-    if (!target) break; // every target complete
+    iterations += 1;
+    if (iterations > maxIterations) break; // hard safety net
 
-    if (target.count === 0) {
-      // Defensive: never sit on an already-complete target.
-      index += 1;
-      continue;
+    let progressed = false;
+
+    for (let i = 0; i < state.holding.length; i += 1) {
+      const charge = state.holding[i];
+      if (!charge) continue;
+
+      const pass = applyChargePass(state, charge.color, charge.capacity);
+      if (pass.clearedPixelIds.length === 0) continue;
+
+      charge.capacity -= pass.clearedPixelIds.length;
+      const consumed = charge.capacity <= 0;
+      if (consumed) state.holding.splice(i, 1);
+
+      resolutions.push({
+        chargeId: charge.id,
+        color: charge.color,
+        clearedPixelIds: pass.clearedPixelIds,
+        consumed,
+        remainingCapacity: consumed ? 0 : charge.capacity,
+      });
+
+      progressed = true;
+      break; // restart the scan from the top of the tray
     }
 
-    const heldIndex = holding.findIndex((orb) => orb.color === target.color);
-    if (heldIndex === -1) break; // nothing in the tray can resolve right now
-
-    const [orb] = holding.splice(heldIndex, 1);
-    if (orb) autoResolved.push(orb);
-    target.count -= 1;
-    if (target.count === 0) index += 1;
+    if (!progressed) break;
   }
 
-  return { activeTargetIndex: index, autoResolved };
+  return resolutions;
 }

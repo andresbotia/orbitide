@@ -1,187 +1,253 @@
 import type { LevelDefinition } from '../engine/types';
 
 /**
- * The ten handcrafted Milestone 1 levels.
+ * The ten handcrafted Milestone 1 levels for the pixel-clearing mechanic.
  *
- * Convention reminder: in every lane, index 0 is the exposed orb. Each level's
- * total orb count equals the sum of its Core target counts, and every level has
- * been verified solvable — automatically by the BFS solver in
- * `levelDefinitions.test.ts`, and by the hand-traced solution in each comment.
+ * Each level is a recognizable space silhouette. They teach through structure:
+ * outer pixels clear first, inner colors become reachable as layers peel, and
+ * over-large charges park in Holding until their color is exposed again.
  *
- * Design intent per level is noted inline; the levels teach through structure,
- * not tutorial text.
+ * Authoring invariants (checked in `levelDefinitions.test.ts`):
+ *  - exactly 3 tunnels per level
+ *  - for every color, the sum of tunnel-charge capacities is >= the number of
+ *    pixels of that color (so the picture can be fully cleared)
+ *  - every level is winnable (BFS/DFS solver proof)
+ *
+ * Legend: B blue · C cyan · W white · P purple · K pink · Y yellow · O orange
+ *         R red · G green · '.' empty
  */
 export const LEVEL_DEFINITIONS: LevelDefinition[] = [
-  // L1 — Two colors, every orb directly tappable. Teaches: tap an orb that
-  // matches the Core. No holding needed.
+  // L1 — MOON. One color, solid disc. Tap white, clear the exposed ring, the
+  // inner pixels become reachable, clear those. No Holding pressure.
   {
     id: 1,
+    title: 'Moon',
+    themeId: 'first-light',
+    difficulty: 'easy',
     holdingCapacity: 3,
-    coreTargets: [
-      { color: 'blue', count: 2 },
-      { color: 'yellow', count: 2 },
+    pixelArt: [
+      '.WWW.',
+      'WWWWW',
+      'WWWWW',
+      'WWWWW',
+      '.WWW.',
     ],
-    lanes: [['blue'], ['yellow'], ['blue'], ['yellow']],
+    tunnels: [
+      [{ color: 'white', capacity: 12 }, { color: 'white', capacity: 2 }],
+      [{ color: 'white', capacity: 5 }],
+      [{ color: 'white', capacity: 2 }],
+    ],
   },
 
-  // L2 — Two colors. One blue is trapped behind a yellow, forcing exactly one
-  // harmless hold. Teaches: a non-matching tap parks the orb safely.
+  // L2 — STAR. Two colors. Clear the white points, then the arms, then the
+  // yellow core. Any white tunnel works — multiple obvious choices.
   {
     id: 2,
+    title: 'Star',
+    themeId: 'first-light',
+    difficulty: 'easy',
     holdingCapacity: 3,
-    coreTargets: [
-      { color: 'blue', count: 3 },
-      { color: 'yellow', count: 2 },
+    pixelArt: [
+      '..W..',
+      '.WWW.',
+      'WWYWW',
+      '.WWW.',
+      '..W..',
     ],
-    lanes: [
-      ['yellow', 'blue'],
-      ['blue'],
-      ['blue'],
-      ['yellow'],
+    tunnels: [
+      [{ color: 'white', capacity: 4 }, { color: 'yellow', capacity: 1 }],
+      [{ color: 'white', capacity: 4 }],
+      [{ color: 'white', capacity: 4 }],
     ],
   },
 
-  // L3 — Hold a red while blue is active, then watch it fly in the instant red
-  // becomes the target. Teaches: held orbs auto-resolve on Core change.
+  // L3 — SMALL PLANET. A deliberately over-large cyan charge overshoots the
+  // exposed ring; the leftover parks in Holding and auto-clears the inner cyan
+  // once it is reachable.
   {
     id: 3,
+    title: 'Small Planet',
+    themeId: 'first-light',
+    difficulty: 'easy',
     holdingCapacity: 3,
-    coreTargets: [
-      { color: 'blue', count: 2 },
-      { color: 'red', count: 2 },
+    pixelArt: [
+      '.CCC.',
+      'CCCCC',
+      'CCWCC',
+      'CCCCC',
+      '.CCC.',
     ],
-    lanes: [
-      ['red', 'blue'],
-      ['red'],
-      ['blue'],
+    tunnels: [
+      [{ color: 'cyan', capacity: 14 }, { color: 'white', capacity: 1 }],
+      [{ color: 'cyan', capacity: 4 }],
+      [{ color: 'cyan', capacity: 2 }],
     ],
   },
 
-  // L4 — Third color arrives. Every lane is depth 2; one hold is required to
-  // free the second blue.
+  // L4 — ROCKET. Three colors plus flame. Clear the red nose to expose the
+  // last red; clear the white hull to expose the blue window.
   {
     id: 4,
+    title: 'Rocket',
+    themeId: 'first-light',
+    difficulty: 'easy',
     holdingCapacity: 3,
-    coreTargets: [
-      { color: 'blue', count: 2 },
-      { color: 'yellow', count: 2 },
-      { color: 'red', count: 2 },
+    pixelArt: [
+      '..R..',
+      '.RRR.',
+      '.WWW.',
+      '.WBW.',
+      '.WWW.',
+      '.O.O.',
     ],
-    lanes: [
-      ['blue', 'red'],
-      ['yellow', 'blue'],
-      ['red', 'yellow'],
+    tunnels: [
+      [{ color: 'red', capacity: 3 }, { color: 'white', capacity: 3 }, { color: 'blue', capacity: 1 }],
+      [{ color: 'red', capacity: 1 }, { color: 'white', capacity: 3 }],
+      [{ color: 'white', capacity: 2 }, { color: 'orange', capacity: 2 }],
     ],
   },
 
-  // L5 — Deeper lanes (depth 3). More digging, but the tray never needs more
-  // than two slots if played in order.
+  // L5 — COMET. Four colors. A bright white head over a cyan core, trailing a
+  // two-tone tail. Several tunnel orders work.
   {
     id: 5,
+    title: 'Comet',
+    themeId: 'first-light',
+    difficulty: 'easy',
     holdingCapacity: 3,
-    coreTargets: [
-      { color: 'blue', count: 3 },
-      { color: 'yellow', count: 3 },
-      { color: 'red', count: 2 },
+    pixelArt: [
+      '....WWW',
+      '...WCCW',
+      '...WCCW',
+      '...WWWW',
+      '..KP...',
+      '.KP....',
+      'KP.....',
     ],
-    lanes: [
-      ['blue', 'yellow', 'red'],
-      ['yellow', 'blue', 'yellow'],
-      ['red', 'blue'],
+    tunnels: [
+      [{ color: 'white', capacity: 5 }, { color: 'cyan', capacity: 2 }, { color: 'pink', capacity: 3 }],
+      [{ color: 'white', capacity: 4 }, { color: 'cyan', capacity: 2 }],
+      [{ color: 'white', capacity: 2 }, { color: 'purple', capacity: 3 }],
     ],
   },
 
-  // L6 — Several matching orbs are exposed at once for every target. Teaches:
-  // when you have a choice, any matching orb is fine. No hold required.
+  // L6 — RINGED PLANET. Five colors. A ring of cyan/orange across a purple
+  // planet with a blue mantle and a pink core. Sequencing matters: the ring and
+  // outer purple must go before the blue, and the blue before the core.
   {
     id: 6,
+    title: 'Ringed Planet',
+    themeId: 'first-light',
+    difficulty: 'easy',
     holdingCapacity: 3,
-    coreTargets: [
-      { color: 'blue', count: 2 },
-      { color: 'yellow', count: 2 },
-      { color: 'red', count: 2 },
+    pixelArt: [
+      '..PPP..',
+      '.PBBBP.',
+      'COCCCOC',
+      '.PBKBP.',
+      '..PPP..',
     ],
-    lanes: [
-      ['blue', 'yellow'],
-      ['blue', 'red'],
-      ['yellow'],
-      ['red'],
+    tunnels: [
+      [{ color: 'purple', capacity: 5 }, { color: 'blue', capacity: 3 }, { color: 'pink', capacity: 1 }],
+      [{ color: 'purple', capacity: 3 }, { color: 'cyan', capacity: 3 }, { color: 'orange', capacity: 2 }],
+      [{ color: 'purple', capacity: 2 }, { color: 'blue', capacity: 2 }, { color: 'cyan', capacity: 2 }],
     ],
   },
 
-  // L7 — First real overflow danger. Only one red is exposed; the other two are
-  // each buried under one orb. Over-holding the spare blue fills all three
-  // slots and loses. Correct line keeps the tray at two.
+  // L7 — SATELLITE. First realistic Holding danger. A blue shell wraps a pink
+  // hull around a white core. Every tunnel's front charge is pink, which is
+  // still buried: launch all three before opening the shell and Holding fills
+  // and the level is lost. Interleave — open some blue, let the parked pink
+  // auto-clear — and it is comfortable.
   {
     id: 7,
+    title: 'Satellite',
+    themeId: 'first-light',
+    difficulty: 'easy',
     holdingCapacity: 3,
-    coreTargets: [
-      { color: 'red', count: 3 },
-      { color: 'blue', count: 2 },
-      { color: 'yellow', count: 2 },
+    pixelArt: [
+      'BBBBB',
+      'BKKKB',
+      'BKWKB',
+      'BKKKB',
+      'BBBBB',
     ],
-    lanes: [
-      ['red'],
-      ['yellow', 'red'],
-      ['blue', 'red'],
-      ['blue', 'yellow'],
+    tunnels: [
+      [{ color: 'pink', capacity: 3 }, { color: 'blue', capacity: 6 }, { color: 'white', capacity: 1 }],
+      [{ color: 'pink', capacity: 3 }, { color: 'blue', capacity: 6 }],
+      [{ color: 'pink', capacity: 2 }, { color: 'blue', capacity: 4 }],
     ],
   },
 
-  // L8 — Sequencing. Two separate "hold the blocker, let it auto-resolve"
-  // cycles, around a 3-count red target.
+  // L8 — NEBULA. Five colors in concentric shells (cyan corners, purple cloud,
+  // pink and green mid layers, a yellow heart). More than one order of shells
+  // works.
   {
     id: 8,
+    title: 'Nebula',
+    themeId: 'first-light',
+    difficulty: 'easy',
     holdingCapacity: 3,
-    coreTargets: [
-      { color: 'blue', count: 2 },
-      { color: 'red', count: 3 },
-      { color: 'yellow', count: 2 },
+    pixelArt: [
+      'CPPPC',
+      'PKGKP',
+      'PGYGP',
+      'PKGKP',
+      'CPPPC',
     ],
-    lanes: [
-      ['red', 'blue'],
-      ['yellow', 'red'],
-      ['blue', 'red'],
-      ['yellow'],
+    tunnels: [
+      [{ color: 'purple', capacity: 6 }, { color: 'pink', capacity: 2 }, { color: 'yellow', capacity: 1 }],
+      [{ color: 'cyan', capacity: 2 }, { color: 'purple', capacity: 6 }, { color: 'green', capacity: 2 }],
+      [{ color: 'cyan', capacity: 2 }, { color: 'pink', capacity: 2 }, { color: 'green', capacity: 2 }],
     ],
   },
 
-  // L9 — Four colors, five lanes, greater visual density. A chain of
-  // hold-then-auto-resolve steps down through the target sequence.
+  // L9 — CONSTELLATION. Medium. A blue-shelled object with a white mantle and
+  // pink core, four lone corner stars. The tunnel queues interleave the corner
+  // colors with the shells, so launches must be ordered with more care.
   {
     id: 9,
+    title: 'Constellation',
+    themeId: 'first-light',
+    difficulty: 'medium',
     holdingCapacity: 3,
-    coreTargets: [
-      { color: 'blue', count: 3 },
-      { color: 'yellow', count: 3 },
-      { color: 'red', count: 2 },
-      { color: 'green', count: 2 },
+    pixelArt: [
+      'G.....C',
+      '.BBBBB.',
+      '.BWWWB.',
+      '.BWKWB.',
+      '.BWWWB.',
+      '.BBBBB.',
+      'O.....P',
     ],
-    lanes: [
-      ['blue', 'green'],
-      ['yellow', 'blue'],
-      ['red', 'yellow'],
-      ['green', 'red'],
-      ['blue', 'yellow'],
+    tunnels: [
+      [{ color: 'green', capacity: 1 }, { color: 'blue', capacity: 6 }, { color: 'white', capacity: 4 }, { color: 'pink', capacity: 1 }],
+      [{ color: 'cyan', capacity: 1 }, { color: 'blue', capacity: 6 }, { color: 'white', capacity: 4 }],
+      [{ color: 'orange', capacity: 1 }, { color: 'purple', capacity: 1 }, { color: 'blue', capacity: 4 }],
     ],
   },
 
-  // L10 — Compact capstone. Four colors, four depth-2 lanes, interlocked so
-  // every target needs exactly one hold that pays off on the next Core change.
+  // L10 — ECLIPSE. Hard. A yellow corona over a white ring over a dark core,
+  // orange edge flares. Concentric so it plays outside-in, but the generous
+  // split across tunnels leaves more than one workable order.
   {
     id: 10,
+    title: 'Eclipse',
+    themeId: 'first-light',
+    difficulty: 'hard',
     holdingCapacity: 3,
-    coreTargets: [
-      { color: 'blue', count: 2 },
-      { color: 'yellow', count: 2 },
-      { color: 'red', count: 2 },
-      { color: 'green', count: 2 },
+    pixelArt: [
+      '.YYYY.',
+      'YWWWWY',
+      'OWKKWO',
+      'YWKKWY',
+      'YWWWWY',
+      '.YYYY.',
     ],
-    lanes: [
-      ['yellow', 'blue'],
-      ['green', 'red'],
-      ['blue', 'yellow'],
-      ['red', 'green'],
+    tunnels: [
+      [{ color: 'yellow', capacity: 6 }, { color: 'white', capacity: 5 }, { color: 'pink', capacity: 2 }],
+      [{ color: 'yellow', capacity: 5 }, { color: 'white', capacity: 4 }, { color: 'orange', capacity: 1 }],
+      [{ color: 'yellow', capacity: 3 }, { color: 'white', capacity: 3 }, { color: 'pink', capacity: 2 }, { color: 'orange', capacity: 1 }],
     ],
   },
 ];
