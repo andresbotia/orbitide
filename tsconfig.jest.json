@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "customConditions": null,
+    "types": ["jest", "node"],
+    "isolatedModules": false
+  },
+  "include": ["src/game/**/*.ts"]
+}

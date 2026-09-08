@@ -12,3 +12,8 @@ coverage/
 .vscode/
 ios/Pods/
 android/.gradle/
+
+# Native
+ios/
+android/
+expo-env.d.ts
