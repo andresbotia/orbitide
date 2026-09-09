@@ -1,4 +1,4 @@
-# ORBITIDE — Product Milestones
+# Pixel Arcadia — Product Milestones
 
 ## M0 — Brand + Product Foundation
 **Goal:** Freeze the initial product thesis and establish the repository.
@@ -104,7 +104,7 @@ Research cadence:
 - refresh before economy/store implementation
 - refresh before TestFlight
 - refresh before App Store release
-- after launch, ORBITIDE's own reviews and telemetry take priority over competitor feedback
+- after launch, Pixel Arcadia's own reviews and telemetry take priority over competitor feedback
 
 Exit criteria:
 - meaningful competitor feedback is converted into an actionable requirement, explicit non-goal, or documented experiment
@@ -489,7 +489,7 @@ Exit criteria:
 ---
 
 ## M13 — iOS 1.0 Launch
-**Goal:** Submit, pass review, and launch ORBITIDE publicly.
+**Goal:** Submit, pass review, and launch Pixel Arcadia publicly.
 
 Launch requirements:
 - substantial handcrafted campaign (target 500–1,000+ polished levels; expand toward 5,000 over time)

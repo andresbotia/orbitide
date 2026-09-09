@@ -3,7 +3,7 @@
 Branch `milestone/1-core-prototype`. Builds on M3A / M3B. **Not merged, not pushed.**
 
 M3C turns Level Studio from a normal-level editor into a production
-content-authoring tool for a real ORBITIDE campaign: special-pixel metadata,
+content-authoring tool for a real Pixel Arcadia campaign: special-pixel metadata,
 discovery reveals, world/set grouping, a campaign manifest, level
 duplication/variation, thumbnails, a campaign-scale level browser, batch
 validation, artwork transforms, and deterministic import/export.
@@ -381,7 +381,7 @@ No existing assertion was weakened.
 - `npx expo export -p ios` — **succeeds** (`dist/m3c-ios`)
 - `npx expo export -p android` — **succeeds** (`dist/m3c-android`)
 - **Studio stays dev-web-only** — grepping the exported iOS + Android Hermes
-  bytecode for `ORBITIDE Level Studio`, `Campaign manifest`, `batchValidate`,
+  bytecode for `Pixel Arcadia Level Studio`, `Campaign manifest`, `batchValidate`,
   `thumbnailSVG`, `MODIFIER_SPECS`, `LevelBrowser`, `useCampaignManifest` and
   `canvaskit`: **0 hits each**. Web JS carries them (expected — `app/studio.tsx`
   redirects at runtime outside `__DEV__ && Platform.OS === 'web'`; native

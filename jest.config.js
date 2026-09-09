@@ -1,5 +1,5 @@
 /**
- * The ORBITIDE engine is pure TypeScript with no React Native imports, so the
+ * The Pixel Arcadia engine is pure TypeScript with no React Native imports, so the
  * unit tests run through ts-jest in a plain Node environment and never touch a
  * simulator or the Expo/RN runtime.
  */

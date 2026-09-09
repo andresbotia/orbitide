@@ -29,7 +29,7 @@ import { WitnessVisualizer } from '@/components/studio/WitnessVisualizer';
 import { studioSpace, studioTheme } from '@/components/studio/theme';
 
 /**
- * Internal ORBITIDE Level Studio. Dev-only, web-only (see `app/studio.tsx`).
+ * Internal Pixel Arcadia Level Studio. Dev-only, web-only (see `app/studio.tsx`).
  *
  * EDITOR   — create/load, paint, author tunnel queues, validate, export.
  * ANALYSIS — solver-backed difficulty assessment, first moves, seq vs con,

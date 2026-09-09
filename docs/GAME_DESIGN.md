@@ -1,6 +1,6 @@
 > Historical design document. Current implemented M1 interaction rules and validation are in [M1_INTERACTION_REVAMP.md](M1_INTERACTION_REVAMP.md).
 
-# ORBITIDE — Game Design Baseline
+# Pixel Arcadia — Game Design Baseline
 
 ## Fantasy
 
@@ -8,7 +8,7 @@ A luminous orbital machine is out of alignment. Colored energy orbs circle a cen
 
 ## Product feel
 
-ORBITIDE should have the immediate readability and commercial polish of successful one-thumb mobile puzzle games while maintaining a distinct cosmic identity.
+Pixel Arcadia should have the immediate readability and commercial polish of successful one-thumb mobile puzzle games while maintaining a distinct cosmic identity.
 
 Structural inspiration may come from games such as Pixel Flow:
 - compact portrait play area
@@ -19,7 +19,7 @@ Structural inspiration may come from games such as Pixel Flow:
 - bottom booster controls
 - highly tactile motion and feedback
 
-Do not copy another game's mascot, artwork, exact UI shapes, palette, iconography, screenshots, or other distinctive visual assets. ORBITIDE should feel recognizably its own product.
+Do not copy another game's mascot, artwork, exact UI shapes, palette, iconography, screenshots, or other distinctive visual assets. Pixel Arcadia should feel recognizably its own product.
 
 ## Input
 

@@ -1,4 +1,6 @@
-# ORBITIDE
+# Pixel Arcadia
+
+Pixel Arcadia is the final consumer-facing product name. Orbitide was the development codename.
 
 A one-thumb mobile color puzzle game built around handcrafted pixel art, orbital charges, and three manual Holding slots.
 

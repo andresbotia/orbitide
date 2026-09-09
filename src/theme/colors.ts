@@ -1,7 +1,7 @@
 import type { OrbColor } from '@/game/engine/types';
 
 /**
- * ORBITIDE palette. Dark, near-black space ground with high-contrast luminous
+ * Pixel Arcadia palette. Dark, near-black space ground with high-contrast luminous
  * pixel/charge colors. One source of truth for the Skia field and the RN HUD.
  */
 export const palette = {

@@ -1,4 +1,4 @@
-# ORBITIDE development rules
+# Pixel Arcadia development rules
 
 ## Product priorities
 
@@ -9,7 +9,7 @@
 5. Visual polish, haptics, responsiveness, and animation are part of gameplay, not optional decoration.
 6. Campaign levels are hand-authored/curated. Do not replace the campaign with random procedural levels.
 7. Puzzle design comes before decorative silhouette/theme choices.
-8. ORBITIDE may use successful mobile puzzle games as structural references, but do not copy distinctive artwork, assets, mascots, exact UI geometry, or trade dress.
+8. Pixel Arcadia may use successful mobile puzzle games as structural references, but do not copy distinctive artwork, assets, mascots, exact UI geometry, or trade dress.
 
 ## Engineering rules
 

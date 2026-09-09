@@ -1,15 +1,14 @@
 /**
  * Central product display-name constants.
  *
- * The consumer-facing name may change after M3A. When it does, a single
- * controlled rename pass will edit THIS file (plus `app.json`, the bundle id and
- * package ids) — not scattered string literals across the UI. Until then the
- * name is unchanged: do not edit these values in M3A.
+ * Keep consumer-facing brand strings here so UI and developer tooling share a
+ * single source of truth. Technical identifiers live in their owning configs
+ * and intentionally do not derive from these display values.
  */
-export const PRODUCT_NAME = 'ORBITIDE';
+export const PRODUCT_NAME = 'Pixel Arcadia';
 
-/** Wordmark as rendered on Home (kept identical to the historical literal). */
-export const PRODUCT_WORDMARK = PRODUCT_NAME;
+/** Uppercase wordmark rendered on Home. */
+export const PRODUCT_WORDMARK = 'PIXEL ARCADIA';
 
 /** Internal developer tooling label. */
 export const STUDIO_NAME = `${PRODUCT_NAME} Level Studio`;
