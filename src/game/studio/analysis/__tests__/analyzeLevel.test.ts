@@ -90,7 +90,7 @@ test('a tiny node cap yields an incomplete analysis — solvable "unknown", not 
 });
 
 test('sequential vs concurrent comparison is populated for the campaign', async () => {
-  const a = await analyzeLevel(LEVEL_DEFINITIONS[4]!, { now: () => 0 }); // L5 — concurrency shortens
+  const a = await analyzeLevel(LEVEL_DEFINITIONS[18]!, { now: () => 0 }); // L19 Red Fox — concurrency shortens the line
   expect(a.comparison.sequentialSolvable).toBe(true);
   expect(a.comparison.concurrentSolvable).toBe(true);
   expect(a.comparison.winLengthDelta).toBeGreaterThanOrEqual(1);

@@ -121,9 +121,9 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
       'KKP.....',
     ],
     tunnels: [
-      [{ color: 'white', capacity: 16 }, { color: 'cyan', capacity: 2 }],
+      [{ color: 'white', capacity: 15 }, { color: 'cyan', capacity: 2 }],
       [{ color: 'cyan', capacity: 2 }, { color: 'cyan', capacity: 2 }, { color: 'pink', capacity: 5 }],
-      [{ color: 'purple', capacity: 4 }, { color: 'cyan', capacity: 2 }],
+      [{ color: 'purple', capacity: 4 }, { color: 'cyan', capacity: 2 }, { color: 'white', capacity: 1 }],
     ],
   },
   {
@@ -533,7 +533,7 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
   },
   {
     id: 25, title: 'Winter Hare', themeId: 'deep-frost',
-    difficulty: 'easy', holdingCapacity: 3,
+    difficulty: 'medium', holdingCapacity: 3,
     pixelArt: [
       'W......W.',
       'WW....WW.',
@@ -552,14 +552,14 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
       '4,5': { kind: 'frozen', level: 1 },
     },
     tunnels: [
-      [{ color: 'indigo', capacity: 2 }, { color: 'white', capacity: 27 }],
-      [{ color: 'white', capacity: 24 }],
-      [{ color: 'indigo', capacity: 2 }],
+      [{ color: 'indigo', capacity: 4 }, { color: 'white', capacity: 17 }],
+      [{ color: 'white', capacity: 17 }],
+      [{ color: 'white', capacity: 17 }],
     ],
   },
   {
     id: 26, title: 'The Frozen Lantern', themeId: 'deep-frost',
-    difficulty: 'hard', holdingCapacity: 3,
+    difficulty: 'medium', holdingCapacity: 3,
     pixelArt: [
       '...C...',
       '..CCC..',
@@ -572,14 +572,12 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
     legend: { A: 'gold', D: 'coral' },
     modifiers: {
       '3,2': { kind: 'frozen', level: 1 },
-      '2,3': { kind: 'frozen', level: 1 },
-      '4,3': { kind: 'frozen', level: 1 },
       '3,4': { kind: 'frozen', level: 1 },
       '3,3': { kind: 'frozen', level: 1 },
     },
     tunnels: [
-      [{ color: 'coral', capacity: 2 }, { color: 'gold', capacity: 12 }, { color: 'cyan', capacity: 8 }],
-      [{ color: 'cyan', capacity: 5 }],
+      [{ color: 'coral', capacity: 2 }, { color: 'gold', capacity: 6 }, { color: 'cyan', capacity: 8 }],
+      [{ color: 'gold', capacity: 4 }, { color: 'cyan', capacity: 5 }],
       [{ color: 'cyan', capacity: 3 }],
     ],
   },
