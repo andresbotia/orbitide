@@ -19,6 +19,7 @@ import { PixelCanvas } from '@/components/studio/PixelCanvas';
 import { RevealPanel } from '@/components/studio/RevealPanel';
 import { SerializedPreview } from '@/components/studio/SerializedPreview';
 import { StudioActionBar } from '@/components/studio/StudioActionBar';
+import { TransformBar } from '@/components/studio/TransformBar';
 import { StudioButton } from '@/components/studio/StudioButton';
 import { StudioPlaytest } from '@/components/studio/StudioPlaytest';
 import { StudioTabs, type StudioTab } from '@/components/studio/StudioTabs';
@@ -120,6 +121,11 @@ export function LevelStudioScreen() {
                 <PalettePanel mode={studio.tool.mode} color={studio.tool.color} onSelectColor={studio.selectColor} onSelectErase={studio.selectErase} />
               </Section>
             ) : null}
+            {studio.canvasMode === 'pixels' ? (
+              <Section title="Transforms">
+                <TransformBar studio={studio} />
+              </Section>
+            ) : null}
             {studio.canvasMode === 'modifiers' ? (
               <Section title="Special pixels">
                 <ModifierPanel
@@ -171,6 +177,7 @@ export function LevelStudioScreen() {
               onOpen={openLevel}
               onDuplicate={duplicateFromBrowser}
               onNew={() => { studio.newLevel(); setTab('editor'); }}
+              onImport={(l) => { studio.loadStudioLevel(l); setTab('editor'); }}
             />
           ) : null}
           {tab === 'batch' ? <BatchPanel ctrl={analysis} /> : null}

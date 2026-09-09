@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useReducer } from 'react';
+import { useCallback, useMemo, useReducer, useState } from 'react';
 
 import type { ChargeSpec, LevelDefinition, ModifierKind, OrbColor } from '@/game/engine/types';
 import {
@@ -16,6 +16,9 @@ import {
   toggleAccentNode, toggleRevealLine,
 } from '@/game/studio/reveal';
 import { fromLevelDefinition } from '@/game/studio/serialize';
+import {
+  mirrorHorizontal, mirrorVertical, replaceColor, rotate90,
+} from '@/game/studio/transforms';
 import { validateStudioLevel } from '@/game/studio/validate';
 import type { ModifierConfig, StudioLevel, ValidationReport } from '@/game/studio/types';
 
@@ -151,6 +154,13 @@ export interface LevelStudio {
   toggleRevealLineAt: (a: number, b: number) => void;
   deleteRevealLineAt: (index: number) => void;
   toggleAccentNodeAt: (index: number) => void;
+
+  // ── transforms (M3C) ─────────────────────────────────────────────────────
+  transformWarning: string | null;
+  mirrorH: () => void;
+  mirrorV: () => void;
+  rotate: () => void;
+  replaceColor: (from: OrbColor, to: OrbColor) => void;
 }
 
 export function useLevelStudio(initial?: StudioLevel): LevelStudio {
@@ -168,11 +178,18 @@ export function useLevelStudio(initial?: StudioLevel): LevelStudio {
 
   const level = state.history.present;
   const report = useMemo(() => validateStudioLevel(level), [level]);
+  const [transformWarning, setTransformWarning] = useState<string | null>(null);
 
   const edit = useCallback(
     (apply: (level: StudioLevel) => StudioLevel) => dispatch({ type: 'edit', apply }),
     [],
   );
+
+  const runTransform = (fn: (l: StudioLevel) => { level: StudioLevel; revealWarning?: string }) => {
+    const { level: next, revealWarning } = fn(level);
+    setTransformWarning(revealWarning ?? null);
+    if (next !== level) dispatch({ type: 'edit', apply: () => next });
+  };
 
   return {
     level,
@@ -243,5 +260,15 @@ export function useLevelStudio(initial?: StudioLevel): LevelStudio {
     },
     deleteRevealLineAt: (index) => edit((l) => deleteRevealLine(l, index)),
     toggleAccentNodeAt: (index) => edit((l) => toggleAccentNode(l, index)),
+
+    // ── transforms (M3C) ───────────────────────────────────────────────────
+    transformWarning,
+    mirrorH: () => runTransform(mirrorHorizontal),
+    mirrorV: () => runTransform(mirrorVertical),
+    rotate: () => runTransform(rotate90),
+    replaceColor: (from, to) => {
+      setTransformWarning(null);
+      edit((l) => replaceColor(l, from, to));
+    },
   };
 }

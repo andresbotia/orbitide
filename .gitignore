@@ -17,3 +17,5 @@ android/.gradle/
 ios/
 android/
 expo-env.d.ts
+
+bash.exe.stackdump

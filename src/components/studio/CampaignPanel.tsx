@@ -2,10 +2,14 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { LevelDefinition } from '@/game/engine/types';
+import { batchValidate } from '@/game/studio/batchValidate';
 import { unassignedLevelIds } from '@/game/studio/campaign/manifest';
 import { serializeManifestJSON, serializeManifestTS } from '@/game/studio/campaign/serialize';
+import { exportCampaignBundle, exportLevelsJSON, importStudioJSON } from '@/game/studio/io';
+import type { BatchLevelAnalysisSlice } from '@/game/studio/batchValidate';
 import type { CampaignManifestController } from '@/hooks/useCampaignManifest';
 import type { BrowserAnalysisSlice } from '@/game/studio/browser';
+import type { StudioLevel } from '@/game/studio/types';
 import { LevelBrowser } from './LevelBrowser';
 import { StudioButton } from './StudioButton';
 import { studioSpace, studioTheme } from './theme';
@@ -17,6 +21,21 @@ interface CampaignPanelProps {
   onOpen: (id: number) => void;
   onDuplicate: (id: number) => void;
   onNew: () => void;
+  onImport?: (level: StudioLevel) => void;
+}
+
+function analysesToBatch(
+  analyses?: Map<number, BrowserAnalysisSlice>,
+): Map<number, BatchLevelAnalysisSlice> | undefined {
+  if (!analyses) return undefined;
+  const out = new Map<number, BatchLevelAnalysisSlice>();
+  for (const [id, a] of analyses) {
+    const slice: BatchLevelAnalysisSlice = {};
+    if (a.solvable !== undefined) slice.solvable = a.solvable;
+    if (a.suggestedDifficulty) slice.suggestedDifficulty = a.suggestedDifficulty;
+    out.set(id, slice);
+  }
+  return out;
 }
 
 /**
@@ -24,19 +43,26 @@ interface CampaignPanelProps {
  * sets, and export a deterministic campaign manifest. No backend — the developer
  * commits the exported data.
  */
-export function CampaignPanel({ defs, ctrl, analyses, onOpen, onDuplicate, onNew }: CampaignPanelProps) {
+export function CampaignPanel({ defs, ctrl, analyses, onOpen, onDuplicate, onNew, onImport }: CampaignPanelProps) {
   const { manifest, report } = ctrl;
   const [newWorld, setNewWorld] = useState('');
   const [format, setFormat] = useState<'ts' | 'json'>('ts');
   const [flash, setFlash] = useState<string | null>(null);
+  const [importText, setImportText] = useState('');
+  const [importMsg, setImportMsg] = useState<string | null>(null);
   const unassigned = useMemo(() => unassignedLevelIds(manifest), [manifest]);
+  const batch = useMemo(
+    () => batchValidate({ defs, manifest, analyses: analysesToBatch(analyses) }),
+    [defs, manifest, analyses],
+  );
 
   const note = (m: string) => { setFlash(m); setTimeout(() => setFlash((c) => (c === m ? null : c)), 2500); };
   const text = format === 'ts' ? serializeManifestTS(manifest) : serializeManifestJSON(manifest);
-  const copy = async () => {
-    try { await navigator.clipboard.writeText(text); note('Copied manifest'); }
-    catch { note('Clipboard blocked — select the text below'); }
+  const write = async (payload: string, what: string) => {
+    try { await navigator.clipboard.writeText(payload); note(`Copied ${what}`); }
+    catch { note('Clipboard blocked — select the preview text'); }
   };
+  const copy = () => write(text, 'manifest');
 
   return (
     <View style={styles.wrap}>
@@ -111,11 +137,52 @@ export function CampaignPanel({ defs, ctrl, analyses, onOpen, onDuplicate, onNew
         <StudioButton label="TS" compact variant={format === 'ts' ? 'primary' : 'default'} onPress={() => setFormat('ts')} />
         <StudioButton label="JSON" compact variant={format === 'json' ? 'primary' : 'default'} onPress={() => setFormat('json')} />
         <StudioButton label="Copy manifest" compact onPress={copy} />
+        <StudioButton label="Copy campaign bundle" compact onPress={() => write(exportCampaignBundle(manifest, defs), 'campaign bundle')} />
+        <StudioButton label="Copy all levels (JSON)" compact onPress={() => write(exportLevelsJSON(defs), 'levels JSON')} />
         {flash ? <Text style={styles.ok}>{flash}</Text> : null}
       </View>
       <ScrollView horizontal style={styles.code}>
         <Text selectable style={styles.codeText}>{text}</Text>
       </ScrollView>
+
+      <Text style={styles.h}>Batch validation</Text>
+      <Text style={batch.ok ? styles.ok : styles.err}>
+        {batch.summary.total} levels · {batch.summary.invalid} invalid · {batch.summary.withWarnings} with warnings
+        {batch.summary.unsolvable ? ` · ${batch.summary.unsolvable} unsolvable` : ''}
+        {batch.summary.difficultyMismatches ? ` · ${batch.summary.difficultyMismatches} difficulty mismatch` : ''}
+      </Text>
+      {[...batch.campaignIssues, ...batch.manifestIssues.map((i) => ({ severity: i.severity, message: i.message }))].slice(0, 6).map((iss, i) => (
+        <Text key={`c${i}`} style={iss.severity === 'error' ? styles.err : styles.warn}>· {iss.message}</Text>
+      ))}
+      {batch.levels.filter((l) => !l.ok).slice(0, 10).map((l) => (
+        <Text key={l.levelId} style={styles.err}>
+          · #{l.levelId} {l.title}: {[...l.errors.map((e) => e.code), ...l.analysisFindings.filter((f) => f.severity === 'error').map((f) => f.code)].join(', ')}
+        </Text>
+      ))}
+
+      <Text style={styles.h}>Import Studio JSON</Text>
+      <TextInput
+        value={importText}
+        onChangeText={setImportText}
+        placeholder='Paste a level, an array, or a { manifest, levels } bundle'
+        placeholderTextColor={studioTheme.textFaint}
+        multiline
+        style={[styles.input, styles.importBox]}
+      />
+      <View style={styles.exportRow}>
+        <StudioButton
+          label="Validate + import"
+          compact
+          onPress={() => {
+            const r = importStudioJSON(importText);
+            setImportMsg(r.ok
+              ? `OK — ${r.levels.length} level(s)${r.manifest ? ' + manifest' : ''}${r.warnings.length ? `, ${r.warnings.length} warning(s)` : ''}`
+              : `Rejected: ${r.errors.slice(0, 3).join(' | ')}`);
+            if (r.ok && r.studioLevels[0]) onImport?.(r.studioLevels[0]);
+          }}
+        />
+        {importMsg ? <Text style={importMsg.startsWith('OK') ? styles.ok : styles.err}>{importMsg}</Text> : null}
+      </View>
 
       <Text style={styles.h}>Level browser</Text>
       <LevelBrowser
@@ -152,4 +219,5 @@ const styles = StyleSheet.create({
   exportRow: { flexDirection: 'row', gap: 4, alignItems: 'center', flexWrap: 'wrap', marginTop: studioSpace.sm },
   code: { borderWidth: 1, borderColor: studioTheme.border, backgroundColor: studioTheme.bg, borderRadius: 5, maxHeight: 180 },
   codeText: { color: studioTheme.textDim, fontSize: 11, lineHeight: 15, fontFamily: studioTheme.mono, padding: studioSpace.sm },
+  importBox: { minHeight: 80, textAlignVertical: 'top', fontFamily: studioTheme.mono, fontSize: 11 },
 });
