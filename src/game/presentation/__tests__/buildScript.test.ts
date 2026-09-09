@@ -62,3 +62,20 @@ test('rejected actions cannot produce a visual flight', () => {
   const state = createGame(level);
   expect(() => buildLaunchScript(resolveLaunch(state, 'missing'), state)).toThrow('rejected');
 });
+
+test('a winning pass flags exactly its final clear and records the winning pixel', () => {
+  const state = createGame(level);
+  const pass = buildLaunchScript(resolveLaunch(state, 'tunnel-0'), state).pass;
+  const clears = pass.events.filter((e) => e.kind === 'pixelClear');
+  expect(clears).toHaveLength(pass.shots.length);
+  expect(clears.filter((e) => e.final)).toHaveLength(1);
+  expect(clears[clears.length - 1]!.final).toBe(true);
+  expect(pass.finalClearPixelId).toBe(pass.shots[pass.shots.length - 1]!.pixelId);
+});
+
+test('a non-winning pass carries no final-clear beat', () => {
+  const state = createGame(level);
+  const miss = buildLaunchScript(resolveLaunch(state, 'tunnel-1'), state).pass;
+  expect(miss.events.some((e) => e.kind === 'pixelClear' && e.final)).toBe(false);
+  expect(miss.finalClearPixelId).toBeUndefined();
+});

@@ -23,6 +23,13 @@ function throttled(key: string, gap: number, run: () => void) {
   if (now - (last.get(key) ?? -Infinity) < gap) return;
   last.set(key, now); run();
 }
+/** Success notification, then one controlled medium impact 120ms later. */
+function successThenBloom() {
+  cancelPendingHaptics();
+  notification(Haptics.NotificationFeedbackType.Success);
+  if (!HAPTICS_ENABLED) return;
+  winTimer = setTimeout(() => { winTimer = undefined; impact(Haptics.ImpactFeedbackStyle.Medium); }, 120);
+}
 export const haptics = {
   select: () => throttled('press', 80, () => impact(Haptics.ImpactFeedbackStyle.Medium)),
   heldRelaunch: () => throttled('press', 80, () => impact(Haptics.ImpactFeedbackStyle.Rigid)),
@@ -34,10 +41,11 @@ export const haptics = {
   holdingCritical: () => throttled('warning', 600, () => notification(Haptics.NotificationFeedbackType.Warning)),
   holdingFull: () => throttled('error', 180, () => notification(Haptics.NotificationFeedbackType.Error)),
   fail: () => throttled('error', 180, () => notification(Haptics.NotificationFeedbackType.Error)),
-  win: () => {
-    cancelPendingHaptics();
-    notification(Haptics.NotificationFeedbackType.Success);
-    if (!HAPTICS_ENABLED) return;
-    winTimer = setTimeout(() => { winTimer = undefined; impact(Haptics.ImpactFeedbackStyle.Medium); }, 120);
-  },
+  win: successThenBloom,
+  // Win / Discovery reveal.
+  finalClear: () => throttled('final', 90, () => impact(Haptics.ImpactFeedbackStyle.Heavy)),
+  discoveryResolve: successThenBloom,
+  nextPress: () => throttled('press', 80, () => impact(Haptics.ImpactFeedbackStyle.Medium)),
+  // Difficulty Gate intro (tier >= 3).
+  gateLock: () => impact(Haptics.ImpactFeedbackStyle.Rigid),
 };

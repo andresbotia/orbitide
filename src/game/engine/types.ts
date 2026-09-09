@@ -36,6 +36,26 @@ export interface ChargeSpec {
 
 export type LevelDifficulty = 'easy' | 'medium' | 'hard' | 'super-hard' | 'extreme';
 
+/**
+ * Optional authored metadata for the Win / Discovery reveal. Purely
+ * presentational — the engine never reads this. Node coordinates are in
+ * pixel-grid cell units (may be fractional) so the constellation stays
+ * spatially aligned with the solved picture. When absent, the reveal renderer
+ * derives a deterministic silhouette fallback.
+ */
+export interface LevelReveal {
+  /** Discovery name shown once the constellation resolves. */
+  name: string;
+  /** Constellation node positions, in cell coordinates. */
+  nodes: { x: number; y: number }[];
+  /** Index pairs into `nodes` for the constellation lines. */
+  lines: [number, number][];
+  /** Optional indices of nodes drawn with a brighter accent. */
+  accentNodes?: number[];
+  /** Passive metadata hook for a future collection system. */
+  collectionId?: string;
+}
+
 /** Authored, serializable definition of a handcrafted level. */
 export interface LevelDefinition {
   /** 1-based level number. */
@@ -54,6 +74,8 @@ export interface LevelDefinition {
   legend?: Record<string, OrbColor>;
   /** Exactly three authored tunnel queues; index 0 of each is the front charge. */
   tunnels: ChargeSpec[][];
+  /** Optional authored Win / Discovery constellation. */
+  reveal?: LevelReveal;
 }
 
 export type GameStatus = 'playing' | 'won' | 'lost';

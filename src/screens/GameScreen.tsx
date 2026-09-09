@@ -1,16 +1,20 @@
 import { reachablePixels } from '@/game/engine/pixels';
 import type { Point } from '@/game/rendering/boardGeometry';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Easing, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { DebugOverlay } from '@/components/DebugOverlay';
+import { DiscoveryOverlay } from '@/components/DiscoveryOverlay';
 import { HoldingTray } from '@/components/HoldingTray';
 import { Hud } from '@/components/Hud';
 import { ResultOverlay } from '@/components/ResultOverlay';
 import { ToolBar } from '@/components/ToolBar';
 import { TunnelBar } from '@/components/TunnelBar';
+import { DiscoveryReveal } from '@/game/rendering/DiscoveryReveal';
 import { OrbitBoard } from '@/game/rendering/OrbitBoard';
+import { resolveReveal, revealTimeline } from '@/game/rendering/revealGeometry';
 import { nextLevelId, requireLevel } from '@/game/levels/levels';
 import { useGameSession } from '@/hooks/useGameSession';
 import { arcade } from '@/theme/arcade';
@@ -27,8 +31,9 @@ interface GameScreenProps {
 /**
  * Production Cosmic Arcade gameplay shell. Screen hierarchy, top to bottom:
  *   TOP HUD -> ORBIT / PIXEL-ART BOARD -> HOLDING -> LAUNCH TUNNELS -> TOOLS.
- * The board stays the visual hero; everything else is subordinate chrome.
- * Engine behaviour is unchanged — presentation only.
+ * On a win the board transforms into the Discovery constellation reveal in
+ * place; on a loss the minimal retry overlay is shown. Engine truth is
+ * unchanged — the reveal is triggered by, never the trigger of, the win.
  */
 export function GameScreen({
   levelId,
@@ -47,6 +52,7 @@ export function GameScreen({
     return point ? { x: point.x - boardOrigin.current.x, y: point.y - boardOrigin.current.y } : undefined;
   };
   const level = useMemo(() => requireLevel(levelId), [levelId]);
+  const reducedMotion = useReducedMotion();
 
   const handleWin = useCallback(() => {
     onWin(levelId);
@@ -54,6 +60,18 @@ export function GameScreen({
 
   const session = useGameSession(levelId, { onWin: handleWin });
   const { state } = session;
+  const won = state.status === 'won';
+
+  const reveal = useMemo(() => resolveReveal(level), [level]);
+  const revealProgress = useSharedValue(0);
+  useEffect(() => {
+    if (!won) { revealProgress.set(0); return; }
+    revealProgress.set(0);
+    revealProgress.set(withTiming(1, {
+      duration: revealTimeline(reducedMotion).tailMs,
+      easing: Easing.linear,
+    }));
+  }, [won, reducedMotion, revealProgress]);
 
   const onBoardArea = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
@@ -75,21 +93,34 @@ export function GameScreen({
       <View style={styles.ambient} pointerEvents="none" />
 
       <View style={styles.hud}>
-        <Hud state={state} title={level.title} onRestart={session.restart} />
+        <Hud state={state} title={level.title} difficulty={level.difficulty} onRestart={session.restart} />
       </View>
 
       <View ref={area} collapsable={false} style={styles.boardArea} onLayout={onBoardArea}>
         {boardSize > 0 ? (
-          <OrbitBoard
-            size={boardSize}
-            state={state}
-            flightPass={session.flightPass}
-            presentThrough={session.presentThrough}
-          />
+          <View style={{ width: boardSize, height: boardSize }}>
+            <OrbitBoard
+              size={boardSize}
+              state={state}
+              flightPass={session.flightPass}
+              presentThrough={session.presentThrough}
+            />
+            {won ? (
+              <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                <DiscoveryReveal
+                  size={boardSize}
+                  level={level}
+                  state={state}
+                  progress={revealProgress}
+                  reducedMotion={reducedMotion}
+                />
+              </View>
+            ) : null}
+          </View>
         ) : null}
       </View>
 
-      <View style={styles.controls}>
+      <View style={styles.controls} pointerEvents={won ? 'none' : 'auto'}>
         <HoldingTray
           layoutVersion={boardSize}
           holding={state.holding}
@@ -114,8 +145,20 @@ export function GameScreen({
         <ToolBar />
       </View>
 
+      {won ? (
+        <DiscoveryOverlay
+          name={reveal.name}
+          source={reveal.source}
+          hasNext={next !== undefined}
+          progress={revealProgress}
+          reducedMotion={reducedMotion}
+          onNext={() => next !== undefined && onAdvance(next)}
+          onHome={onExit}
+        />
+      ) : null}
+
       <ResultOverlay
-        status={state.status}
+        status={state.status === 'lost' ? 'lost' : 'playing'}
         hasNextLevel={next !== undefined}
         onNext={() => next !== undefined && onAdvance(next)}
         onRetry={session.restart}

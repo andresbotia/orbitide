@@ -26,6 +26,28 @@ test.each(LEVEL_DEFINITIONS)('level $id has the intended density and exact per-c
       .toBe(state.pixels.filter((p) => p.color === color).length);
   }
 });
+test('authored Win/Discovery reveals are structurally sound', () => {
+  const authored = LEVEL_DEFINITIONS.filter((l) => l.reveal);
+  expect(authored.map((l) => l.id)).toEqual([1, 2, 10]);
+  for (const level of authored) {
+    const r = level.reveal!;
+    expect(r.name.length).toBeGreaterThan(0);
+    expect(r.nodes.length).toBeGreaterThanOrEqual(2);
+    for (const [a, b] of r.lines) {
+      expect(Number.isInteger(a) && Number.isInteger(b)).toBe(true);
+      expect(a).toBeGreaterThanOrEqual(0);
+      expect(b).toBeGreaterThanOrEqual(0);
+      expect(a).toBeLessThan(r.nodes.length);
+      expect(b).toBeLessThan(r.nodes.length);
+      expect(a).not.toBe(b);
+    }
+    for (const i of r.accentNodes ?? []) {
+      expect(i).toBeGreaterThanOrEqual(0);
+      expect(i).toBeLessThan(r.nodes.length);
+    }
+  }
+});
+
 test('every winning and failing witness replays through the runtime resolver', () => {
   for (const level of LEVEL_DEFINITIONS) {
     const result = solve(level);

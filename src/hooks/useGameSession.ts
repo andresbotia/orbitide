@@ -94,12 +94,19 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
         return;
       }
       // Keep every semantic sound hook, but use one impact when cues coincide.
+      // The winning final clear keeps its stronger cue and suppresses the
+      // coincident charge-consumed impact instead of the other way round.
       const replacedImpact = current.pass.events.some((e) => e.at === event.at && (
-        event.kind === 'holdingLanded' && (e.kind === 'holdingCritical' || e.kind === 'holdingFull') ||
-        event.kind === 'pixelClear' && e.kind === 'chargeConsumed'
+        (event.kind === 'holdingLanded' && (e.kind === 'holdingCritical' || e.kind === 'holdingFull')) ||
+        (event.kind === 'pixelClear' && !event.final && e.kind === 'chargeConsumed') ||
+        (event.kind === 'chargeConsumed' && e.kind === 'pixelClear' && e.final)
       ));
-      feedback.emit(event.kind === 'holdingLanded' ? 'holdingLand' :
-        event.kind === 'pixelClear' ? 'pixelPop' : event.kind, { haptic: !replacedImpact });
+      const soundEvent = event.kind === 'holdingLanded' ? 'holdingLand'
+        : event.kind === 'pixelClear' ? (event.final ? 'finalClear' : 'pixelPop')
+          : event.kind;
+      // The win success buzz moves to the Discovery reveal confirmation; here the
+      // 'win' event is a sound hook only so the buzzes never stack.
+      feedback.emit(soundEvent, { haptic: event.kind === 'win' ? false : !replacedImpact });
     }
     setState(view.current);
   }, [reportResult, settle]);

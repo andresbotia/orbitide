@@ -20,9 +20,13 @@ export function buildLaunchScript(outcome: LaunchOutcome, prevState: GameState,
     ? shots[shots.length - 1]!.clearAt
     : FEEL.LAUNCH_DURATION + chargePass.progress * FEEL.ORBIT_DURATION + shots.length * FEEL.PIXEL_CLEAR_INTERVAL;
   const landingAt = orbitEndAt + (outcome.heldCharge ? FEEL.HOLDING_TRAVEL_DURATION : FEEL.BURST_DURATION);
+  const won = outcome.state.status === 'won';
+  // The clear that completes the picture gets a stronger presentation beat.
+  const finalClearPixelId = won && shots.length > 0 ? shots[shots.length - 1]!.pixelId : undefined;
   const events: PlaybackEvent[] = [
     { kind: 'orbitEnter', at: FEEL.LAUNCH_DURATION },
-    ...shots.map((s) => ({ kind: 'pixelClear' as const, at: s.clearAt, pixelId: s.pixelId, remaining: s.remaining })),
+    ...shots.map((s, i) => ({ kind: 'pixelClear' as const, at: s.clearAt, pixelId: s.pixelId, remaining: s.remaining,
+      final: won && i === shots.length - 1 })),
     { kind: outcome.heldCharge ? 'holdingLanded' : 'chargeConsumed', at: outcome.heldCharge ? landingAt : orbitEndAt },
   ];
   if (outcome.heldCharge) {
@@ -32,7 +36,7 @@ export function buildLaunchScript(outcome: LaunchOutcome, prevState: GameState,
     if (after > prevState.holding.length && after === 2 && before < 2) events.push({ kind: 'holdingCritical', at: landingAt });
     if (after > prevState.holding.length && after === 3 && outcome.state.status !== 'lost') events.push({ kind: 'holdingFull', at: landingAt });
   }
-  const resultAt = landingAt + (outcome.state.status === 'won' ? FEEL.WIN_DELAY : FEEL.FAIL_DELAY);
+  const resultAt = landingAt + (won ? FEEL.WIN_DELAY : FEEL.FAIL_DELAY);
   if (outcome.state.status !== 'playing') events.push({ kind: outcome.state.status === 'won' ? 'win' : 'fail', at: resultAt });
   const totalMs = (outcome.state.status === 'playing' ? landingAt : resultAt) + 20;
   events.push({ kind: 'complete', at: totalMs });
@@ -40,6 +44,6 @@ export function buildLaunchScript(outcome: LaunchOutcome, prevState: GameState,
   const pass: FlightPass = { passId, origin: outcome.action.kind, sourceIndex: outcome.sourceIndex,
     from, holdingTarget, charge: outcome.launchedCharge, shots, liftMs: FEEL.LAUNCH_DURATION,
     orbitEndAt, endProgress: chargePass.progress, landingAt, totalMs,
-    endKind: outcome.heldCharge ? 'toHolding' : 'burst', events };
+    endKind: outcome.heldCharge ? 'toHolding' : 'burst', events, finalClearPixelId };
   return { pass, totalMs };
 }

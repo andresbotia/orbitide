@@ -1,5 +1,11 @@
 import { cancelPendingHaptics, haptics } from './haptics';
-export type FeedbackEvent = keyof typeof haptics | 'launch' | 'orbitWhoosh';
+export type FeedbackEvent =
+  | keyof typeof haptics
+  | 'launch'
+  | 'orbitWhoosh'
+  /** Sound-only hooks (no haptic). */
+  | 'reward'
+  | 'gateIntro';
 type SoundHandler = (event: FeedbackEvent) => void;
 let soundHandler: SoundHandler | null = null;
 export function setSoundHandler(handler: SoundHandler | null): void { soundHandler = handler; }

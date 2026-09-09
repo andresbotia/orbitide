@@ -19,6 +19,20 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
       [{ color: 'white', capacity: 7 }],
       [{ color: 'white', capacity: 6 }],
     ],
+    reveal: {
+      name: 'THE CRESCENT',
+      nodes: [
+        { x: 1, y: 0 },
+        { x: 5, y: 0 },
+        { x: 0.2, y: 3 },
+        { x: 1, y: 6 },
+        { x: 5, y: 6 },
+        { x: 3.6, y: 3 },
+      ],
+      lines: [[0, 2], [2, 3], [0, 1], [1, 5], [5, 4], [3, 4]],
+      accentNodes: [2],
+      collectionId: 'first-light',
+    },
   },
   {
     id: 2, title: 'Star', themeId: 'first-light',
@@ -37,6 +51,20 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
       [{ color: 'white', capacity: 7 }],
       [{ color: 'white', capacity: 6 }],
     ],
+    reveal: {
+      name: 'THE GUIDING STAR',
+      nodes: [
+        { x: 3, y: 3 },
+        { x: 3, y: 0 }, { x: 5, y: 1 }, { x: 6, y: 3 }, { x: 5, y: 5 },
+        { x: 3, y: 6 }, { x: 1, y: 5 }, { x: 0, y: 3 }, { x: 1, y: 1 },
+      ],
+      lines: [
+        [0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7], [0, 8],
+        [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 1],
+      ],
+      accentNodes: [0],
+      collectionId: 'first-light',
+    },
   },
   {
     id: 3, title: 'Small Planet', themeId: 'first-light',
@@ -183,5 +211,19 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
       [{ color: 'pink', capacity: 1 }, { color: 'white', capacity: 4 }],
       [{ color: 'pink', capacity: 1 }, { color: 'white', capacity: 3 }, { color: 'orange', capacity: 2 }],
     ],
+    reveal: {
+      name: 'TOTAL ECLIPSE',
+      nodes: [
+        { x: 2.5, y: 2.5 },
+        { x: 2.5, y: 0 }, { x: 4.5, y: 0.6 }, { x: 5.2, y: 2.5 }, { x: 4.5, y: 4.4 },
+        { x: 2.5, y: 5 }, { x: 0.6, y: 4.4 }, { x: -0.2, y: 2.5 }, { x: 0.6, y: 0.6 },
+      ],
+      lines: [
+        [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 1],
+        [0, 1], [0, 3], [0, 5], [0, 7],
+      ],
+      accentNodes: [0],
+      collectionId: 'first-light',
+    },
   },
 ];
