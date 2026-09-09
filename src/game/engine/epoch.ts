@@ -125,7 +125,11 @@ function simulateEpochUncached(baseline: GameState, launches: EpochLaunch[]): Ep
 
   // Each step resolves exactly one clear or finishes at least one cursor, so the
   // loop is bounded by (clears + cursor finishes).
-  const maxSteps = pixels.length + cursors.length * 2 + 4;
+  const modifierHits = pixels.reduce((n, p) => {
+    if (p.cleared || (p.modifier?.kind !== 'frozen' && p.modifier?.kind !== 'shielded')) return n;
+    return n + Math.max(0, Math.trunc(p.modifier.level ?? 1));
+  }, 0);
+  const maxSteps = pixels.length + modifierHits + cursors.length * 2 + 4;
   for (let step = 0; step < maxSteps; step += 1) {
     const reachable = reachablePixels(boardView());
     let best: { cursor: Cursor; pixelId: string; time: number; progress: number } | null = null;
@@ -177,7 +181,8 @@ function simulateEpochUncached(baseline: GameState, launches: EpochLaunch[]): Ep
     c.progress = best.progress;
     c.hitPixelIds.add(best.pixelId);
     c.encounters.push({ pixelId: best.pixelId, time: best.time, progress: best.progress, remaining: c.remaining,
-      ...(resolved.frozenBreak ? { frozenBreak: true } : {}) });
+      ...(resolved.frozenBreak ? { frozenBreak: true } : {}),
+      ...(resolved.shieldBreak ? { shieldBreak: true } : {}) });
     if (c.remaining === 0) {
       c.phase = 'finished';
       c.finishTime = best.time;

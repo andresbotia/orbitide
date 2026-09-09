@@ -40,6 +40,7 @@ function toChargePass(
     progress: e.progress,
     remaining: e.remaining,
     ...(e.frozenBreak ? { frozenBreak: true } : {}),
+    ...(e.shieldBreak ? { shieldBreak: true } : {}),
   }));
   return {
     charge,

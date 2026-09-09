@@ -11,8 +11,9 @@ export interface Shot {
   remaining: number;
   /** `true` when this shot cracks a Frozen ice layer — the pixel stays on the board. */
   frozenBreak?: boolean;
+  shieldBreak?: boolean;
 }
-export type PlaybackKind = 'orbitEnter' | 'pixelClear' | 'frozenHit' | 'chargeConsumed' |
+export type PlaybackKind = 'orbitEnter' | 'pixelClear' | 'frozenHit' | 'shieldHit' | 'chargeConsumed' |
   'holdingLanded' | 'holdingCritical' | 'holdingFull' | 'win' | 'fail' | 'complete';
 export interface PlaybackEvent { kind: PlaybackKind; at: number; pixelId?: string; remaining?: number;
   /** Set on the pixelClear that completes the picture — a stronger presentation beat. */

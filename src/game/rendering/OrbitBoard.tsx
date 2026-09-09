@@ -56,7 +56,7 @@ export function OrbitBoard({ size, state, flights, presentThrough, colorAssist, 
   const shotPixelIds = useMemo(
     // A Frozen crack leaves the pixel on the board, so the static layer keeps
     // drawing it (with its shell) — only real clears are handed to the flight.
-    () => new Set(flights.flatMap((f) => f.shots.filter((s) => !s.frozenBreak).map((s) => s.pixelId))),
+    () => new Set(flights.flatMap((f) => f.shots.filter((s) => !s.frozenBreak && !s.shieldBreak).map((s) => s.pixelId))),
     [flights],
   );
   const calm = flights.length >= CALM_TRAILS_AT;
@@ -200,7 +200,7 @@ const FlightActor = memo(function FlightActor({ pass, geo, presentThrough, color
   return (
     <>
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        {pass.shots.filter((shot) => !shot.frozenBreak).map((shot, i) => {
+        {pass.shots.filter((shot) => !shot.frozenBreak && !shot.shieldBreak).map((shot, i) => {
           const c = cellCenter(geo, shot.target.x, shot.target.y);
           return (
             <Pixel

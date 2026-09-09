@@ -82,7 +82,7 @@ function SpecialShell({ center, cell, color, render, idle, reducedMotion }: {
   const pulseOpacity = useDerivedValue(() => 0.4 + pulse.value * 0.5);
 
   // Frozen ice fully cracked — the base pixel (Pixel.tsx) renders as normal.
-  if (render.kind === 'frozen' && render.baseCompromised) return null;
+  if ((render.kind === 'frozen' || render.kind === 'shielded') && render.baseCompromised) return null;
 
   switch (render.shell) {
     case 'ice':

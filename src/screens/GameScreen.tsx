@@ -1,5 +1,5 @@
 import { createGame } from '@/game/engine/createGame';
-import { iceLayers } from '@/game/engine/frozen';
+import { iceLayers, shieldLayers } from '@/game/engine/frozen';
 import { reachablePixels } from '@/game/engine/pixels';
 import type { Point } from '@/game/rendering/boardGeometry';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -79,13 +79,13 @@ export function GameScreen({
   // Lightweight, non-modal teaching cue (Level 21's Frozen intro). Shows while
   // the level still has all its ice and the player is in their first few moves;
   // the first successful ice break — or a fourth launch — retires it.
-  const initialIced = useMemo(
-    () => createGame(level).pixels.filter((p) => iceLayers(p) > 0).length,
+  const initialProtected = useMemo(
+    () => createGame(level).pixels.filter((p) => iceLayers(p) > 0 || shieldLayers(p) > 0).length,
     [level],
   );
-  const currentIced = state.pixels.filter((p) => iceLayers(p) > 0).length;
+  const currentProtected = state.pixels.filter((p) => iceLayers(p) > 0 || shieldLayers(p) > 0).length;
   const showTutorial = !!level.tutorial && state.status === 'playing'
-    && currentIced >= initialIced && state.movesApplied < 4;
+    && currentProtected >= initialProtected && state.movesApplied < 4;
 
   const reveal = useMemo(() => resolveReveal(level), [level]);
   const revealProgress = useSharedValue(0);

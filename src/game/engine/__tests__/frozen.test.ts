@@ -49,15 +49,15 @@ describe('frozen.ts pure helpers', () => {
     expect(second.pixel.cleared).toBe(true);
   });
 
-  test('a thawed Frozen pixel and a plain uncleared pixel share a fingerprint char', () => {
+  test('a thawed Frozen pixel remains distinct from a plain uncleared pixel', () => {
     const g = createGame(STRIP);
     const iced = boardFingerprint(g.pixels);
     const thawed = boardFingerprint(g.pixels.map((p) => (p.x === 1 ? resolveMatchingHit(p).pixel : p)));
-    expect(iced).toBe('0B0');
-    expect(thawed).toBe('000');
+    expect(iced).toBe('N.F1.N');
+    expect(thawed).toBe('N.FB.N');
   });
 
-  test('the solver stateKey distinguishes iced from thawed, and collapses thawed with plain', () => {
+  test('the solver stateKey distinguishes iced, thawed, and plain states', () => {
     const iced = createGame(STRIP);
     const thaw = (s: ReturnType<typeof createGame>) => ({
       ...s, pixels: s.pixels.map((p) => (p.x === 1 ? resolveMatchingHit(p).pixel : p)),
@@ -65,7 +65,7 @@ describe('frozen.ts pure helpers', () => {
     const plain = createGame({ ...STRIP, id: 9799, modifiers: undefined });
     expect(stateKey(thaw(iced))).not.toBe(stateKey(iced));       // ice matters
     expect(stateKey(thaw(iced)).replace(/9700/g, 'X'))
-      .toBe(stateKey(plain).replace(/9799/g, 'X'));               // thawed ≡ plain
+      .not.toBe(stateKey(plain).replace(/9799/g, 'X'));
   });
 });
 

@@ -130,6 +130,8 @@ export interface ActiveEncounter {
   remaining: number;
   /** `true` when this encounter cracked a Frozen ice layer instead of clearing. */
   frozenBreak?: boolean;
+  /** `true` when this encounter collapsed a Shielded layer instead of clearing. */
+  shieldBreak?: boolean;
 }
 
 export type ActiveChargePhase = 'orbiting' | 'finished';

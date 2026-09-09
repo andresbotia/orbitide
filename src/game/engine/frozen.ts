@@ -31,6 +31,17 @@ export function isIced(pixel: Pick<Pixel, 'cleared' | 'modifier'>): boolean {
   return iceLayers(pixel) > 0;
 }
 
+/** Energy-shield layers still protecting this pixel. Production uses one. */
+export function shieldLayers(pixel: Pick<Pixel, 'cleared' | 'modifier'>): number {
+  const m = pixel.modifier;
+  if (!m || m.kind !== 'shielded' || pixel.cleared) return 0;
+  return Math.max(0, Math.trunc(m.level ?? 1));
+}
+
+export function isShielded(pixel: Pick<Pixel, 'cleared' | 'modifier'>): boolean {
+  return shieldLayers(pixel) > 0;
+}
+
 export interface MatchingHitResult {
   /** The pixel after the hit (structurally shared when nothing changed). */
   pixel: Pixel;
@@ -38,6 +49,8 @@ export interface MatchingHitResult {
   cleared: boolean;
   /** `true` when this hit cracked an ice layer instead of clearing. */
   frozenBreak: boolean;
+  /** `true` when this hit collapsed an energy shield instead of clearing. */
+  shieldBreak: boolean;
 }
 
 /**
@@ -55,9 +68,21 @@ export function resolveMatchingHit(pixel: Pixel): MatchingHitResult {
       state: remaining === 0 ? 'broken' : 'intact',
       progress: 1,
     };
-    return { pixel: { ...pixel, modifier }, cleared: false, frozenBreak: true };
+    return { pixel: { ...pixel, modifier }, cleared: false, frozenBreak: true, shieldBreak: false };
   }
-  return { pixel: { ...pixel, cleared: true }, cleared: true, frozenBreak: false };
+  const shields = shieldLayers(pixel);
+  if (shields > 0) {
+    const remaining = shields - 1;
+    const modifier: ModifierInstance = {
+      ...(pixel.modifier as ModifierInstance),
+      kind: 'shielded',
+      level: remaining,
+      state: remaining === 0 ? 'broken' : 'intact',
+      progress: 1,
+    };
+    return { pixel: { ...pixel, modifier }, cleared: false, frozenBreak: false, shieldBreak: true };
+  }
+  return { pixel: { ...pixel, cleared: true }, cleared: true, frozenBreak: false, shieldBreak: false };
 }
 
 /**
@@ -68,11 +93,16 @@ export function resolveMatchingHit(pixel: Pixel): MatchingHitResult {
  * same string on purpose.
  */
 export function boardFingerprint(pixels: readonly Pixel[]): string {
-  let s = '';
-  for (const p of pixels) {
-    if (p.cleared) { s += '1'; continue; }
-    const ice = iceLayers(p);
-    s += ice > 0 ? String.fromCharCode(0x41 + Math.min(ice, 25)) : '0';
-  }
-  return s;
+  return pixels.map((p) => {
+    if (p.cleared) return 'C';
+    if (p.modifier?.kind === 'frozen') {
+      const layers = iceLayers(p);
+      return layers > 0 ? `F${layers}` : 'FB';
+    }
+    if (p.modifier?.kind === 'shielded') {
+      const layers = shieldLayers(p);
+      return layers > 0 ? `S${layers}` : 'SB';
+    }
+    return 'N';
+  }).join('.');
 }

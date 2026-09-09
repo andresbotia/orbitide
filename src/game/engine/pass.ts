@@ -10,6 +10,7 @@ export interface Encounter {
   remaining: number;
   /** `true` when this encounter cracked a Frozen ice layer instead of clearing. */
   frozenBreak?: boolean;
+  shieldBreak?: boolean;
 }
 /** Independently representable per-charge state. No clock or renderer dependencies. */
 export interface ChargePass {
@@ -86,7 +87,8 @@ export function advancePass(pass: ChargePass): ChargePass {
     state: { ...pass.state, pixels: pass.state.pixels.map((p) =>
       p.id === hit.pixelId ? resolved.pixel : p) },
     encounters: [...pass.encounters, { pixelId: hit.pixelId, progress, remaining,
-      ...(resolved.frozenBreak ? { frozenBreak: true } : {}) }],
+      ...(resolved.frozenBreak ? { frozenBreak: true } : {}),
+      ...(resolved.shieldBreak ? { shieldBreak: true } : {}) }],
   };
 }
 /** M1 has one active pass: safely evaluate discrete steps ahead of presentation. */

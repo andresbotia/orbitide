@@ -79,3 +79,16 @@ test('a non-winning pass carries no final-clear beat', () => {
   expect(miss.events.some((e) => e.kind === 'pixelClear' && e.final)).toBe(false);
   expect(miss.finalClearPixelId).toBeUndefined();
 });
+
+test('a Shielded break emits shieldHit and is not presented as a pixel clear', () => {
+  const shielded: LevelDefinition = {
+    ...level, id: 801, pixelArt: ['W'],
+    modifiers: { '0,0': { kind: 'shielded', level: 1 } },
+    tunnels: [[{ color: 'white', capacity: 1 }], [], []],
+  };
+  const state = createGame(shielded);
+  const pass = buildLaunchScript(resolveLaunch(state, 'tunnel-0'), state).pass;
+  expect(pass.events.some((e) => e.kind === 'shieldHit')).toBe(true);
+  expect(pass.events.some((e) => e.kind === 'pixelClear')).toBe(false);
+  expect(pass.finalClearPixelId).toBeUndefined();
+});

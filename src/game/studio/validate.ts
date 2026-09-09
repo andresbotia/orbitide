@@ -93,18 +93,18 @@ export function validateStudioLevel(level: StudioLevel): ValidationReport {
   }
   // Every Frozen pixel needs one extra matching hit per ice layer (M4A) — the
   // capacity budget must cover the crack(s) as well as the final clear.
-  const frozenExtraByColor = new Map<OrbColor, number>();
+  const modifierExtraByColor = new Map<OrbColor, number>();
   for (const [key, mod] of Object.entries(level.modifiers ?? {})) {
-    if (mod.kind !== 'frozen') continue;
+    if (mod.kind !== 'frozen' && mod.kind !== 'shielded') continue;
     const color = level.cells[key];
     if (!color) continue;
     const layers = Math.max(1, Math.trunc(mod.config.layers ?? 1));
-    frozenExtraByColor.set(color, (frozenExtraByColor.get(color) ?? 0) + layers);
+    modifierExtraByColor.set(color, (modifierExtraByColor.get(color) ?? 0) + layers);
   }
 
   for (const color of boardColors) {
     const need = Object.entries(level.cells).filter(([, c]) => c === color).length
-      + (frozenExtraByColor.get(color) ?? 0);
+      + (modifierExtraByColor.get(color) ?? 0);
     const have = capacityByColor.get(color) ?? 0;
     if (have === 0) {
       err({ code: 'color/no-charge', message: `${need} ${color} pixel${need === 1 ? '' : 's'} but no ${color} charge in any tunnel.`, where: { kind: 'color', color } });

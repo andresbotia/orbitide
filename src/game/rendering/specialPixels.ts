@@ -262,6 +262,12 @@ function frozen(state: string | undefined, progress: number, detail: MaterialDet
 }
 
 function shielded(state: string | undefined, progress: number, detail: MaterialDetail): KindResult {
+  if (state === 'broken') {
+    return {
+      progression: 1, shellFailing: false, baseCompromised: true,
+      desaturate: 0, concealment: 0, counts: {}, features: {}, motion: null,
+    };
+  }
   const stage = state ?? (progress >= 0.95 ? 'gone' : progress >= 0.7 ? 'collapsing'
     : progress >= 0.3 ? 'stressed' : 'intact');
   const progression = { intact: 0, stressed: 0.5, collapsing: 0.85, gone: 1 }[stage] ?? 0;
