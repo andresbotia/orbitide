@@ -1,0 +1,175 @@
+import type { ReactNode } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { DIFFICULTY_WEIGHTS } from '@/game/studio/analysis';
+import type { LevelAnalysis } from '@/game/studio/analysis';
+import type { LevelAnalysisController } from '@/hooks/useLevelAnalysis';
+import { StudioButton } from './StudioButton';
+import { studioSpace, studioTheme } from './theme';
+
+export function AnalysisPanel({ ctrl, exportable }: { ctrl: LevelAnalysisController; exportable: boolean }) {
+  return (
+    <View style={styles.wrap}>
+      <View style={styles.controls}>
+        <StudioButton
+          label={ctrl.status === 'running' ? `Analysing… (${ctrl.phase ?? 'start'})` : 'Analyze Level'}
+          variant="primary"
+          disabled={ctrl.status === 'running' || !exportable}
+          onPress={ctrl.run}
+        />
+        {ctrl.status === 'running' ? <StudioButton label="Cancel" compact onPress={ctrl.cancel} /> : null}
+      </View>
+      {!exportable ? <Text style={styles.note}>Fix validation errors first.</Text> : null}
+      {ctrl.status === 'cancelled' ? <Text style={styles.note}>Cancelled.</Text> : null}
+      {ctrl.status === 'error' ? <Text style={[styles.note, styles.err]}>Analysis error: {ctrl.error}</Text> : null}
+      {ctrl.stale ? <Text style={styles.note}>Level changed since the last analysis — run again.</Text> : null}
+
+      {ctrl.analysis ? <Report a={ctrl.analysis} /> : null}
+    </View>
+  );
+}
+
+function Report({ a }: { a: LevelAnalysis }) {
+  return (
+    <ScrollView style={styles.report} contentContainerStyle={styles.reportInner}>
+      {!a.complete ? (
+        <View style={styles.limitations}>
+          {a.limitations.map((l, i) => <Text key={i} style={styles.limitation}>⚠ {l}</Text>)}
+        </View>
+      ) : null}
+
+      <Section title="Verdict">
+        <Kv k="solvable" v={String(a.solvable).toUpperCase()} strong={a.solvable === true ? 'ok' : 'err'} />
+        <Kv k="authored" v={a.authoredDifficulty} />
+        <Kv k="suggested" v={a.suggestedDifficulty} strong={a.difficulty.mismatch ? 'warn' : undefined} />
+        <Kv k="score" v={`${a.difficultyScore} / 100`} />
+      </Section>
+
+      <Section title="Difficulty factors (points of 100)">
+        {Object.keys(DIFFICULTY_WEIGHTS).map((key) => (
+          <Bar key={key} label={key} value={a.difficulty.contributions[key] ?? 0} max={(DIFFICULTY_WEIGHTS as Record<string, number>)[key]! * 100} />
+        ))}
+      </Section>
+
+      <Section title={`First moves (${a.viableFirstMoves}/${a.totalFirstMoves} viable)`}>
+        {a.firstMoveAnalysis.length === 0 ? <Text style={styles.note}>unavailable (truncated run)</Text> : null}
+        {a.firstMoveAnalysis.map((m, i) => (
+          <View key={i} style={styles.fmRow}>
+            <Text style={[styles.fmClass, fmColor(m.classification)]}>{m.classification}</Text>
+            <Text style={styles.fmLabel}>{m.label} · {m.color} {m.startingCapacity}</Text>
+            <Text style={styles.fmMetrics}>
+              {m.solvableAfter ? `win+${m.remainingWinLength} · peak ${m.peakHolding} · loss ${m.lossAfter.toFixed(2)}` : m.reasons[0]}
+            </Text>
+            {m.reasons.length > 0 && m.solvableAfter ? (
+              <Text style={styles.fmReason}>{m.reasons.join('; ')}</Text>
+            ) : null}
+          </View>
+        ))}
+      </Section>
+
+      <Section title="Sequential vs concurrent">
+        <Kv k="verdict" v={a.comparison.verdict} />
+        <Kv k="win length" v={`seq ${a.sequentialResult.length} · con ${a.concurrentResult.length}  (Δ ${a.comparison.winLengthDelta})`} />
+        <Kv k="min peak Holding" v={`seq ${a.sequentialResult.minWinningPeak} · con ${a.concurrentResult.minWinningPeak}`} />
+        <Kv k="viable first moves" v={`seq ${a.sequentialResult.viableFirstMoves} · con ${a.concurrentResult.viableFirstMoves}`} />
+        <Kv k="max active" v={`seq ${a.sequentialResult.maxActive} · con ${a.concurrentResult.maxActive}`} />
+        <Kv k="loss probability" v={`seq ${a.sequentialResult.lossProbability.toFixed(3)} · con ${a.concurrentResult.lossProbability.toFixed(3)}`} />
+        <Kv k="explored nodes" v={`seq ${a.sequentialResult.nodes.toLocaleString()} · con ${a.concurrentResult.nodes.toLocaleString()}`} />
+      </Section>
+
+      <Section title="Holding pressure (winning line)">
+        <Text style={styles.strip}>
+          {a.holdingPressure.timeline.map((v) => `${v}/${a.holdingPressure.holdingCapacity}`).join('  ') || '—'}
+        </Text>
+        <Kv k="max Holding" v={String(a.holdingPressure.maxHolding)} />
+        <Kv k="steps at 2/3+" v={`${a.holdingPressure.stepsAtOrAbove2} (${Math.round(a.holdingPressure.fractionAtOrAbove2 * 100)}%)`} />
+        <Kv k="manual relaunches" v={String(a.holdingPressure.manualRelaunches)} />
+        <Kv k="charges into Holding" v={String(a.holdingPressure.chargesEnteringHolding)} />
+        <Kv k="longest held (steps)" v={String(a.holdingPressure.longestHeldDurationSteps)} />
+      </Section>
+
+      <Section title={`Warnings (${a.warnings.length})`}>
+        {a.warnings.length === 0 ? <Text style={styles.note}>none</Text> : null}
+        {a.warnings.map((w, i) => (
+          <View key={i} style={styles.warn}>
+            <Text style={[styles.warnCode, w.severity === 'warn' ? styles.warnW : styles.warnI]}>
+              {w.severity === 'warn' ? '■' : '▲'} {w.code}
+            </Text>
+            <Text style={styles.warnMsg}>{w.message}</Text>
+            {w.detail ? <Text style={styles.warnDetail}>{w.detail}</Text> : null}
+          </View>
+        ))}
+      </Section>
+    </ScrollView>
+  );
+}
+
+function fmColor(c: string) {
+  return c === 'VIABLE' ? { color: studioTheme.ok }
+    : c === 'DANGEROUS' ? { color: studioTheme.warning }
+      : { color: studioTheme.error };
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {children}
+    </View>
+  );
+}
+
+function Kv({ k, v, strong }: { k: string; v: string; strong?: 'ok' | 'warn' | 'err' }) {
+  return (
+    <View style={styles.kv}>
+      <Text style={styles.k}>{k}</Text>
+      <Text style={[styles.v, strong === 'ok' && { color: studioTheme.ok }, strong === 'warn' && { color: studioTheme.warning }, strong === 'err' && { color: studioTheme.error }]}>{v}</Text>
+    </View>
+  );
+}
+
+function Bar({ label, value, max }: { label: string; value: number; max: number }) {
+  const pct = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
+  return (
+    <View style={styles.barRow}>
+      <Text style={styles.barLabel}>{label}</Text>
+      <View style={styles.barTrack}>
+        <View style={[styles.barFill, { width: `${pct * 100}%` }]} />
+      </View>
+      <Text style={styles.barValue}>{value.toFixed(1)}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: { gap: studioSpace.sm },
+  controls: { flexDirection: 'row', gap: studioSpace.sm, alignItems: 'center' },
+  note: { color: studioTheme.textFaint, fontSize: 11, fontFamily: studioTheme.mono },
+  err: { color: studioTheme.error },
+  report: { maxHeight: 560 },
+  reportInner: { gap: studioSpace.sm, paddingBottom: studioSpace.md },
+  limitations: { borderWidth: 1, borderColor: studioTheme.warning, borderRadius: 5, padding: 6, gap: 3 },
+  limitation: { color: studioTheme.warning, fontSize: 10, fontFamily: studioTheme.mono },
+  section: { borderWidth: 1, borderColor: studioTheme.border, borderRadius: 6, padding: studioSpace.sm, gap: 3, backgroundColor: studioTheme.bg },
+  sectionTitle: { color: studioTheme.textDim, fontSize: 10, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 },
+  kv: { flexDirection: 'row', justifyContent: 'space-between', gap: studioSpace.sm },
+  k: { color: studioTheme.textFaint, fontSize: 10, fontFamily: studioTheme.mono, textTransform: 'uppercase' },
+  v: { color: studioTheme.text, fontSize: 11, fontFamily: studioTheme.mono, textAlign: 'right', flexShrink: 1 },
+  strip: { color: studioTheme.textDim, fontSize: 11, fontFamily: studioTheme.mono },
+  fmRow: { paddingVertical: 3, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: studioTheme.border, gap: 1 },
+  fmClass: { fontSize: 10, fontWeight: '800', fontFamily: studioTheme.mono },
+  fmLabel: { color: studioTheme.text, fontSize: 11 },
+  fmMetrics: { color: studioTheme.textDim, fontSize: 10, fontFamily: studioTheme.mono },
+  fmReason: { color: studioTheme.warning, fontSize: 9, fontFamily: studioTheme.mono },
+  warn: { paddingVertical: 3, gap: 1 },
+  warnCode: { fontSize: 10, fontWeight: '700', fontFamily: studioTheme.mono },
+  warnW: { color: studioTheme.error },
+  warnI: { color: studioTheme.warning },
+  warnMsg: { color: studioTheme.text, fontSize: 11 },
+  warnDetail: { color: studioTheme.textFaint, fontSize: 9, fontFamily: studioTheme.mono },
+  barRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  barLabel: { color: studioTheme.textFaint, fontSize: 9, fontFamily: studioTheme.mono, width: 120 },
+  barTrack: { flex: 1, height: 8, backgroundColor: studioTheme.panelAlt, borderRadius: 2, overflow: 'hidden' },
+  barFill: { height: 8, backgroundColor: studioTheme.accent },
+  barValue: { color: studioTheme.textDim, fontSize: 9, fontFamily: studioTheme.mono, width: 32, textAlign: 'right' },
+});

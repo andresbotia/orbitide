@@ -6,8 +6,8 @@ M3B turns the one real solver into a practical, deterministic level-design
 analysis system inside Level Studio. It does not change gameplay rules, touch
 backend/monetization, or start M4 campaign authoring.
 
-Commits: `93a0819` (M3B.1 solver + trace) · `<M3B.2>` (analysis model) ·
-`<M3B.3>` (Studio analytics UI).
+Commits: `93a0819` (M3B.1 solver + trace) · `5193282` (M3B.2 analysis model) ·
+`8ef98f4` (M3B.3 Studio analytics UI + batch tooling).
 
 ---
 
@@ -240,6 +240,39 @@ Concurrency shortens L5/L8/L9 by one move but never trivialises a level and
 never makes the campaign unsolvable sequentially.
 
 ---
+
+## 10a. Studio UI (M3B.3)
+
+The Studio screen gains a tab bar (`StudioTabs`): **EDITOR · ANALYSIS · WIN PATH
+· FAIL PATH · BATCH**. The M3A "Solver" rail section is removed — its data now
+lives in ANALYSIS. Play / Export stay on the bottom action bar.
+
+- `useLevelAnalysis(level, exportable)` — one controller shared by ANALYSIS /
+  WIN / FAIL / BATCH. `run()` / `cancel()` for the single-level analysis (tagged
+  to the level, so an edit marks it `stale`); `runBatch(defs)` / `cancelBatch()`
+  with `batchProgress`. Never runs on an edit. `runId` increments per completed
+  run and is the remount key for the visualisers.
+- `AnalysisPanel` — Run/Cancel + live phase; then verdict (solvable, authored,
+  suggested, score), difficulty-factor bars (points of 100), first-move table
+  (VIABLE/DANGEROUS/DEAD-END + reasons), sequential-vs-concurrent, a Holding
+  timeline strip + metrics, and the warnings list (`■` warn / `▲` info).
+  Incomplete runs show their `limitations` banner.
+- `WitnessVisualizer` + `TraceBoard` — Prev / Next / Restart / Play Through over
+  the real `Trace`. Each board is `trace.frames[i]` (a real `GameState`);
+  cleared pixels are ringed amber, newly-exposed green. Per-step detail: action,
+  source, charge (start→remaining capacity, landed), active count, Holding
+  before→after, cleared / newly-exposed ids, pixels left, status. End-of-line:
+  outcome, unused charges/capacity, and for a fail line, why no progress
+  remains.
+- `BatchPanel` — "Analyze Levels 1–10" with progress + cancel; a sortable
+  table (press a header) and filters (all / mismatch / unsolvable / warnings,
+  plus a difficulty filter). Mismatched rows and non-zero warning counts are
+  highlighted.
+
+Tests (+1 suite): `useLevelAnalysis` run→done→stale, cancel, batch completion
+(react-test-renderer, no RN import). Studio component render paths remain
+outside the jest harness (consistent with M2A/M2B/M3A); the pure analysis layer
+that carries the logic is fully covered.
 
 ## 11. Known limitations
 
