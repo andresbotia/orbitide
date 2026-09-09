@@ -13,8 +13,8 @@ import { flightPosition } from './flightGeometry';
  * the charge's ACTUAL rendered position and ends at the exact engine-selected
  * target cell — the player can always see which pixel spent the capacity.
  */
-export const EnergyShot = memo(function EnergyShot({ pass, layout, clock }: {
-  pass: FlightPass; layout: BoardGeometry; clock: SharedValue<number>;
+export const EnergyShot = memo(function EnergyShot({ pass, layout, clock, laneOffset = 0 }: {
+  pass: FlightPass; layout: BoardGeometry; clock: SharedValue<number>; laneOffset?: number;
 }) {
   const active = useDerivedValue(() => {
     let current: Shot | null = null;
@@ -31,7 +31,7 @@ export const EnergyShot = memo(function EnergyShot({ pass, layout, clock }: {
   const streak = useAnimatedStyle(() => {
     const shot = active.value;
     if (!shot) return { opacity: 0 };
-    const from = flightPosition(pass, layout, shot.fireAt);
+    const from = flightPosition(pass, layout, shot.fireAt, laneOffset);
     const target = {
       x: layout.gridOrigin.x + (shot.target.x + 0.5) * layout.cell,
       y: layout.gridOrigin.y + (shot.target.y + 0.5) * layout.cell,

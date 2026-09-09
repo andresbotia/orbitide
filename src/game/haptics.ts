@@ -33,9 +33,14 @@ function successThenBloom() {
 export const haptics = {
   select: () => throttled('press', 80, () => impact(Haptics.ImpactFeedbackStyle.Medium)),
   heldRelaunch: () => throttled('press', 80, () => impact(Haptics.ImpactFeedbackStyle.Rigid)),
+  // Rail full — a light, restrained "not now" tap (spec §19).
+  denied: () => throttled('denied', 200, () => impact(Haptics.ImpactFeedbackStyle.Light)),
   orbitEnter: () => impact(Haptics.ImpactFeedbackStyle.Light),
   // One crisp short pulse, rather than stacking impacts to fake intensity.
   pixelPop: () => throttled('pixel', 90, () => impact(Haptics.ImpactFeedbackStyle.Rigid)),
+  // Coalesced multi-charge impacts (see hapticArbiter): a pair, then a capped burst.
+  pixelCombo: () => throttled('pixel', 60, () => impact(Haptics.ImpactFeedbackStyle.Medium)),
+  pixelBurst: () => throttled('pixel', 60, () => impact(Haptics.ImpactFeedbackStyle.Heavy)),
   chargeConsumed: () => impact(Haptics.ImpactFeedbackStyle.Medium),
   holdingLand: () => impact(Haptics.ImpactFeedbackStyle.Rigid),
   holdingCritical: () => throttled('warning', 600, () => notification(Haptics.NotificationFeedbackType.Warning)),

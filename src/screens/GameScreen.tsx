@@ -88,7 +88,9 @@ export function GameScreen({
   const colors = new Set(reachablePixels(state).map((p) => p.color));
   const usefulIds = new Set(state.holding.filter((c) => colors.has(c.color)).map((c) => c.id));
   const next = nextLevelId(levelId);
-  const controlsLocked = session.locked || state.status !== 'playing';
+  // M2B: launching is allowed while charges orbit — only the full rail or a
+  // finished level closes the controls.
+  const controlsLocked = !session.canLaunch;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -104,7 +106,7 @@ export function GameScreen({
             <OrbitBoard
               size={boardSize}
               state={state}
-              flightPass={session.flightPass}
+              flights={session.flights}
               presentThrough={session.presentThrough}
               colorAssist={colorAssist}
               reducedMotion={reducedMotion}

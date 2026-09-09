@@ -10,8 +10,9 @@ jest.mock('expo-haptics', () => ({
 beforeEach(() => { jest.useFakeTimers(); jest.setSystemTime(0); jest.clearAllMocks(); setHapticsEnabled(true); });
 afterEach(() => { cancelPendingHaptics(); feedback.setSoundHandler(null); jest.useRealTimers(); });
 test.each([
-  ['select', 'medium'], ['heldRelaunch', 'rigid'], ['orbitEnter', 'light'],
-  ['pixelPop', 'rigid'], ['chargeConsumed', 'medium'], ['holdingLand', 'rigid'],
+  ['select', 'medium'], ['heldRelaunch', 'rigid'], ['denied', 'light'], ['orbitEnter', 'light'],
+  ['pixelPop', 'rigid'], ['pixelCombo', 'medium'], ['pixelBurst', 'heavy'],
+  ['chargeConsumed', 'medium'], ['holdingLand', 'rigid'],
   ['finalClear', 'heavy'], ['nextPress', 'medium'], ['gateLock', 'rigid'],
 ] as const)('%s has its intended impact weight', (event, weight) => {
   haptics[event](); expect(Native.impactAsync).toHaveBeenCalledWith(weight);
@@ -57,13 +58,13 @@ test('global off disables impacts/notifications without breaking future sound ho
   feedback.emit('select'); feedback.emit('win');
   expect(Native.impactAsync).not.toHaveBeenCalled();
   expect(Native.notificationAsync).not.toHaveBeenCalled();
-  expect(sound).toHaveBeenCalledWith('select');
+  expect(sound).toHaveBeenCalledWith('select', expect.any(Object));
 });
 test('suppressed coincident haptics still invoke the semantic sound hook', () => {
   const sound = jest.fn(); feedback.setSoundHandler(sound);
   feedback.emit('pixelPop', { haptic: false });
   expect(Native.impactAsync).not.toHaveBeenCalled();
-  expect(sound).toHaveBeenCalledWith('pixelPop');
+  expect(sound).toHaveBeenCalledWith('pixelPop', expect.objectContaining({ haptic: false }));
 });
 test('native feedback or optional sound failure cannot throw into gameplay', () => {
   (Native.impactAsync as jest.Mock).mockImplementationOnce(() => { throw new Error('unavailable'); });

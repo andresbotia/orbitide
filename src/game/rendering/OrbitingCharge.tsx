@@ -18,15 +18,20 @@ const Counter = Animated.createAnimatedComponent(TextInput);
  * FlightPass and a shared UI-thread clock. Dimensional energy-glass orb, live
  * capacity number, a short restrained trail, its actual orbit position.
  */
-export const OrbitingCharge = memo(function OrbitingCharge({ layout, pass, clock, colorAssist }: {
+export const OrbitingCharge = memo(function OrbitingCharge({ layout, pass, clock, colorAssist, laneOffset = 0, dim = false }: {
   layout: BoardGeometry; pass: FlightPass; clock: SharedValue<number>; colorAssist?: boolean;
+  /** Presentation-only radial lane nudge (px) so crowded charges stay readable. */
+  laneOffset?: number;
+  /** Calm the halo/trail when several charges share the rail. */
+  dim?: boolean;
 }) {
   const r = layout.chargeRadius;
   const fill = orbColors[pass.charge.color];
   const glow = orbGlow[pass.charge.color];
+  const trailDepth = dim ? 0.55 : 1;
 
   const body = useAnimatedStyle(() => {
-    const point = flightPosition(pass, layout, clock.value);
+    const point = flightPosition(pass, layout, clock.value, laneOffset);
     const tail = Math.max(0, Math.min(1, (clock.value - pass.orbitEndAt) / Math.max(1, pass.landingAt - pass.orbitEndAt)));
     const gone = clock.value >= pass.landingAt;
     return {
@@ -40,10 +45,10 @@ export const OrbitingCharge = memo(function OrbitingCharge({ layout, pass, clock
   });
 
   const halo = useAnimatedStyle(() => {
-    const point = flightPosition(pass, layout, clock.value);
+    const point = flightPosition(pass, layout, clock.value, laneOffset);
     const orbiting = clock.value > pass.liftMs && clock.value < pass.orbitEndAt;
     return {
-      opacity: clock.value >= pass.landingAt ? 0 : orbiting ? 0.28 : 0.16,
+      opacity: (clock.value >= pass.landingAt ? 0 : orbiting ? 0.28 : 0.16) * trailDepth,
       transform: [{ translateX: point.x - r * 2 }, { translateY: point.y - r * 2 }],
     };
   });
@@ -59,8 +64,8 @@ export const OrbitingCharge = memo(function OrbitingCharge({ layout, pass, clock
         pointerEvents="none"
         style={[styles.halo, { width: r * 4, height: r * 4, borderRadius: r * 2, backgroundColor: glow }, halo]}
       />
-      <Trail pass={pass} layout={layout} clock={clock} lag={150} depth={0.22} />
-      <Trail pass={pass} layout={layout} clock={clock} lag={280} depth={0.13} />
+      <Trail pass={pass} layout={layout} clock={clock} lag={150} depth={0.22 * trailDepth} laneOffset={laneOffset} />
+      <Trail pass={pass} layout={layout} clock={clock} lag={280} depth={0.13 * trailDepth} laneOffset={laneOffset} />
       <Animated.View
         pointerEvents="none"
         accessible
@@ -92,15 +97,15 @@ export const OrbitingCharge = memo(function OrbitingCharge({ layout, pass, clock
   );
 });
 
-function Trail({ pass, layout, clock, lag, depth }: {
-  pass: FlightPass; layout: BoardGeometry; clock: SharedValue<number>; lag: number; depth: number;
+function Trail({ pass, layout, clock, lag, depth, laneOffset = 0 }: {
+  pass: FlightPass; layout: BoardGeometry; clock: SharedValue<number>; lag: number; depth: number; laneOffset?: number;
 }) {
   const r = layout.chargeRadius;
   const style = useAnimatedStyle(() => {
     const t = clock.value - lag;
     const visible = clock.value > pass.liftMs + lag && clock.value < pass.orbitEndAt;
     if (!visible) return { opacity: 0, transform: [{ translateX: -999 }, { translateY: -999 }] };
-    const point = flightPosition(pass, layout, Math.max(pass.liftMs, t));
+    const point = flightPosition(pass, layout, Math.max(pass.liftMs, t), laneOffset);
     return { opacity: depth, transform: [{ translateX: point.x - r * 0.7 }, { translateY: point.y - r * 0.7 }, { scale: 0.7 }] };
   });
   return (

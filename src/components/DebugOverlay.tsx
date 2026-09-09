@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { reachablePixels, remainingPixelCount } from '@/game/engine/pixels';
+import { MAX_ACTIVE_CHARGES } from '@/game/engine/concurrency';
 import type { GameState } from '@/game/engine/types';
 import { HAPTICS_ENABLED, setHapticsEnabled } from '@/game/haptics';
 import { useColorAssist } from '@/hooks/useColorAssist';
@@ -79,6 +80,19 @@ export function DebugOverlay({ state, locked, onResetProgress }: DebugOverlayPro
           k="holding"
           v={`[${state.holding.map((c) => `${c.color}:${c.capacity}`).join(', ')}] ${state.holding.length}/${state.holdingCapacity}`}
         />
+
+        <Row k="active" v={`${state.epoch?.launches.length ?? 0}/${MAX_ACTIVE_CHARGES}`} />
+        {state.epoch ? (
+          <>
+            <Row k="epoch clock" v={state.epoch.clock.toFixed(2)} />
+            {state.activeCharges.map((c) => (
+              <Text key={c.id} style={styles.line}>
+                #{c.launchSequence} {c.color} {c.remainingCapacity}/{c.capacity} @{c.insertionTime.toFixed(2)}
+                {' '}→{c.finishTime.toFixed(2)} {c.landed}
+              </Text>
+            ))}
+          </>
+        ) : null}
       </ScrollView>
 
       <View style={styles.actions}>

@@ -15,7 +15,12 @@ import type { BoardGeometry, Point } from './boardGeometry';
  *
  * Engine truth is untouched: the orbit still starts at ORBIT_INSERTION.
  */
-export function flightPosition(pass: FlightPass, layout: BoardGeometry, time: number): Point {
+export function flightPosition(
+  pass: FlightPass,
+  layout: BoardGeometry,
+  time: number,
+  radialOffset = 0,
+): Point {
   'worklet';
   const hub = layout.launchHub;
   const insertion = layout.insertion;
@@ -39,8 +44,10 @@ export function flightPosition(pass: FlightPass, layout: BoardGeometry, time: nu
   }
 
   const angle = orbitFraction(progressAt(pass, time)) * Math.PI * 2 - Math.PI / 2;
-  const point = { x: layout.center.x + Math.cos(angle) * layout.orbit[0]!.rx,
-    y: layout.center.y + Math.sin(angle) * layout.orbit[0]!.ry };
+  // radialOffset is a presentation-only lane nudge so near-overlapping charges
+  // stay readable; it never touches engine geometry (spec §12).
+  const point = { x: layout.center.x + Math.cos(angle) * (layout.orbit[0]!.rx + radialOffset),
+    y: layout.center.y + Math.sin(angle) * (layout.orbit[0]!.ry + radialOffset) };
   if (time > pass.orbitEndAt && pass.endKind === 'toHolding') {
     const to = pass.holdingTarget ?? { x: layout.center.x, y: layout.size + 100 };
     const p = Math.min(1, (time - pass.orbitEndAt) / (pass.landingAt - pass.orbitEndAt));
