@@ -8,13 +8,15 @@
  * to the same bytes (fixed field order, row-major cells, no timestamps).
  */
 import { DEFAULT_ART_LEGEND, parsePixelArt } from '@/game/engine/art';
-import type { LevelDefinition, OrbColor } from '@/game/engine/types';
+import type { LevelDefinition, OrbColor, PixelModifierMap } from '@/game/engine/types';
 import {
   COLOR_TO_CHAR,
   EMPTY_CELL_CHAR,
   cellKey,
   isDefaultLegendColor,
 } from './grid';
+import { fromModifierInstance, toModifierInstance } from './modifiers';
+import { isRevealEmpty } from './reveal';
 import type { StudioLevel } from './types';
 
 /** Distinct colours used on the board, in row-major first-seen order. */
@@ -97,6 +99,30 @@ function buildCharLookup(level: StudioLevel): (color: OrbColor) => string {
   return (color) => override.get(color) ?? COLOR_TO_CHAR[color];
 }
 
+/**
+ * The `modifiers` map for a serialised level: every authored special pixel,
+ * keyed `"x,y"`, in deterministic row-major order. `undefined` when the level
+ * has no special pixels — a normal level serialises byte-for-byte as before.
+ * Modifiers on cells that are empty / off-grid are dropped (validation flags
+ * them; the export must stay clean).
+ */
+export function toModifierMap(level: StudioLevel): PixelModifierMap | undefined {
+  const src = level.modifiers;
+  if (!src) return undefined;
+  const keys = Object.keys(src)
+    .filter((key) => key in level.cells)
+    .map((key) => {
+      const [x, y] = key.split(',').map(Number);
+      return { key, x: x ?? -1, y: y ?? -1 };
+    })
+    .filter(({ x, y }) => x >= 0 && y >= 0 && x < level.width && y < level.height)
+    .sort((a, b) => a.y - b.y || a.x - b.x);
+  if (keys.length === 0) return undefined;
+  const out: PixelModifierMap = {};
+  for (const { key } of keys) out[key] = toModifierInstance(src[key]!);
+  return out;
+}
+
 /** Studio document → canonical production {@link LevelDefinition}. */
 export function toLevelDefinition(level: StudioLevel): LevelDefinition {
   const def: LevelDefinition = {
@@ -110,7 +136,9 @@ export function toLevelDefinition(level: StudioLevel): LevelDefinition {
   };
   const legend = requiredLegend(level);
   if (legend) def.legend = legend;
-  if (level.reveal) def.reveal = cloneReveal(level.reveal);
+  const modifiers = toModifierMap(level);
+  if (modifiers) def.modifiers = modifiers;
+  if (level.reveal && !isRevealEmpty(level.reveal)) def.reveal = cloneReveal(level.reveal);
   return def;
 }
 
@@ -120,6 +148,10 @@ export function fromLevelDefinition(def: LevelDefinition): StudioLevel {
   const { width, height, pixels } = parsePixelArt(def.id, def.pixelArt, legend);
   const cells: Record<string, OrbColor> = {};
   for (const p of pixels) cells[cellKey(p.x, p.y)] = p.color;
+  const modifiers: StudioLevel['modifiers'] = {};
+  for (const [key, inst] of Object.entries(def.modifiers ?? {})) {
+    if (key in cells) modifiers[key] = fromModifierInstance(inst);
+  }
   return {
     id: def.id,
     title: def.title,
@@ -131,6 +163,7 @@ export function fromLevelDefinition(def: LevelDefinition): StudioLevel {
     cells,
     tunnels: def.tunnels.map((queue) => queue.map((spec) => ({ ...spec }))),
     ...(def.legend ? { legend: { ...def.legend } } : {}),
+    ...(Object.keys(modifiers).length > 0 ? { modifiers } : {}),
     ...(def.reveal ? { reveal: cloneReveal(def.reveal) } : {}),
   };
 }
@@ -170,6 +203,13 @@ export function serializeToTS(level: StudioLevel): string {
   if (def.legend) {
     const entries = Object.entries(def.legend).map(([k, v]) => `${q(k)}: ${q(v)}`);
     lines.push(`  legend: { ${entries.join(', ')} },`);
+  }
+  if (def.modifiers) {
+    lines.push('  modifiers: {');
+    for (const [key, inst] of Object.entries(def.modifiers)) {
+      lines.push(`    ${q(key)}: ${JSON.stringify(inst)},`);
+    }
+    lines.push('  },');
   }
   lines.push('  tunnels: [');
   for (const queue of def.tunnels) {

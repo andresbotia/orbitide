@@ -16,3 +16,12 @@ export function nextFreeLevelId(existingIds: number[]): number {
   const max = existingIds.reduce((m, id) => Math.max(m, id), 0);
   return max + 1;
 }
+
+/**
+ * Authoring-data schema versions. Bumped only when a Studio export shape changes
+ * incompatibly. The gameplay {@link import('@/game/engine/types').LevelDefinition}
+ * is intentionally NOT versioned — it stays stable and additive. See
+ * docs/M3C_PRODUCTION_AUTHORING.md § schema versioning.
+ */
+export const STUDIO_SCHEMA_VERSION = 1;
+export const CAMPAIGN_SCHEMA_VERSION = 1;

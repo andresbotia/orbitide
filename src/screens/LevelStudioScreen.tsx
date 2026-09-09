@@ -9,8 +9,10 @@ import { STUDIO_NAME } from '@/theme/appIdentity';
 import { AnalysisPanel } from '@/components/studio/AnalysisPanel';
 import { BatchPanel } from '@/components/studio/BatchPanel';
 import { MetadataPanel } from '@/components/studio/MetadataPanel';
+import { ModifierPanel } from '@/components/studio/ModifierPanel';
 import { PalettePanel } from '@/components/studio/PalettePanel';
 import { PixelCanvas } from '@/components/studio/PixelCanvas';
+import { RevealPanel } from '@/components/studio/RevealPanel';
 import { SerializedPreview } from '@/components/studio/SerializedPreview';
 import { StudioActionBar } from '@/components/studio/StudioActionBar';
 import { StudioButton } from '@/components/studio/StudioButton';
@@ -70,12 +72,28 @@ export function LevelStudioScreen() {
               <StudioButton label="Clear board" compact variant="danger" onPress={studio.clearBoard} />
               <StudioButton label={studio.showCoords ? 'Coords ✓' : 'Coords'} compact onPress={studio.toggleCoords} />
             </View>
+            <View style={styles.subTabs}>
+              {(['pixels', 'modifiers', 'reveal'] as const).map((m) => (
+                <StudioButton
+                  key={m}
+                  label={m.toUpperCase()}
+                  compact
+                  variant={studio.canvasMode === m ? 'primary' : 'default'}
+                  onPress={() => studio.setCanvasMode(m)}
+                />
+              ))}
+            </View>
             <PixelCanvas
               level={studio.level}
               tool={studio.tool}
               showCoords={studio.showCoords}
+              canvasMode={studio.canvasMode}
+              selectedCell={studio.selectedCell}
+              selectedNode={studio.selectedNode}
               onPaint={studio.paint}
               onErase={studio.erase}
+              onModifierCell={studio.applyModifierAt}
+              onRevealCell={studio.revealCanvasTap}
             />
           </ScrollView>
 
@@ -83,9 +101,28 @@ export function LevelStudioScreen() {
             <Section title="Level settings">
               <MetadataPanel level={studio.level} onMeta={studio.setMetadata} onResize={studio.resize} />
             </Section>
-            <Section title="Palette">
-              <PalettePanel mode={studio.tool.mode} color={studio.tool.color} onSelectColor={studio.selectColor} onSelectErase={studio.selectErase} />
-            </Section>
+            {studio.canvasMode === 'pixels' ? (
+              <Section title="Palette">
+                <PalettePanel mode={studio.tool.mode} color={studio.tool.color} onSelectColor={studio.selectColor} onSelectErase={studio.selectErase} />
+              </Section>
+            ) : null}
+            {studio.canvasMode === 'modifiers' ? (
+              <Section title="Special pixels">
+                <ModifierPanel
+                  level={studio.level}
+                  brush={studio.modifierBrush}
+                  onBrush={studio.setModifierBrush}
+                  selectedCell={studio.selectedCell}
+                  onRemove={studio.removeModifierAt}
+                  onUpdate={studio.updateModifierAt}
+                />
+              </Section>
+            ) : null}
+            {studio.canvasMode === 'reveal' ? (
+              <Section title="Discovery reveal">
+                <RevealPanel level={studio.level} studio={studio} />
+              </Section>
+            ) : null}
             <Section title="Tunnel queues">
               <TunnelQueueEditor
                 level={studio.level}
@@ -154,6 +191,7 @@ const styles = StyleSheet.create({
   canvasPane: { flex: 1 },
   canvasInner: { padding: studioSpace.lg, gap: studioSpace.md },
   canvasTools: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  subTabs: { flexDirection: 'row', gap: 6 },
   rail: { borderLeftWidth: 1, borderLeftColor: studioTheme.border, backgroundColor: studioTheme.panel },
   railWide: { width: 400 },
   railNarrow: { maxHeight: 520 },

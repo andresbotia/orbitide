@@ -1,4 +1,4 @@
-import { DEFAULT_ART_LEGEND, parsePixelArt } from './art';
+import { attachModifiers, DEFAULT_ART_LEGEND, parsePixelArt } from './art';
 import type { Charge, GameState, LevelDefinition, TunnelState } from './types';
 
 export const TUNNEL_COUNT = 3;
@@ -12,7 +12,11 @@ export const TUNNEL_COUNT = 3;
  */
 export function createGame(level: LevelDefinition): GameState {
   const legend = { ...DEFAULT_ART_LEGEND, ...(level.legend ?? {}) };
-  const { width, height, pixels } = parsePixelArt(level.id, level.pixelArt, legend);
+  const parsed = parsePixelArt(level.id, level.pixelArt, legend);
+  const { width, height } = parsed;
+  // Additive: attach authored presentation modifiers by cell. Render-state only —
+  // no gameplay rule reads `pixel.modifier`.
+  const pixels = attachModifiers(parsed.pixels, level.modifiers);
 
   if (level.tunnels.length !== TUNNEL_COUNT) {
     throw new Error(

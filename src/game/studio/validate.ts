@@ -14,6 +14,8 @@ import type { OrbColor } from '@/game/engine/types';
 import { LEVEL_DIFFICULTIES } from './constants';
 import { GRID_RANGE, TUNED_GRID_SIZES, cellKey, parseCellKey } from './grid';
 import { toLevelDefinition, usedColors } from './serialize';
+import { checkModifiers } from './validateModifiers';
+import { checkReveal } from './validateReveal';
 import type { StudioLevel, ValidationIssue, ValidationReport } from './types';
 
 export function validateStudioLevel(level: StudioLevel): ValidationReport {
@@ -105,6 +107,11 @@ export function validateStudioLevel(level: StudioLevel): ValidationReport {
     if (have > 0 && !boardColors.includes(color)) {
       warn({ code: 'color/unused-charge', message: `Tunnels carry ${have} ${color} capacity but there are no ${color} pixels.`, where: { kind: 'color', color } });
     }
+  }
+
+  // ── special pixels + discovery reveal (centralised in their own modules) ──
+  for (const issue of [...checkModifiers(level), ...checkReveal(level)]) {
+    (issue.severity === 'error' ? errors : warnings).push(issue);
   }
 
   // ── engine acceptance (last, only if otherwise structurally sound) ────────

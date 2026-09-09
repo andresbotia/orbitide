@@ -49,11 +49,25 @@ export interface ModifierInstance {
   level?: number;
   /** Stable per-pixel seed for deterministic decorative detail. */
   seed?: number;
+  /**
+   * Authoring group identifier: a lock group (Locked) or a link group (Linked).
+   * Future mechanics and the connection renderer consume it; the engine does not.
+   */
+  group?: string;
   /** Linked-pixel wiring (consumed by the connection renderer only). */
   linkId?: string;
   linkedPixelIds?: string[];
   linkProgress?: number;
 }
+
+/**
+ * Cell-keyed (`"x,y"`) sidecar of presentation {@link ModifierInstance}s, layered
+ * onto the picture from {@link LevelDefinition.pixelArt} by coordinate. Purely
+ * additive: a level with no special pixels omits it and serialises exactly as
+ * before. `createGame` copies each entry onto the matching {@link Pixel} but the
+ * engine never reads a modifier for a gameplay rule — see {@link ModifierKind}.
+ */
+export type PixelModifierMap = Record<string, ModifierInstance>;
 
 /** One occupied cell of the pixel-art picture. */
 export interface Pixel {
@@ -194,6 +208,12 @@ export interface LevelDefinition {
   pixelArt: string[];
   /** Per-level override of the art character -> color mapping. */
   legend?: Record<string, OrbColor>;
+  /**
+   * Optional presentation modifiers, keyed by `"x,y"` cell. Additive: absent on
+   * every normal level. The engine attaches these to the matching pixel and
+   * never reads them for a rule.
+   */
+  modifiers?: PixelModifierMap;
   /** Exactly three authored tunnel queues; index 0 of each is the front charge. */
   tunnels: ChargeSpec[][];
   /** Optional authored Win / Discovery constellation. */

@@ -13,8 +13,38 @@ import type {
   ChargeSpec,
   LevelDifficulty,
   LevelReveal,
+  ModifierKind,
   OrbColor,
 } from '@/game/engine/types';
+
+/**
+ * Authoring-facing config for one special pixel. Deliberately small and neutral:
+ * a field only exists where an authoring need is real. `layers` covers Frozen
+ * crack-stages / Shielded strength / Armored plates / Hidden concealment;
+ * `group` is a Locked lock-group or a Linked link-group; `timer` is inert Bomb
+ * placeholder metadata. See `studio/modifiers.ts` and
+ * docs/M3C_PRODUCTION_AUTHORING.md.
+ */
+export interface ModifierConfig {
+  layers?: number;
+  group?: string;
+  timer?: number;
+  /** Stable decorative seed carried through from a source level. */
+  seed?: number;
+}
+
+export interface StudioModifier {
+  kind: ModifierKind;
+  config: ModifierConfig;
+}
+
+/** Studio-only authoring provenance. Never written into a `LevelDefinition`. */
+export interface LevelProvenance {
+  kind: 'original' | 'duplicate' | 'variation';
+  /** Level id this was duplicated / varied from. */
+  sourceLevelId?: number;
+  note?: string;
+}
 
 export interface StudioLevel {
   /** 1-based level number. */
@@ -31,6 +61,14 @@ export interface StudioLevel {
   height: number;
   /** Sparse occupied cells, keyed `"x,y"`. Absent key === empty cell. */
   cells: Record<string, OrbColor>;
+  /**
+   * Presentation modifiers, keyed `"x,y"` (same keys as {@link cells}). Absent
+   * when the level has no special pixels — a normal level serialises exactly as
+   * before. The engine attaches these but never reads them for a rule.
+   */
+  modifiers?: Record<string, StudioModifier>;
+  /** Studio-only authoring provenance. Stripped on export to a `LevelDefinition`. */
+  source?: LevelProvenance;
   /** Exactly three authored tunnel queues; index 0 of each is the front charge. */
   tunnels: ChargeSpec[][];
   /**
@@ -59,7 +97,9 @@ export interface ValidationIssue {
     | { kind: 'cell'; x: number; y: number }
     | { kind: 'tunnel'; tunnel: number }
     | { kind: 'charge'; tunnel: number; index: number }
-    | { kind: 'color'; color: OrbColor };
+    | { kind: 'color'; color: OrbColor }
+    | { kind: 'modifier'; x: number; y: number }
+    | { kind: 'reveal'; part: 'name' | 'node' | 'line' | 'accent'; index?: number };
 }
 
 export interface ValidationReport {

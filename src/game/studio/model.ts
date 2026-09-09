@@ -12,6 +12,21 @@ import type { StudioLevel } from './types';
 
 const clampInt = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(n)));
 
+/** Keep the modifier map in step with the cells it decorates. */
+function syncModifiers(level: StudioLevel, keep: (key: string) => boolean): StudioLevel {
+  if (!level.modifiers) return level;
+  const next: NonNullable<StudioLevel['modifiers']> = {};
+  for (const [key, mod] of Object.entries(level.modifiers)) {
+    if (keep(key)) next[key] = mod;
+  }
+  if (Object.keys(next).length === Object.keys(level.modifiers).length) return level;
+  if (Object.keys(next).length === 0) {
+    const { modifiers: _drop, ...rest } = level;
+    return rest;
+  }
+  return { ...level, modifiers: next };
+}
+
 /** A blank level: empty board, three empty tunnels, next free campaign id. */
 export function createBlankLevel(opts: Partial<Pick<StudioLevel, 'id' | 'width' | 'height' | 'title' | 'themeId' | 'difficulty'>> = {}): StudioLevel {
   return {
@@ -47,12 +62,13 @@ export function eraseCell(level: StudioLevel, x: number, y: number): StudioLevel
   if (!(key in level.cells)) return level;
   const cells = { ...level.cells };
   delete cells[key];
-  return { ...level, cells };
+  return syncModifiers({ ...level, cells }, (k) => k !== key);
 }
 
 export function clearCanvas(level: StudioLevel): StudioLevel {
   if (Object.keys(level.cells).length === 0) return level;
-  return { ...level, cells: {} };
+  const cleared = { ...level, cells: {} };
+  return syncModifiers(cleared, () => false);
 }
 
 /** Resize the grid; pixels that fall outside the new bounds are dropped. */
@@ -65,7 +81,7 @@ export function setGridSize(level: StudioLevel, width: number, height: number): 
     const { x, y } = parseCellKey(key);
     if (x < w && y < h) cells[key] = color;
   }
-  return { ...level, width: w, height: h, cells };
+  return syncModifiers({ ...level, width: w, height: h, cells }, (k) => k in cells);
 }
 
 // ── metadata ────────────────────────────────────────────────────────────────

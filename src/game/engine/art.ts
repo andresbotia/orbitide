@@ -1,4 +1,4 @@
-import type { OrbColor, Pixel } from './types';
+import type { ModifierInstance, OrbColor, Pixel, PixelModifierMap } from './types';
 
 /**
  * Shared pixel-art character legend. A `LevelDefinition` may override entries
@@ -57,4 +57,31 @@ export function parsePixelArt(
   });
 
   return { width, height, pixels };
+}
+
+/** Deep-copy a {@link ModifierInstance} (defined-key-only, deterministic order). */
+export function cloneModifierInstance(m: ModifierInstance): ModifierInstance {
+  const out: ModifierInstance = { kind: m.kind };
+  if (m.state !== undefined) out.state = m.state;
+  if (m.progress !== undefined) out.progress = m.progress;
+  if (m.level !== undefined) out.level = m.level;
+  if (m.seed !== undefined) out.seed = m.seed;
+  if (m.group !== undefined) out.group = m.group;
+  if (m.linkId !== undefined) out.linkId = m.linkId;
+  if (m.linkedPixelIds !== undefined) out.linkedPixelIds = [...m.linkedPixelIds];
+  if (m.linkProgress !== undefined) out.linkProgress = m.linkProgress;
+  return out;
+}
+
+/**
+ * Copy a {@link PixelModifierMap} onto the matching pixels by `"x,y"` cell. Pure
+ * — returns a new pixel array only when something attaches. The engine calls
+ * this so the renderer can read `pixel.modifier`; no rule consumes it.
+ */
+export function attachModifiers(pixels: Pixel[], modifiers: PixelModifierMap | undefined): Pixel[] {
+  if (!modifiers || Object.keys(modifiers).length === 0) return pixels;
+  return pixels.map((p) => {
+    const m = modifiers[`${p.x},${p.y}`];
+    return m ? { ...p, modifier: cloneModifierInstance(m) } : p;
+  });
 }
