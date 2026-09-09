@@ -12,7 +12,7 @@
  */
 import { legalActions, type GameAction } from './actions';
 import { createGame } from './createGame';
-import { canJoinEpoch, epochResidueKey } from './epoch';
+import { epochResidueKey } from './epoch';
 import { boardFingerprint } from './frozen';
 import { resolveAction } from './resolveLaunch';
 import type { GameState, LevelDefinition } from './types';
@@ -24,12 +24,6 @@ export function stateKey(s: GameState): string {
   // An open epoch changes how the next launch arbitrates, so equivalent boards
   // with different epoch residue must not memoize together.
   return s.epoch ? `${committed}##${epochResidueKey(s.epoch)}` : committed;
-}
-
-function chargeIdOf(state: GameState, action: GameAction): string | undefined {
-  return action.kind === 'tunnel'
-    ? state.tunnels.find((t) => t.id === action.id)?.queue[0]?.id
-    : state.holding.find((c) => c.id === action.id)?.id;
 }
 
 export type SolveMode = 'solvability' | 'metrics' | 'sequential-compat';
@@ -44,17 +38,15 @@ export type SolveMode = 'solvability' | 'metrics' | 'sequential-compat';
  *
  * Held charges only ever appear here as an explicit `{ kind: 'holding' }`
  * action — the solver never implicitly relaunches Holding.
+ *
+ * This delegates entirely to {@link legalActions}: the same candidate generator
+ * and the same `actionRejection` filter the runtime uses. A `join: true` variant
+ * is therefore emitted only when `resolveAction` would actually accept it (fixed
+ * an M4A mismatch where a full-Holding join could be enumerated-but-rejected, or
+ * accepted-but-not-enumerated).
  */
 export function enumerateActions(state: GameState, mode: SolveMode): GameAction[] {
-  const base = legalActions(state);
-  if (mode === 'sequential-compat' || !state.epoch) return base;
-  const out: GameAction[] = [];
-  for (const a of base) {
-    out.push(a);
-    const id = chargeIdOf(state, a);
-    if (id && canJoinEpoch(state, id)) out.push({ ...a, join: true });
-  }
-  return out;
+  return legalActions(state, { includeJoin: mode !== 'sequential-compat' });
 }
 
 /** Per-first-move breakdown, computed from the (already-visited) child subtrees. */

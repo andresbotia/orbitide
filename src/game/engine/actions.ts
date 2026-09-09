@@ -31,9 +31,14 @@ export type Rejection = 'gameOver' | 'missingCharge' | 'noTargets' | 'holdingFul
 type RejectionOptions = Record<string, never>;
 
 /** The charge a tunnel/holding action would launch, or `null` when unavailable. */
-function launchCandidate(state: GameState, action: GameAction) {
+export function launchCandidate(state: GameState, action: GameAction) {
   if (action.kind === 'holding') return state.holding.find((c) => c.id === action.id) ?? null;
   return state.tunnels.find((t) => t.id === action.id)?.queue[0] ?? null;
+}
+
+/** Runtime id of the charge a launch action would send, or `undefined`. */
+export function actionChargeId(state: GameState, action: GameAction): string | undefined {
+  return launchCandidate(state, action)?.id;
 }
 
 /** Project the epoch this launch would produce and read back its committed shape. */
@@ -85,10 +90,39 @@ export function actionRejection(
   return null;
 }
 
-export function legalActions(state: GameState): GameAction[] {
-  const candidates: GameAction[] = [
+/**
+ * Every action worth *considering* from `state`, before admission filtering:
+ * one launch per tunnel-with-a-queue and one per held charge. When `includeJoin`
+ * is set and an epoch is open, each launch also gets a `join: true` variant —
+ * but only for a charge that {@link canJoinEpoch} would actually let onto the
+ * running rail, so a `join: true` here always denotes a real alternative to the
+ * settle-first launch (never a silent no-op).
+ *
+ * This is the ONE candidate generator: {@link legalActions} (runtime + deadlock
+ * check) and the solver's `enumerateActions` both build on it, so the two can
+ * never disagree about which actions exist.
+ */
+export function candidateActions(state: GameState, includeJoin = false): GameAction[] {
+  const launches: GameAction[] = [
     ...state.tunnels.filter((t) => t.queue.length).map((t) => ({ kind: 'tunnel' as const, id: t.id })),
     ...state.holding.map((c) => ({ kind: 'holding' as const, id: c.id })),
   ];
-  return candidates.filter((a) => actionRejection(state, a) === null);
+  if (!includeJoin || !state.epoch) return launches;
+  const out: GameAction[] = [];
+  for (const a of launches) {
+    out.push(a);
+    const chargeId = actionChargeId(state, a);
+    if (chargeId && canJoinEpoch(state, chargeId)) out.push({ ...a, join: true });
+  }
+  return out;
+}
+
+/**
+ * The candidate actions the runtime would actually admit — the single source of
+ * truth for "what can the player do now". Pass `includeJoin` (concurrent solver
+ * / live session) to also consider joining the running epoch.
+ */
+export function legalActions(state: GameState, opts: { includeJoin?: boolean } = {}): GameAction[] {
+  return candidateActions(state, opts.includeJoin ?? false)
+    .filter((a) => actionRejection(state, a) === null);
 }
