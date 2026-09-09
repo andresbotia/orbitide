@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { reachablePixels, remainingPixelCount } from '@/game/engine/pixels';
 import type { GameState } from '@/game/engine/types';
 import { HAPTICS_ENABLED, setHapticsEnabled } from '@/game/haptics';
+import { useColorAssist } from '@/hooks/useColorAssist';
 import { palette } from '@/theme/colors';
 import { radius, spacing } from '@/theme/spacing';
 
@@ -20,6 +21,7 @@ interface DebugOverlayProps {
 export function DebugOverlay({ state, locked, onResetProgress }: DebugOverlayProps) {
   const [open, setOpen] = useState(false);
   const [haptics, setHaptics] = useState(HAPTICS_ENABLED);
+  const colorAssist = useColorAssist();
 
   if (!__DEV__) return null;
 
@@ -89,6 +91,9 @@ export function DebugOverlay({ state, locked, onResetProgress }: DebugOverlayPro
           }}
         >
           <Text style={styles.btnText}>haptics: {haptics ? 'on' : 'off'}</Text>
+        </Pressable>
+        <Pressable style={styles.btn} onPress={colorAssist.toggle}>
+          <Text style={styles.btnText}>assist: {colorAssist.enabled ? 'on' : 'off'}</Text>
         </Pressable>
         <Pressable style={styles.btn} onPress={onResetProgress}>
           <Text style={styles.btnText}>reset progress</Text>

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Point } from '@/game/rendering/boardGeometry';
+import { ColorAssistMark } from '@/components/ColorAssistMark';
 import { visibleCharges } from '@/game/engine/selectors';
 import type { GameState } from '@/game/engine/types';
 import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
@@ -12,6 +13,7 @@ interface TunnelBarProps {
   state: GameState;
   layoutVersion: number;
   disabled: boolean;
+  colorAssist?: boolean;
   onLaunch: (tunnelId: string) => void;
   onSourceLayout: (key: string, point: Point) => void;
 }
@@ -22,7 +24,7 @@ interface TunnelBarProps {
  * a recessed magazine that *implies* a loaded queue without revealing the
  * authored future charges. Housings stay subordinate to the board.
  */
-export function TunnelBar({ state, disabled, onLaunch, onSourceLayout, layoutVersion }: TunnelBarProps) {
+export function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayout, layoutVersion }: TunnelBarProps) {
   const charges = visibleCharges(state);
   const sources = useRef<(View | null)[]>([]);
 
@@ -79,6 +81,11 @@ export function TunnelBar({ state, disabled, onLaunch, onSourceLayout, layoutVer
                 >
                   <View style={styles.chargeGloss} />
                   <Text style={styles.capacity}>{charge.capacity}</Text>
+                  {colorAssist ? (
+                    <View style={styles.assist} pointerEvents="none">
+                      <ColorAssistMark color={charge.color} size={15} etched />
+                    </View>
+                  ) : null}
                 </View>
               ) : (
                 <View style={[styles.charge, styles.chargeEmpty]}>
@@ -156,6 +163,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   chargeEmpty: { backgroundColor: arcade.metalLo, borderColor: arcade.socketRim },
+  assist: { position: 'absolute', bottom: 3, alignSelf: 'center' },
   capacity: { color: '#05060A', fontSize: 18, fontWeight: '800' },
   emptyMark: { color: arcade.metalEdge, fontSize: 16 },
   tunnelLabel: { marginTop: spacing.xs, color: arcade.metalEdge, fontSize: 10, letterSpacing: 3, fontWeight: '700' },

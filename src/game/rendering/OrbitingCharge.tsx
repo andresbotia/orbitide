@@ -2,9 +2,10 @@ import { memo } from 'react';
 import { StyleSheet, TextInput, type TextInputProps } from 'react-native';
 import Animated, { useAnimatedProps, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
+import { ColorAssistMark } from '@/components/ColorAssistMark';
 import type { FlightPass } from '@/game/presentation/events';
 import { capacityAt } from '@/game/presentation/motion';
-import { orbColors, orbGlow } from '@/theme/colors';
+import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
 import { arcade } from '@/theme/arcade';
 import type { BoardGeometry } from './boardGeometry';
 import { flightPosition } from './flightGeometry';
@@ -17,8 +18,8 @@ const Counter = Animated.createAnimatedComponent(TextInput);
  * FlightPass and a shared UI-thread clock. Dimensional energy-glass orb, live
  * capacity number, a short restrained trail, its actual orbit position.
  */
-export const OrbitingCharge = memo(function OrbitingCharge({ layout, pass, clock }: {
-  layout: BoardGeometry; pass: FlightPass; clock: SharedValue<number>;
+export const OrbitingCharge = memo(function OrbitingCharge({ layout, pass, clock, colorAssist }: {
+  layout: BoardGeometry; pass: FlightPass; clock: SharedValue<number>; colorAssist?: boolean;
 }) {
   const r = layout.chargeRadius;
   const fill = orbColors[pass.charge.color];
@@ -62,6 +63,8 @@ export const OrbitingCharge = memo(function OrbitingCharge({ layout, pass, clock
       <Trail pass={pass} layout={layout} clock={clock} lag={280} depth={0.13} />
       <Animated.View
         pointerEvents="none"
+        accessible
+        accessibilityLabel={`${orbLabel[pass.charge.color]} charge, capacity ${pass.charge.capacity}`}
         style={[
           styles.charge,
           { width: r * 2, height: r * 2, borderRadius: r, backgroundColor: fill, borderColor: glow },
@@ -79,6 +82,11 @@ export const OrbitingCharge = memo(function OrbitingCharge({ layout, pass, clock
           animatedProps={count}
           style={[styles.count, { fontSize: r * 1.0 }]}
         />
+        {colorAssist ? (
+          <Animated.View style={[styles.assist, { bottom: r * 0.12 }]} pointerEvents="none">
+            <ColorAssistMark color={pass.charge.color} size={r * 0.82} etched />
+          </Animated.View>
+        ) : null}
       </Animated.View>
     </>
   );
@@ -112,4 +120,5 @@ const styles = StyleSheet.create({
   halo: { position: 'absolute', left: 0, top: 0 },
   trail: { position: 'absolute', left: 0, top: 0 },
   count: { color: '#05060A', fontWeight: '900', textAlign: 'center', padding: 0, width: '100%' },
+  assist: { position: 'absolute', alignSelf: 'center' },
 });

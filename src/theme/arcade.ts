@@ -97,17 +97,7 @@ export function pixelMaterial(color: OrbColor): PixelMaterial {
   return material;
 }
 
-/** Accessibility-readiness: a stable symbol per color for a future Color Assist
- * overlay. Not rendered yet — exposed so the render tree already has a clean
- * place to hang marks. */
-export const colorAssistSymbol: Record<OrbColor, string> = {
-  blue: '◆', // filled diamond
-  cyan: '▲', // triangle up
-  white: '●', // circle
-  purple: '✦', // star
-  pink: '♥', // heart
-  yellow: '■', // square
-  orange: '▼', // triangle down
-  red: '✖', // cross
-  green: '⬢', // hexagon
-};
+/**
+ * The full 15-mark Color Assist system now lives in `theme/colorAssist.ts`
+ * (pure model) + `components/ColorAssistMark.tsx` (renderer).
+ */

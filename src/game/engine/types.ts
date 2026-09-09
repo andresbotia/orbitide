@@ -1,15 +1,59 @@
 /** Pure, serializable game state. Manual Holding and encounter rules live in
  * actions.ts/pass.ts; rendering and clocks never determine outcomes. */
+
+/**
+ * The full gameplay colour vocabulary (15). Ordered around the hue wheel.
+ * Levels 1-10 use a subset; the rest are reserved for later campaign content
+ * and are already covered by the palette tokens and the Color Assist marks.
+ */
 export type OrbColor =
-  | 'blue'
-  | 'cyan'
   | 'white'
-  | 'purple'
-  | 'pink'
   | 'yellow'
+  | 'gold'
   | 'orange'
   | 'red'
-  | 'green';
+  | 'coral'
+  | 'pink'
+  | 'magenta'
+  | 'purple'
+  | 'indigo'
+  | 'blue'
+  | 'cyan'
+  | 'teal'
+  | 'green'
+  | 'lime';
+
+/**
+ * Presentation-only special-pixel modifier. The engine never sets or reads this
+ * — it is a render-state hook so future mechanics (Frozen, Shielded, Armored,
+ * Locked, Bomb, Wild, Linked, Hidden) can drive the material renderer without
+ * changing the renderer. Serializable.
+ */
+export type ModifierKind =
+  | 'frozen'
+  | 'shielded'
+  | 'armored'
+  | 'locked'
+  | 'bomb'
+  | 'wild'
+  | 'linked'
+  | 'hidden';
+
+export interface ModifierInstance {
+  kind: ModifierKind;
+  /** Kind-specific discrete state label (e.g. 'intact' | 'cracked1' | …). */
+  state?: string;
+  /** 0..1 continuous progress within the state machine (damage, reveal, …). */
+  progress?: number;
+  /** Countable magnitude: armored plate count, bomb stage, hidden layers, … */
+  level?: number;
+  /** Stable per-pixel seed for deterministic decorative detail. */
+  seed?: number;
+  /** Linked-pixel wiring (consumed by the connection renderer only). */
+  linkId?: string;
+  linkedPixelIds?: string[];
+  linkProgress?: number;
+}
 
 /** One occupied cell of the pixel-art picture. */
 export interface Pixel {
@@ -19,6 +63,8 @@ export interface Pixel {
   y: number;
   color: OrbColor;
   cleared: boolean;
+  /** Optional presentation modifier. Engine logic ignores it. */
+  modifier?: ModifierInstance;
 }
 
 /** An orbital charge: a color plus how many matching pixels it can still clear. */

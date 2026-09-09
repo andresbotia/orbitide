@@ -1,10 +1,10 @@
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
 import { FEEL } from '@/game/presentation/constants';
 import type { OrbColor } from '@/game/engine/types';
-import { arcade, colorAssistSymbol, pixelMaterial } from '@/theme/arcade';
+import { pixelMaterial } from '@/theme/arcade';
 import type { PixelAdaptive } from './boardGeometry';
 
 interface PixelProps {
@@ -14,8 +14,11 @@ interface PixelProps {
   cell: number;
   reachable: boolean;
   adaptive: PixelAdaptive;
-  /** Color Assist readiness — draws the per-color symbol overlay when true. */
-  assist?: boolean;
+  /**
+   * 0..1 — how much a modifier compromises the base cube's presence
+   * (locked desaturation, hidden concealment). Presentation only.
+   */
+  modifierDim?: number;
   clock: SharedValue<number>;
   clearAt?: number;
 }
@@ -28,24 +31,25 @@ interface PixelProps {
  * a future Color Assist mark.
  */
 export const Pixel = memo(function Pixel({
-  color, cx, cy, cell, reachable, adaptive, assist, clock, clearAt,
+  color, cx, cy, cell, reachable, adaptive, modifierDim = 0, clock, clearAt,
 }: PixelProps) {
   const gutter = adaptive.gutter;
   const size = Math.max(4, cell - gutter);
   const material = pixelMaterial(color);
   const bevel = Math.min(adaptive.bevel, size * 0.22);
   const cornerRadius = Math.max(1.5, cell * adaptive.cornerRadius);
+  const rest = (reachable ? 1 : 0.62) * (1 - modifierDim * 0.55);
 
   const popOvershoot = adaptive.popOvershoot;
   const animated = useAnimatedStyle(() => {
     if (clearAt === undefined) {
-      return { opacity: reachable ? 1 : 0.62, transform: [{ scale: 1 }] };
+      return { opacity: rest, transform: [{ scale: 1 }] };
     }
     const p = Math.max(0, Math.min(1, (clock.value - clearAt) / FEEL.PIXEL_POP_DURATION));
     const overshoot = p < 0.35
       ? 1 + popOvershoot * (p / 0.35)
       : (1 + popOvershoot) * Math.max(0, 1 - (p - 0.35) / 0.65);
-    return { opacity: (reachable ? 1 : 0.62) * (1 - p), transform: [{ scale: p === 0 ? 1 : overshoot }] };
+    return { opacity: rest * (1 - p), transform: [{ scale: p === 0 ? 1 : overshoot }] };
   });
 
   return (
@@ -104,16 +108,10 @@ export const Pixel = memo(function Pixel({
               borderRadius: Math.max(1, cornerRadius - 1),
               borderColor: material.rim,
               borderWidth: Math.max(1, bevel * 0.8),
-              opacity: 0.35 + adaptive.glow * 0.5,
+              opacity: (0.35 + adaptive.glow * 0.5) * (1 - modifierDim),
             },
           ]}
         />
-      ) : null}
-      {/* Color Assist overlay layer (off by default). */}
-      {assist ? (
-        <Text style={[styles.mark, { fontSize: size * 0.6, color: arcade.envBottom }]}>
-          {colorAssistSymbol[color]}
-        </Text>
       ) : null}
     </Animated.View>
   );
@@ -124,5 +122,4 @@ const styles = StyleSheet.create({
   highlight: { position: 'absolute', top: 0, left: 0, right: 0 },
   shade: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   rim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  mark: { fontWeight: '900', textAlign: 'center', includeFontPadding: false },
 });

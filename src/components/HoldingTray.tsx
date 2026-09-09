@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Charge } from '@/game/engine/types';
 import type { Point } from '@/game/rendering/boardGeometry';
+import { ColorAssistMark } from '@/components/ColorAssistMark';
 import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
 import { arcade } from '@/theme/arcade';
 import { spacing, typography } from '@/theme/spacing';
@@ -13,6 +14,7 @@ interface HoldingTrayProps {
   overflow: boolean;
   disabled: boolean;
   usefulIds: Set<string>;
+  colorAssist?: boolean;
   onLaunch: (id: string) => void;
   onSourceLayout: (key: string, point: Point) => void;
   message: string;
@@ -28,7 +30,7 @@ interface HoldingTrayProps {
  * charges never auto-launch; a manual tap relaunches a useful one.
  */
 export function HoldingTray({
-  holding, capacity, overflow, disabled, usefulIds, onLaunch, onSourceLayout, message, layoutVersion, boosterSlot,
+  holding, capacity, overflow, disabled, usefulIds, colorAssist, onLaunch, onSourceLayout, message, layoutVersion, boosterSlot,
 }: HoldingTrayProps) {
   const slots = useRef<(View | null)[]>([]);
   useEffect(() => {
@@ -73,6 +75,11 @@ export function HoldingTray({
                 <View style={[styles.orb, { backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color], opacity: useful ? 1 : 0.7 }]}>
                   <View style={styles.orbGloss} />
                   <Text style={styles.count}>{charge.capacity}</Text>
+                  {colorAssist ? (
+                    <View style={styles.assist} pointerEvents="none">
+                      <ColorAssistMark color={charge.color} size={16} etched />
+                    </View>
+                  ) : null}
                 </View>
               ) : (
                 <View style={styles.socketWell} />
@@ -157,6 +164,7 @@ const styles = StyleSheet.create({
     backgroundColor: arcade.glassHi,
     opacity: 0.5,
   },
+  assist: { position: 'absolute', bottom: 2, alignSelf: 'center' },
   boosterSlot: { borderStyle: 'dashed', borderColor: arcade.metalEdge, opacity: 0.5 },
   boosterMark: { color: arcade.metalEdge, fontSize: 22, fontWeight: '700' },
   count: { color: '#05060A', fontSize: 17, fontWeight: '800' },

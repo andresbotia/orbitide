@@ -16,6 +16,7 @@ import { DiscoveryReveal } from '@/game/rendering/DiscoveryReveal';
 import { OrbitBoard } from '@/game/rendering/OrbitBoard';
 import { resolveReveal, revealTimeline } from '@/game/rendering/revealGeometry';
 import { nextLevelId, requireLevel } from '@/game/levels/levels';
+import { useColorAssist } from '@/hooks/useColorAssist';
 import { useGameSession } from '@/hooks/useGameSession';
 import { arcade } from '@/theme/arcade';
 import { spacing } from '@/theme/spacing';
@@ -53,6 +54,7 @@ export function GameScreen({
   };
   const level = useMemo(() => requireLevel(levelId), [levelId]);
   const reducedMotion = useReducedMotion();
+  const { enabled: colorAssist } = useColorAssist();
 
   const handleWin = useCallback(() => {
     onWin(levelId);
@@ -104,6 +106,8 @@ export function GameScreen({
               state={state}
               flightPass={session.flightPass}
               presentThrough={session.presentThrough}
+              colorAssist={colorAssist}
+              reducedMotion={reducedMotion}
             />
             {won ? (
               <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -128,6 +132,7 @@ export function GameScreen({
           overflow={state.status === 'lost'}
           disabled={controlsLocked}
           usefulIds={usefulIds}
+          colorAssist={colorAssist}
           onSourceLayout={onSourceLayout}
           onLaunch={(id) => session.launchHeld(id, boardPoint(`holding-${state.holding.findIndex((c) => c.id === id)}`),
             boardPoint(`holding-${state.holding.length - 1}`))}
@@ -138,6 +143,7 @@ export function GameScreen({
           layoutVersion={boardSize}
           state={state}
           disabled={controlsLocked}
+          colorAssist={colorAssist}
           onSourceLayout={onSourceLayout}
           onLaunch={(id) => session.launch(id, boardPoint(id), boardPoint(`holding-${state.holding.length}`))}
         />
