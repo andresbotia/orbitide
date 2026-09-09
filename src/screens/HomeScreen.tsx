@@ -1,7 +1,20 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { LayoutChangeEvent, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
+import { useFocusEffect } from 'expo-router';
 
 import { PlayButton } from '@/components/PlayButton';
+import { FloatingFragments } from '@/components/home/FloatingFragments';
+import { HomeCenterpiece } from '@/components/home/HomeCenterpiece';
+import { LevelBadge } from '@/components/home/LevelBadge';
+import { StarfieldBackdrop } from '@/components/home/StarfieldBackdrop';
+import { TopUtility } from '@/components/home/TopUtility';
+import { getLevel, requireLevel, TOTAL_LEVELS } from '@/game/levels/levels';
+import { ambientChargeSpecs, computeHomeLayout, homeLevelPreview } from '@/game/rendering/homeGeometry';
+import { useAmbientActive } from '@/hooks/useAmbientActive';
+import { feedback } from '@/game/feedback';
+import { arcade } from '@/theme/arcade';
 import { palette } from '@/theme/colors';
 import { spacing, typography } from '@/theme/spacing';
 
@@ -13,16 +26,68 @@ interface HomeScreenProps {
   onSecretReset?: () => void;
 }
 
-export function HomeScreen({
-  highestUnlockedLevel,
-  loading,
-  onPlay,
-  onSecretReset,
-}: HomeScreenProps) {
+/** Home → Gameplay transition budget (activation response + nav). */
+const TRANSITION_MS = 300;
+
+export function HomeScreen({ highestUnlockedLevel, loading, onPlay, onSecretReset }: HomeScreenProps) {
+  const window = useWindowDimensions();
+  const reducedMotion = useReducedMotion();
+  const active = useAmbientActive();
+
+  const [band, setBand] = useState({ width: window.width, height: Math.max(320, window.height * 0.55) });
+  const onBandLayout = useCallback((e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    setBand({ width: Math.round(width), height: Math.round(height) });
+  }, []);
+
+  const level = getLevel(highestUnlockedLevel) ?? requireLevel(1);
+  const layout = useMemo(
+    () => computeHomeLayout({ width: band.width, height: band.height, reducedMotion }),
+    [band.width, band.height, reducedMotion],
+  );
+  const preview = useMemo(() => homeLevelPreview(level), [level]);
+  const specs = useMemo(
+    () => ambientChargeSpecs(level, layout.ambientChargeCount),
+    [level, layout.ambientChargeCount],
+  );
+
+  const activation = useSharedValue(0);
+  const navigating = useRef(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      navigating.current = false;
+      activation.set(0);
+    }, [activation]),
+  );
+
+  const handlePressIn = useCallback(() => {
+    feedback.emit('select');
+  }, []);
+
+  const handlePlay = useCallback(() => {
+    if (navigating.current) return;
+    navigating.current = true;
+    activation.set(withTiming(1, { duration: 160 }));
+    setTimeout(onPlay, TRANSITION_MS);
+  }, [activation, onPlay]);
+
+  const cleared = Math.max(0, Math.min(TOTAL_LEVELS, highestUnlockedLevel - 1));
+
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.content}>
-        <View style={styles.top}>
+    <View style={styles.root}>
+      <StarfieldBackdrop
+        width={window.width}
+        height={window.height}
+        layout={layout}
+        active={active}
+        reducedMotion={reducedMotion}
+      />
+
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <TopUtility />
+
+        <View style={styles.hero} onLayout={onBandLayout}>
           <Text
             style={styles.wordmark}
             onLongPress={__DEV__ ? onSecretReset : undefined}
@@ -30,68 +95,67 @@ export function HomeScreen({
           >
             ORBITIDE
           </Text>
-          <Text style={styles.tagline}>ALIGN THE CORE</Text>
+
+          {band.width > 0 ? (
+            <>
+              <HomeCenterpiece
+                layout={layout}
+                preview={preview}
+                specs={specs}
+                active={active}
+                reducedMotion={reducedMotion}
+                activation={activation}
+              />
+              {layout.showForeground ? (
+                <FloatingFragments layout={layout} active={active} reducedMotion={reducedMotion} />
+              ) : null}
+            </>
+          ) : null}
         </View>
 
-        <View style={styles.center}>
-          <View style={styles.coreHalo} />
-          <View style={styles.core} />
-          <Text style={styles.levelLabel}>
-            {loading ? ' ' : `LEVEL ${highestUnlockedLevel}`}
-          </Text>
+        <View style={styles.controls}>
+          <LevelBadge levelId={level.id} difficulty={level.difficulty} />
+          <PlayButton onPress={handlePlay} onPressIn={handlePressIn} disabled={loading} />
+          <View style={styles.reward}>
+            <Text style={styles.rewardText}>PICTURES RESTORED {cleared}/{TOTAL_LEVELS}</Text>
+          </View>
         </View>
-
-        <View style={styles.bottom}>
-          <PlayButton onPress={onPlay} />
-        </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: palette.void },
-  content: {
+  root: { flex: 1, backgroundColor: arcade.envBottom },
+  safe: { flex: 1 },
+  hero: {
     flex: 1,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xxl,
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  top: { alignItems: 'center', gap: spacing.sm, marginTop: spacing.xxl },
   wordmark: {
-    ...typography.wordmark,
-    color: palette.textPrimary,
-  },
-  tagline: {
-    ...typography.label,
-    color: palette.textFaint,
-  },
-  center: { alignItems: 'center', gap: spacing.xl },
-  coreHalo: {
     position: 'absolute',
-    top: -34,
-    width: 170,
-    height: 170,
-    borderRadius: 85,
-    backgroundColor: palette.coreGlow,
-    opacity: 0.12,
-  },
-  core: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    backgroundColor: palette.core,
-    shadowColor: palette.coreGlow,
-    shadowOpacity: 0.9,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 0 },
-  },
-  levelLabel: {
-    ...typography.title,
+    top: spacing.md,
+    ...typography.wordmark,
+    fontSize: 30,
+    letterSpacing: 8,
     color: palette.textSecondary,
-    fontSize: 18,
-    letterSpacing: 6,
+    opacity: 0.9,
   },
-  bottom: { alignItems: 'center', marginBottom: spacing.xl },
+  controls: {
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingBottom: spacing.lg,
+    paddingTop: spacing.sm,
+  },
+  reward: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  rewardText: {
+    color: arcade.metalEdge,
+    fontSize: 10,
+    letterSpacing: 2,
+    fontWeight: '600',
+  },
 });

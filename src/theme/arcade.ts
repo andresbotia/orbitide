@@ -43,6 +43,19 @@ export const arcade = {
 
   warn: '#FFC24B',
   danger: '#FF5C7A',
+
+  /** Home backdrop — deep-space nebula haze (very low opacity in use). */
+  nebulaCore: '#1A2350',
+  nebulaEdge: '#0A0E22',
+  starFar: '#8CA6DE',
+  starNear: '#D6E2FF',
+} as const;
+
+/** Resolve a difficulty accent token name to its colour. */
+export const accentColor = {
+  accent: arcade.accent,
+  warn: arcade.warn,
+  danger: arcade.danger,
 } as const;
 
 /**
