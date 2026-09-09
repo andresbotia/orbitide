@@ -44,11 +44,19 @@ test('an inert modifier changes no gameplay rule — same actions, same outcome'
   expect(b.state.status).toBe(a.state.status);
 });
 
-test('no `modifiers` field ⇒ createGame is deep-equal to before (Levels 1–10)', () => {
+test('modifier attachment matches the authored map across the whole campaign', () => {
   for (const def of LEVEL_DEFINITIONS) {
-    expect(def.modifiers).toBeUndefined();
     const g = createGame(def);
-    expect(g.pixels.every((p) => p.modifier === undefined)).toBe(true);
+    const attached = g.pixels.filter((p) => p.modifier !== undefined);
+    if (!def.modifiers) {
+      expect(attached).toHaveLength(0);
+    } else {
+      // Every authored modifier lands on a real pixel; nothing else carries one.
+      expect(attached).toHaveLength(Object.keys(def.modifiers).length);
+      for (const p of attached) {
+        expect(def.modifiers[`${p.x},${p.y}`]).toEqual(p.modifier);
+      }
+    }
   }
 });
 

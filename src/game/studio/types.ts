@@ -76,6 +76,8 @@ export interface StudioLevel {
    * load → edit → save round-trip; not edited in the M3A UI.
    */
   reveal?: LevelReveal;
+  /** One-line non-modal teaching cue (carried verbatim; not edited in the M3 UI). */
+  tutorial?: string;
   /**
    * Explicit art-character → colour overrides carried on the source level.
    * Preserved for a faithful round-trip; the serializer also synthesises entries

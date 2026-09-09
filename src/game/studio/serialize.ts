@@ -139,6 +139,7 @@ export function toLevelDefinition(level: StudioLevel): LevelDefinition {
   const modifiers = toModifierMap(level);
   if (modifiers) def.modifiers = modifiers;
   if (level.reveal && !isRevealEmpty(level.reveal)) def.reveal = cloneReveal(level.reveal);
+  if (level.tutorial && level.tutorial.trim() !== '') def.tutorial = level.tutorial;
   return def;
 }
 
@@ -165,6 +166,7 @@ export function fromLevelDefinition(def: LevelDefinition): StudioLevel {
     ...(def.legend ? { legend: { ...def.legend } } : {}),
     ...(Object.keys(modifiers).length > 0 ? { modifiers } : {}),
     ...(def.reveal ? { reveal: cloneReveal(def.reveal) } : {}),
+    ...(def.tutorial ? { tutorial: def.tutorial } : {}),
   };
 }
 
@@ -219,6 +221,9 @@ export function serializeToTS(level: StudioLevel): string {
   lines.push('  ],');
   if (def.reveal) {
     lines.push(`  reveal: ${JSON.stringify(def.reveal)},`);
+  }
+  if (def.tutorial) {
+    lines.push(`  tutorial: ${q(def.tutorial)},`);
   }
   lines.push('}');
   return lines.join('\n') + '\n';

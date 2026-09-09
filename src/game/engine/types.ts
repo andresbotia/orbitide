@@ -223,6 +223,12 @@ export interface LevelDefinition {
   tunnels: ChargeSpec[][];
   /** Optional authored Win / Discovery constellation. */
   reveal?: LevelReveal;
+  /**
+   * Optional one-line teaching cue shown once, non-modally, while the mechanic
+   * it describes is still unused on this level (e.g. the Frozen introduction on
+   * Level 21). Purely presentational — the engine never reads it.
+   */
+  tutorial?: string;
 }
 
 export type GameStatus = 'playing' | 'won' | 'lost';

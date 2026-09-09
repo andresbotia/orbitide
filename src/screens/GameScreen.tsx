@@ -1,7 +1,9 @@
+import { createGame } from '@/game/engine/createGame';
+import { iceLayers } from '@/game/engine/frozen';
 import { reachablePixels } from '@/game/engine/pixels';
 import type { Point } from '@/game/rendering/boardGeometry';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
+import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Easing, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
@@ -74,6 +76,17 @@ export function GameScreen({
   const { state } = session;
   const won = state.status === 'won';
 
+  // Lightweight, non-modal teaching cue (Level 21's Frozen intro). Shows while
+  // the level still has all its ice and the player is in their first few moves;
+  // the first successful ice break — or a fourth launch — retires it.
+  const initialIced = useMemo(
+    () => createGame(level).pixels.filter((p) => iceLayers(p) > 0).length,
+    [level],
+  );
+  const currentIced = state.pixels.filter((p) => iceLayers(p) > 0).length;
+  const showTutorial = !!level.tutorial && state.status === 'playing'
+    && currentIced >= initialIced && state.movesApplied < 4;
+
   const reveal = useMemo(() => resolveReveal(level), [level]);
   const revealProgress = useSharedValue(0);
   useEffect(() => {
@@ -132,6 +145,11 @@ export function GameScreen({
                 />
               </View>
             ) : null}
+          </View>
+        ) : null}
+        {showTutorial ? (
+          <View style={styles.tutorial} pointerEvents="none">
+            <Text style={styles.tutorialText}>❄  {level.tutorial}</Text>
           </View>
         ) : null}
       </View>
@@ -217,5 +235,22 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
     gap: spacing.md,
     alignItems: 'center',
+  },
+  tutorial: {
+    position: 'absolute',
+    top: spacing.sm,
+    alignSelf: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+    backgroundColor: 'rgba(12,20,34,0.82)',
+    borderWidth: 1,
+    borderColor: 'rgba(200,230,255,0.35)',
+  },
+  tutorialText: {
+    color: '#DCEEFF',
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
 });

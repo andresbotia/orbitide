@@ -17,11 +17,13 @@ const IDS = LEVELS.map((l) => l.id);
  * 30-50 target — a documented deviation, still well inside "recognisable".
  */
 function densityBand(id: number): [number, number] {
-  if (id % 10 === 0) return [30, 90];
+  if (id % 10 === 0) return [40, 90];
   if (id <= 3) return [20, 32];
   if (id <= 10) return [24, 46];
   if (id <= 20) return [28, 62];
-  return [30, 64];
+  // World 3: the Frozen-heavy crystal / teaching levels run tighter for
+  // readability (Part 2 target is 35-60; documented deviation).
+  return [20, 64];
 }
 
 const ALLOWED_TIERS = new Set(['easy', 'medium', 'hard']);
@@ -111,6 +113,27 @@ test.each(LEVELS)('level $id is deterministically winnable with zero boosters', 
   }
   expect(state.status).toBe('won');
 }, 120_000);
+
+test('World 3 introduces Frozen — and only Frozen — with a single teaching cue', () => {
+  const w3 = LEVELS.filter((l) => l.themeId === 'deep-frost');
+  const others = LEVELS.filter((l) => l.themeId !== 'deep-frost');
+  // No modifier of any kind before World 3.
+  for (const l of others) expect(l.modifiers).toBeUndefined();
+  for (const l of w3) {
+    expect(l.modifiers).toBeDefined();
+    for (const m of Object.values(l.modifiers!)) {
+      expect(m.kind).toBe('frozen');
+      expect(m.level ?? 1).toBe(1); // production Frozen durability is 1
+    }
+    // Each Frozen pixel needs its base clear plus one crack.
+    const state = createGame(l);
+    expect(state.pixels.some((p) => iceLayers(p) === 1)).toBe(true);
+  }
+  // Exactly one tutorial cue in the whole campaign — the Frozen intro on L21.
+  const tutorials = LEVELS.filter((l) => l.tutorial);
+  expect(tutorials.map((l) => l.id)).toEqual([21]);
+  expect(tutorials[0]!.tutorial!.length).toBeGreaterThan(10);
+});
 
 test('the campaign manifest is valid: three worlds, no gaps, no duplicates', () => {
   const report = validateManifest(CAMPAIGN_MANIFEST, IDS);
