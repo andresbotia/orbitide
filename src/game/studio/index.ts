@@ -12,3 +12,4 @@ export * from './grid';
 export * from './model';
 export * from './serialize';
 export * from './validate';
+export * from './analyze';

@@ -16,6 +16,7 @@ import { DiscoveryReveal } from '@/game/rendering/DiscoveryReveal';
 import { OrbitBoard } from '@/game/rendering/OrbitBoard';
 import { resolveReveal, revealTimeline } from '@/game/rendering/revealGeometry';
 import { nextLevelId, requireLevel } from '@/game/levels/levels';
+import type { LevelDefinition } from '@/game/engine/types';
 import { useColorAssist } from '@/hooks/useColorAssist';
 import { useGameSession } from '@/hooks/useGameSession';
 import { arcade } from '@/theme/arcade';
@@ -27,6 +28,11 @@ interface GameScreenProps {
   onAdvance: (nextLevelId: number) => void;
   onExit: () => void;
   onResetProgress: () => void;
+  /**
+   * Explicit level to run instead of the campaign lookup for `levelId`. Only the
+   * dev-only Level Studio playtest passes this; normal play leaves it undefined.
+   */
+  level?: LevelDefinition;
 }
 
 /**
@@ -42,6 +48,7 @@ export function GameScreen({
   onAdvance,
   onExit,
   onResetProgress,
+  level: levelOverride,
 }: GameScreenProps) {
   const [boardSize, setBoardSize] = useState(0);
   const area = useRef<View>(null);
@@ -52,7 +59,10 @@ export function GameScreen({
     const point = sourcePoints.current.get(key);
     return point ? { x: point.x - boardOrigin.current.x, y: point.y - boardOrigin.current.y } : undefined;
   };
-  const level = useMemo(() => requireLevel(levelId), [levelId]);
+  const level = useMemo(
+    () => levelOverride ?? requireLevel(levelId),
+    [levelOverride, levelId],
+  );
   const reducedMotion = useReducedMotion();
   const { enabled: colorAssist } = useColorAssist();
 
@@ -60,7 +70,7 @@ export function GameScreen({
     onWin(levelId);
   }, [levelId, onWin]);
 
-  const session = useGameSession(levelId, { onWin: handleWin });
+  const session = useGameSession(levelId, { onWin: handleWin, level: levelOverride });
   const { state } = session;
   const won = state.status === 'won';
 

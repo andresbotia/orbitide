@@ -10,3 +10,4 @@ export * from './resolveLaunch';
 export * from './winState';
 export * from './pass';
 export * from './actions';
+export * from './solver';

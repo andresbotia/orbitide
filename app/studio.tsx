@@ -1,13 +1,18 @@
+import { Platform } from 'react-native';
 import { Redirect } from 'expo-router';
 
+import { StudioEntry } from '@/screens/studioEntry';
+
 /**
- * The Level Studio is a **dev-only, web-only** internal developer tool.
+ * `/studio` — the internal Level Studio.
  *
- * This file is the native (and any non-web) implementation of the `/studio`
- * route: it does nothing but redirect Home, and — because Metro resolves
- * `studio.web.tsx` for web and this file everywhere else — the Studio screen and
- * all of its editor code are never bundled into an iOS or Android build.
+ * Renders ONLY when `__DEV__ === true` AND `Platform.OS === 'web'`; otherwise it
+ * redirects Home. `StudioEntry` is a platform-split module: `studioEntry.web.tsx`
+ * is the real screen, `studioEntry.tsx` is a `null` stub — so a native (iOS /
+ * Android) build never bundles the Studio screen, its editor components, or the
+ * web-only CanvasKit loader.
  */
-export default function StudioRouteNative() {
-  return <Redirect href="/" />;
+export default function StudioRoute() {
+  if (!(__DEV__ && Platform.OS === 'web')) return <Redirect href="/" />;
+  return <StudioEntry />;
 }

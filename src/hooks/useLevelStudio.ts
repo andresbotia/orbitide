@@ -20,6 +20,7 @@ interface StudioState {
   history: History<StudioLevel>;
   tool: Tool;
   showCoords: boolean;
+  mode: 'edit' | 'play';
 }
 
 type Action =
@@ -29,7 +30,8 @@ type Action =
   | { type: 'redo' }
   | { type: 'selectColor'; color: OrbColor }
   | { type: 'selectErase' }
-  | { type: 'toggleCoords' };
+  | { type: 'toggleCoords' }
+  | { type: 'setMode'; mode: 'edit' | 'play' };
 
 function reducer(state: StudioState, action: Action): StudioState {
   switch (action.type) {
@@ -38,7 +40,9 @@ function reducer(state: StudioState, action: Action): StudioState {
       return { ...state, history: commit(state.history, next) };
     }
     case 'load':
-      return { ...state, history: initHistory(action.level) };
+      return { ...state, history: initHistory(action.level), mode: 'edit' };
+    case 'setMode':
+      return { ...state, mode: action.mode };
     case 'undo':
       return { ...state, history: undo(state.history) };
     case 'redo':
@@ -59,8 +63,11 @@ export interface LevelStudio {
   report: ValidationReport;
   tool: Tool;
   showCoords: boolean;
+  mode: 'edit' | 'play';
   canUndo: boolean;
   canRedo: boolean;
+  enterPlay: () => void;
+  exitPlay: () => void;
   paint: (x: number, y: number) => void;
   erase: (x: number, y: number) => void;
   clearBoard: () => void;
@@ -86,6 +93,7 @@ export function useLevelStudio(initial?: StudioLevel): LevelStudio {
     history: initHistory(initial ?? createBlankLevel()),
     tool: { mode: 'paint' as const, color: 'white' as OrbColor },
     showCoords: false,
+    mode: 'edit' as const,
   }));
 
   const level = state.history.present;
@@ -101,8 +109,11 @@ export function useLevelStudio(initial?: StudioLevel): LevelStudio {
     report,
     tool: state.tool,
     showCoords: state.showCoords,
+    mode: state.mode,
     canUndo: histCanUndo(state.history),
     canRedo: histCanRedo(state.history),
+    enterPlay: () => dispatch({ type: 'setMode', mode: 'play' }),
+    exitPlay: () => dispatch({ type: 'setMode', mode: 'edit' }),
     paint: (x, y) => edit((l) => paintCell(l, x, y, state.tool.color)),
     erase: (x, y) => edit((l) => eraseCell(l, x, y)),
     clearBoard: () => edit(clearCanvas),

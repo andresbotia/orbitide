@@ -1,14 +1,18 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, useMemo, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { LEVEL_DEFINITIONS } from '@/game/levels/levelDefinitions';
+import { toLevelDefinition } from '@/game/studio/serialize';
 import { useLevelStudio } from '@/hooks/useLevelStudio';
 import { STUDIO_NAME } from '@/theme/appIdentity';
 import { MetadataPanel } from '@/components/studio/MetadataPanel';
 import { PalettePanel } from '@/components/studio/PalettePanel';
 import { PixelCanvas } from '@/components/studio/PixelCanvas';
 import { SerializedPreview } from '@/components/studio/SerializedPreview';
+import { SolverPanel } from '@/components/studio/SolverPanel';
+import { StudioActionBar } from '@/components/studio/StudioActionBar';
 import { StudioButton } from '@/components/studio/StudioButton';
+import { StudioPlaytest } from '@/components/studio/StudioPlaytest';
 import { TunnelQueueEditor } from '@/components/studio/TunnelQueueEditor';
 import { ValidationPanel } from '@/components/studio/ValidationPanel';
 import { studioSpace, studioTheme } from '@/components/studio/theme';
@@ -17,16 +21,23 @@ import { studioSpace, studioTheme } from '@/components/studio/theme';
  * Internal ORBITIDE Level Studio. Dev-only, web-only (see `app/studio.web.tsx`).
  *
  * A developer can create or load a normal level, paint the board, author all
- * three deterministic tunnel queues, validate it, and export the canonical
- * production level definition — without hand-editing `levelDefinitions.ts`.
- *
- * Play + Solve are wired in the next commit; the pure model, validation and
- * serialization this screen drives are the M3A foundation.
+ * three deterministic tunnel queues, validate it, play it through the REAL game
+ * engine, run the REAL solver, and export the canonical production level
+ * definition — without hand-editing `levelDefinitions.ts`.
  */
 export function LevelStudioScreen() {
   const studio = useLevelStudio();
   const { width } = useWindowDimensions();
   const wide = width > 960;
+
+  const playDefinition = useMemo(
+    () => (studio.mode === 'play' && studio.report.exportable ? toLevelDefinition(studio.level) : null),
+    [studio.mode, studio.report.exportable, studio.level],
+  );
+
+  if (studio.mode === 'play' && playDefinition) {
+    return <StudioPlaytest level={playDefinition} onExit={studio.exitPlay} />;
+  }
 
   return (
     <View style={styles.root}>
@@ -87,11 +98,16 @@ export function LevelStudioScreen() {
           <Section title="Validation">
             <ValidationPanel report={studio.report} />
           </Section>
+          <Section title="Solver">
+            <SolverPanel level={studio.level} exportable={studio.report.exportable} />
+          </Section>
           <Section title="Canonical export">
             <SerializedPreview level={studio.level} exportable={studio.report.exportable} />
           </Section>
         </ScrollView>
       </View>
+
+      <StudioActionBar level={studio.level} exportable={studio.report.exportable} onPlay={studio.enterPlay} />
     </View>
   );
 }

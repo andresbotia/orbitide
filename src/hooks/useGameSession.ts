@@ -4,14 +4,23 @@ import { MAX_ACTIVE_CHARGES } from '@/game/engine/concurrency';
 import { createGame } from '@/game/engine/createGame';
 import { resolveAction, type LaunchOutcome } from '@/game/engine/resolveLaunch';
 import type { GameAction } from '@/game/engine/actions';
-import type { GameState } from '@/game/engine/types';
+import type { GameState, LevelDefinition } from '@/game/engine/types';
 import { feedback } from '@/game/feedback';
 import { cancelHits, registerHit } from '@/game/hapticArbiter';
 import { requireLevel } from '@/game/levels/levels';
 import { buildLaunchScript } from '@/game/presentation/buildScript';
 import type { FlightPass, Point } from '@/game/presentation/events';
 
-interface Options { onWin?: () => void; onLose?: () => void }
+interface Options {
+  onWin?: () => void;
+  onLose?: () => void;
+  /**
+   * Explicit level definition to run instead of looking `levelId` up in the
+   * campaign. Used by the dev-only Level Studio playtest to run an unsaved,
+   * in-memory level through the real session/engine. Pass a stable reference.
+   */
+  level?: LevelDefinition;
+}
 
 interface ActiveFlight { pass: FlightPass; outcome: LaunchOutcome; cursor: number }
 
@@ -32,7 +41,10 @@ export interface GameSession {
 }
 
 export function useGameSession(levelId: number, options: Options = {}): GameSession {
-  const level = useMemo(() => requireLevel(levelId), [levelId]);
+  const level = useMemo(
+    () => options.level ?? requireLevel(levelId),
+    [levelId, options.level],
+  );
   const [state, setState] = useState(() => createGame(level));
   const [engineState, setEngineState] = useState(state);
   const [flights, setFlights] = useState<FlightPass[]>([]);
