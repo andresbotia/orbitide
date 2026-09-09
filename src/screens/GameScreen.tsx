@@ -1,5 +1,5 @@
 import { reachablePixels } from '@/game/engine/pixels';
-import type { Point } from '@/game/presentation/events';
+import type { Point } from '@/game/rendering/boardGeometry';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,11 +8,12 @@ import { DebugOverlay } from '@/components/DebugOverlay';
 import { HoldingTray } from '@/components/HoldingTray';
 import { Hud } from '@/components/Hud';
 import { ResultOverlay } from '@/components/ResultOverlay';
+import { ToolBar } from '@/components/ToolBar';
 import { TunnelBar } from '@/components/TunnelBar';
 import { OrbitBoard } from '@/game/rendering/OrbitBoard';
 import { nextLevelId, requireLevel } from '@/game/levels/levels';
 import { useGameSession } from '@/hooks/useGameSession';
-import { palette } from '@/theme/colors';
+import { arcade } from '@/theme/arcade';
 import { spacing } from '@/theme/spacing';
 
 interface GameScreenProps {
@@ -23,6 +24,12 @@ interface GameScreenProps {
   onResetProgress: () => void;
 }
 
+/**
+ * Production Cosmic Arcade gameplay shell. Screen hierarchy, top to bottom:
+ *   TOP HUD -> ORBIT / PIXEL-ART BOARD -> HOLDING -> LAUNCH TUNNELS -> TOOLS.
+ * The board stays the visual hero; everything else is subordinate chrome.
+ * Engine behaviour is unchanged — presentation only.
+ */
 export function GameScreen({
   levelId,
   onWin,
@@ -61,9 +68,12 @@ export function GameScreen({
   const colors = new Set(reachablePixels(state).map((p) => p.color));
   const usefulIds = new Set(state.holding.filter((c) => colors.has(c.color)).map((c) => c.id));
   const next = nextLevelId(levelId);
+  const controlsLocked = session.locked || state.status !== 'playing';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <View style={styles.ambient} pointerEvents="none" />
+
       <View style={styles.hud}>
         <Hud state={state} title={level.title} onRestart={session.restart} />
       </View>
@@ -80,25 +90,28 @@ export function GameScreen({
       </View>
 
       <View style={styles.controls}>
-        <TunnelBar
-          layoutVersion={boardSize}
-          state={state}
-          disabled={session.locked || state.status !== 'playing'}
-          onSourceLayout={onSourceLayout}
-          onLaunch={(id) => session.launch(id, boardPoint(id), boardPoint(`holding-${state.holding.length}`))}
-        />
         <HoldingTray
           layoutVersion={boardSize}
           holding={state.holding}
           capacity={state.holdingCapacity}
           overflow={state.status === 'lost'}
-          disabled={session.locked || state.status !== 'playing'}
+          disabled={controlsLocked}
           usefulIds={usefulIds}
           onSourceLayout={onSourceLayout}
           onLaunch={(id) => session.launchHeld(id, boardPoint(`holding-${state.holding.findIndex((c) => c.id === id)}`),
             boardPoint(`holding-${state.holding.length - 1}`))}
           message={session.message}
         />
+
+        <TunnelBar
+          layoutVersion={boardSize}
+          state={state}
+          disabled={controlsLocked}
+          onSourceLayout={onSourceLayout}
+          onLaunch={(id) => session.launch(id, boardPoint(id), boardPoint(`holding-${state.holding.length}`))}
+        />
+
+        <ToolBar />
       </View>
 
       <ResultOverlay
@@ -119,7 +132,17 @@ export function GameScreen({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: palette.void },
+  safe: { flex: 1, backgroundColor: arcade.envBottom, overflow: 'hidden' },
+  ambient: {
+    position: 'absolute',
+    top: -120,
+    alignSelf: 'center',
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: arcade.envTop,
+    opacity: 0.5,
+  },
   hud: { paddingTop: spacing.sm, paddingBottom: spacing.sm },
   boardArea: {
     flex: 1,
@@ -130,8 +153,8 @@ const styles = StyleSheet.create({
   },
   controls: {
     paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
-    gap: spacing.lg,
+    paddingBottom: spacing.md,
+    gap: spacing.md,
     alignItems: 'center',
   },
 });

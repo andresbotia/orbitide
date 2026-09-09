@@ -1,27 +1,128 @@
 import { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
+
 import { FEEL } from '@/game/presentation/constants';
-import { orbColors, orbGlow } from '@/theme/colors';
+import type { OrbColor } from '@/game/engine/types';
+import { arcade, colorAssistSymbol, pixelMaterial } from '@/theme/arcade';
+import type { PixelAdaptive } from './boardGeometry';
+
 interface PixelProps {
-  color: keyof typeof orbColors; cx: number; cy: number; cell: number; reachable: boolean;
-  clock: SharedValue<number>; clearAt?: number;
+  color: OrbColor;
+  cx: number;
+  cy: number;
+  cell: number;
+  reachable: boolean;
+  adaptive: PixelAdaptive;
+  /** Color Assist readiness — draws the per-color symbol overlay when true. */
+  assist?: boolean;
+  clock: SharedValue<number>;
+  clearAt?: number;
 }
-export const Pixel = memo(function Pixel({ color, cx, cy, cell, reachable, clock, clearAt }: PixelProps) {
-  const size = Math.max(4, cell - 2);
+
+/**
+ * Production base pixel: a dimensional extruded body with consistent top-left
+ * lighting — top highlight, lower/right shadow via a bevel, a restrained inner
+ * emissive rim when the pixel is reachable. All depth cues scale down as the
+ * board gets denser (see `PixelAdaptive`). A clean overlay layer is reserved for
+ * a future Color Assist mark.
+ */
+export const Pixel = memo(function Pixel({
+  color, cx, cy, cell, reachable, adaptive, assist, clock, clearAt,
+}: PixelProps) {
+  const gutter = adaptive.gutter;
+  const size = Math.max(4, cell - gutter);
+  const material = pixelMaterial(color);
+  const bevel = Math.min(adaptive.bevel, size * 0.22);
+  const cornerRadius = Math.max(1.5, cell * adaptive.cornerRadius);
+
+  const popOvershoot = adaptive.popOvershoot;
   const animated = useAnimatedStyle(() => {
-    const p = clearAt === undefined ? 0 : Math.max(0, Math.min(1, (clock.value - clearAt) / FEEL.PIXEL_POP_DURATION));
-    return { opacity: (reachable ? 1 : 0.5) * (1 - p), transform: [{ scale: 1 - p }] };
+    if (clearAt === undefined) {
+      return { opacity: reachable ? 1 : 0.62, transform: [{ scale: 1 }] };
+    }
+    const p = Math.max(0, Math.min(1, (clock.value - clearAt) / FEEL.PIXEL_POP_DURATION));
+    const overshoot = p < 0.35
+      ? 1 + popOvershoot * (p / 0.35)
+      : (1 + popOvershoot) * Math.max(0, 1 - (p - 0.35) / 0.65);
+    return { opacity: (reachable ? 1 : 0.62) * (1 - p), transform: [{ scale: p === 0 ? 1 : overshoot }] };
   });
-  return <Animated.View pointerEvents="none" style={[styles.wrap, {
-    width: size, height: size, left: cx - size / 2, top: cy - size / 2,
-    borderRadius: Math.max(2, cell * 0.22), backgroundColor: orbColors[color],
-    borderColor: orbGlow[color], borderWidth: reachable ? Math.max(1, cell * 0.09) : 0,
-  }, animated]}>
-    {reachable ? <View style={[styles.spark, { backgroundColor: orbGlow[color], width: size * 0.85, height: size * 0.16 }]} /> : null}
-  </Animated.View>;
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.wrap,
+        {
+          width: size,
+          height: size,
+          left: cx - size / 2,
+          top: cy - size / 2,
+          borderRadius: cornerRadius,
+          backgroundColor: material.base,
+          borderWidth: bevel,
+          borderTopColor: material.top,
+          borderLeftColor: material.top,
+          borderRightColor: material.bottom,
+          borderBottomColor: material.bottom,
+        },
+        animated,
+      ]}
+    >
+      {/* Top highlight — directional light from the upper-left. */}
+      <View
+        style={[
+          styles.highlight,
+          {
+            height: size * 0.42,
+            borderTopLeftRadius: cornerRadius,
+            borderTopRightRadius: cornerRadius,
+            backgroundColor: material.top,
+            opacity: adaptive.highlight,
+          },
+        ]}
+      />
+      {/* Lower shadow pool. */}
+      <View
+        style={[
+          styles.shade,
+          {
+            height: size * 0.32,
+            borderBottomLeftRadius: cornerRadius,
+            borderBottomRightRadius: cornerRadius,
+            backgroundColor: material.bottom,
+            opacity: adaptive.shadow,
+          },
+        ]}
+      />
+      {/* Restrained inner emissive rim when reachable. */}
+      {reachable ? (
+        <View
+          style={[
+            styles.rim,
+            {
+              borderRadius: Math.max(1, cornerRadius - 1),
+              borderColor: material.rim,
+              borderWidth: Math.max(1, bevel * 0.8),
+              opacity: 0.35 + adaptive.glow * 0.5,
+            },
+          ]}
+        />
+      ) : null}
+      {/* Color Assist overlay layer (off by default). */}
+      {assist ? (
+        <Text style={[styles.mark, { fontSize: size * 0.6, color: arcade.envBottom }]}>
+          {colorAssistSymbol[color]}
+        </Text>
+      ) : null}
+    </Animated.View>
+  );
 });
+
 const styles = StyleSheet.create({
-  wrap: { position: 'absolute', alignItems: 'center', overflow: 'hidden' },
-  spark: { marginTop: 2, borderRadius: 999, opacity: 0.5 },
+  wrap: { position: 'absolute', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  highlight: { position: 'absolute', top: 0, left: 0, right: 0 },
+  shade: { position: 'absolute', bottom: 0, left: 0, right: 0 },
+  rim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  mark: { fontWeight: '900', textAlign: 'center', includeFontPadding: false },
 });
