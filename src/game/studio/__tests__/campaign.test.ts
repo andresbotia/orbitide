@@ -127,7 +127,7 @@ describe('deterministic serialisation', () => {
     expect(json).toBe(serializeManifestJSON(m));
     expect(json).not.toMatch(/\d{4}-\d{2}-\d{2}/);
     expect(serializeManifestTS(m)).toContain('campaignVersion: 1,');
-    expect(serializeManifestTS(m)).toContain('levelIds: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]');
+    expect(serializeManifestTS(m)).toContain(`levelIds: [${KNOWN.join(', ')}]`);
   });
 
   test('logically equal manifests serialise identically regardless of world array order', () => {

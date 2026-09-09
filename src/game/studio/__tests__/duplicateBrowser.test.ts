@@ -64,7 +64,7 @@ describe('level browser', () => {
     expect(rows).toHaveLength(defs.length);
     for (const r of rows) {
       expect(r.status).toBe('ok');
-      expect(r.worldId).toBe('first-light');
+      expect(r.worldId).toBe(defs[r.id - 1]!.themeId);
       expect(r.pixelCount).toBe(createGame(defs[r.id - 1]!).pixels.length);
       expect(r.suggestedDifficulty).toBeNull(); // no analysis supplied
     }
@@ -83,13 +83,15 @@ describe('level browser', () => {
   test('search / filter / sort are pure list transforms', () => {
     const rows = buildBrowserRows(defs, CAMPAIGN_MANIFEST);
     expect(filterRows(rows, { query: 'guiding' }).map((r) => r.id)).toEqual([2]);
-    expect(filterRows(rows, { difficulty: 'hard' }).map((r) => r.id)).toEqual([10]);
+    expect(filterRows(rows, { difficulty: 'hard' }).map((r) => r.id)).toEqual(
+      defs.filter((d) => d.difficulty === 'hard').map((d) => d.id),
+    );
     expect(filterRows(rows, { status: 'error' })).toEqual([]);
 
     const byTitle = sortRows(rows, 'title');
     expect(byTitle[0]!.title <= byTitle[1]!.title).toBe(true);
     const byIdDesc = sortRows(rows, 'id', 'desc');
-    expect(byIdDesc[0]!.id).toBe(10);
+    expect(byIdDesc[0]!.id).toBe(defs.length);
   });
 
   test('an invalid level shows status "error"', () => {

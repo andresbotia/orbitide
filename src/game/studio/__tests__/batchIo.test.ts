@@ -68,7 +68,7 @@ describe('export', () => {
     const parsed = JSON.parse(bundle);
     expect(parsed.studioVersion).toBe(STUDIO_SCHEMA_VERSION);
     expect(parsed.campaignVersion).toBe(CAMPAIGN_SCHEMA_VERSION);
-    expect(parsed.levels).toHaveLength(10);
+    expect(parsed.levels).toHaveLength(LEVEL_DEFINITIONS.length);
     expect(bundle).toBe(exportCampaignBundle(CAMPAIGN_MANIFEST, LEVEL_DEFINITIONS));
     expect(bundle).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
   });
