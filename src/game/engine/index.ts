@@ -11,3 +11,4 @@ export * from './winState';
 export * from './pass';
 export * from './actions';
 export * from './solver';
+export * from './trace';

@@ -1,0 +1,179 @@
+/**
+ * Witness replay — the ONE trace utility.
+ *
+ * Given a `LevelDefinition` and an ordered `GameAction[]` (a solver winning or
+ * failing witness, or any hand-authored line), produce a frame-by-frame trace by
+ * replaying it through the REAL engine (`createGame` + `resolveAction`). No
+ * board state is ever reconstructed by hand; every frame is an actual
+ * `GameState` the engine produced.
+ *
+ * The same trace structure feeds both the winning-path and failing-path
+ * visualisers.
+ */
+import type { GameAction, Rejection } from './actions';
+import { createGame } from './createGame';
+import { reachablePixels, remainingPixelCount } from './pixels';
+import { resolveAction } from './resolveLaunch';
+import type { GameState, GameStatus, LevelDefinition, OrbColor } from './types';
+
+export interface TraceCharge {
+  id: string;
+  color: OrbColor;
+  /** Capacity the charge launched with this step. */
+  startingCapacity: number;
+  /** Capacity left after the step (0 when fully consumed). */
+  remainingCapacity: number;
+  /** Where it ended up: consumed by the board, or parked in Holding. */
+  landed: 'consumed' | 'holding';
+}
+
+export interface TraceStep {
+  /** 1-based step number. */
+  index: number;
+  action: GameAction;
+  actionLabel: string;
+  source: { kind: 'tunnel' | 'holding'; id: string; tunnelIndex: number };
+  /** `true` when this launch joined a running epoch. */
+  joined: boolean;
+  charge: TraceCharge | null;
+  /** Charges on the rail immediately after this launch resolved. */
+  activeCount: number;
+  holdingBefore: { id: string; color: OrbColor; capacity: number }[];
+  holdingAfter: { id: string; color: OrbColor; capacity: number }[];
+  /** Pixel ids cleared by this step, in engine order. */
+  clearedPixelIds: string[];
+  /** Pixel ids that became reachable this step and are not yet cleared. */
+  newlyExposedPixelIds: string[];
+  /** Uncleared pixels remaining after this step. */
+  remainingPixels: number;
+  status: GameStatus;
+  accepted: boolean;
+  rejection?: Rejection;
+}
+
+export type TraceOutcome = 'won' | 'lost' | 'incomplete' | 'rejected';
+
+export interface Trace {
+  levelId: number;
+  /** `frames[0]` is the initial state; `frames[i]` is the state after step `i`. */
+  frames: GameState[];
+  steps: TraceStep[];
+  finalStatus: GameStatus;
+  outcome: TraceOutcome;
+  /** Authored charges (tunnel + starting Holding) never launched anywhere in the line. */
+  unusedChargeIds: string[];
+  /** Total authored tunnel capacity minus the capacity actually spent clearing pixels. */
+  unusedCapacity: number;
+}
+
+function reachableIds(state: GameState): Set<string> {
+  return new Set(reachablePixels(state).map((p) => p.id));
+}
+
+function clearedThisStep(before: GameState, after: GameState): string[] {
+  const wasCleared = new Set(before.pixels.filter((p) => p.cleared).map((p) => p.id));
+  return after.pixels.filter((p) => p.cleared && !wasCleared.has(p.id)).map((p) => p.id);
+}
+
+/** Replay `actions` from a fresh game and record every frame + step. */
+export function traceActions(level: LevelDefinition, actions: GameAction[]): Trace {
+  const initial = createGame(level);
+  const frames: GameState[] = [initial];
+  const steps: TraceStep[] = [];
+  const launchedChargeIds = new Set<string>();
+
+  let state = initial;
+  let rejected = false;
+
+  actions.forEach((action, i) => {
+    if (rejected || state.status !== 'playing') return;
+
+    const before = state;
+    const beforeReach = reachableIds(before);
+    const tunnelIndex = action.kind === 'tunnel'
+      ? before.tunnels.findIndex((t) => t.id === action.id)
+      : -1;
+    const launched = action.kind === 'tunnel'
+      ? before.tunnels.find((t) => t.id === action.id)?.queue[0]
+      : before.holding.find((c) => c.id === action.id);
+
+    const outcome = resolveAction(before, action);
+
+    if (!outcome.accepted) {
+      steps.push({
+        index: i + 1, action, actionLabel: describeTraceAction(action),
+        source: { kind: action.kind, id: action.id, tunnelIndex },
+        joined: false, charge: null, activeCount: before.epoch?.launches.length ?? 0,
+        holdingBefore: snapshotHolding(before), holdingAfter: snapshotHolding(before),
+        clearedPixelIds: [], newlyExposedPixelIds: [],
+        remainingPixels: remainingPixelCount(before), status: before.status,
+        accepted: false, rejection: outcome.rejection,
+      });
+      rejected = true;
+      return;
+    }
+
+    state = outcome.state;
+    frames.push(state);
+    if (launched) launchedChargeIds.add(launched.id);
+
+    const cleared = clearedThisStep(before, state);
+    const afterReach = reachableIds(state);
+    const clearedSet = new Set(cleared);
+    const newlyExposed = [...afterReach].filter((id) => !beforeReach.has(id) && !clearedSet.has(id));
+
+    const resolved = outcome.epochCharges?.find((c) => c.id === launched?.id);
+    steps.push({
+      index: i + 1, action, actionLabel: describeTraceAction(action),
+      source: { kind: action.kind, id: action.id, tunnelIndex },
+      joined: outcome.joinedEpoch === true,
+      charge: launched
+        ? {
+          id: launched.id, color: launched.color, startingCapacity: launched.capacity,
+          remainingCapacity: outcome.heldCharge?.capacity ?? 0,
+          landed: resolved?.landed ?? (outcome.heldCharge ? 'holding' : 'consumed'),
+        }
+        : null,
+      activeCount: outcome.epochCharges?.length ?? state.epoch?.launches.length ?? 0,
+      holdingBefore: snapshotHolding(before),
+      holdingAfter: snapshotHolding(state),
+      clearedPixelIds: cleared,
+      newlyExposedPixelIds: newlyExposed,
+      remainingPixels: remainingPixelCount(state),
+      status: state.status,
+      accepted: true,
+    });
+  });
+
+  const finalStatus = state.status;
+  const outcome: TraceOutcome = rejected
+    ? 'rejected'
+    : finalStatus === 'won' ? 'won'
+      : finalStatus === 'lost' ? 'lost'
+        : 'incomplete';
+
+  const authoredChargeIds = [
+    ...initial.tunnels.flatMap((t) => t.queue.map((c) => c.id)),
+    ...initial.holding.map((c) => c.id),
+  ];
+  const unusedChargeIds = authoredChargeIds.filter((id) => !launchedChargeIds.has(id));
+
+  const totalAuthoredCapacity = initial.tunnels.reduce(
+    (n, t) => n + t.queue.reduce((m, c) => m + c.capacity, 0), 0,
+  );
+  const pixelsCleared = initial.pixels.length - remainingPixelCount(state);
+  const unusedCapacity = Math.max(0, totalAuthoredCapacity - pixelsCleared);
+
+  return { levelId: level.id, frames, steps, finalStatus, outcome, unusedChargeIds, unusedCapacity };
+}
+
+function snapshotHolding(state: GameState) {
+  return state.holding.map((c) => ({ id: c.id, color: c.color, capacity: c.capacity }));
+}
+
+export function describeTraceAction(action: GameAction): string {
+  const where = action.kind === 'tunnel'
+    ? `Tunnel ${String.fromCharCode(65 + Number(action.id.replace('tunnel-', '')))}`
+    : `Holding ${action.id}`;
+  return action.join ? `${where} (join)` : where;
+}
