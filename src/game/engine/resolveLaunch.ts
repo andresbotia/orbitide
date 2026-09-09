@@ -39,6 +39,7 @@ function toChargePass(
     pixelId: e.pixelId,
     progress: e.progress,
     remaining: e.remaining,
+    ...(e.frozenBreak ? { frozenBreak: true } : {}),
   }));
   return {
     charge,

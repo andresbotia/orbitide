@@ -1,3 +1,4 @@
+import { resolveMatchingHit } from './frozen';
 import { ORBIT_ENTRY_FRACTION, clockwiseGap } from './orbit';
 import { pictureCenter, pixelEncounterFraction, reachablePixels } from './pixels';
 import type { Charge, GameState, OrbColor, Pixel } from './types';
@@ -7,6 +8,8 @@ export interface Encounter {
   /** Distance travelled from insertion, in turns; never exceeds one lap. */
   progress: number;
   remaining: number;
+  /** `true` when this encounter cracked a Frozen ice layer instead of clearing. */
+  frozenBreak?: boolean;
 }
 /** Independently representable per-charge state. No clock or renderer dependencies. */
 export interface ChargePass {
@@ -31,10 +34,13 @@ export function pickEncounter(
   reachable: Pixel[],
   color: OrbColor,
   fromProgress: number,
+  /** Pixel ids this charge has already met on this lap (a cracked-but-uncleared
+   * Frozen pixel stays reachable, so it must not be re-hit at the same point). */
+  exclude?: ReadonlySet<string>,
 ): { pixelId: string; progress: number } | null {
   const { cx, cy } = pictureCenter(size);
   const candidates = reachable
-    .filter((p) => p.color === color)
+    .filter((p) => p.color === color && !(exclude?.has(p.id)))
     .map((p) => ({
       pixel: p,
       // The centre is equally near everywhere: encounter it at the current position.
@@ -59,23 +65,28 @@ export function nextEncounter(
   state: GameState,
   color: OrbColor,
   fromProgress: number,
+  exclude?: ReadonlySet<string>,
 ): { pixelId: string; progress: number } | null {
-  return pickEncounter(state, reachablePixels(state), color, fromProgress);
+  return pickEncounter(state, reachablePixels(state), color, fromProgress, exclude);
 }
 /** Travel to the next contact, resolve one shot, then query fresh exposure next step. */
 export function advancePass(pass: ChargePass): ChargePass {
   if (pass.phase === 'finished') return pass;
   if (pass.charge.capacity <= 0) return { ...pass, phase: 'finished' };
-  const hit = nextEncounter(pass.state, pass.charge.color, pass.progress);
+  const met = new Set(pass.encounters.map((e) => e.pixelId));
+  const hit = nextEncounter(pass.state, pass.charge.color, pass.progress, met);
   if (!hit) return { ...pass, progress: 1, phase: 'finished' };
   const progress = hit.progress;
   const remaining = pass.charge.capacity - 1;
+  const target = pass.state.pixels.find((p) => p.id === hit.pixelId)!;
+  const resolved = resolveMatchingHit(target);
   return {
     ...pass, progress, charge: { ...pass.charge, capacity: remaining },
     phase: remaining === 0 ? 'finished' : 'encounter',
     state: { ...pass.state, pixels: pass.state.pixels.map((p) =>
-      p.id === hit.pixelId ? { ...p, cleared: true } : p) },
-    encounters: [...pass.encounters, { pixelId: hit.pixelId, progress, remaining }],
+      p.id === hit.pixelId ? resolved.pixel : p) },
+    encounters: [...pass.encounters, { pixelId: hit.pixelId, progress, remaining,
+      ...(resolved.frozenBreak ? { frozenBreak: true } : {}) }],
   };
 }
 /** M1 has one active pass: safely evaluate discrete steps ahead of presentation. */

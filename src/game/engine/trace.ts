@@ -12,6 +12,7 @@
  */
 import type { GameAction, Rejection } from './actions';
 import { createGame } from './createGame';
+import { iceLayers } from './frozen';
 import { reachablePixels, remainingPixelCount } from './pixels';
 import { resolveAction } from './resolveLaunch';
 import type { GameState, GameStatus, LevelDefinition, OrbColor } from './types';
@@ -40,8 +41,10 @@ export interface TraceStep {
   activeCount: number;
   holdingBefore: { id: string; color: OrbColor; capacity: number }[];
   holdingAfter: { id: string; color: OrbColor; capacity: number }[];
-  /** Pixel ids cleared by this step, in engine order. */
+  /** Pixel ids cleared by this step, in engine order (a FROZEN break is NOT a clear). */
   clearedPixelIds: string[];
+  /** Frozen pixel ids whose ice cracked this step (one layer lost, pixel not cleared). */
+  frozenBreakPixelIds: string[];
   /** Pixel ids that became reachable this step and are not yet cleared. */
   newlyExposedPixelIds: string[];
   /** Uncleared pixels remaining after this step. */
@@ -75,6 +78,13 @@ function clearedThisStep(before: GameState, after: GameState): string[] {
   return after.pixels.filter((p) => p.cleared && !wasCleared.has(p.id)).map((p) => p.id);
 }
 
+function frozenBrokenThisStep(before: GameState, after: GameState): string[] {
+  const iceBefore = new Map(before.pixels.map((p) => [p.id, iceLayers(p)]));
+  return after.pixels
+    .filter((p) => !p.cleared && iceLayers(p) < (iceBefore.get(p.id) ?? 0))
+    .map((p) => p.id);
+}
+
 /** Replay `actions` from a fresh game and record every frame + step. */
 export function traceActions(level: LevelDefinition, actions: GameAction[]): Trace {
   const initial = createGame(level);
@@ -105,7 +115,7 @@ export function traceActions(level: LevelDefinition, actions: GameAction[]): Tra
         source: { kind: action.kind, id: action.id, tunnelIndex },
         joined: false, charge: null, activeCount: before.epoch?.launches.length ?? 0,
         holdingBefore: snapshotHolding(before), holdingAfter: snapshotHolding(before),
-        clearedPixelIds: [], newlyExposedPixelIds: [],
+        clearedPixelIds: [], frozenBreakPixelIds: [], newlyExposedPixelIds: [],
         remainingPixels: remainingPixelCount(before), status: before.status,
         accepted: false, rejection: outcome.rejection,
       });
@@ -118,6 +128,7 @@ export function traceActions(level: LevelDefinition, actions: GameAction[]): Tra
     if (launched) launchedChargeIds.add(launched.id);
 
     const cleared = clearedThisStep(before, state);
+    const frozenBroken = frozenBrokenThisStep(before, state);
     const afterReach = reachableIds(state);
     const clearedSet = new Set(cleared);
     const newlyExposed = [...afterReach].filter((id) => !beforeReach.has(id) && !clearedSet.has(id));
@@ -138,6 +149,7 @@ export function traceActions(level: LevelDefinition, actions: GameAction[]): Tra
       holdingBefore: snapshotHolding(before),
       holdingAfter: snapshotHolding(state),
       clearedPixelIds: cleared,
+      frozenBreakPixelIds: frozenBroken,
       newlyExposedPixelIds: newlyExposed,
       remainingPixels: remainingPixelCount(state),
       status: state.status,

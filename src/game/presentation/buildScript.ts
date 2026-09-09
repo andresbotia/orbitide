@@ -14,19 +14,24 @@ export function buildLaunchScript(outcome: LaunchOutcome, prevState: GameState,
     const fireAt = anticipateAt + FEEL.ANTICIPATION_DURATION;
     const impactAt = fireAt + FEEL.ENERGY_TRAVEL_DURATION;
     return { ...encounter, target: { x: target.x, y: target.y }, anticipateAt, fireAt, impactAt,
-      clearAt: impactAt + FEEL.IMPACT_DURATION };
+      clearAt: impactAt + FEEL.IMPACT_DURATION, frozenBreak: encounter.frozenBreak === true };
   });
   const orbitEndAt = chargePass.charge.capacity === 0 && shots.length > 0
     ? shots[shots.length - 1]!.clearAt
     : FEEL.LAUNCH_DURATION + chargePass.progress * FEEL.ORBIT_DURATION + shots.length * FEEL.PIXEL_CLEAR_INTERVAL;
   const landingAt = orbitEndAt + (outcome.heldCharge ? FEEL.HOLDING_TRAVEL_DURATION : FEEL.BURST_DURATION);
   const won = outcome.state.status === 'won';
-  // The clear that completes the picture gets a stronger presentation beat.
-  const finalClearPixelId = won && shots.length > 0 ? shots[shots.length - 1]!.pixelId : undefined;
+  const lastShot = shots[shots.length - 1];
+  // The clear that completes the picture gets a stronger presentation beat (a
+  // Frozen crack can never be that clear).
+  const finalClearPixelId = won && lastShot && !lastShot.frozenBreak ? lastShot.pixelId : undefined;
   const events: PlaybackEvent[] = [
     { kind: 'orbitEnter', at: FEEL.LAUNCH_DURATION },
-    ...shots.map((s, i) => ({ kind: 'pixelClear' as const, at: s.clearAt, pixelId: s.pixelId, remaining: s.remaining,
-      final: won && i === shots.length - 1 })),
+    ...shots.map((s, i) => ({
+      kind: s.frozenBreak ? ('frozenHit' as const) : ('pixelClear' as const),
+      at: s.clearAt, pixelId: s.pixelId, remaining: s.remaining,
+      final: !s.frozenBreak && won && i === shots.length - 1,
+    })),
     { kind: outcome.heldCharge ? 'holdingLanded' : 'chargeConsumed', at: outcome.heldCharge ? landingAt : orbitEndAt },
   ];
   if (outcome.heldCharge) {

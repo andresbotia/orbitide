@@ -131,6 +131,13 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
       if (event.kind === 'pixelClear') {
         view.current = { ...view.current, pixels: view.current.pixels.map((p) =>
           p.id === event.pixelId ? { ...p, cleared: true } : p) };
+      } else if (event.kind === 'frozenHit') {
+        // The ice cracked — mirror the engine's updated modifier; the pixel stays.
+        const truthPixel = truth.current.pixels.find((p) => p.id === event.pixelId);
+        if (truthPixel) {
+          view.current = { ...view.current, pixels: view.current.pixels.map((p) =>
+            p.id === event.pixelId ? { ...p, modifier: truthPixel.modifier } : p) };
+        }
       } else if (event.kind === 'holdingLanded') {
         view.current = { ...view.current, holding: truth.current.holding };
         if (truth.current.status === 'playing') setMessage('Tap a held charge to launch it again.');
@@ -154,6 +161,8 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
       if (event.kind === 'pixelClear') {
         feedback.emit(event.final ? 'finalClear' : 'pixelPop', { haptic: false, voice: 'shot' });
         if (!replacedImpact) registerHit({ final: event.final });
+      } else if (event.kind === 'frozenHit') {
+        feedback.emit('iceCrack', { haptic: !replacedImpact, voice: 'shot' });
       } else {
         const soundEvent = event.kind === 'holdingLanded' ? 'holdingLand' : event.kind;
         feedback.emit(soundEvent, { haptic: event.kind === 'win' ? false : !replacedImpact });

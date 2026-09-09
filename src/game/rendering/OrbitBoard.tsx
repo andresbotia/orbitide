@@ -54,7 +54,9 @@ export function OrbitBoard({ size, state, flights, presentThrough, colorAssist, 
   );
 
   const shotPixelIds = useMemo(
-    () => new Set(flights.flatMap((f) => f.shots.map((s) => s.pixelId))),
+    // A Frozen crack leaves the pixel on the board, so the static layer keeps
+    // drawing it (with its shell) — only real clears are handed to the flight.
+    () => new Set(flights.flatMap((f) => f.shots.filter((s) => !s.frozenBreak).map((s) => s.pixelId))),
     [flights],
   );
   const calm = flights.length >= CALM_TRAILS_AT;
@@ -117,7 +119,9 @@ const BoardActors = memo(function BoardActors({ state, geo, colorAssist, reduced
   const specials = useMemo<SpecialPixelInput[]>(() => {
     const list: SpecialPixelInput[] = [];
     for (const p of state.pixels) {
-      const modifier = modifiers[p.id];
+      // Engine truth first (Frozen updates `p.modifier` as ice cracks); the prop
+      // is only a fallback for callers that drive modifiers externally.
+      const modifier = p.modifier ?? modifiers[p.id];
       if (!p.cleared && modifier) list.push({ id: p.id, x: p.x, y: p.y, color: p.color, modifier });
     }
     return list;
@@ -196,7 +200,7 @@ const FlightActor = memo(function FlightActor({ pass, geo, presentThrough, color
   return (
     <>
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        {pass.shots.map((shot, i) => {
+        {pass.shots.filter((shot) => !shot.frozenBreak).map((shot, i) => {
           const c = cellCenter(geo, shot.target.x, shot.target.y);
           return (
             <Pixel

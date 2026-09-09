@@ -24,10 +24,13 @@ export type OrbColor =
   | 'lime';
 
 /**
- * Presentation-only special-pixel modifier. The engine never sets or reads this
- * — it is a render-state hook so future mechanics (Frozen, Shielded, Armored,
- * Locked, Bomb, Wild, Linked, Hidden) can drive the material renderer without
- * changing the renderer. Serializable.
+ * Special-pixel modifier. Serializable, cell-authored.
+ *
+ * `frozen` is engine-owned as of M4A — the engine reads and updates it (see
+ * `engine/frozen.ts`): `level` is the ice-layer count and drops to 0 as matching
+ * charges crack it. The other seven kinds (Shielded, Armored, Locked, Bomb,
+ * Wild, Linked, Hidden) remain presentation-only render-state hooks with no
+ * gameplay rule — the engine attaches them and never reads them.
  */
 export type ModifierKind =
   | 'frozen'
@@ -116,7 +119,7 @@ export interface EpochLaunch {
   launchSequence: number;
 }
 
-/** One resolved clear by an active charge, with its logical timing. */
+/** One resolved encounter by an active charge (a clear, or a Frozen ice crack). */
 export interface ActiveEncounter {
   pixelId: string;
   /** Absolute logical lap-time of the clear. */
@@ -125,6 +128,8 @@ export interface ActiveEncounter {
   progress: number;
   /** Owning charge's capacity immediately after this clear. */
   remaining: number;
+  /** `true` when this encounter cracked a Frozen ice layer instead of clearing. */
+  frozenBreak?: boolean;
 }
 
 export type ActiveChargePhase = 'orbiting' | 'finished';

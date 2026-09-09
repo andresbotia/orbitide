@@ -1,7 +1,8 @@
 /**
- * The engine attaches authored presentation modifiers to pixels by cell, but
- * never reads them for a rule. Levels without a `modifiers` field are byte-for-
- * byte unchanged.
+ * The engine attaches authored modifiers to pixels by cell. `frozen` is
+ * engine-owned (see frozen.test.ts); the other seven kinds stay inert — the
+ * engine never reads them for a rule. Levels without a `modifiers` field are
+ * byte-for-byte unchanged.
  */
 import { attachModifiers, cloneModifierInstance } from '../art';
 import { createGame } from '../createGame';
@@ -30,7 +31,7 @@ test('createGame surfaces authored modifiers on the state pixels', () => {
   expect(g.pixels.find((p) => p.x === 1 && p.y === 0)?.modifier).toEqual({ kind: 'shielded', level: 1 });
 });
 
-test('a modifier changes no gameplay rule — same actions, same outcome', () => {
+test('an inert modifier changes no gameplay rule — same actions, same outcome', () => {
   const plain = createGame(BASE);
   const special = createGame({ ...BASE, modifiers: { '0,0': { kind: 'armored', level: 3 }, '1,1': { kind: 'bomb' } } });
   expect(legalActions(special)).toEqual(legalActions(plain));

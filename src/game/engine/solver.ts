@@ -13,11 +13,12 @@
 import { legalActions, type GameAction } from './actions';
 import { createGame } from './createGame';
 import { canJoinEpoch, epochResidueKey } from './epoch';
+import { boardFingerprint } from './frozen';
 import { resolveAction } from './resolveLaunch';
 import type { GameState, LevelDefinition } from './types';
 
 export function stateKey(s: GameState): string {
-  const committed = s.pixels.map((p) => p.cleared ? '1' : '0').join('') + '/' +
+  const committed = boardFingerprint(s.pixels) + '/' +
     s.tunnels.map((t) => t.queue.map((c) => `${c.id}:${c.capacity}`).join(',')).join('|') + '/' +
     s.holding.map((c) => `${c.id}:${c.color}:${c.capacity}`).join(',');
   // An open epoch changes how the next launch arbitrates, so equivalent boards

@@ -41,6 +41,8 @@ export const haptics = {
   // Coalesced multi-charge impacts (see hapticArbiter): a pair, then a capped burst.
   pixelCombo: () => throttled('pixel', 60, () => impact(Haptics.ImpactFeedbackStyle.Medium)),
   pixelBurst: () => throttled('pixel', 60, () => impact(Haptics.ImpactFeedbackStyle.Heavy)),
+  // Frozen ice crack — a light, brittle tap, distinct from a pixel pop.
+  iceCrack: () => throttled('ice', 70, () => impact(Haptics.ImpactFeedbackStyle.Light)),
   chargeConsumed: () => impact(Haptics.ImpactFeedbackStyle.Medium),
   holdingLand: () => impact(Haptics.ImpactFeedbackStyle.Rigid),
   holdingCritical: () => throttled('warning', 600, () => notification(Haptics.NotificationFeedbackType.Warning)),

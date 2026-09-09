@@ -231,6 +231,14 @@ interface KindResult {
 }
 
 function frozen(state: string | undefined, progress: number, detail: MaterialDetail): KindResult {
+  // Engine-terminal state: every ice layer is gone, the base pixel is a normal
+  // uncleared pixel now. The shell renders nothing.
+  if (state === 'broken') {
+    return {
+      progression: 1, shellFailing: false, baseCompromised: true,
+      desaturate: 0, concealment: 0, counts: {}, features: {}, motion: null,
+    };
+  }
   const stage = state ?? (progress >= 0.95 ? 'breaking' : progress >= 0.75 ? 'fracturing'
     : progress >= 0.4 ? 'cracked2' : progress >= 0.15 ? 'cracked1' : 'intact');
   const cracks = { intact: 0, cracked1: 1, cracked2: 2, fracturing: 3, breaking: 3 }[stage] ?? 0;

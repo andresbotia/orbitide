@@ -1,4 +1,5 @@
 import { ENCOUNTER_EPSILON, LAUNCH_SPACING, MAX_ACTIVE_CHARGES } from './concurrency';
+import { boardFingerprint, resolveMatchingHit } from './frozen';
 import { pickEncounter } from './pass';
 import { reachablePixels } from './pixels';
 import type {
@@ -42,6 +43,8 @@ interface Cursor {
   encounters: ActiveCharge['encounters'];
   phase: ActiveCharge['phase'];
   finishTime: number;
+  /** Pixel ids this cursor has already met this lap (Frozen re-hit guard). */
+  hitPixelIds: Set<string>;
 }
 
 /**
@@ -55,7 +58,7 @@ const SIM_CACHE_LIMIT = 250_000;
 function simKey(baseline: GameState, launches: EpochLaunch[]): string {
   // Insertion time is `index * LAUNCH_SPACING` and only the relative launch order
   // (= array order) affects the tie-break, so neither needs to be in the key.
-  const cleared = baseline.pixels.map((p) => (p.cleared ? '1' : '0')).join('');
+  const cleared = boardFingerprint(baseline.pixels);
   const launchList = launches
     .map((l) => `${l.source[0]}${l.originId}:${l.color}:${l.capacity}`)
     .join(',');
@@ -111,6 +114,7 @@ function simulateEpochUncached(baseline: GameState, launches: EpochLaunch[]): Ep
     encounters: [],
     phase: 'orbiting',
     finishTime: launch.insertionTime + 1,
+    hitPixelIds: new Set<string>(),
   }));
 
   // Logical time reached so far. While the sim advances, every still-orbiting
@@ -139,7 +143,7 @@ function simulateEpochUncached(baseline: GameState, launches: EpochLaunch[]): Ep
       }
       // No reachable target ahead *right now* is not the end of the lap — another
       // charge's clear may expose one before this charge comes around. Keep flying.
-      const hit = pickEncounter(size, reachable, c.launch.color, fromProgress);
+      const hit = pickEncounter(size, reachable, c.launch.color, fromProgress, c.hitPixelIds);
       if (!hit) continue;
       const time = c.launch.insertionTime + hit.progress;
       const better = best === null
@@ -164,12 +168,16 @@ function simulateEpochUncached(baseline: GameState, launches: EpochLaunch[]): Ep
     }
 
     simTime = Math.max(simTime, best.time);
-    pixels = pixels.map((p) => (p.id === best!.pixelId ? { ...p, cleared: true } : p));
+    const struck = pixels.find((p) => p.id === best!.pixelId)!;
+    const resolved = resolveMatchingHit(struck);
+    pixels = pixels.map((p) => (p.id === best!.pixelId ? resolved.pixel : p));
     const c = best.cursor;
     c.remaining -= 1;
     c.cursorTime = best.time;
     c.progress = best.progress;
-    c.encounters.push({ pixelId: best.pixelId, time: best.time, progress: best.progress, remaining: c.remaining });
+    c.hitPixelIds.add(best.pixelId);
+    c.encounters.push({ pixelId: best.pixelId, time: best.time, progress: best.progress, remaining: c.remaining,
+      ...(resolved.frozenBreak ? { frozenBreak: true } : {}) });
     if (c.remaining === 0) {
       c.phase = 'finished';
       c.finishTime = best.time;
@@ -315,7 +323,7 @@ export function flushEpoch(plan: EpochPlan, resolution: EpochResolution): GameSt
  * board need to appear; equivalent situations produce an identical string.
  */
 export function epochResidueKey(epoch: EpochState): string {
-  const cleared = epoch.baseline.pixels.map((p) => (p.cleared ? '1' : '0')).join('');
+  const cleared = boardFingerprint(epoch.baseline.pixels);
   const tunnels = epoch.baseline.tunnels
     .map((t) => t.queue.map((c) => `${c.color}${c.capacity}`).join('.')).join('|');
   const holding = epoch.baseline.holding.map((c) => `${c.color}${c.capacity}`).join('.');

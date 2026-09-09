@@ -12,7 +12,7 @@ afterEach(() => { cancelPendingHaptics(); feedback.setSoundHandler(null); jest.u
 test.each([
   ['select', 'medium'], ['heldRelaunch', 'rigid'], ['denied', 'light'], ['orbitEnter', 'light'],
   ['pixelPop', 'rigid'], ['pixelCombo', 'medium'], ['pixelBurst', 'heavy'],
-  ['chargeConsumed', 'medium'], ['holdingLand', 'rigid'],
+  ['iceCrack', 'light'], ['chargeConsumed', 'medium'], ['holdingLand', 'rigid'],
   ['finalClear', 'heavy'], ['nextPress', 'medium'], ['gateLock', 'rigid'],
 ] as const)('%s has its intended impact weight', (event, weight) => {
   haptics[event](); expect(Native.impactAsync).toHaveBeenCalledWith(weight);

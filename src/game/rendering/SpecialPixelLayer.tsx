@@ -81,6 +81,9 @@ function SpecialShell({ center, cell, color, render, idle, reducedMotion }: {
   const pulse = useIdleMotion(render.motion ?? 'bombPulse', idle && render.motion !== null, reducedMotion);
   const pulseOpacity = useDerivedValue(() => 0.4 + pulse.value * 0.5);
 
+  // Frozen ice fully cracked — the base pixel (Pixel.tsx) renders as normal.
+  if (render.kind === 'frozen' && render.baseCompromised) return null;
+
   switch (render.shell) {
     case 'ice':
       return (
@@ -91,8 +94,11 @@ function SpecialShell({ center, cell, color, render, idle, reducedMotion }: {
               <RoundedRect x={x - 2} y={y - 2} width={outer + 4} height={outer + 4} r={cell * 0.3} color="#CFE8FF" />
             </Group>
           ) : null}
-          <RoundedRect x={x} y={y} width={outer} height={outer} r={cell * 0.26} color="rgba(200,230,255,0.22)" />
-          <RoundedRect x={x} y={y} width={outer} height={outer} r={cell * 0.26} color="rgba(220,240,255,0.5)" style="stroke" strokeWidth={Math.max(1, cell * 0.08)} />
+          {/* Thick translucent slab: a filled body, a bright bevel, and a heavier
+              outer edge so the shell reads as a real volume, not a flat overlay. */}
+          <RoundedRect x={x} y={y} width={outer} height={outer} r={cell * 0.26} color="rgba(200,230,255,0.28)" />
+          <RoundedRect x={x + outer * 0.14} y={y + outer * 0.14} width={outer * 0.72} height={outer * 0.72} r={cell * 0.2} color="rgba(235,248,255,0.16)" />
+          <RoundedRect x={x} y={y} width={outer} height={outer} r={cell * 0.26} color="rgba(220,240,255,0.62)" style="stroke" strokeWidth={Math.max(1.5, cell * (render.detail === 'minimal' ? 0.07 : 0.11))} />
           {render.features.rimLight ? (
             <Path
               path={`M ${x + cell * 0.12} ${y + outer * 0.7} A ${outer * 0.5} ${outer * 0.5} 0 0 1 ${x + outer * 0.7} ${y + cell * 0.12}`}
