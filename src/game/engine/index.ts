@@ -1,5 +1,7 @@
 export * from './types';
 export * from './art';
+export * from './concurrency';
+export * from './epoch';
 export * from './createGame';
 export * from './pixels';
 export * from './selectors';

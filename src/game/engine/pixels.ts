@@ -71,11 +71,32 @@ function exteriorCells(state: GameState): Set<string> {
 }
 
 /**
+ * The exterior flood fill dominates the cost of every exposure query, and the
+ * concurrent engine and the solver hit the same board shapes thousands of times.
+ * Memoize the exterior cell set by grid size + solid-cell coordinates (colours
+ * and pixel identity are irrelevant to reachability); the cheap per-pixel filter
+ * still runs against the caller's own live pixel objects.
+ */
+const EXTERIOR_CACHE = new Map<string, Set<string>>();
+const EXTERIOR_CACHE_LIMIT = 250_000;
+
+function cachedExteriorCells(state: GameState): Set<string> {
+  let mask = `${state.width}x${state.height}`;
+  for (const p of state.pixels) if (!p.cleared) mask += `|${p.x},${p.y}`;
+  const cached = EXTERIOR_CACHE.get(mask);
+  if (cached) return cached;
+  const result = exteriorCells(state);
+  if (EXTERIOR_CACHE.size >= EXTERIOR_CACHE_LIMIT) EXTERIOR_CACHE.clear();
+  EXTERIOR_CACHE.set(mask, result);
+  return result;
+}
+
+/**
  * Whether an uncleared pixel is currently reachable: at least one orthogonal
  * neighbour is exterior-connected empty space (off-grid counts as exterior).
  */
 export function reachablePixels(state: GameState): Pixel[] {
-  const exterior = exteriorCells(state);
+  const exterior = cachedExteriorCells(state);
   return state.pixels.filter((p) => {
     if (p.cleared) return false;
     return ORTHO.some(([dx, dy]) => exterior.has(key(p.x + dx, p.y + dy)));

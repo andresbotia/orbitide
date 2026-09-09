@@ -80,6 +80,82 @@ export interface ChargeSpec {
   capacity: number;
 }
 
+/** Where a launched charge came from. */
+export type ChargeSource = 'tunnel' | 'holding';
+
+/**
+ * One accepted launch, recorded on the epoch so the whole concurrent timeline
+ * can be re-simulated deterministically. Serializable.
+ */
+export interface EpochLaunch {
+  /** Runtime id of the charge (stable across a held relaunch). */
+  chargeId: string;
+  source: ChargeSource;
+  /** Tunnel id or holding charge id the launch was taken from. */
+  originId: string;
+  color: OrbColor;
+  /** Capacity the charge launched with. */
+  capacity: number;
+  /** Logical lap-time the charge enters the orbit at ORBIT_INSERTION. */
+  insertionTime: number;
+  /** Global monotonic launch order (equals `movesApplied` at acceptance). */
+  launchSequence: number;
+}
+
+/** One resolved clear by an active charge, with its logical timing. */
+export interface ActiveEncounter {
+  pixelId: string;
+  /** Absolute logical lap-time of the clear. */
+  time: number;
+  /** Lap-progress of the owning charge at the clear (`time - insertionTime`). */
+  progress: number;
+  /** Owning charge's capacity immediately after this clear. */
+  remaining: number;
+}
+
+export type ActiveChargePhase = 'orbiting' | 'finished';
+
+/**
+ * Independent per-charge runtime state. Each active charge is fully
+ * self-describing: no global "current target", "current pass timer" or
+ * "projectile" is shared between charges.
+ */
+export interface ActiveCharge {
+  id: string;
+  source: ChargeSource;
+  originId: string;
+  color: OrbColor;
+  /** Capacity the charge launched with. */
+  capacity: number;
+  remainingCapacity: number;
+  insertionTime: number;
+  launchSequence: number;
+  /** Laps completed (0 or 1 under the one-lap-per-launch rule). */
+  passCount: number;
+  phase: ActiveChargePhase;
+  encounters: ActiveEncounter[];
+  /**
+   * Logical lap-time the charge leaves the orbit — its last encounter, or
+   * `insertionTime + 1` when it completes a full lap with capacity to spare.
+   */
+  finishTime: number;
+  /** Where the charge ends up once the epoch flushes. */
+  landed: 'consumed' | 'holding';
+}
+
+/**
+ * A batch of launches whose laps overlap in logical time, resolved as one
+ * deterministic timeline. `baseline` is the committed truth when the epoch
+ * opened (always `epoch: null`, `activeCharges: []`); replaying `launches`
+ * against it reproduces the current state exactly.
+ */
+export interface EpochState {
+  baseline: GameState;
+  launches: EpochLaunch[];
+  /** Insertion time the next launch would use. */
+  clock: number;
+}
+
 export type LevelDifficulty = 'easy' | 'medium' | 'hard' | 'super-hard' | 'extreme';
 
 /**
@@ -152,4 +228,12 @@ export interface GameState {
   status: GameStatus;
   /** Number of player launches that have been accepted. Useful for race guards. */
   movesApplied: number;
+  /**
+   * Charges launched into the current epoch, each with its independent resolved
+   * state. Empty when no launch has happened or the previous epoch has flushed.
+   * Counts toward {@link MAX_ACTIVE_CHARGES} while the epoch is open.
+   */
+  activeCharges: ActiveCharge[];
+  /** The open concurrent-launch epoch, or `null` when the rail is idle. */
+  epoch: EpochState | null;
 }

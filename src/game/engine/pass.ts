@@ -1,6 +1,6 @@
 import { ORBIT_ENTRY_FRACTION, clockwiseGap } from './orbit';
 import { pictureCenter, pixelEncounterFraction, reachablePixels } from './pixels';
-import type { Charge, GameState } from './types';
+import type { Charge, GameState, OrbColor, Pixel } from './types';
 
 export interface Encounter {
   pixelId: string;
@@ -19,32 +19,63 @@ export interface ChargePass {
 export function startPass(state: GameState, charge: Charge): ChargePass {
   return { state, charge: { ...charge }, progress: 0, phase: 'encounter', encounters: [] };
 }
+/**
+ * The pure "which pixel does this charge reach next" selection, over an
+ * already-computed list of currently-reachable pixels. Nearest ahead of
+ * `fromProgress`, then outer radius, then pixel id — identical ordering to the
+ * M1 deterministic clear order. Shared by the M1 one-pass resolver and the M2B
+ * concurrent {@link simulateEpoch} so both agree exactly.
+ */
+export function pickEncounter(
+  size: Pick<GameState, 'width' | 'height'>,
+  reachable: Pixel[],
+  color: OrbColor,
+  fromProgress: number,
+): { pixelId: string; progress: number } | null {
+  const { cx, cy } = pictureCenter(size);
+  const candidates = reachable
+    .filter((p) => p.color === color)
+    .map((p) => ({
+      pixel: p,
+      // The centre is equally near everywhere: encounter it at the current position.
+      progress: p.x === cx && p.y === cy ? fromProgress : clockwiseGap(
+        ORBIT_ENTRY_FRACTION, pixelEncounterFraction(size, p, ORBIT_ENTRY_FRACTION)),
+      radius: (p.x - cx) ** 2 + (p.y - cy) ** 2,
+    }))
+    .filter((p) => p.progress + 1e-9 >= fromProgress)
+    .sort((a, b) => Math.abs(a.progress - b.progress) > 1e-9
+      ? a.progress - b.progress
+      : b.radius - a.radius || (a.pixel.id < b.pixel.id ? -1 : a.pixel.id > b.pixel.id ? 1 : 0));
+  const target = candidates[0];
+  if (!target) return null;
+  return { pixelId: target.pixel.id, progress: Math.max(fromProgress, target.progress) };
+}
+/**
+ * The next reachable matching pixel a charge reaches, reading fresh exposure
+ * from `state`. A caller that mutates the board between calls automatically sees
+ * newly exposed targets.
+ */
+export function nextEncounter(
+  state: GameState,
+  color: OrbColor,
+  fromProgress: number,
+): { pixelId: string; progress: number } | null {
+  return pickEncounter(state, reachablePixels(state), color, fromProgress);
+}
 /** Travel to the next contact, resolve one shot, then query fresh exposure next step. */
 export function advancePass(pass: ChargePass): ChargePass {
   if (pass.phase === 'finished') return pass;
   if (pass.charge.capacity <= 0) return { ...pass, phase: 'finished' };
-  const { cx, cy } = pictureCenter(pass.state);
-  const candidates = reachablePixels(pass.state)
-    .filter((p) => p.color === pass.charge.color)
-    .map((p) => ({ pixel: p,
-      // The centre is equally near everywhere: encounter it at the current position.
-      progress: p.x === cx && p.y === cy ? pass.progress : clockwiseGap(
-        ORBIT_ENTRY_FRACTION, pixelEncounterFraction(pass.state, p, ORBIT_ENTRY_FRACTION)),
-      radius: (p.x - cx) ** 2 + (p.y - cy) ** 2,
-    }))
-    .filter((p) => p.progress + 1e-9 >= pass.progress)
-    .sort((a, b) => Math.abs(a.progress - b.progress) > 1e-9
-      ? a.progress - b.progress : b.radius - a.radius || (a.pixel.id < b.pixel.id ? -1 : a.pixel.id > b.pixel.id ? 1 : 0));
-  const target = candidates[0];
-  if (!target) return { ...pass, progress: 1, phase: 'finished' };
-  const progress = Math.max(pass.progress, target.progress);
+  const hit = nextEncounter(pass.state, pass.charge.color, pass.progress);
+  if (!hit) return { ...pass, progress: 1, phase: 'finished' };
+  const progress = hit.progress;
   const remaining = pass.charge.capacity - 1;
   return {
     ...pass, progress, charge: { ...pass.charge, capacity: remaining },
     phase: remaining === 0 ? 'finished' : 'encounter',
     state: { ...pass.state, pixels: pass.state.pixels.map((p) =>
-      p.id === target.pixel.id ? { ...p, cleared: true } : p) },
-    encounters: [...pass.encounters, { pixelId: target.pixel.id, progress, remaining }],
+      p.id === hit.pixelId ? { ...p, cleared: true } : p) },
+    encounters: [...pass.encounters, { pixelId: hit.pixelId, progress, remaining }],
   };
 }
 /** M1 has one active pass: safely evaluate discrete steps ahead of presentation. */

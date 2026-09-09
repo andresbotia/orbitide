@@ -39,6 +39,8 @@ export function createGame(level: LevelDefinition): GameState {
     holding: [],
     status: 'playing',
     movesApplied: 0,
+    activeCharges: [],
+    epoch: null,
   };
 }
 
