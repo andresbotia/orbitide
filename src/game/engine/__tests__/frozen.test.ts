@@ -11,7 +11,7 @@ import { createGame } from '../createGame';
 import { boardFingerprint, iceLayers, isIced, resolveMatchingHit } from '../frozen';
 import { reachablePixels } from '../pixels';
 import { resolveAction } from '../resolveLaunch';
-import { solve } from '../solver';
+import { solve, stateKey } from '../solver';
 import { traceActions } from '../trace';
 import type { LevelDefinition } from '../types';
 
@@ -55,6 +55,17 @@ describe('frozen.ts pure helpers', () => {
     const thawed = boardFingerprint(g.pixels.map((p) => (p.x === 1 ? resolveMatchingHit(p).pixel : p)));
     expect(iced).toBe('0B0');
     expect(thawed).toBe('000');
+  });
+
+  test('the solver stateKey distinguishes iced from thawed, and collapses thawed with plain', () => {
+    const iced = createGame(STRIP);
+    const thaw = (s: ReturnType<typeof createGame>) => ({
+      ...s, pixels: s.pixels.map((p) => (p.x === 1 ? resolveMatchingHit(p).pixel : p)),
+    });
+    const plain = createGame({ ...STRIP, id: 9799, modifiers: undefined });
+    expect(stateKey(thaw(iced))).not.toBe(stateKey(iced));       // ice matters
+    expect(stateKey(thaw(iced)).replace(/9700/g, 'X'))
+      .toBe(stateKey(plain).replace(/9799/g, 'X'));               // thawed ≡ plain
   });
 });
 
