@@ -2,12 +2,16 @@ import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { LEVEL_DEFINITIONS } from '@/game/levels/levelDefinitions';
-import { toLevelDefinition } from '@/game/studio/serialize';
+import { nextFreeLevelId } from '@/game/studio/constants';
+import { duplicateLevel } from '@/game/studio/duplicate';
+import { fromLevelDefinition, toLevelDefinition } from '@/game/studio/serialize';
+import { useCampaignManifest } from '@/hooks/useCampaignManifest';
 import { useLevelAnalysis } from '@/hooks/useLevelAnalysis';
 import { useLevelStudio } from '@/hooks/useLevelStudio';
 import { STUDIO_NAME } from '@/theme/appIdentity';
 import { AnalysisPanel } from '@/components/studio/AnalysisPanel';
 import { BatchPanel } from '@/components/studio/BatchPanel';
+import { CampaignPanel } from '@/components/studio/CampaignPanel';
 import { MetadataPanel } from '@/components/studio/MetadataPanel';
 import { ModifierPanel } from '@/components/studio/ModifierPanel';
 import { PalettePanel } from '@/components/studio/PalettePanel';
@@ -35,9 +39,19 @@ import { studioSpace, studioTheme } from '@/components/studio/theme';
 export function LevelStudioScreen() {
   const studio = useLevelStudio();
   const analysis = useLevelAnalysis(studio.level, studio.report.exportable);
+  const campaign = useCampaignManifest(useMemo(() => LEVEL_DEFINITIONS.map((l) => l.id), []));
   const [tab, setTab] = useState<StudioTab>('editor');
   const { width } = useWindowDimensions();
   const wide = width > 960;
+
+  const openLevel = (id: number) => { studio.loadCampaign(id); setTab('editor'); };
+  const duplicateFromBrowser = (id: number) => {
+    const def = LEVEL_DEFINITIONS.find((l) => l.id === id);
+    if (!def) return;
+    const nextId = nextFreeLevelId(LEVEL_DEFINITIONS.map((l) => l.id));
+    studio.loadStudioLevel(duplicateLevel(fromLevelDefinition(def), { id: nextId }));
+    setTab('editor');
+  };
 
   const playDefinition = useMemo(
     () => (studio.mode === 'play' && studio.report.exportable ? toLevelDefinition(studio.level) : null),
@@ -149,6 +163,15 @@ export function LevelStudioScreen() {
           ) : null}
           {tab === 'failPath' ? (
             <WitnessVisualizer key={`fail-${analysis.runId}`} trace={analysis.analysis?.failingTrace ?? null} kind="fail" emptyMessage={witnessHint(analysis, 'failing')} />
+          ) : null}
+          {tab === 'campaign' ? (
+            <CampaignPanel
+              defs={LEVEL_DEFINITIONS}
+              ctrl={campaign}
+              onOpen={openLevel}
+              onDuplicate={duplicateFromBrowser}
+              onNew={() => { studio.newLevel(); setTab('editor'); }}
+            />
           ) : null}
           {tab === 'batch' ? <BatchPanel ctrl={analysis} /> : null}
         </ScrollView>

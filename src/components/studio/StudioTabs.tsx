@@ -2,13 +2,14 @@ import { StyleSheet, Text, Pressable, View } from 'react-native';
 
 import { studioSpace, studioTheme } from './theme';
 
-export type StudioTab = 'editor' | 'analysis' | 'winPath' | 'failPath' | 'batch';
+export type StudioTab = 'editor' | 'analysis' | 'winPath' | 'failPath' | 'campaign' | 'batch';
 
 export const STUDIO_TABS: { id: StudioTab; label: string }[] = [
   { id: 'editor', label: 'EDITOR' },
   { id: 'analysis', label: 'ANALYSIS' },
   { id: 'winPath', label: 'WIN PATH' },
   { id: 'failPath', label: 'FAIL PATH' },
+  { id: 'campaign', label: 'CAMPAIGN' },
   { id: 'batch', label: 'BATCH' },
 ];
 
