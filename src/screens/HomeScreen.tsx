@@ -5,6 +5,7 @@ import { useReducedMotion, useSharedValue, withTiming } from 'react-native-reani
 import { useFocusEffect } from 'expo-router';
 
 import { PlayButton } from '@/components/PlayButton';
+import { PixelArcadiaWordmark } from '@/components/brand';
 import { FloatingFragments } from '@/components/home/FloatingFragments';
 import { HomeCenterpiece } from '@/components/home/HomeCenterpiece';
 import { LevelBadge } from '@/components/home/LevelBadge';
@@ -14,10 +15,9 @@ import { getLevel, requireLevel, TOTAL_LEVELS } from '@/game/levels/levels';
 import { ambientChargeSpecs, computeHomeLayout, homeLevelPreview } from '@/game/rendering/homeGeometry';
 import { useAmbientActive } from '@/hooks/useAmbientActive';
 import { feedback } from '@/game/feedback';
-import { PRODUCT_WORDMARK } from '@/theme/appIdentity';
 import { arcade } from '@/theme/arcade';
-import { palette } from '@/theme/colors';
-import { spacing, typography } from '@/theme/spacing';
+import { brandColor } from '@/theme/brand';
+import { spacing } from '@/theme/spacing';
 
 interface HomeScreenProps {
   highestUnlockedLevel: number;
@@ -89,16 +89,20 @@ export function HomeScreen({ highestUnlockedLevel, loading, onPlay, onSecretRese
         <TopUtility />
 
         <View style={styles.hero} onLayout={onBandLayout}>
-          <Text
+          <PixelArcadiaWordmark
+            size={26}
+            layout="stacked"
+            align="center"
             style={styles.wordmark}
             onLongPress={__DEV__ ? onSecretReset : undefined}
-            suppressHighlighting
-          >
-            {PRODUCT_WORDMARK}
-          </Text>
+          />
 
           {band.width > 0 ? (
             <>
+              <View pointerEvents="none" style={styles.coreWash}>
+                <View style={styles.coreWashOuter} />
+                <View style={styles.coreWashInner} />
+              </View>
               <HomeCenterpiece
                 layout={layout}
                 preview={preview}
@@ -137,11 +141,33 @@ const styles = StyleSheet.create({
   wordmark: {
     position: 'absolute',
     top: spacing.md,
-    ...typography.wordmark,
-    fontSize: 28,
-    letterSpacing: 5,
-    color: palette.textSecondary,
-    opacity: 0.9,
+    alignSelf: 'center',
+  },
+  // One warm radial borrowed from the icon's core light, ≤18% — the whole of
+  // Home's arch-motif budget. No portal geometry behind the level preview.
+  coreWash: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coreWashOuter: {
+    position: 'absolute',
+    width: 460,
+    height: 460,
+    borderRadius: 230,
+    backgroundColor: brandColor.glow,
+    opacity: 0.06,
+  },
+  coreWashInner: {
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: brandColor.glow,
+    opacity: 0.1,
   },
   controls: {
     alignItems: 'center',

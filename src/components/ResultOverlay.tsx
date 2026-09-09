@@ -2,6 +2,8 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import type { GameStatus } from '@/game/engine/types';
+import { PrimaryCta } from '@/components/brand';
+import { brandColor } from '@/theme/brand';
 import { palette } from '@/theme/colors';
 import { radius, spacing, typography } from '@/theme/spacing';
 
@@ -46,23 +48,14 @@ export function ResultOverlay({
         </Text>
 
         {won ? (
-          <Pressable
-            style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
+          <PrimaryCta
+            label={hasNextLevel ? 'Next Level' : 'Back to Home'}
             onPress={hasNextLevel ? onNext : onHome}
-            accessibilityRole="button"
-          >
-            <Text style={styles.primaryText}>
-              {hasNextLevel ? 'NEXT LEVEL' : 'BACK TO HOME'}
-            </Text>
-          </Pressable>
+            fullWidth
+            style={styles.cta}
+          />
         ) : (
-          <Pressable
-            style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
-            onPress={onRetry}
-            accessibilityRole="button"
-          >
-            <Text style={styles.primaryText}>TRY AGAIN</Text>
-          </Pressable>
+          <PrimaryCta label="Try Again" onPress={onRetry} fullWidth style={styles.cta} />
         )}
 
         <Pressable onPress={onHome} hitSlop={10} accessibilityRole="button">
@@ -91,9 +84,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing.xl,
     borderRadius: radius.lg,
-    backgroundColor: palette.surface,
+    backgroundColor: brandColor.surface,
     borderWidth: 1,
-    borderColor: palette.surfaceBorder,
+    borderColor: brandColor.border,
     width: '100%',
     maxWidth: 340,
   },
@@ -106,19 +99,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-  primary: {
-    marginTop: spacing.sm,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xxl,
-    borderRadius: radius.pill,
-    backgroundColor: palette.core,
-  },
-  pressed: { opacity: 0.7 },
-  primaryText: {
-    ...typography.label,
-    color: palette.void,
-    fontSize: 14,
-  },
+  cta: { marginTop: spacing.sm },
   secondary: {
     color: palette.textFaint,
     fontSize: 13,
