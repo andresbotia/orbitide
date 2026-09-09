@@ -14,6 +14,7 @@ import { getLevel, requireLevel, TOTAL_LEVELS } from '@/game/levels/levels';
 import { ambientChargeSpecs, computeHomeLayout, homeLevelPreview } from '@/game/rendering/homeGeometry';
 import { useAmbientActive } from '@/hooks/useAmbientActive';
 import { feedback } from '@/game/feedback';
+import { PRODUCT_WORDMARK } from '@/theme/appIdentity';
 import { arcade } from '@/theme/arcade';
 import { palette } from '@/theme/colors';
 import { spacing, typography } from '@/theme/spacing';
@@ -93,7 +94,7 @@ export function HomeScreen({ highestUnlockedLevel, loading, onPlay, onSecretRese
             onLongPress={__DEV__ ? onSecretReset : undefined}
             suppressHighlighting
           >
-            ORBITIDE
+            {PRODUCT_WORDMARK}
           </Text>
 
           {band.width > 0 ? (
