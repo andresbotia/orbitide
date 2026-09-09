@@ -11,7 +11,8 @@ validation, artwork transforms, and deterministic import/export.
 It does **not** change core gameplay rules, add a backend / ads / IAP / economy,
 or start M4 campaign tuning.
 
-Commits: `d45edb8` (M3C.1) · `48752ff` (M3C.2) · `<this>` (M3C.3).
+Commits: `d45edb8` (M3C.1) · `48752ff` (M3C.2) · `ec787b9` (M3C.3) + a docs
+finalize commit.
 
 ---
 
@@ -370,9 +371,25 @@ No existing assertion was weakened.
 
 ## 16. Verification
 
-See the M3C section of the milestone report for the full run (jest / tsc /
-eslint / expo-doctor / web+ios+android export). Studio remains **dev-web-only** —
-`app/studio.tsx` still redirects outside `__DEV__ && Platform.OS === 'web'` and
-native bundles resolve the `null` `studioEntry` stub.
+- `npx jest` — **42 suites / 410 tests pass** (was 34 / 314 at the start of M3C;
+  +8 suites / +96). No existing assertion weakened; `roundTrip.test.ts`,
+  `metrics.test.ts`, `levelDefinitions.test.ts` untouched and green.
+- `npx tsc --noEmit` (strict, `noUncheckedIndexedAccess`, `noImplicitOverride`) — **clean**
+- `npx eslint .` — **clean**
+- `npx expo-doctor` — **21 / 21**
+- `npx expo export -p web` — **succeeds** (`dist/m3c-web`)
+- `npx expo export -p ios` — **succeeds** (`dist/m3c-ios`)
+- `npx expo export -p android` — **succeeds** (`dist/m3c-android`)
+- **Studio stays dev-web-only** — grepping the exported iOS + Android Hermes
+  bytecode for `ORBITIDE Level Studio`, `Campaign manifest`, `batchValidate`,
+  `thumbnailSVG`, `MODIFIER_SPECS`, `LevelBrowser`, `useCampaignManifest` and
+  `canvaskit`: **0 hits each**. Web JS carries them (expected — `app/studio.tsx`
+  redirects at runtime outside `__DEV__ && Platform.OS === 'web'`; native
+  resolves the `null` `studioEntry` stub). The engine's `attachModifiers` /
+  `ModifierInstance` types are in the native bundle (they always were — pure,
+  inert engine code).
+
+Not run: interactive browser session / on-device play (standing project
+caveat — no simulator / device in this environment).
 
 **Do not merge. Do not push.**
