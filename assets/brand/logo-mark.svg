@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Pixel Arcadia">
+  <defs>
+    <radialGradient id="pa-core" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="28%" stop-color="#FFF0B8"/>
+      <stop offset="58%" stop-color="#FFC94D"/>
+      <stop offset="100%" stop-color="#F2662E"/>
+    </radialGradient>
+    <linearGradient id="pa-block" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8FA8FF"/>
+      <stop offset="100%" stop-color="#4B47C9"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#pa-block)">
+    <rect x="49" y="12" width="22" height="18" rx="4"/>
+    <rect x="24.5" y="22" width="20" height="18" rx="4" transform="rotate(-32 34.5 31)"/>
+    <rect x="75.5" y="22" width="20" height="18" rx="4" transform="rotate(32 85.5 31)"/>
+    <rect x="14" y="46" width="20" height="58" rx="4"/>
+    <rect x="86" y="46" width="20" height="58" rx="4"/>
+  </g>
+  <g fill="url(#pa-core)">
+    <rect x="46" y="46" width="28" height="28" rx="3"/>
+    <rect x="39" y="53" width="7" height="14"/>
+    <rect x="74" y="53" width="7" height="14"/>
+    <rect x="53" y="39" width="14" height="7"/>
+    <rect x="53" y="74" width="14" height="7"/>
+  </g>
+</svg>

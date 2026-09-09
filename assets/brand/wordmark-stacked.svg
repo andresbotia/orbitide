@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 160" width="300" height="160" role="img" aria-label="PIXEL ARCADIA">
+  <style>
+    text { font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 700; font-size: 44px; letter-spacing: 6.2px; text-anchor: middle; }
+  </style>
+  <text x="150" y="62" fill="#EDEAF6">PIXEL</text>
+  <text x="150" y="118" fill="#FFB24D">ARCADIA</text>
+</svg>

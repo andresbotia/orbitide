@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 96" width="520" height="96" role="img" aria-label="PIXEL ARCADIA">
+  <!-- Live-text master. In-app the wordmark is rendered as accessible Space
+       Grotesk 700 text (see components/brand/PixelArcadiaWordmark). This asset
+       is for splash / marketing lockups; outline the glyphs before external
+       hand-off so tracking cannot drift. -->
+  <style>
+    text { font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 700; font-size: 46px; letter-spacing: 4.6px; }
+  </style>
+  <text x="24" y="62" fill="#EDEAF6">PIXEL<tspan dx="6" fill="#FFB24D">ARCADIA</tspan></text>
+</svg>
