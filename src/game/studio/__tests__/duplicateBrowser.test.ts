@@ -82,7 +82,7 @@ describe('level browser', () => {
 
   test('search / filter / sort are pure list transforms', () => {
     const rows = buildBrowserRows(defs, CAMPAIGN_MANIFEST);
-    expect(filterRows(rows, { query: 'moon' }).map((r) => r.id)).toEqual([1]);
+    expect(filterRows(rows, { query: 'guiding' }).map((r) => r.id)).toEqual([2]);
     expect(filterRows(rows, { difficulty: 'hard' }).map((r) => r.id)).toEqual([10]);
     expect(filterRows(rows, { status: 'error' })).toEqual([]);
 

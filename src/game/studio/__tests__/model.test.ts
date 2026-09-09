@@ -5,6 +5,7 @@ import {
 } from '../model';
 import { cellKey } from '../grid';
 import type { StudioLevel } from '../types';
+import { LEVEL_DEFINITIONS } from '../../levels/levelDefinitions';
 
 describe('blank level + loading', () => {
   test('a blank level has an empty board, three empty tunnels and the next free id', () => {
@@ -12,13 +13,13 @@ describe('blank level + loading', () => {
     expect(Object.keys(level.cells)).toHaveLength(0);
     expect(level.tunnels).toEqual([[], [], []]);
     expect(level.holdingCapacity).toBe(3);
-    expect(level.id).toBe(11); // campaign has 1..10
+    expect(level.id).toBe(LEVEL_DEFINITIONS.length + 1); // next free id after the campaign
   });
 
   test('an existing campaign level loads into an editable document', () => {
     const level = loadCampaignLevel(1);
     expect(level.id).toBe(1);
-    expect(level.title).toBe('Moon');
+    expect(level.title).toBe('First Light');
     expect(level.width).toBe(7);
     expect(level.height).toBe(7);
     expect(Object.keys(level.cells).length).toBeGreaterThan(0);

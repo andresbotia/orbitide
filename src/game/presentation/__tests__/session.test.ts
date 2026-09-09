@@ -58,7 +58,7 @@ test('a second launch while the first orbits joins as a concurrent flight', () =
 });
 
 test('the rail caps at five flights; a sixth launch is denied cleanly', () => {
-  const root = mount(7); // tunnel-0 has four queued charges
+  const root = mount(10); // tunnel-0 has three queued charges
   for (const t of ['tunnel-0', 'tunnel-0', 'tunnel-0', 'tunnel-1', 'tunnel-2']) {
     act(() => { session.launch(t); });
   }

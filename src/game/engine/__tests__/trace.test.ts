@@ -41,9 +41,11 @@ test('a winning witness traces to a won final state that deep-equals a direct re
 }, 120_000);
 
 test('a failing witness traces to a lost final state', () => {
-  const failPath = solve(L(7)).failPath;
+  // The first campaign level with a genuine fail path (a Hard finale).
+  const level = LEVEL_DEFINITIONS.find((l) => solve(l).failPath !== null)!;
+  const failPath = solve(level).failPath;
   expect(failPath).not.toBeNull();
-  const trace = traceActions(L(7), failPath!);
+  const trace = traceActions(level, failPath!);
   expect(trace.outcome).toBe('lost');
   expect(trace.finalStatus).toBe('lost');
   expect(remainingPixelCount(trace.frames[trace.frames.length - 1]!)).toBeGreaterThan(0);

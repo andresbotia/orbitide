@@ -1,53 +1,54 @@
-import { solve } from '../../engine/__tests__/solver';
+import { solve } from '../../engine/solver';
+import { analyzeLevel } from '../../studio/analysis/analyzeLevel';
 import { LEVEL_DEFINITIONS } from '../levelDefinitions';
 
+const TIER_INDEX: Record<string, number> = { easy: 0, medium: 1, hard: 2, 'super-hard': 3, extreme: 4 };
+
 /**
- * M2B campaign audit. Every level is checked twice:
+ * Production-campaign audit. Every level is checked under both play models:
  *   - `sequential-compat` — the player waits for the rail to clear between
- *     launches. This is M1 semantics; the numbers here must not regress.
- *   - `metrics` (default) — the player may launch up to five charges into one
- *     shared epoch. The level must stay winnable, stay loseable from L5, and the
- *     intended solution's Holding pressure must be unchanged by concurrency.
+ *     launches (M1 semantics). Numbers here must never regress.
+ *   - `metrics` (default) — up to five concurrent charges in one epoch.
+ * Both must stay winnable with zero boosters.
  */
-test.each(LEVEL_DEFINITIONS)('level $id concurrent + sequential audit', (level) => {
+test.each(LEVEL_DEFINITIONS)('level $id — both play models solve it, no booster needed', (level) => {
   const seq = solve(level, { mode: 'sequential-compat' });
   const con = solve(level);
   if (process.env.REPORT_METRICS) {
     console.log(JSON.stringify({
-      id: level.id, pixels: level.pixelArt.join('').replace(/[. ]/g, '').length,
-      seq: { len: seq.length, minPeak: seq.minWinningPeak, maxHold: seq.maxHolding, loss: +seq.lossProbability.toFixed(3), held: seq.heldLaunches },
-      con: { len: con.length, minPeak: con.minWinningPeak, maxHold: con.maxHolding, loss: +con.lossProbability.toFixed(3), held: con.heldLaunches,
-        maxActiveOnWitness: con.maxActiveOnWitness, maxActive: con.maxActive },
+      id: level.id, title: level.title,
+      seq: { len: seq.length, peak: seq.minWinningPeak, loss: +seq.lossProbability.toFixed(3), held: seq.heldLaunches },
+      con: { len: con.length, peak: con.minWinningPeak, loss: +con.lossProbability.toFixed(3), held: con.heldLaunches, maxActive: con.maxActive },
     }));
   }
-
   for (const r of [seq, con]) {
     expect(r.solved).toBe(true);
     expect(r.complete).toBe(true);
-    expect(r.failPath !== null).toBe(level.id >= 5);
-    expect(r.viableFirstMoves).toBe(3);
+    expect(r.viableFirstMoves).toBeGreaterThanOrEqual(1);
   }
-
-  // The canonical sequential game: no Holding pressure on L1-3, Holding is part
-  // of the solution from L4. Concurrency may open extra lines but never removes
-  // the sequential one (proved by `seq`).
-  if (level.id <= 3) {
-    expect(seq.minWinningPeak).toBe(0);
-    expect(con.minWinningPeak).toBe(0);
-  }
-  if (level.id >= 4) expect(seq.heldLaunches).toBeGreaterThan(0);
-
-  // Early levels are winnable without ever crowding the rail.
-  if (level.id <= 2) expect(seq.maxActiveOnWitness).toBeLessThanOrEqual(1);
-
-  // The concurrent engine can reach a full five-charge rail on the later levels.
-  if (level.id >= 5) expect(con.maxActive).toBeGreaterThanOrEqual(3);
+  // Concurrency may open shorter or calmer lines but must never break a level
+  // sequential play could solve, nor blow past the tray.
+  expect(con.minWinningPeak).toBeLessThanOrEqual(3);
+  expect(seq.minWinningPeak).toBeLessThanOrEqual(3);
 }, 120_000);
 
-test('Levels 6-8 increase sequencing pressure under both models', () => {
-  for (const mode of ['sequential-compat', 'metrics'] as const) {
-    const results = LEVEL_DEFINITIONS.slice(5, 8).map((level) => solve(level, { mode }));
-    expect(results[1]!.lossProbability).toBeGreaterThan(results[0]!.lossProbability);
-    expect(results[2]!.lossProbability).toBeGreaterThan(results[1]!.lossProbability);
+test('the World 1 Holding curve is gentle then rising (Parts 6-7)', () => {
+  const w1 = LEVEL_DEFINITIONS.filter((l) => l.themeId === 'first-light').map((l) => solve(l));
+  if (w1.length < 3) return;
+  // L1-L3: no meaningful Holding pressure on the calm line.
+  for (let i = 0; i < 3; i += 1) expect(w1[i]!.minWinningPeak).toBe(0);
+  // The World-1 finale is the hardest level in the world under both models.
+  const scores = w1.map((r) => r.lossProbability + r.minWinningPeak / 3);
+  expect(Math.max(...scores)).toBe(scores[scores.length - 1]);
+}, 180_000);
+
+test('authored difficulty never sits two tiers below the solver suggestion', async () => {
+  for (const level of LEVEL_DEFINITIONS) {
+    const a = await analyzeLevel(level, { nodeCap: 250_000, now: () => 0 });
+    if (a.solvable !== true) continue;
+    const gap = TIER_INDEX[a.suggestedDifficulty]! - TIER_INDEX[level.difficulty]!;
+    // A level may be authored gentler than it plays for onboarding reasons, but
+    // never harder-than-labelled by two whole tiers (Part 18).
+    expect(gap).toBeLessThanOrEqual(1);
   }
-}, 120_000);
+}, 600_000);

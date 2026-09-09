@@ -17,8 +17,8 @@ test('a no-Holding level reports zero pressure', () => {
 }, 60_000);
 
 test('a Holding-using line records occupancy, entries and duration', () => {
-  // Level 4 needs a held relaunch on every winning line.
-  const def = LEVEL_DEFINITIONS[3]!;
+  // The World-1 Hard finale needs held relaunches on its winning line.
+  const def = LEVEL_DEFINITIONS.find((l) => l.title === 'Ring Nebula')!;
   const trace = traceActions(def, solve(def).moves);
   const p = holdingPressure(trace, def.holdingCapacity);
   expect(p.holdingCapacity).toBe(3);

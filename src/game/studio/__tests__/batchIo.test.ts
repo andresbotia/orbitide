@@ -60,7 +60,7 @@ describe('export', () => {
     const ts = exportLevelsTS([LEVEL_DEFINITIONS[0]!, LEVEL_DEFINITIONS[1]!]);
     expect(ts.trim().startsWith('[')).toBe(true);
     expect(ts.trim().endsWith(']')).toBe(true);
-    expect(ts).toContain("title: 'Moon'");
+    expect(ts).toContain(`title: '${LEVEL_DEFINITIONS[0]!.title}'`);
   });
 
   test('exportCampaignBundle carries both schema versions and is deterministic', () => {
