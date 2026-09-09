@@ -154,7 +154,13 @@ export function solve(level: LevelDefinition, opts: SolveOptions = {}): SolveRes
     if (cached) return cached;
     if (++nodes > nodeCap) throw new NodeCapExceeded(level.id, nodeCap);
     const actions = enumerateActions(state, mode);
-    if (!actions.length) throw new Error('Runtime failed to mark a deadlock');
+    if (!actions.length) {
+      // The runtime keeps this state alive via a join into the open epoch — a
+      // move `sequential-compat` deliberately ignores. That is a dead end for
+      // sequential play, not a runtime deadlock bug.
+      if (mode === 'sequential-compat') return { win: null, fail: [], minPeak: Infinity, loss: 1 };
+      throw new Error('Runtime failed to mark a deadlock');
+    }
     branchSum += actions.length;
     let win: GameAction[] | null = null;
     let fail: GameAction[] | null = null;
