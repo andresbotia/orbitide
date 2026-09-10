@@ -101,6 +101,16 @@ describe('import', () => {
     expect(result.manifest?.worlds[0]?.id).toBe('first-light');
   });
 
+  test('preserves Linked group identity through JSON export and import', () => {
+    const linked = LEVEL_DEFINITIONS.find((level) => level.id === 80)!;
+    const result = importStudioJSON(exportLevelsJSON([linked]));
+    expect(result.ok).toBe(true);
+    const groups = (modifiers: typeof linked.modifiers) => Object.fromEntries(
+      Object.entries(modifiers ?? {}).map(([key, modifier]) => [key, modifier.group]),
+    );
+    expect(groups(result.levels[0]!.modifiers)).toEqual(groups(linked.modifiers));
+  });
+
   test('accepts a single level object and an array', () => {
     const one = importStudioJSON(JSON.stringify(LEVEL_DEFINITIONS[0]));
     expect(one.ok).toBe(true);

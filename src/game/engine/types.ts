@@ -55,7 +55,7 @@ export interface ModifierInstance {
    * Linked gameplay and the connection renderer consume it.
    */
   group?: string;
-  /** Linked-pixel wiring (consumed by the connection renderer only). */
+  /** Runtime-hydrated Linked wiring consumed by rendering and diagnostics. */
   linkId?: string;
   linkedPixelIds?: string[];
   linkProgress?: number;
@@ -66,7 +66,7 @@ export interface ModifierInstance {
  * onto the picture from {@link LevelDefinition.pixelArt} by coordinate. Purely
  * additive: a level with no special pixels omits it and serialises exactly as
  * before. `createGame` copies each entry onto the matching {@link Pixel}; the
- * Frozen and Shielded resolvers then consume their shell state.
+ * Frozen, Shielded, and Linked resolvers then consume their state.
  */
 export type PixelModifierMap = Record<string, ModifierInstance>;
 

@@ -2,10 +2,12 @@ import { attachModifiers } from '../art';
 import { createGame } from '../createGame';
 import { boardFingerprint } from '../frozen';
 import { isLinkedPrimed, resolveBoardHit } from '../linked';
+import { reachablePixels } from '../pixels';
 import { resolveAction } from '../resolveLaunch';
 import { solve, stateKey } from '../solver';
 import { traceActions } from '../trace';
 import type { LevelDefinition, Pixel } from '../types';
+import { computeStatus } from '../winState';
 
 const LINKED: LevelDefinition = {
   id: 9760, title: 'Linked Fixture', themeId: 'fixture', difficulty: 'easy', holdingCapacity: 3,
@@ -36,6 +38,56 @@ test('first member hit spends its own capacity, primes it, and remains solid', (
   ]);
   expect(out.state.pixels[0]).toMatchObject({ cleared: false, modifier: { state: 'primed', linkProgress: 1 } });
   expect(out.state.pixels[1]).toMatchObject({ cleared: false });
+  expect(reachablePixels(out.state).some((pixel) => pixel.id === 'L9760-p0-0')).toBe(true);
+});
+
+test('an incomplete group without a partner action is a real deadlock', () => {
+  const primed = resolveAction(createGame(LINKED), action('tunnel-0')).state;
+  const stranded = {
+    ...primed,
+    tunnels: primed.tunnels.map((tunnel) => ({ ...tunnel, queue: [] })),
+    holding: [],
+    epoch: null,
+    activeCharges: [],
+  };
+  expect(computeStatus(stranded)).toBe('lost');
+});
+
+test('a partial group with a joinable partner action remains live and resolves', () => {
+  const primed = resolveAction(createGame(LINKED), action('tunnel-0')).state;
+  expect(primed.status).toBe('playing');
+  const joined = resolveAction(primed, action('tunnel-1', true));
+  expect(joined.accepted).toBe(true);
+  expect(joined.state.status).toBe('won');
+});
+
+test('an insufficient partner-color budget is unsolvable', () => {
+  const short: LevelDefinition = {
+    ...LINKED, id: 9765,
+    tunnels: [[{ color: 'red', capacity: 1 }], [{ color: 'white', capacity: 1 }], [{ color: 'yellow', capacity: 1 }]],
+  };
+  expect(solve(short).solved).toBe(false);
+});
+
+test('a concurrently vanished Linked target does not spend a later charge', () => {
+  const level: LevelDefinition = {
+    ...LINKED, id: 9766, pixelArt: ['R.R.G'],
+    modifiers: {
+      '0,0': { kind: 'linked', group: 'pair-a' }, '2,0': { kind: 'linked', group: 'pair-a' },
+    },
+    tunnels: [
+      [{ color: 'red', capacity: 1 }],
+      [{ color: 'red', capacity: 1 }],
+      [{ color: 'red', capacity: 1 }, { color: 'green', capacity: 1 }],
+    ],
+  };
+  let state = resolveAction(createGame(level), action('tunnel-0')).state;
+  state = resolveAction(state, action('tunnel-1', true)).state;
+  const third = resolveAction(state, action('tunnel-2', true));
+  const charge = third.epochCharges!.find((candidate) => candidate.originId === 'tunnel-2')!;
+  expect(charge.encounters).toEqual([]);
+  expect(charge.remainingCapacity).toBe(1);
+  expect(third.state.holding).toContainEqual(expect.objectContaining({ id: charge.id, capacity: 1 }));
 });
 
 test('final member hit atomically clears both colors without extra capacity', () => {
@@ -97,6 +149,18 @@ test('unprimed, primed, group identity, and group assignment fingerprint distinc
     boardFingerprint(renamed.pixels), boardFingerprint(reassignedPixels),
   ]).size).toBe(4);
   expect(stateKey(initial)).not.toBe(stateKey(primed));
+});
+
+test('Frozen, Shielded, and Linked occupy distinct fingerprint states', () => {
+  const base = { ...LINKED, id: 9767, pixelArt: ['R'], tunnels: [[{ color: 'red' as const, capacity: 2 }], [], []] };
+  const frozen = createGame({ ...base, modifiers: { '0,0': { kind: 'frozen', level: 1 } } });
+  const shielded = createGame({ ...base, modifiers: { '0,0': { kind: 'shielded', level: 1 } } });
+  const linked = createGame({ ...base, modifiers: { '0,0': { kind: 'linked', group: 'orphan' } } });
+  expect(new Set([
+    boardFingerprint(frozen.pixels),
+    boardFingerprint(shielded.pixels),
+    boardFingerprint(linked.pixels),
+  ]).size).toBe(3);
 });
 
 test('malformed singleton links prime deterministically but never self-clear', () => {

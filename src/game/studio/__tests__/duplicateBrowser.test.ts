@@ -45,6 +45,18 @@ describe('duplicateLevel', () => {
     const dup = duplicateLevel(rich(), { id: 42 });
     expect('source' in toLevelDefinition(dup)).toBe(false);
   });
+
+  test('Linked group identity survives duplication and definition round-trip', () => {
+    const source = fromLevelDefinition(LEVEL_DEFINITIONS.find((level) => level.id === 71)!);
+    const duplicated = duplicateLevel(source, { id: 142, title: 'Linked Copy' });
+    const roundTripped = fromLevelDefinition(toLevelDefinition(duplicated));
+    const linkedGroups = (level: StudioLevel) => Object.values(level.modifiers ?? {})
+      .filter((modifier) => modifier.kind === 'linked')
+      .map((modifier) => modifier.config.group)
+      .sort();
+    expect(linkedGroups(duplicated)).toEqual(linkedGroups(source));
+    expect(linkedGroups(roundTripped)).toEqual(linkedGroups(source));
+  });
 });
 
 describe('createVariation', () => {

@@ -4,7 +4,7 @@ import type { CampaignManifest, CampaignWorld } from '@/game/studio/campaign/typ
 import { LEVEL_DEFINITIONS } from './levelDefinitions';
 
 /**
- * The Pixel Arcadia campaign manifest: three themed worlds of ten levels each.
+ * The Pixel Arcadia campaign manifest: ten themed worlds of ten levels each.
  * Authoring / campaign-organisation data only — it is NOT read by the engine and
  * carries no solver output. Each world's `levelIds` is filtered to the levels
  * that actually exist, so the manifest stays valid while a world is still being

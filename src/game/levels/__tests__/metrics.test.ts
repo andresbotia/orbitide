@@ -51,4 +51,7 @@ test('authored difficulty never sits two tiers below the solver suggestion', asy
     // never harder-than-labelled by two whole tiers (Part 18).
     expect(gap).toBeLessThanOrEqual(1);
   }
-}, 600_000);
+// The complete 100-level campaign takes roughly 12 minutes on the reference
+// development machine. This is a final-gate audit; keep its production node cap
+// intact and allow enough wall time for slower CI hosts.
+}, 1_200_000);

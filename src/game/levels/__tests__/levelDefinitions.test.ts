@@ -26,10 +26,13 @@ function densityBand(id: number): [number, number] {
   if (id <= 30) return [20, 64];
   if (id <= 40) return [35, 60];
   if (id <= 50) return [40, 65];
-  return [45, 70];
+  if (id <= 70) return [45, 70];
+  if (id <= 80) return [45, 75];
+  if (id <= 90) return [50, 80];
+  return [55, 90];
 }
 
-const ALLOWED_TIERS = new Set(['easy', 'medium', 'hard']);
+const ALLOWED_TIERS = new Set(['easy', 'medium', 'hard', 'super-hard']);
 
 test('the campaign is a contiguous, correctly-shaped level list', () => {
   expect(TOTAL_LEVELS).toBe(LEVELS.length);
@@ -94,7 +97,7 @@ test('authored Win / Discovery reveals are structurally sound', () => {
 });
 
 test('the world-10 milestone levels carry an authored reveal', () => {
-  for (const id of [10, 20, 30, 40, 50, 60]) {
+  for (const id of [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]) {
     const level = LEVELS.find((l) => l.id === id);
     if (level) expect(level.reveal).toBeDefined();
   }
@@ -147,14 +150,16 @@ test('World 3 introduces Frozen — and only Frozen — with a single teaching c
     expect(kinds).toEqual(new Set(['frozen', 'shielded']));
   }
   const tutorials = LEVELS.filter((l) => l.tutorial);
-  expect(tutorials.map((l) => l.id)).toEqual([21, 41]);
+  expect(tutorials.map((l) => l.id)).toEqual([21, 41, 71]);
   expect(tutorials[0]!.tutorial!.length).toBeGreaterThan(10);
 });
 
-test('the campaign manifest is valid: three worlds, no gaps, no duplicates', () => {
+test('the campaign manifest is valid: ten worlds, no gaps, no duplicates', () => {
   const report = validateManifest(CAMPAIGN_MANIFEST, IDS);
   expect(report.errors).toEqual([]);
   const worldIds = CAMPAIGN_MANIFEST.worlds.map((w) => w.id);
+  expect(CAMPAIGN_MANIFEST.worlds).toHaveLength(10);
+  expect(LEVELS).toHaveLength(100);
   expect(new Set(worldIds).size).toBe(worldIds.length);
   // Every level is assigned to exactly one world.
   const assigned = CAMPAIGN_MANIFEST.worlds.flatMap((w) => w.levelIds);

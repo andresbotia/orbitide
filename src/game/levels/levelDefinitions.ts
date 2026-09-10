@@ -6,13 +6,18 @@ import { M4C_WORLD_9 } from './m4cWorld9';
 import { M4C_WORLD_10 } from './m4cWorld10';
 
 /**
- * Pixel Arcadia — the production campaign. Three worlds of ten handcrafted
- * levels. Authored through the Level Studio data structures (`LevelDefinition`);
+ * Pixel Arcadia — the production campaign. Ten worlds of ten handcrafted
+ * levels, authored through the Level Studio data structures (`LevelDefinition`);
  * grouped into worlds by `src/game/levels/campaign.ts`.
  *
  *   World 1  FIRST LIGHT   L1–10   celestial — teaches the core game
  *   World 2  WILD GARDEN   L11–20  nature — deeper queue sequencing
  *   World 3  DEEP FROST    L21–30  winter — introduces the Frozen mechanic
+ *   Worlds 4–6             L31–60  Frozen/Shielded mastery
+ *   World 7  SKYBOUND      L61–70  aviation mastery
+ *   World 8  TIDAL DEPTHS  L71–80  introduces Linked
+ *   World 9  ARCANE RELICS L81–90  mixed modifier mastery
+ *   World 10 STARFORGE     L91–100 first Super Hard landmark
  *
  * Non-default art characters: A gold · D coral · M magenta · N indigo · T teal
  * · L lime (each forces an explicit `legend`).

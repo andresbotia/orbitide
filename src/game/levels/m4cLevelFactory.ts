@@ -38,9 +38,11 @@ function revealFor(rows: string[], name: string, collectionId: string): LevelRev
 }
 
 export function makeM4CLevel(a: M4CAuthoredLevel): LevelDefinition {
+  const width = Math.max(...a.art.map((row) => row.length));
+  const art = a.art.map((row) => row.padEnd(width, '.'));
   const needs = new Map<OrbColor, number>();
   const symbols = new Set<string>();
-  a.art.forEach((row) => [...row].forEach((ch) => {
+  art.forEach((row) => [...row].forEach((ch) => {
     const color = M4C_LEGEND[ch];
     if (!color) return;
     symbols.add(ch);
@@ -49,7 +51,7 @@ export function makeM4CLevel(a: M4CAuthoredLevel): LevelDefinition {
   for (const [key, modifier] of Object.entries(a.modifiers ?? {})) {
     if (modifier.kind !== 'frozen' && modifier.kind !== 'shielded') continue;
     const [x, y] = key.split(',').map(Number);
-    const color = M4C_LEGEND[a.art[y!]?.[x!] ?? ''];
+    const color = M4C_LEGEND[art[y!]?.[x!] ?? ''];
     if (color) needs.set(color, (needs.get(color) ?? 0) + Math.max(1, Math.trunc(modifier.level ?? 1)));
   }
   const seen = new Set<OrbColor>();
@@ -69,11 +71,11 @@ export function makeM4CLevel(a: M4CAuthoredLevel): LevelDefinition {
     .map((symbol) => [symbol, M4C_LEGEND[symbol]!]));
   return {
     id: a.id, title: a.title, themeId: a.themeId, difficulty: a.difficulty,
-    holdingCapacity: 3, pixelArt: a.art, tunnels,
+    holdingCapacity: 3, pixelArt: art, tunnels,
     ...(Object.keys(legend).length > 0 ? { legend } : {}),
     ...(a.modifiers ? { modifiers: a.modifiers } : {}),
     ...(a.tutorial ? { tutorial: a.tutorial } : {}),
-    reveal: revealFor(a.art, a.title, a.themeId),
+    reveal: revealFor(art, a.title, a.themeId),
   };
 }
 

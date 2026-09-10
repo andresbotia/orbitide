@@ -1,6 +1,7 @@
 import { solve } from '../../engine/solver';
 import { CAMPAIGN_MANIFEST } from '../campaign';
 import { LEVEL_DEFINITIONS } from '../levelDefinitions';
+import { combineModifiers, frozen, linked } from '../m4cLevelFactory';
 
 const range = (from: number, to: number) => LEVEL_DEFINITIONS.filter(
   (level) => level.id >= from && level.id <= to,
@@ -22,6 +23,8 @@ test('World 7 adds ten ordered Skybound levels with its authored curves', () => 
     expect(density).toBeLessThanOrEqual(70);
     expect(colors).toBeGreaterThanOrEqual(6);
     expect(colors).toBeLessThanOrEqual(9);
+    expect(new Set(Object.values(level.modifiers ?? {}).map((modifier) => modifier.kind)))
+      .toEqual(new Set(['frozen', 'shielded']));
   }
 });
 
@@ -100,6 +103,15 @@ test('World 10 completes the campaign with the requested Starforge curve', () =>
   const finale = world[9]!;
   expect(new Set(Object.values(finale.modifiers ?? {}).map((modifier) => modifier.kind)))
     .toEqual(new Set(['frozen', 'shielded', 'linked']));
+  expect(Object.keys(finale.modifiers ?? {})).toHaveLength(new Set(Object.keys(finale.modifiers ?? {})).size);
+  expect(CAMPAIGN_MANIFEST.worlds).toHaveLength(10);
+  expect(LEVEL_DEFINITIONS).toHaveLength(100);
+});
+
+test('M4C authoring rejects modifier stacking on a single cell', () => {
+  expect(() => combineModifiers(frozen(['1,1']), linked([['1,1', '2,1']]))).toThrow(
+    'Modifier stacking is forbidden at 1,1',
+  );
 });
 
 test.each(range(91, 100).flatMap((level) => [

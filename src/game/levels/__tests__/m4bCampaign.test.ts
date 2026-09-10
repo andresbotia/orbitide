@@ -6,17 +6,17 @@ import { traceActions } from '../../engine/trace';
 import { CAMPAIGN_MANIFEST } from '../campaign';
 import { LEVEL_DEFINITIONS } from '../levelDefinitions';
 
-const added = LEVEL_DEFINITIONS.filter((level) => level.id >= 31);
+const added = LEVEL_DEFINITIONS.filter((level) => level.id >= 31 && level.id <= 60);
 
 test('M4B adds three ordered ten-level worlds and Levels 31-60', () => {
   expect(added.map((level) => level.id)).toEqual(Array.from({ length: 30 }, (_, i) => i + 31));
-  expect(CAMPAIGN_MANIFEST.worlds.slice(3).map((world) => [world.id, world.levelIds.length])).toEqual([
+  expect(CAMPAIGN_MANIFEST.worlds.slice(3, 6).map((world) => [world.id, world.levelIds.length])).toEqual([
     ['curio-cabinet', 10], ['prism-works', 10], ['frostglass-forge', 10],
   ]);
 });
 
 test('Shielded teaches once on L41 and never repeats the Frozen tutorial', () => {
-  const tutorials = LEVEL_DEFINITIONS.filter((level) => level.tutorial);
+  const tutorials = LEVEL_DEFINITIONS.filter((level) => level.id <= 60 && level.tutorial);
   expect(tutorials.map((level) => level.id)).toEqual([21, 41]);
   expect(LEVEL_DEFINITIONS.find((level) => level.id === 41)!.tutorial).toMatch(/Shielded pixels need an extra hit/);
 });

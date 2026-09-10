@@ -1,6 +1,6 @@
 /**
- * The engine attaches authored modifiers to pixels by cell. Frozen and
- * Shielded are engine-owned; the remaining six kinds stay inert. Levels
+ * The engine attaches authored modifiers to pixels by cell. Frozen, Shielded,
+ * and Linked are engine-owned; the remaining kinds stay inert. Levels
  * without a `modifiers` field are byte-for-byte unchanged.
  */
 import { attachModifiers, cloneModifierInstance } from '../art';
@@ -53,7 +53,9 @@ test('modifier attachment matches the authored map across the whole campaign', (
       // Every authored modifier lands on a real pixel; nothing else carries one.
       expect(attached).toHaveLength(Object.keys(def.modifiers).length);
       for (const p of attached) {
-        expect(def.modifiers[`${p.x},${p.y}`]).toEqual(p.modifier);
+        // Linked hydration adds canonical runtime relationship fields while
+        // preserving every authored field.
+        expect(p.modifier).toMatchObject(def.modifiers[`${p.x},${p.y}`]!);
       }
     }
   }

@@ -1,11 +1,10 @@
 /**
  * Special-pixel AUTHORING model for the Level Studio. Pure — no React / RN.
  *
- * This layer authors *metadata and visual/config state* for the eight modifier
- * kinds already declared on the engine ({@link ModifierKind}). It does NOT
- * implement any mechanic: the engine still ignores `pixel.modifier` entirely.
- * When a real gameplay rule is decided, it consumes the same fields — nothing
- * here has to change. See docs/M3C_PRODUCTION_AUTHORING.md.
+ * This layer authors metadata and visual/config state for the eight modifier
+ * kinds declared by the engine ({@link ModifierKind}). Frozen, Shielded, and
+ * Linked have production gameplay rules; placeholder specs remain explicitly
+ * marked. See docs/M3C_PRODUCTION_AUTHORING.md and docs/M4C_CAMPAIGN_EXPANSION.md.
  *
  * A special pixel keeps its base colour identity: the modifier is a sidecar on
  * the cell, never a replacement for the painted colour.
