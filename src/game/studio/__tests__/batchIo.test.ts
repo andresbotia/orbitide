@@ -10,6 +10,9 @@ import {
 describe('batchValidate', () => {
   test('the shipped campaign + manifest is clean', () => {
     const r = batchValidate({ defs: LEVEL_DEFINITIONS, manifest: CAMPAIGN_MANIFEST });
+    expect(r.levels.filter((level) => !level.ok).map((level) => ({
+      id: level.levelId, codes: level.errors.map((issue) => issue.code),
+    }))).toEqual([]);
     expect(r.ok).toBe(true);
     expect(r.summary.invalid).toBe(0);
     expect(r.campaignIssues).toEqual([]);

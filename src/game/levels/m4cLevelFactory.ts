@@ -98,3 +98,20 @@ export function combineModifiers(...maps: PixelModifierMap[]): PixelModifierMap 
   }
   return combined;
 }
+
+/** Preserve a silhouette while adding one-cell water/air channels for fast exposure. */
+export function aerate(rows: string[]): string[] {
+  const width = Math.max(...rows.map((row) => row.length * 2 - 1));
+  return rows.flatMap((row, index) => {
+    const expanded = [...row].map((char) => char === ' ' ? '.' : char).join('.').padEnd(width, '.');
+    return index === rows.length - 1 ? [expanded] : [expanded, '.'.repeat(width)];
+  });
+}
+
+/** Add horizontal exposure channels without changing occupied-cell density. */
+export function ventRows(rows: string[]): string[] {
+  const width = Math.max(...rows.map((row) => row.length));
+  return rows.flatMap((row, index) => index === rows.length - 1
+    ? [row]
+    : [row, '.'.repeat(width)]);
+}

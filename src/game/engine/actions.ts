@@ -7,6 +7,7 @@ import {
 } from './epoch';
 import { resolvePass } from './pass';
 import { reachablePixels } from './pixels';
+import { isLinkedPrimed } from './linked';
 import type { EpochLaunch, GameState } from './types';
 
 /**
@@ -67,7 +68,7 @@ export function actionRejection(
   if (!charge) return 'missingCharge';
 
   if (action.kind === 'holding') {
-    if (!reachablePixels(state).some((p) => p.color === charge.color)) return 'noTargets';
+    if (!reachablePixels(state).some((p) => p.color === charge.color && !isLinkedPrimed(p))) return 'noTargets';
     // Relaunching from Holding frees the slot it leaves, so it can never end the
     // pass over capacity (capacity only ever falls). Matches M1.
     return null;
