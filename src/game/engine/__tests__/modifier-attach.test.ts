@@ -1,8 +1,7 @@
 /**
- * The engine attaches authored modifiers to pixels by cell. `frozen` is
- * engine-owned (see frozen.test.ts); the other seven kinds stay inert — the
- * engine never reads them for a rule. Levels without a `modifiers` field are
- * byte-for-byte unchanged.
+ * The engine attaches authored modifiers to pixels by cell. Frozen and
+ * Shielded are engine-owned; the remaining six kinds stay inert. Levels
+ * without a `modifiers` field are byte-for-byte unchanged.
  */
 import { attachModifiers, cloneModifierInstance } from '../art';
 import { createGame } from '../createGame';

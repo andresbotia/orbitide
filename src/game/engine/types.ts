@@ -26,11 +26,10 @@ export type OrbColor =
 /**
  * Special-pixel modifier. Serializable, cell-authored.
  *
- * `frozen` is engine-owned as of M4A — the engine reads and updates it (see
- * `engine/frozen.ts`): `level` is the ice-layer count and drops to 0 as matching
- * charges crack it. The other seven kinds (Shielded, Armored, Locked, Bomb,
- * Wild, Linked, Hidden) remain presentation-only render-state hooks with no
- * gameplay rule — the engine attaches them and never reads them.
+ * `frozen` and `shielded` are engine-owned as of M4B (see
+ * `engine/frozen.ts`): `level` is the remaining shell count and drops to 0 as
+ * matching charges break it. Armored, Locked, Bomb, Wild, Linked and Hidden
+ * remain presentation-only render-state hooks with no gameplay rule.
  */
 export type ModifierKind =
   | 'frozen'
@@ -64,11 +63,11 @@ export interface ModifierInstance {
 }
 
 /**
- * Cell-keyed (`"x,y"`) sidecar of presentation {@link ModifierInstance}s, layered
+ * Cell-keyed (`"x,y"`) sidecar of {@link ModifierInstance}s, layered
  * onto the picture from {@link LevelDefinition.pixelArt} by coordinate. Purely
  * additive: a level with no special pixels omits it and serialises exactly as
- * before. `createGame` copies each entry onto the matching {@link Pixel} but the
- * engine never reads a modifier for a gameplay rule — see {@link ModifierKind}.
+ * before. `createGame` copies each entry onto the matching {@link Pixel}; the
+ * Frozen and Shielded resolvers then consume their shell state.
  */
 export type PixelModifierMap = Record<string, ModifierInstance>;
 
@@ -80,7 +79,7 @@ export interface Pixel {
   y: number;
   color: OrbColor;
   cleared: boolean;
-  /** Optional presentation modifier. Engine logic ignores it. */
+  /** Optional special-pixel modifier; Frozen and Shielded affect gameplay. */
   modifier?: ModifierInstance;
 }
 
@@ -119,7 +118,7 @@ export interface EpochLaunch {
   launchSequence: number;
 }
 
-/** One resolved encounter by an active charge (a clear, or a Frozen ice crack). */
+/** One resolved encounter: a clear, Frozen crack, or Shielded collapse. */
 export interface ActiveEncounter {
   pixelId: string;
   /** Absolute logical lap-time of the clear. */

@@ -1,5 +1,5 @@
 /**
- * PART 11 — the Studio must load Levels 1–10, serialise them without semantic
+ * PART 11 — the Studio must load production levels, serialise them without semantic
  * edits, and the engine must behave identically on the result.
  */
 import { createGame } from '../../engine/createGame';

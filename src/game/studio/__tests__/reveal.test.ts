@@ -145,7 +145,7 @@ describe('serialisation compatibility', () => {
     expect(toLevelDefinition(level).reveal!.collectionId).toBeUndefined();
   });
 
-  test('Levels 1–10 with authored reveals still serialise byte-for-byte', () => {
+  test('campaign levels with authored reveals still serialise byte-for-byte', () => {
     for (const def of LEVEL_DEFINITIONS) {
       const back = toLevelDefinition(fromLevelDefinition(def));
       expect(back.reveal).toEqual(def.reveal);

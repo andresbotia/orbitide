@@ -5,6 +5,7 @@ import type {
   OrbColor,
   PixelModifierMap,
 } from '../engine/types';
+import { DEFAULT_ART_LEGEND } from '../engine/art';
 
 const LEGEND: Record<string, OrbColor> = {
   W: 'white', Y: 'yellow', A: 'gold', O: 'orange', R: 'red', D: 'coral',
@@ -42,9 +43,13 @@ function revealFor(rows: string[], name: string, collectionId: string): LevelRev
 
 function makeLevel(a: AuthoredLevel): LevelDefinition {
   const needs = new Map<OrbColor, number>();
+  const usedSymbols = new Set<string>();
   a.art.forEach((row) => [...row].forEach((ch) => {
     const color = LEGEND[ch];
-    if (color) needs.set(color, (needs.get(color) ?? 0) + 1);
+    if (color) {
+      usedSymbols.add(ch);
+      needs.set(color, (needs.get(color) ?? 0) + 1);
+    }
   }));
   for (const [key, modifier] of Object.entries(a.modifiers ?? {})) {
     if (modifier.kind !== 'frozen' && modifier.kind !== 'shielded') continue;
@@ -62,9 +67,13 @@ function makeLevel(a: AuthoredLevel): LevelDefinition {
   }));
   if (tunnels.length !== 3 || tunnels.some((q) => q.length === 0)) throw new Error(`Level ${a.id}: malformed queues`);
   for (const color of needs.keys()) if (!seen.has(color)) throw new Error(`Level ${a.id}: missing ${color} charge`);
+  const customLegend = Object.fromEntries([...usedSymbols]
+    .filter((symbol) => DEFAULT_ART_LEGEND[symbol] !== LEGEND[symbol])
+    .map((symbol) => [symbol, LEGEND[symbol]!]));
   return {
     id: a.id, title: a.title, themeId: a.themeId, difficulty: a.difficulty,
-    holdingCapacity: 3, pixelArt: a.art, legend: LEGEND, tunnels,
+    holdingCapacity: 3, pixelArt: a.art, tunnels,
+    ...(Object.keys(customLegend).length > 0 ? { legend: customLegend } : {}),
     reveal: revealFor(a.art, a.title, a.themeId),
     ...(a.modifiers ? { modifiers: a.modifiers } : {}),
     ...(a.tutorial ? { tutorial: a.tutorial } : {}),
@@ -90,7 +99,7 @@ export const M4B_LEVELS: LevelDefinition[] = [
     art: ['...Y.....','..YYY....','.YWBWY...','YWWBWWY..','YYRARAY..','YWWCWWY..','.YWGWY...','..YYY....','...Y.....'],
     queues: [['blue','red','green'],['white'],['yellow','gold','cyan']] }),
   makeLevel({ id: 35, title: 'Keepsake Lantern', themeId: 'curio-cabinet', difficulty: 'medium',
-    art: ['...AA....','..AAAA...','..WYYW...','.WYOYYW..','.WYRY YW.'.replace(' ',''),'.WYYYYW..','..CCCCC..','..C..C...'],
+    art: ['...AA....','..AAAA...','..WYYW...','.WYOYYW..','.WYRYYW..','.WYYYYW..','..CCCCC..','..C..C...'],
     queues: [['red','orange'],['yellow','white','cyan'],['gold']] , modifiers: F(['3,1','4,1']) }),
   makeLevel({ id: 36, title: 'Pocket Watch', themeId: 'curio-cabinet', difficulty: 'medium',
     art: ['...AAA...','..A.AA...','.WWWWWWW.','WWCCCCCWW','WCBYABCWW','WWGGGGGWW','.WWWWWWW.','..NNNNN..','...N.N...'],
@@ -143,10 +152,10 @@ export const M4B_LEVELS: LevelDefinition[] = [
 
   // WORLD 6 · FROSTGLASS FORGE — premium mixed-material objects.
   makeLevel({ id: 51, title: 'Frostglass Bell', themeId: 'frostglass-forge', difficulty: 'medium',
-    art: ['...WWW...','..WCCCW..','.WCTTTCW.','WCTGGGTCW','WCGYY YGCW'.replace(' ',''),'WCCAAACCW','.WWWWWWW.','...RRR...'],
+    art: ['...WWW...','..WCCCW..','.WCTTTCW.','WCTGGGTCW','WCGYYYGCW','WCCAAACCW','.WWWWWWW.','...RRR...'],
     queues: [['yellow','gold','red'],['teal','green'],['white','cyan']], modifiers: MIX(['4,3'],['3,5']) }),
   makeLevel({ id: 52, title: 'Arcane Shears', themeId: 'frostglass-forge', difficulty: 'medium',
-    art: ['RRR...BBB','RRR...BBB','.RRR.BBB.','..RRWBB..','..WWWWW.','..GGWYY..','.GGG.YYY.','GG...YYYY'],
+    art: ['RRR...BBB','RRR...BBB','.RRR.BBB.','..RRWBB..','..WWWWW..','..GGWYY..','.GGG.YYY.','GG...YYYY'],
     queues: [['white','green'],['yellow','blue'],['red']], modifiers: MIX(['2,2','6,2'],['3,3','5,3']) }),
   makeLevel({ id: 53, title: 'Enchanter Flask', themeId: 'frostglass-forge', difficulty: 'medium',
     art: ['...WWW...','...PCP...','..PPPPP..','.PPPPPPP.','PPPGGGPPP','PPGGGGGPP','.PPYYYPP.','..AAAAA..'],
@@ -155,7 +164,7 @@ export const M4B_LEVELS: LevelDefinition[] = [
     art: ['BBBBBBBBB','BBWWAWWBB','BBBWRWBBB','.BBBABBB.','..BBBBB..','..NNNNN..','..NCCC N..'.replace(' ',''),'..NNNNN..'],
     queues: [['red','gold','cyan'],['white','indigo'],['blue']], modifiers: MIX(['4,1','4,3','4,4'],['3,2','5,2','4,6']) }),
   makeLevel({ id: 55, title: 'Gilded Gear', themeId: 'frostglass-forge', difficulty: 'medium',
-    art: ['A..AAA..A','AAAYYYAAA','.YRRRRRY.','AR RWWRRA'.replace(' ',''),'AYRWBRY A'.replace(' ',''),'ARRWWRRAA','.YGGGGGY.','AAAGGGAAA','A..AAA..A'],
+    art: ['A..AAA..A','AAAYYYAAA','.YRRRRRY.','ARRWWRRA.','AYRWBRYA.','ARRWWRRAA','.YGGGGGY.','AAAGGGAAA','A..AAA..A'],
     queues: [['blue','white'],['red','green'],['gold','yellow']], modifiers: MIX(['4,4','3,3'],['3,5','4,6']) }),
   makeLevel({ id: 56, title: 'Crystal Hammer', themeId: 'frostglass-forge', difficulty: 'hard',
     art: ['.CCCCCCC.','CBBBBBBBC','CBNNWNNBC','CBNWYW NBC'.replace(' ',''),'CBNNWNNBC','CBBBBBBBC','.CCCCCCC.','...RRR...','...AAA...'],

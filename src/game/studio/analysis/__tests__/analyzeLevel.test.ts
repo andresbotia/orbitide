@@ -98,7 +98,9 @@ test('sequential vs concurrent comparison is populated for the campaign', async 
 }, 120_000);
 
 test('Levels 1–10 all analyse as solvable (solver still valid)', async () => {
-  for (const def of LEVEL_DEFINITIONS) {
+  // Keep this regression focused on its original smoke-test scope. The separate
+  // production metrics suite analyzes all 60 campaign levels in both modes.
+  for (const def of LEVEL_DEFINITIONS.slice(0, 10)) {
     const a = await analyzeLevel(def, { now: () => 0 });
     expect(a.solvable).toBe(true);
     expect(a.winningWitness).not.toBeNull();

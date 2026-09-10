@@ -13,7 +13,7 @@ import type { CampaignManifest } from '../campaign/types';
 const KNOWN = LEVEL_DEFINITIONS.map((l) => l.id);
 
 describe('the shipped campaign manifest', () => {
-  test('is valid against Levels 1–10', () => {
+  test('is valid against every production campaign level', () => {
     const r = validateManifest(CAMPAIGN_MANIFEST, KNOWN);
     expect(r.errors).toEqual([]);
     expect(r.ok).toBe(true);

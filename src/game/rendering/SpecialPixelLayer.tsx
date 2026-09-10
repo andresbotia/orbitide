@@ -25,7 +25,7 @@ export interface SpecialPixelInput {
 
 interface SpecialPixelLayerProps {
   geo: BoardGeometry;
-  /** Derived from future engine state; empty today. */
+  /** Live modifier state projected from the engine's board pixels. */
   specials: SpecialPixelInput[];
   reducedMotion?: boolean;
 }
@@ -36,7 +36,7 @@ interface SpecialPixelLayerProps {
  * shells, refraction, frost, facets and brushed metal are cheap and the RN
  * board is untouched. Consumes the pure `resolveModifier` model.
  *
- * Renders nothing until future engine state supplies `specials`.
+ * Renders nothing when the current board has no special pixels.
  */
 export const SpecialPixelLayer = memo(function SpecialPixelLayer({ geo, specials, reducedMotion }: SpecialPixelLayerProps) {
   const resolved = useMemo(
@@ -118,14 +118,30 @@ function SpecialShell({ center, cell, color, render, idle, reducedMotion }: {
         </Group>
       );
 
-    case 'membrane':
+    case 'membrane': {
+      // Separate outer membrane + inner boundary leaves a visible air gap around
+      // the cube. Facet seams and a short arc keep it volumetric at full detail.
+      const inset = Math.max(2, cell * 0.1);
       return (
         <Group opacity={render.progression >= 1 ? 0 : 1}>
           <RoundedRect x={x} y={y} width={outer} height={outer} r={cell * 0.34} color={`${glow}22`} />
           <RoundedRect x={x} y={y} width={outer} height={outer} r={cell * 0.34} color={glow} style="stroke" strokeWidth={Math.max(1, cell * 0.05)} opacity={0.7} />
+          {render.features.airGap ? (
+            <RoundedRect x={x + inset} y={y + inset} width={outer - inset * 2} height={outer - inset * 2}
+              r={cell * 0.24} color="#07060D" style="stroke" strokeWidth={Math.max(1, cell * 0.035)} opacity={0.6} />
+          ) : null}
+          {render.detail !== 'minimal' ? (
+            <Path path={`M ${x + outer * 0.1} ${center.y} L ${center.x} ${y + outer * 0.08} L ${x + outer * 0.9} ${center.y}`}
+              color={glow} style="stroke" strokeWidth={Math.max(1, cell * 0.025)} opacity={0.28} />
+          ) : null}
           <Path path={`M ${x + outer * 0.2} ${y + outer * 0.22} q ${outer * 0.2} ${-outer * 0.12} ${outer * 0.4} 0`} color="#FFFFFF" style="stroke" strokeWidth={Math.max(1, cell * 0.04)} opacity={0.5} />
+          {render.features.microArc ? (
+            <Path path={`M ${x + outer * 0.72} ${y + outer * 0.2} l ${-cell * 0.08} ${cell * 0.13} l ${cell * 0.12} ${cell * 0.08}`}
+              color="#FFFFFF" style="stroke" strokeWidth={Math.max(1, cell * 0.035)} opacity={0.75} />
+          ) : null}
         </Group>
       );
+    }
 
     case 'plates':
       return (

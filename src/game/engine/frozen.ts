@@ -1,5 +1,5 @@
 /**
- * Frozen — the first implemented special-pixel mechanic. Pure, engine-owned.
+ * Durable-shell hit resolution for Frozen and Shielded. Pure, engine-owned.
  *
  * A Frozen pixel keeps its base colour but wears a thick ice shell. A matching
  * charge that reaches it spends one capacity to crack one ice layer; the base
@@ -14,8 +14,8 @@
  * Exposure is unchanged: a Frozen cell (iced or broken) is solid until the
  * pixel itself clears — the flood fill never treats it as empty. Reachability,
  * the clockwise clear order and the deterministic concurrent arbitration are
- * all exactly as before; the only new rule is "an iced pixel eats a hit without
- * clearing".
+ * all exactly as before. Shielded follows the same capacity contract but emits
+ * its own trace/presentation event and uses an energy-membrane state.
  */
 import type { ModifierInstance, Pixel } from './types';
 
@@ -86,11 +86,9 @@ export function resolveMatchingHit(pixel: Pixel): MatchingHitResult {
 }
 
 /**
- * One char per pixel capturing everything a solver / epoch memo key must
- * distinguish: `1` cleared, `0` an open uncleared pixel (normal OR thawed
- * Frozen), `B`–`E` an iced Frozen pixel with 1–4 layers left. Equivalent boards
- * — including a thawed Frozen pixel vs a plain uncleared one — collapse to the
- * same string on purpose.
+ * One token per pixel capturing every solver-relevant modifier state. Broken
+ * Frozen and Shielded shells deliberately remain distinct from normal pixels so
+ * replay/debug fingerprints preserve the full five-state contract.
  */
 export function boardFingerprint(pixels: readonly Pixel[]): string {
   return pixels.map((p) => {

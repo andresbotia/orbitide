@@ -91,8 +91,8 @@ export function validateStudioLevel(level: StudioLevel): ValidationReport {
       }
     }
   }
-  // Every Frozen pixel needs one extra matching hit per ice layer (M4A) — the
-  // capacity budget must cover the crack(s) as well as the final clear.
+  // Frozen and Shielded pixels need one extra matching hit per shell layer; the
+  // capacity budget must cover every break as well as the final clear.
   const modifierExtraByColor = new Map<OrbColor, number>();
   for (const [key, mod] of Object.entries(level.modifiers ?? {})) {
     if (mod.kind !== 'frozen' && mod.kind !== 'shielded') continue;
