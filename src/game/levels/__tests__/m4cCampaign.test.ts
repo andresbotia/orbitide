@@ -82,3 +82,33 @@ test.each(range(81, 90).flatMap((level) => [
 ]))('Arcane Relics level $level.id solves in $mode play', ({ level, mode }) => {
   expect(solve(level, { mode }).solved).toBe(true);
 }, 120_000);
+
+test('World 10 completes the campaign with the requested Starforge curve', () => {
+  const world = range(91, 100);
+  expect(world).toHaveLength(10);
+  expect(world.map((level) => level.difficulty)).toEqual([
+    'medium', 'hard', 'hard', 'hard', 'hard', 'hard', 'hard', 'super-hard', 'super-hard', 'super-hard',
+  ]);
+  for (const level of world) {
+    const density = level.pixelArt.join('').replace(/[. ]/g, '').length;
+    const colors = new Set(level.tunnels.flat().map((charge) => charge.color)).size;
+    expect(density).toBeGreaterThanOrEqual(55);
+    expect(density).toBeLessThanOrEqual(90);
+    expect(colors).toBeGreaterThanOrEqual(8);
+    expect(colors).toBeLessThanOrEqual(12);
+  }
+  const finale = world[9]!;
+  expect(new Set(Object.values(finale.modifiers ?? {}).map((modifier) => modifier.kind)))
+    .toEqual(new Set(['frozen', 'shielded', 'linked']));
+});
+
+test.each(range(91, 100).flatMap((level) => [
+  { level, mode: 'sequential-compat' as const }, { level, mode: 'metrics' as const },
+]))('Starforge level $level.id solves in $mode play', ({ level, mode }) => {
+  const result = solve(level, { mode });
+  expect(result.solved).toBe(true);
+  if (level.id === 100) {
+    expect(result.viableFirstMoves).toBeGreaterThanOrEqual(2);
+    expect(result.heldLaunches).toBeGreaterThan(0);
+  }
+}, 120_000);

@@ -3,6 +3,7 @@ import { M4B_LEVELS } from './m4bLevels';
 import { M4C_WORLD_7 } from './m4cWorld7';
 import { M4C_WORLD_8 } from './m4cWorld8';
 import { M4C_WORLD_9 } from './m4cWorld9';
+import { M4C_WORLD_10 } from './m4cWorld10';
 
 /**
  * Pixel Arcadia — the production campaign. Three worlds of ten handcrafted
@@ -704,4 +705,5 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
   ...M4C_WORLD_7,
   ...M4C_WORLD_8,
   ...M4C_WORLD_9,
+  ...M4C_WORLD_10,
 ];
