@@ -60,3 +60,25 @@ test.each(range(71, 80).flatMap((level) => [
 ]))('Tidal Depths level $level.id solves in $mode play', ({ level, mode }) => {
   expect(solve(level, { mode }).solved).toBe(true);
 }, 120_000);
+
+test('World 9 adds ten Arcane Relics with a medium-to-hard mastery curve', () => {
+  const world = range(81, 90);
+  expect(world).toHaveLength(10);
+  expect(world.map((level) => level.difficulty)).toEqual([
+    'medium', 'medium', 'medium', 'medium', 'medium', 'medium', 'hard', 'hard', 'hard', 'hard',
+  ]);
+  for (const level of world) {
+    const density = level.pixelArt.join('').replace(/[. ]/g, '').length;
+    const colors = new Set(level.tunnels.flat().map((charge) => charge.color)).size;
+    expect(density).toBeGreaterThanOrEqual(50);
+    expect(density).toBeLessThanOrEqual(80);
+    expect(colors).toBeGreaterThanOrEqual(7);
+    expect(colors).toBeLessThanOrEqual(11);
+  }
+});
+
+test.each(range(81, 90).flatMap((level) => [
+  { level, mode: 'sequential-compat' as const }, { level, mode: 'metrics' as const },
+]))('Arcane Relics level $level.id solves in $mode play', ({ level, mode }) => {
+  expect(solve(level, { mode }).solved).toBe(true);
+}, 120_000);

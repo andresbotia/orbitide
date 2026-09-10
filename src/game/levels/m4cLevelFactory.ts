@@ -115,3 +115,16 @@ export function ventRows(rows: string[]): string[] {
     ? [row]
     : [row, '.'.repeat(width)]);
 }
+
+/** Vent as many early rows as the Studio's 17-cell grid ceiling permits. */
+export function ventRowsCapped(rows: string[]): string[] {
+  const width = Math.max(...rows.map((row) => row.length));
+  let gaps = Math.max(0, 17 - rows.length);
+  return rows.flatMap((row, index) => {
+    if (index < rows.length - 1 && gaps > 0) {
+      gaps -= 1;
+      return [row, '.'.repeat(width)];
+    }
+    return [row];
+  });
+}

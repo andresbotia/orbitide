@@ -19,6 +19,7 @@ const WORLD_BLUEPRINT: Omit<CampaignWorld, 'order' | 'levelIds'>[] = [
   { id: 'frostglass-forge', title: 'Frostglass Forge', themeId: 'frostglass-forge', display: { subtitle: 'Master ice and energy' } },
   { id: 'skybound', title: 'Skybound', themeId: 'skybound', display: { subtitle: 'Ride the upper winds' } },
   { id: 'tidal-depths', title: 'Tidal Depths', themeId: 'tidal-depths', display: { subtitle: 'Awaken the deep' } },
+  { id: 'arcane-relics', title: 'Arcane Relics', themeId: 'arcane-relics', display: { subtitle: 'Bind the old magic' } },
 ];
 
 const known = new Set(LEVEL_DEFINITIONS.map((l) => l.id));
