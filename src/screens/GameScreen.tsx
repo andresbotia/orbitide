@@ -1,5 +1,6 @@
 import { createGame } from '@/game/engine/createGame';
 import { iceLayers, shieldLayers } from '@/game/engine/frozen';
+import { linkedGroupId } from '@/game/engine/linked';
 import { reachablePixels } from '@/game/engine/pixels';
 import type { Point } from '@/game/rendering/boardGeometry';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -79,13 +80,27 @@ export function GameScreen({
   // Lightweight, non-modal teaching cue (Level 21's Frozen intro). Shows while
   // the level still has all its ice and the player is in their first few moves;
   // the first successful ice break — or a fourth launch — retires it.
-  const initialProtected = useMemo(
-    () => createGame(level).pixels.filter((p) => iceLayers(p) > 0 || shieldLayers(p) > 0).length,
-    [level],
+  const initialTutorialState = useMemo(() => {
+    const pixels = createGame(level).pixels;
+    const linkedGroups = new Set(pixels.map(linkedGroupId).filter((group): group is string => group !== undefined));
+    return {
+      protectedCount: pixels.filter((p) => iceLayers(p) > 0 || shieldLayers(p) > 0).length,
+      linkedGroups,
+    };
+  }, [level]);
+  const currentLinkedGroups = useMemo(
+    () => new Set(state.pixels.filter((p) => !p.cleared).map(linkedGroupId)
+      .filter((group): group is string => group !== undefined)),
+    [state.pixels],
   );
   const currentProtected = state.pixels.filter((p) => iceLayers(p) > 0 || shieldLayers(p) > 0).length;
+  const tutorialProgressPending = initialTutorialState.linkedGroups.size > 0
+    ? currentLinkedGroups.size >= initialTutorialState.linkedGroups.size
+    : currentProtected >= initialTutorialState.protectedCount;
+  const tutorialIcon = initialTutorialState.linkedGroups.size > 0 ? '⋈'
+    : createGame(level).pixels.some((p) => shieldLayers(p) > 0) ? '◌' : '❄';
   const showTutorial = !!level.tutorial && state.status === 'playing'
-    && currentProtected >= initialProtected && state.movesApplied < 4;
+    && tutorialProgressPending && state.movesApplied < 4;
 
   const reveal = useMemo(() => resolveReveal(level), [level]);
   const revealProgress = useSharedValue(0);
@@ -149,7 +164,7 @@ export function GameScreen({
         ) : null}
         {showTutorial ? (
           <View style={styles.tutorial} pointerEvents="none">
-            <Text style={styles.tutorialText}>❄  {level.tutorial}</Text>
+            <Text style={styles.tutorialText}>{tutorialIcon}  {level.tutorial}</Text>
           </View>
         ) : null}
       </View>

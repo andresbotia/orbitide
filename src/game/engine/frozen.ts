@@ -87,8 +87,9 @@ export function resolveMatchingHit(pixel: Pixel): MatchingHitResult {
 
 /**
  * One token per pixel capturing every solver-relevant modifier state. Broken
- * Frozen and Shielded shells deliberately remain distinct from normal pixels so
- * replay/debug fingerprints preserve the full five-state contract.
+ * Frozen and Shielded shells remain distinct from normal pixels. Linked tokens
+ * include both group identity and prime state so solver/cache states cannot
+ * alias different wiring or assignments.
  */
 export function boardFingerprint(pixels: readonly Pixel[]): string {
   return pixels.map((p) => {
@@ -100,6 +101,11 @@ export function boardFingerprint(pixels: readonly Pixel[]): string {
     if (p.modifier?.kind === 'shielded') {
       const layers = shieldLayers(p);
       return layers > 0 ? `S${layers}` : 'SB';
+    }
+    if (p.modifier?.kind === 'linked') {
+      const group = encodeURIComponent(p.modifier.group ?? p.modifier.linkId ?? '');
+      const primed = p.modifier.state === 'primed' || (p.modifier.linkProgress ?? 0) >= 1;
+      return `L${primed ? 'P' : 'U'}${group.length}:${group}`;
     }
     return 'N';
   }).join('.');

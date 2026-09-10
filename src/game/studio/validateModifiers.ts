@@ -6,9 +6,44 @@
  * config is in range, link groups are wired). They deliberately say nothing
  * about gameplay behaviour — no mechanic is implemented yet.
  */
-import type { ModifierKind } from '@/game/engine/types';
+import type { LevelDefinition, ModifierKind } from '@/game/engine/types';
 import { MODIFIER_KINDS, MODIFIER_SPECS, modifierEntries } from './modifiers';
 import type { StudioLevel, ValidationIssue } from './types';
+
+/** Validate relationship metadata that would otherwise be normalized by Studio import. */
+export function checkLinkedDefinition(def: LevelDefinition): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const members = new Map<string, string[]>();
+  const linked = Object.entries(def.modifiers ?? {}).filter(([, modifier]) => modifier.kind === 'linked');
+  for (const [key, modifier] of linked) {
+    const [x, y] = key.split(',').map(Number);
+    const pixelId = `L${def.id}-p${x}-${y}`;
+    const group = modifier.group ?? modifier.linkId;
+    if (modifier.group !== undefined && modifier.linkId !== undefined && modifier.group !== modifier.linkId) {
+      issues.push({ code: 'modifier/linked-group-conflict', severity: 'error',
+        message: `Linked at (${x}, ${y}) has conflicting group and linkId values.` });
+    }
+    if (group !== undefined) members.set(group, [...(members.get(group) ?? []), pixelId]);
+    const refs = modifier.linkedPixelIds;
+    if (refs && new Set(refs).size !== refs.length) {
+      issues.push({ code: 'modifier/linked-duplicate-reference', severity: 'error',
+        message: `Linked at (${x}, ${y}) contains a duplicate member reference.` });
+    }
+  }
+  for (const [key, modifier] of linked) {
+    if (!modifier.linkedPixelIds) continue;
+    const [x, y] = key.split(',').map(Number);
+    const self = `L${def.id}-p${x}-${y}`;
+    const group = modifier.group ?? modifier.linkId;
+    const expected = (group === undefined ? [] : members.get(group) ?? []).filter((id) => id !== self).sort();
+    const actual = [...new Set(modifier.linkedPixelIds)].sort();
+    if (actual.length !== expected.length || actual.some((id, index) => id !== expected[index])) {
+      issues.push({ code: 'modifier/linked-reference-mismatch', severity: 'error',
+        message: `Linked at (${x}, ${y}) does not reference exactly its authored partner.` });
+    }
+  }
+  return issues;
+}
 
 export function checkModifiers(level: StudioLevel): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -61,6 +96,13 @@ export function checkModifiers(level: StudioLevel): ValidationIssue[] {
     }
     if (modifier.kind === 'linked' && group) {
       linkedByGroup.set(group, (linkedByGroup.get(group) ?? 0) + 1);
+      if (!/^[A-Za-z][A-Za-z0-9_-]{0,31}$/.test(group)) {
+        err({
+          code: 'modifier/linked-group-id',
+          message: `Linked at ${at}: group id must start with a letter and use at most 32 letters, digits, "-", or "_".`,
+          where,
+        });
+      }
     }
 
     if (modifier.kind === 'bomb' && timer !== undefined) {
@@ -80,14 +122,14 @@ export function checkModifiers(level: StudioLevel): ValidationIssue[] {
   }
 
   for (const [group, count] of linkedByGroup) {
-    if (count < 2) {
+    if (count !== 2) {
       const member = modifierEntries(level).find(
         (e) => e.modifier.kind === 'linked' && e.modifier.config.group === group,
       );
       issues.push({
-        code: 'modifier/linked-orphan',
+        code: count < 2 ? 'modifier/linked-orphan' : 'modifier/linked-group-size',
         severity: 'error',
-        message: `Link group "${group}" has only ${count} member — a link group needs at least 2.`,
+        message: `Link group "${group}" has ${count} member${count === 1 ? '' : 's'}; production groups require exactly 2.`,
         ...(member ? { where: { kind: 'modifier' as const, x: member.x, y: member.y } } : {}),
       });
     }

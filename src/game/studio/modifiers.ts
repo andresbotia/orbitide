@@ -93,7 +93,7 @@ export const MODIFIER_SPECS: Record<ModifierKind, ModifierKindSpec> = {
   },
   linked: {
     kind: 'linked', label: 'Linked', marker: '⋈', fields: ['group'],
-    hint: 'Clears with its link group. `group` id is required; a group needs ≥ 2 members.',
+    hint: 'Prime both partners to clear them together. `group` must identify exactly 2 members.',
     groupRequired: true,
   },
 };

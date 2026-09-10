@@ -1,5 +1,6 @@
 import { ENCOUNTER_EPSILON, LAUNCH_SPACING, MAX_ACTIVE_CHARGES } from './concurrency';
-import { boardFingerprint, resolveMatchingHit } from './frozen';
+import { boardFingerprint } from './frozen';
+import { resolveBoardHit } from './linked';
 import { pickEncounter } from './pass';
 import { reachablePixels } from './pixels';
 import type {
@@ -172,9 +173,8 @@ function simulateEpochUncached(baseline: GameState, launches: EpochLaunch[]): Ep
     }
 
     simTime = Math.max(simTime, best.time);
-    const struck = pixels.find((p) => p.id === best!.pixelId)!;
-    const resolved = resolveMatchingHit(struck);
-    pixels = pixels.map((p) => (p.id === best!.pixelId ? resolved.pixel : p));
+    const resolved = resolveBoardHit(pixels, best.pixelId);
+    pixels = resolved.pixels;
     const c = best.cursor;
     c.remaining -= 1;
     c.cursorTime = best.time;
@@ -182,7 +182,11 @@ function simulateEpochUncached(baseline: GameState, launches: EpochLaunch[]): Ep
     c.hitPixelIds.add(best.pixelId);
     c.encounters.push({ pixelId: best.pixelId, time: best.time, progress: best.progress, remaining: c.remaining,
       ...(resolved.frozenBreak ? { frozenBreak: true } : {}),
-      ...(resolved.shieldBreak ? { shieldBreak: true } : {}) });
+      ...(resolved.shieldBreak ? { shieldBreak: true } : {}),
+      ...(resolved.linkedPrime ? { linkedPrime: true } : {}),
+      ...(resolved.linkedGroupClear ? { linkedGroupClear: true } : {}),
+      ...(resolved.linkedGroupId ? { linkedGroupId: resolved.linkedGroupId } : {}),
+      ...(resolved.linkedGroupClear ? { linkedClearedPixelIds: resolved.clearedPixelIds } : {}) });
     if (c.remaining === 0) {
       c.phase = 'finished';
       c.finishTime = best.time;

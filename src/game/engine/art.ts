@@ -80,8 +80,33 @@ export function cloneModifierInstance(m: ModifierInstance): ModifierInstance {
  */
 export function attachModifiers(pixels: Pixel[], modifiers: PixelModifierMap | undefined): Pixel[] {
   if (!modifiers || Object.keys(modifiers).length === 0) return pixels;
-  return pixels.map((p) => {
+  const attached = pixels.map((p) => {
     const m = modifiers[`${p.x},${p.y}`];
     return m ? { ...p, modifier: cloneModifierInstance(m) } : p;
+  });
+  const groups = new Map<string, string[]>();
+  for (const pixel of attached) {
+    const modifier = pixel.modifier;
+    if (modifier?.kind !== 'linked') continue;
+    const group = modifier.group ?? modifier.linkId;
+    if (group === undefined) continue;
+    groups.set(group, [...(groups.get(group) ?? []), pixel.id]);
+  }
+  for (const ids of groups.values()) ids.sort((a, b) => a.localeCompare(b));
+  return attached.map((pixel) => {
+    const modifier = pixel.modifier;
+    if (modifier?.kind !== 'linked') return pixel;
+    const group = modifier.group ?? modifier.linkId;
+    if (group === undefined) return pixel;
+    return {
+      ...pixel,
+      modifier: {
+        ...modifier,
+        group,
+        linkId: group,
+        linkedPixelIds: (groups.get(group) ?? []).filter((id) => id !== pixel.id),
+        linkProgress: modifier.state === 'primed' ? 1 : (modifier.linkProgress ?? 0),
+      },
+    };
   });
 }

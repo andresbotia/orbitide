@@ -12,10 +12,16 @@ export interface Shot {
   /** `true` when this shot cracks a Frozen ice layer — the pixel stays on the board. */
   frozenBreak?: boolean;
   shieldBreak?: boolean;
+  linkedPrime?: boolean;
+  linkedGroupClear?: boolean;
+  linkedGroupId?: string;
+  linkedClearedPixelIds?: string[];
+  linkedClearTargets?: { pixelId: string; x: number; y: number; color: Charge['color'] }[];
 }
-export type PlaybackKind = 'orbitEnter' | 'pixelClear' | 'frozenHit' | 'shieldHit' | 'chargeConsumed' |
+export type PlaybackKind = 'orbitEnter' | 'pixelClear' | 'frozenHit' | 'shieldHit' | 'linkPrime' | 'linkGroupClear' | 'chargeConsumed' |
   'holdingLanded' | 'holdingCritical' | 'holdingFull' | 'win' | 'fail' | 'complete';
 export interface PlaybackEvent { kind: PlaybackKind; at: number; pixelId?: string; remaining?: number;
+  pixelIds?: string[]; groupId?: string;
   /** Set on the pixelClear that completes the picture — a stronger presentation beat. */
   final?: boolean }
 /** One independent charge's script and its UI-thread clock form one playback unit. */

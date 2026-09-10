@@ -105,6 +105,8 @@ export function WitnessVisualizer({ trace, kind, emptyMessage }: WitnessVisualiz
             <Kv k="active charges" v={String(step.activeCount)} />
             <Kv k="frozen breaks" v={step.frozenBreakPixelIds.join(' ') || 'none'} />
             <Kv k="shield breaks" v={step.shieldBreakPixelIds.join(' ') || 'none'} />
+            <Kv k="link primes" v={step.linkedPrimePixelIds.join(' ') || 'none'} />
+            <Kv k="link clears" v={step.linkedGroupClearIds.join(' ') || 'none'} />
             <Kv k="Holding" v={`${step.holdingBefore.map((c) => `${c.color}:${c.capacity}`).join(', ') || '—'}  →  ${step.holdingAfter.map((c) => `${c.color}:${c.capacity}`).join(', ') || '—'}`} />
             <Kv k="cleared" v={step.clearedPixelIds.length ? step.clearedPixelIds.join(' ') : '—'} />
             <Kv k="newly exposed" v={step.newlyExposedPixelIds.length ? step.newlyExposedPixelIds.join(' ') : '—'} />

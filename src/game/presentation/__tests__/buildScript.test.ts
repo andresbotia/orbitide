@@ -92,3 +92,28 @@ test('a Shielded break emits shieldHit and is not presented as a pixel clear', (
   expect(pass.events.some((e) => e.kind === 'pixelClear')).toBe(false);
   expect(pass.finalClearPixelId).toBeUndefined();
 });
+
+test('Linked prime and atomic discharge use distinct semantic events', () => {
+  const linked: LevelDefinition = {
+    ...level, id: 802, pixelArt: ['R.B'],
+    modifiers: {
+      '0,0': { kind: 'linked', group: 'pair-a' },
+      '2,0': { kind: 'linked', group: 'pair-a' },
+    },
+    tunnels: [[{ color: 'red', capacity: 1 }], [{ color: 'blue', capacity: 1 }], []],
+  };
+  const initial = createGame(linked);
+  const first = resolveLaunch(initial, 'tunnel-0');
+  const prime = buildLaunchScript(first, initial).pass;
+  expect(prime.events).toContainEqual(expect.objectContaining({
+    kind: 'linkPrime', groupId: 'pair-a', pixelId: 'L802-p0-0',
+  }));
+  expect(prime.events.some((event) => event.kind === 'pixelClear')).toBe(false);
+
+  const second = resolveLaunch(first.state, 'tunnel-1');
+  const discharge = buildLaunchScript(second, first.state).pass;
+  expect(discharge.events).toContainEqual(expect.objectContaining({
+    kind: 'linkGroupClear', groupId: 'pair-a', pixelIds: ['L802-p0-0', 'L802-p2-0'], final: true,
+  }));
+  expect(discharge.shots[0]!.linkedClearTargets).toHaveLength(2);
+});

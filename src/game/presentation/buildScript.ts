@@ -13,10 +13,18 @@ export function buildLaunchScript(outcome: LaunchOutcome, prevState: GameState,
     const anticipateAt = FEEL.LAUNCH_DURATION + encounter.progress * FEEL.ORBIT_DURATION + i * FEEL.PIXEL_CLEAR_INTERVAL;
     const fireAt = anticipateAt + FEEL.ANTICIPATION_DURATION;
     const impactAt = fireAt + FEEL.ENERGY_TRAVEL_DURATION;
+    const linkedClearTargets = encounter.linkedClearedPixelIds?.map((pixelId) => {
+      const pixel = prevState.pixels.find((candidate) => candidate.id === pixelId);
+      if (!pixel) throw new Error(`Unknown linked target ${pixelId}`);
+      return { pixelId, x: pixel.x, y: pixel.y, color: pixel.color };
+    });
     return { ...encounter, target: { x: target.x, y: target.y }, anticipateAt, fireAt, impactAt,
       clearAt: impactAt + FEEL.IMPACT_DURATION,
       frozenBreak: encounter.frozenBreak === true,
-      shieldBreak: encounter.shieldBreak === true };
+      shieldBreak: encounter.shieldBreak === true,
+      linkedPrime: encounter.linkedPrime === true,
+      linkedGroupClear: encounter.linkedGroupClear === true,
+      ...(linkedClearTargets ? { linkedClearTargets } : {}) };
   });
   const orbitEndAt = chargePass.charge.capacity === 0 && shots.length > 0
     ? shots[shots.length - 1]!.clearAt
@@ -26,13 +34,20 @@ export function buildLaunchScript(outcome: LaunchOutcome, prevState: GameState,
   const lastShot = shots[shots.length - 1];
   // The clear that completes the picture gets a stronger presentation beat (a
   // Frozen crack can never be that clear).
-  const finalClearPixelId = won && lastShot && !lastShot.frozenBreak && !lastShot.shieldBreak ? lastShot.pixelId : undefined;
+  const finalClearPixelId = won && lastShot && !lastShot.frozenBreak && !lastShot.shieldBreak && !lastShot.linkedPrime
+    ? lastShot.pixelId : undefined;
   const events: PlaybackEvent[] = [
     { kind: 'orbitEnter', at: FEEL.LAUNCH_DURATION },
     ...shots.map((s, i) => ({
-      kind: s.frozenBreak ? ('frozenHit' as const) : s.shieldBreak ? ('shieldHit' as const) : ('pixelClear' as const),
+      kind: s.frozenBreak ? ('frozenHit' as const)
+        : s.shieldBreak ? ('shieldHit' as const)
+          : s.linkedPrime ? ('linkPrime' as const)
+            : s.linkedGroupClear ? ('linkGroupClear' as const)
+              : ('pixelClear' as const),
       at: s.clearAt, pixelId: s.pixelId, remaining: s.remaining,
-      final: !s.frozenBreak && !s.shieldBreak && won && i === shots.length - 1,
+      ...(s.linkedClearedPixelIds ? { pixelIds: s.linkedClearedPixelIds } : {}),
+      ...(s.linkedGroupId ? { groupId: s.linkedGroupId } : {}),
+      final: !s.frozenBreak && !s.shieldBreak && !s.linkedPrime && won && i === shots.length - 1,
     })),
     { kind: outcome.heldCharge ? 'holdingLanded' : 'chargeConsumed', at: outcome.heldCharge ? landingAt : orbitEndAt },
   ];

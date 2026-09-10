@@ -15,6 +15,7 @@ import type { CampaignManifest, ManifestIssue } from './campaign/types';
 import { fromLevelDefinition } from './serialize';
 import type { ValidationIssue } from './types';
 import { validateStudioLevel } from './validate';
+import { checkLinkedDefinition } from './validateModifiers';
 
 export interface BatchLevelAnalysisSlice {
   solvable?: boolean | 'unknown';
@@ -86,6 +87,14 @@ export function batchValidate(input: BatchValidateInput): BatchValidationResult 
     let report: ReturnType<typeof validateStudioLevel>;
     try {
       report = validateStudioLevel(fromLevelDefinition(def));
+      const relationshipIssues = checkLinkedDefinition(def);
+      report = {
+        ...report,
+        errors: [...report.errors, ...relationshipIssues.filter((issue) => issue.severity === 'error')],
+        warnings: [...report.warnings, ...relationshipIssues.filter((issue) => issue.severity === 'warning')],
+        ok: report.ok && relationshipIssues.every((issue) => issue.severity !== 'error'),
+        exportable: report.exportable && relationshipIssues.every((issue) => issue.severity !== 'error'),
+      };
     } catch (e) {
       report = {
         errors: [{ code: 'batch/unreadable', severity: 'error', message: `Level ${def.id} could not be read: ${(e as Error).message}` }],

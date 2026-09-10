@@ -41,6 +41,10 @@ function toChargePass(
     remaining: e.remaining,
     ...(e.frozenBreak ? { frozenBreak: true } : {}),
     ...(e.shieldBreak ? { shieldBreak: true } : {}),
+    ...(e.linkedPrime ? { linkedPrime: true } : {}),
+    ...(e.linkedGroupClear ? { linkedGroupClear: true } : {}),
+    ...(e.linkedGroupId ? { linkedGroupId: e.linkedGroupId } : {}),
+    ...(e.linkedClearedPixelIds ? { linkedClearedPixelIds: [...e.linkedClearedPixelIds] } : {}),
   }));
   return {
     charge,

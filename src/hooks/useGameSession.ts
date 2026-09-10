@@ -131,7 +131,11 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
       if (event.kind === 'pixelClear') {
         view.current = { ...view.current, pixels: view.current.pixels.map((p) =>
           p.id === event.pixelId ? { ...p, cleared: true } : p) };
-      } else if (event.kind === 'frozenHit') {
+      } else if (event.kind === 'linkGroupClear') {
+        const cleared = new Set(event.pixelIds ?? []);
+        view.current = { ...view.current, pixels: view.current.pixels.map((p) =>
+          cleared.has(p.id) ? { ...p, cleared: true } : p) };
+      } else if (event.kind === 'frozenHit' || event.kind === 'linkPrime') {
         // The ice cracked — mirror the engine's updated modifier; the pixel stays.
         const truthPixel = truth.current.pixels.find((p) => p.id === event.pixelId);
         if (truthPixel) {
@@ -171,6 +175,10 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
         feedback.emit('iceCrack', { haptic: !replacedImpact, voice: 'shot' });
       } else if (event.kind === 'shieldHit') {
         feedback.emit('shieldBreak', { haptic: !replacedImpact, voice: 'shot' });
+      } else if (event.kind === 'linkPrime') {
+        feedback.emit('linkPrime', { haptic: !replacedImpact, voice: 'shot' });
+      } else if (event.kind === 'linkGroupClear') {
+        feedback.emit(event.final ? 'finalClear' : 'linkClear', { haptic: !replacedImpact, voice: 'shot' });
       } else {
         const soundEvent = event.kind === 'holdingLanded' ? 'holdingLand' : event.kind;
         feedback.emit(soundEvent, { haptic: event.kind === 'win' ? false : !replacedImpact });

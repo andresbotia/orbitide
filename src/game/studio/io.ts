@@ -14,6 +14,7 @@ import type { CampaignManifest } from './campaign/types';
 import { fromLevelDefinition, serializeToTS, toLevelDefinition } from './serialize';
 import type { StudioLevel } from './types';
 import { validateStudioLevel } from './validate';
+import { checkLinkedDefinition } from './validateModifiers';
 
 export interface CampaignBundle {
   studioVersion: number;
@@ -116,6 +117,11 @@ export function importStudioJSON(text: string): ImportResult {
     const def = raw as LevelDefinition;
     if (typeof def.id !== 'number' || !Array.isArray(def.pixelArt) || !Array.isArray(def.tunnels)) {
       errors.push(`Entry ${i} is missing required fields (id / pixelArt / tunnels).`);
+      return;
+    }
+    const linkedIssues = checkLinkedDefinition(def);
+    if (linkedIssues.some((issue) => issue.severity === 'error')) {
+      errors.push(`Level ${def.id}: ${linkedIssues.map((issue) => issue.code).join(', ')}`);
       return;
     }
     try {

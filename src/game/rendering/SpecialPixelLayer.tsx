@@ -44,11 +44,45 @@ export const SpecialPixelLayer = memo(function SpecialPixelLayer({ geo, specials
     [specials, geo.density],
   );
   const idleIds = useMemo(() => pickIdleAnimated(resolved), [resolved]);
+  const linkedTethers = useMemo(() => {
+    const byId = new Map(specials.map((special) => [special.id, special]));
+    return specials.flatMap((special) => {
+      if (special.modifier.kind !== 'linked') return [];
+      return (special.modifier.linkedPixelIds ?? []).flatMap((partnerId) => {
+        if (special.id.localeCompare(partnerId) >= 0) return [];
+        const partner = byId.get(partnerId);
+        if (!partner) return [];
+        return [{
+          id: `${special.id}:${partnerId}`,
+          from: cellCenter(geo, special.x, special.y),
+          to: cellCenter(geo, partner.x, partner.y),
+          energized: special.modifier.state === 'primed' || partner.modifier.state === 'primed',
+        }];
+      });
+    });
+  }, [specials, geo]);
 
   if (resolved.length === 0) return null;
 
   return (
     <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+      {linkedTethers.map((tether) => (
+        <Group key={tether.id}>
+          <Path
+            path={`M ${tether.from.x} ${tether.from.y} L ${tether.to.x} ${tether.to.y}`}
+            color={tether.energized ? arcade.accent : arcade.accentDim}
+            style="stroke"
+            strokeWidth={Math.max(1, geo.cell * (tether.energized ? 0.1 : 0.055))}
+            opacity={tether.energized ? 0.82 : 0.42}
+          />
+          {tether.energized ? (
+            <Path
+              path={`M ${tether.from.x} ${tether.from.y} L ${tether.to.x} ${tether.to.y}`}
+              color="#FFFFFF" style="stroke" strokeWidth={Math.max(1, geo.cell * 0.025)} opacity={0.75}
+            />
+          ) : null}
+        </Group>
+      ))}
       {resolved.map((s) => (
         <SpecialShell
           key={s.id}

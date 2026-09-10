@@ -46,6 +46,21 @@ describe('batchValidate', () => {
     const r = batchValidate({ defs: LEVEL_DEFINITIONS, scopeLevelIds: [10, 2, 5] });
     expect(r.levels.map((l) => l.levelId)).toEqual([2, 5, 10]);
   });
+
+  test('catches duplicate and mismatched raw Linked member references', () => {
+    const base = LEVEL_DEFINITIONS[0]!;
+    const malformed = {
+      ...base,
+      modifiers: {
+        '0,0': { kind: 'linked' as const, group: 'pair-a', linkId: 'pair-a',
+          linkedPixelIds: [`L${base.id}-p1-0`, `L${base.id}-p1-0`] },
+        '1,0': { kind: 'linked' as const, group: 'pair-a', linkId: 'pair-a' },
+      },
+    };
+    const result = batchValidate({ defs: [malformed] });
+    expect(result.levels[0]!.errors.map((issue) => issue.code)).toContain('modifier/linked-duplicate-reference');
+    expect(importStudioJSON(JSON.stringify(malformed)).ok).toBe(false);
+  });
 });
 
 describe('export', () => {

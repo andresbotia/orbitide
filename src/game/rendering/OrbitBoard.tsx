@@ -56,7 +56,10 @@ export function OrbitBoard({ size, state, flights, presentThrough, colorAssist, 
   const shotPixelIds = useMemo(
     // A Frozen crack leaves the pixel on the board, so the static layer keeps
     // drawing it (with its shell) — only real clears are handed to the flight.
-    () => new Set(flights.flatMap((f) => f.shots.filter((s) => !s.frozenBreak && !s.shieldBreak).map((s) => s.pixelId))),
+    () => new Set(flights.flatMap((f) => f.shots.flatMap((s) => {
+      if (s.frozenBreak || s.shieldBreak || s.linkedPrime) return [];
+      return s.linkedClearedPixelIds ?? [s.pixelId];
+    }))),
     [flights],
   );
   const calm = flights.length >= CALM_TRAILS_AT;
@@ -200,22 +203,25 @@ const FlightActor = memo(function FlightActor({ pass, geo, presentThrough, color
   return (
     <>
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        {pass.shots.filter((shot) => !shot.frozenBreak && !shot.shieldBreak).map((shot, i) => {
-          const c = cellCenter(geo, shot.target.x, shot.target.y);
-          return (
-            <Pixel
-              key={`${pass.passId}-${shot.pixelId}-${i}`}
-              color={pass.charge.color}
-              cx={c.x}
-              cy={c.y}
-              cell={geo.cell}
-              adaptive={geo.adaptive}
-              reachable
-              clock={clock}
-              clearAt={shot.clearAt}
-            />
-          );
-        })}
+        {pass.shots.filter((shot) => !shot.frozenBreak && !shot.shieldBreak && !shot.linkedPrime)
+          .flatMap((shot, i) => (shot.linkedClearTargets ?? [{
+            pixelId: shot.pixelId, x: shot.target.x, y: shot.target.y, color: pass.charge.color,
+          }]).map((target) => {
+            const c = cellCenter(geo, target.x, target.y);
+            return (
+              <Pixel
+                key={`${pass.passId}-${target.pixelId}-${i}`}
+                color={target.color}
+                cx={c.x}
+                cy={c.y}
+                cell={geo.cell}
+                adaptive={geo.adaptive}
+                reachable
+                clock={clock}
+                clearAt={shot.clearAt}
+              />
+            );
+          }))}
       </View>
       <EnergyShot pass={pass} layout={geo} clock={clock} laneOffset={lane} />
       <OrbitingCharge pass={pass} layout={geo} clock={clock} colorAssist={colorAssist} laneOffset={lane} dim={calm} />

@@ -148,6 +148,16 @@ describe('validation', () => {
     expect(codes(level)).toContain('modifier/linked-group-missing');
   });
 
+  test('Linked rejects oversized groups and malformed ids', () => {
+    let level = board();
+    for (const x of [0, 1, 2]) {
+      level = setModifier(level, x, 0, 'linked');
+      level = updateModifierConfig(level, x, 0, { group: 'bad group' });
+    }
+    expect(codes(level)).toContain('modifier/linked-group-size');
+    expect(codes(level)).toContain('modifier/linked-group-id');
+  });
+
   test('unknown modifier kind is an error', () => {
     const level = { ...board(), modifiers: { '0,0': { kind: 'portal' as never, config: {} } } };
     expect(codes(level)).toContain('modifier/kind');

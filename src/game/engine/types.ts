@@ -26,10 +26,9 @@ export type OrbColor =
 /**
  * Special-pixel modifier. Serializable, cell-authored.
  *
- * `frozen` and `shielded` are engine-owned as of M4B (see
- * `engine/frozen.ts`): `level` is the remaining shell count and drops to 0 as
- * matching charges break it. Armored, Locked, Bomb, Wild, Linked and Hidden
- * remain presentation-only render-state hooks with no gameplay rule.
+ * Frozen, Shielded, and Linked are engine-owned. Durable shells consume a hit;
+ * Linked members prime individually and clear atomically once their group is
+ * fully primed. Other kinds remain presentation-only render-state hooks.
  */
 export type ModifierKind =
   | 'frozen'
@@ -53,7 +52,7 @@ export interface ModifierInstance {
   seed?: number;
   /**
    * Authoring group identifier: a lock group (Locked) or a link group (Linked).
-   * Future mechanics and the connection renderer consume it; the engine does not.
+   * Linked gameplay and the connection renderer consume it.
    */
   group?: string;
   /** Linked-pixel wiring (consumed by the connection renderer only). */
@@ -79,7 +78,7 @@ export interface Pixel {
   y: number;
   color: OrbColor;
   cleared: boolean;
-  /** Optional special-pixel modifier; Frozen and Shielded affect gameplay. */
+  /** Optional special-pixel modifier; Frozen, Shielded, and Linked affect gameplay. */
   modifier?: ModifierInstance;
 }
 
@@ -118,7 +117,7 @@ export interface EpochLaunch {
   launchSequence: number;
 }
 
-/** One resolved encounter: a clear, Frozen crack, or Shielded collapse. */
+/** One resolved encounter: a clear, shell break, or Linked transition. */
 export interface ActiveEncounter {
   pixelId: string;
   /** Absolute logical lap-time of the clear. */
@@ -131,6 +130,12 @@ export interface ActiveEncounter {
   frozenBreak?: boolean;
   /** `true` when this encounter collapsed a Shielded layer instead of clearing. */
   shieldBreak?: boolean;
+  /** `true` when this encounter energized one Linked member without clearing it. */
+  linkedPrime?: boolean;
+  /** `true` when this encounter atomically cleared a complete Linked group. */
+  linkedGroupClear?: boolean;
+  linkedGroupId?: string;
+  linkedClearedPixelIds?: string[];
 }
 
 export type ActiveChargePhase = 'orbiting' | 'finished';

@@ -90,7 +90,7 @@ export function ModifierPanel({ level, brush, onBrush, selectedCell, onRemove, o
           {spec!.fields.includes('group') ? (
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>
-                {selected.kind === 'linked' ? 'Link group (≥ 2 members)' : 'Lock group (optional)'}
+                {selected.kind === 'linked' ? 'Link group (exactly 2 members)' : 'Lock group (optional)'}
               </Text>
               <TextInput
                 value={selected.config.group ?? ''}

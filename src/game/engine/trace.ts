@@ -13,6 +13,7 @@
 import type { GameAction, Rejection } from './actions';
 import { createGame } from './createGame';
 import { iceLayers, shieldLayers } from './frozen';
+import { isLinkedPrimed, linkedGroupId } from './linked';
 import { reachablePixels, remainingPixelCount } from './pixels';
 import { resolveAction } from './resolveLaunch';
 import type { GameState, GameStatus, LevelDefinition, OrbColor } from './types';
@@ -47,6 +48,10 @@ export interface TraceStep {
   frozenBreakPixelIds: string[];
   /** Shielded pixel ids whose membrane collapsed this step. */
   shieldBreakPixelIds: string[];
+  /** Linked members energized this step without completing their group. */
+  linkedPrimePixelIds: string[];
+  /** Linked group ids atomically discharged and cleared this step. */
+  linkedGroupClearIds: string[];
   /** Pixel ids that became reachable this step and are not yet cleared. */
   newlyExposedPixelIds: string[];
   /** Uncleared pixels remaining after this step. */
@@ -94,6 +99,23 @@ function shieldBrokenThisStep(before: GameState, after: GameState): string[] {
     .map((p) => p.id);
 }
 
+function linkedPrimedThisStep(before: GameState, after: GameState): string[] {
+  const primedBefore = new Set(before.pixels.filter(isLinkedPrimed).map((p) => p.id));
+  return after.pixels
+    .filter((p) => isLinkedPrimed(p) && !primedBefore.has(p.id) && !p.cleared)
+    .map((p) => p.id);
+}
+
+function linkedGroupsClearedThisStep(before: GameState, after: GameState): string[] {
+  const afterById = new Map(after.pixels.map((pixel) => [pixel.id, pixel]));
+  const groups = new Set<string>();
+  for (const pixel of before.pixels) {
+    const group = linkedGroupId(pixel);
+    if (group !== undefined && !pixel.cleared && afterById.get(pixel.id)?.cleared) groups.add(group);
+  }
+  return [...groups].sort((a, b) => a.localeCompare(b));
+}
+
 /** Replay `actions` from a fresh game and record every frame + step. */
 export function traceActions(level: LevelDefinition, actions: GameAction[]): Trace {
   const initial = createGame(level);
@@ -124,7 +146,8 @@ export function traceActions(level: LevelDefinition, actions: GameAction[]): Tra
         source: { kind: action.kind, id: action.id, tunnelIndex },
         joined: false, charge: null, activeCount: before.epoch?.launches.length ?? 0,
         holdingBefore: snapshotHolding(before), holdingAfter: snapshotHolding(before),
-        clearedPixelIds: [], frozenBreakPixelIds: [], shieldBreakPixelIds: [], newlyExposedPixelIds: [],
+        clearedPixelIds: [], frozenBreakPixelIds: [], shieldBreakPixelIds: [],
+        linkedPrimePixelIds: [], linkedGroupClearIds: [], newlyExposedPixelIds: [],
         remainingPixels: remainingPixelCount(before), status: before.status,
         accepted: false, rejection: outcome.rejection,
       });
@@ -139,6 +162,8 @@ export function traceActions(level: LevelDefinition, actions: GameAction[]): Tra
     const cleared = clearedThisStep(before, state);
     const frozenBroken = frozenBrokenThisStep(before, state);
     const shieldBroken = shieldBrokenThisStep(before, state);
+    const linkedPrimed = linkedPrimedThisStep(before, state);
+    const linkedCleared = linkedGroupsClearedThisStep(before, state);
     const afterReach = reachableIds(state);
     const clearedSet = new Set(cleared);
     const newlyExposed = [...afterReach].filter((id) => !beforeReach.has(id) && !clearedSet.has(id));
@@ -161,6 +186,8 @@ export function traceActions(level: LevelDefinition, actions: GameAction[]): Tra
       clearedPixelIds: cleared,
       frozenBreakPixelIds: frozenBroken,
       shieldBreakPixelIds: shieldBroken,
+      linkedPrimePixelIds: linkedPrimed,
+      linkedGroupClearIds: linkedCleared,
       newlyExposedPixelIds: newlyExposed,
       remainingPixels: remainingPixelCount(state),
       status: state.status,

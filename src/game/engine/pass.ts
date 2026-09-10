@@ -1,4 +1,4 @@
-import { resolveMatchingHit } from './frozen';
+import { isLinkedPrimed, resolveBoardHit } from './linked';
 import { ORBIT_ENTRY_FRACTION, clockwiseGap } from './orbit';
 import { pictureCenter, pixelEncounterFraction, reachablePixels } from './pixels';
 import type { Charge, GameState, OrbColor, Pixel } from './types';
@@ -11,6 +11,10 @@ export interface Encounter {
   /** `true` when this encounter cracked a Frozen ice layer instead of clearing. */
   frozenBreak?: boolean;
   shieldBreak?: boolean;
+  linkedPrime?: boolean;
+  linkedGroupClear?: boolean;
+  linkedGroupId?: string;
+  linkedClearedPixelIds?: string[];
 }
 /** Independently representable per-charge state. No clock or renderer dependencies. */
 export interface ChargePass {
@@ -41,7 +45,7 @@ export function pickEncounter(
 ): { pixelId: string; progress: number } | null {
   const { cx, cy } = pictureCenter(size);
   const candidates = reachable
-    .filter((p) => p.color === color && !(exclude?.has(p.id)))
+    .filter((p) => p.color === color && !isLinkedPrimed(p) && !(exclude?.has(p.id)))
     .map((p) => ({
       pixel: p,
       // The centre is equally near everywhere: encounter it at the current position.
@@ -79,16 +83,18 @@ export function advancePass(pass: ChargePass): ChargePass {
   if (!hit) return { ...pass, progress: 1, phase: 'finished' };
   const progress = hit.progress;
   const remaining = pass.charge.capacity - 1;
-  const target = pass.state.pixels.find((p) => p.id === hit.pixelId)!;
-  const resolved = resolveMatchingHit(target);
+  const resolved = resolveBoardHit(pass.state.pixels, hit.pixelId);
   return {
     ...pass, progress, charge: { ...pass.charge, capacity: remaining },
     phase: remaining === 0 ? 'finished' : 'encounter',
-    state: { ...pass.state, pixels: pass.state.pixels.map((p) =>
-      p.id === hit.pixelId ? resolved.pixel : p) },
+    state: { ...pass.state, pixels: resolved.pixels },
     encounters: [...pass.encounters, { pixelId: hit.pixelId, progress, remaining,
       ...(resolved.frozenBreak ? { frozenBreak: true } : {}),
-      ...(resolved.shieldBreak ? { shieldBreak: true } : {}) }],
+      ...(resolved.shieldBreak ? { shieldBreak: true } : {}),
+      ...(resolved.linkedPrime ? { linkedPrime: true } : {}),
+      ...(resolved.linkedGroupClear ? { linkedGroupClear: true } : {}),
+      ...(resolved.linkedGroupId ? { linkedGroupId: resolved.linkedGroupId } : {}),
+      ...(resolved.linkedGroupClear ? { linkedClearedPixelIds: resolved.clearedPixelIds } : {}) }],
   };
 }
 /** M1 has one active pass: safely evaluate discrete steps ahead of presentation. */
