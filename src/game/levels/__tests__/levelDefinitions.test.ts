@@ -1,5 +1,5 @@
 import { createGame } from '../../engine/createGame';
-import { iceLayers } from '../../engine/frozen';
+import { iceLayers, shieldLayers } from '../../engine/frozen';
 import { resolveAction } from '../../engine/resolveLaunch';
 import { solve } from '../../engine/solver';
 import { validateManifest } from '../../studio/campaign/validate';
@@ -23,7 +23,10 @@ function densityBand(id: number): [number, number] {
   if (id <= 20) return [28, 62];
   // World 3: the Frozen-heavy crystal / teaching levels run tighter for
   // readability (Part 2 target is 35-60; documented deviation).
-  return [20, 64];
+  if (id <= 30) return [20, 64];
+  if (id <= 40) return [35, 60];
+  if (id <= 50) return [40, 65];
+  return [45, 70];
 }
 
 const ALLOWED_TIERS = new Set(['easy', 'medium', 'hard']);
@@ -62,7 +65,7 @@ test.each(LEVELS)('level $id has production density and an exact per-colour capa
   // Total charge capacity of a colour must exactly cover its pixels plus one
   // extra hit per Frozen ice layer (M4A).
   const need = new Map<string, number>();
-  for (const p of state.pixels) need.set(p.color, (need.get(p.color) ?? 0) + 1 + iceLayers(p));
+  for (const p of state.pixels) need.set(p.color, (need.get(p.color) ?? 0) + 1 + iceLayers(p) + shieldLayers(p));
   const have = new Map<string, number>();
   for (const t of level.tunnels) for (const c of t) have.set(c.color, (have.get(c.color) ?? 0) + c.capacity);
   for (const [color, n] of need) expect(have.get(color) ?? 0).toBe(n);
@@ -91,7 +94,7 @@ test('authored Win / Discovery reveals are structurally sound', () => {
 });
 
 test('the world-10 milestone levels carry an authored reveal', () => {
-  for (const id of [10, 20, 30]) {
+  for (const id of [10, 20, 30, 40, 50, 60]) {
     const level = LEVELS.find((l) => l.id === id);
     if (level) expect(level.reveal).toBeDefined();
   }
@@ -116,7 +119,7 @@ test.each(LEVELS)('level $id is deterministically winnable with zero boosters', 
 
 test('World 3 introduces Frozen — and only Frozen — with a single teaching cue', () => {
   const w3 = LEVELS.filter((l) => l.themeId === 'deep-frost');
-  const others = LEVELS.filter((l) => l.themeId !== 'deep-frost');
+  const others = LEVELS.filter((l) => l.id < 21);
   // No modifier of any kind before World 3.
   for (const l of others) expect(l.modifiers).toBeUndefined();
   for (const l of w3) {
@@ -130,8 +133,21 @@ test('World 3 introduces Frozen — and only Frozen — with a single teaching c
     expect(state.pixels.some((p) => iceLayers(p) === 1)).toBe(true);
   }
   // Exactly one tutorial cue in the whole campaign — the Frozen intro on L21.
+  const w4 = LEVELS.filter((l) => l.themeId === 'curio-cabinet');
+  expect(w4.some((l) => Object.values(l.modifiers ?? {}).some((m) => m.kind === 'frozen'))).toBe(true);
+  expect(w4.every((l) => Object.values(l.modifiers ?? {}).every((m) => m.kind === 'frozen'))).toBe(true);
+  const w5 = LEVELS.filter((l) => l.themeId === 'prism-works');
+  expect(w5).toHaveLength(10);
+  expect(w5.every((l) => Object.values(l.modifiers ?? {}).some((m) => m.kind === 'shielded'))).toBe(true);
+  expect(w5.every((l) => Object.values(l.modifiers ?? {}).every((m) => m.kind === 'shielded'))).toBe(true);
+  const w6 = LEVELS.filter((l) => l.themeId === 'frostglass-forge');
+  expect(w6).toHaveLength(10);
+  for (const level of w6) {
+    const kinds = new Set(Object.values(level.modifiers ?? {}).map((m) => m.kind));
+    expect(kinds).toEqual(new Set(['frozen', 'shielded']));
+  }
   const tutorials = LEVELS.filter((l) => l.tutorial);
-  expect(tutorials.map((l) => l.id)).toEqual([21]);
+  expect(tutorials.map((l) => l.id)).toEqual([21, 41]);
   expect(tutorials[0]!.tutorial!.length).toBeGreaterThan(10);
 });
 

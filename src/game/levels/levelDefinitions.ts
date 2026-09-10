@@ -1,4 +1,5 @@
 import type { LevelDefinition } from '../engine/types';
+import { M4B_LEVELS } from './m4bLevels';
 
 /**
  * Pixel Arcadia — the production campaign. Three worlds of ten handcrafted
@@ -696,4 +697,5 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
       collectionId: 'deep-frost',
     },
   },
+  ...M4B_LEVELS,
 ];

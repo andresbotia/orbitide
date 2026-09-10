@@ -14,6 +14,9 @@ const WORLD_BLUEPRINT: Omit<CampaignWorld, 'order' | 'levelIds'>[] = [
   { id: 'first-light', title: 'First Light', themeId: 'first-light', display: { subtitle: 'Learn the light' } },
   { id: 'wild-garden', title: 'Wild Garden', themeId: 'wild-garden', display: { subtitle: 'The garden wakes' } },
   { id: 'deep-frost', title: 'Deep Frost', themeId: 'deep-frost', display: { subtitle: 'Break the ice' } },
+  { id: 'curio-cabinet', title: 'Curio Cabinet', themeId: 'curio-cabinet', display: { subtitle: 'Treasures under glass' } },
+  { id: 'prism-works', title: 'Prism Works', themeId: 'prism-works', display: { subtitle: 'Bend the light' } },
+  { id: 'frostglass-forge', title: 'Frostglass Forge', themeId: 'frostglass-forge', display: { subtitle: 'Master ice and energy' } },
 ];
 
 const known = new Set(LEVEL_DEFINITIONS.map((l) => l.id));
