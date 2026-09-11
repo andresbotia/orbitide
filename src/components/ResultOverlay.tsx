@@ -46,10 +46,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(5,6,10,0.82)',
+    backgroundColor: 'rgba(5,6,10,0.88)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.xl,
+    zIndex: 100,
+    elevation: 100,
   },
   card: {
     alignItems: 'center',
@@ -62,6 +64,8 @@ const styles = StyleSheet.create({
     borderColor: brandColor.border,
     width: '100%',
     maxWidth: 340,
+    zIndex: 101,
+    elevation: 101,
   },
   heading: { ...typography.title, fontSize: 22, color: brandColor.textPrimary },
   sub: {

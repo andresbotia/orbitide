@@ -11,7 +11,8 @@ import { levelSlotState } from '@/game/levels/campaignProgress';
 import type { Progress } from '@/storage/progress';
 import { feedback } from '@/game/feedback';
 import { arcade } from '@/theme/arcade';
-import { spacing, typography } from '@/theme/spacing';
+import { palette } from '@/theme/colors';
+import { radius, spacing, typography } from '@/theme/spacing';
 
 interface WorldLevelsScreenProps {
   world: CampaignWorld;
@@ -37,6 +38,11 @@ export function WorldLevelsScreen({
   const { width } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
   const accent = world.display?.accent ?? arcade.accent;
+  const subtitle = world.display?.subtitle ?? 'Explore the sector';
+  const totalLevels = world.levelIds.length;
+  const clearedCount = world.levelIds.filter(
+    (id) => levelSlotState(progress, id) === 'complete',
+  ).length;
 
   if (loading) {
     return (
@@ -46,10 +52,12 @@ export function WorldLevelsScreen({
     );
   }
 
-  const usableWidth = width - spacing.md * 2;
+  const usableWidth = width - spacing.md * 4;
   const nodeSize = Math.round(
-    Math.min(72, Math.max(52, (usableWidth - GRID_GAP * (COLUMNS - 1)) / COLUMNS)),
+    Math.min(62, Math.max(48, (usableWidth - GRID_GAP * (COLUMNS - 1)) / COLUMNS)),
   );
+  const gridWidth = nodeSize * COLUMNS + GRID_GAP * (COLUMNS - 1);
+  const allCleared = clearedCount === totalLevels;
 
   return (
     <View style={styles.root}>
@@ -65,29 +73,57 @@ export function WorldLevelsScreen({
             <Text style={[styles.title, { color: accent }]} numberOfLines={1}>
               {world.title.toUpperCase()}
             </Text>
+            <Text style={styles.subtitle}>{subtitle}</Text>
           </View>
           <View style={{ width: 40 }} />
         </View>
 
-        <Animated.View
-          entering={reducedMotion ? undefined : FadeInDown.duration(220)}
-          style={[styles.grid, { gap: GRID_GAP }]}
-        >
-          {world.levelIds.map((levelId, i) => (
-            <LevelNode
-              key={levelId}
-              levelId={levelId}
-              positionInWorld={i + 1}
-              state={levelSlotState(progress, levelId)}
-              accent={accent}
-              size={nodeSize}
-              onPress={() => {
-                feedback.emit('select');
-                onSelectLevel(levelId);
-              }}
-            />
-          ))}
-        </Animated.View>
+        <View style={styles.content}>
+          <Animated.View
+            entering={reducedMotion ? undefined : FadeInDown.duration(220)}
+            style={[styles.deck, { width: gridWidth + spacing.md * 2 }]}
+          >
+            <View style={styles.progressRow}>
+              <View style={styles.track}>
+                <View
+                  style={[
+                    styles.fill,
+                    {
+                      width: `${totalLevels > 0 ? Math.round((clearedCount / totalLevels) * 100) : 0}%`,
+                      backgroundColor: accent,
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={styles.progressText}>
+                {clearedCount}/{totalLevels} RESTORED
+              </Text>
+            </View>
+
+            <View style={[styles.grid, { width: gridWidth, gap: GRID_GAP }]}>
+              {world.levelIds.map((levelId, i) => (
+                <LevelNode
+                  key={levelId}
+                  levelId={levelId}
+                  positionInWorld={i + 1}
+                  state={levelSlotState(progress, levelId)}
+                  accent={accent}
+                  size={nodeSize}
+                  onPress={() => {
+                    feedback.emit('select');
+                    onSelectLevel(levelId);
+                  }}
+                />
+              ))}
+            </View>
+
+            <Text style={styles.footerNote}>
+              {allCleared
+                ? 'SECTOR COMPLETED'
+                : `${totalLevels - clearedCount} ${totalLevels - clearedCount === 1 ? 'LEVEL' : 'LEVELS'} REMAINING`}
+            </Text>
+          </Animated.View>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -101,15 +137,67 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.sm,
   },
-  headerText: { alignItems: 'center', gap: 2 },
+  headerText: { alignItems: 'center', gap: 3 },
   eyebrow: { ...typography.label, color: arcade.metalEdge, fontSize: 11 },
   title: { ...typography.title, fontSize: 18 },
+  subtitle: {
+    color: palette.textSecondary,
+    fontSize: 12,
+    letterSpacing: 0.5,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.xl,
+  },
+  deck: {
+    backgroundColor: arcade.metal,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderTopColor: arcade.metalHi,
+    borderLeftColor: arcade.metalHi,
+    borderRightColor: arcade.metalLo,
+    borderBottomColor: arcade.metalLo,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  progressRow: {
+    alignItems: 'center',
+    gap: spacing.xs,
+    width: '100%',
+  },
+  track: {
+    width: '100%',
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: arcade.socket,
+    overflow: 'hidden',
+  },
+  fill: {
+    height: 4,
+    borderRadius: 2,
+  },
+  progressText: {
+    color: arcade.metalEdge,
+    fontSize: 10,
+    letterSpacing: 2,
+    fontWeight: '700',
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
+  },
+  footerNote: {
+    color: arcade.metalEdge,
+    fontSize: 9,
+    letterSpacing: 2,
+    fontWeight: '600',
   },
 });

@@ -82,5 +82,5 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
   },
   headerTitle: { ...typography.label, color: arcade.metalEdge, fontSize: 13, letterSpacing: 4 },
-  list: { paddingHorizontal: spacing.md, paddingBottom: spacing.lg, gap: spacing.sm },
+  list: { paddingHorizontal: spacing.md, paddingBottom: spacing.xxl, gap: spacing.sm },
 });

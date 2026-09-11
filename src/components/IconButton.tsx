@@ -28,6 +28,7 @@ export function IconButton({ glyph, onPress, accessibilityLabel, size = 40 }: Ic
       onPress={onPress}
       disabled={!onPress}
       accessibilityRole="button"
+      accessibilityState={{ disabled: !onPress }}
       accessibilityLabel={accessibilityLabel}
       hitSlop={10}
     >

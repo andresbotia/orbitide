@@ -169,7 +169,7 @@ export function GameScreen({
         ) : null}
       </View>
 
-      <View style={styles.controls} pointerEvents={won ? 'none' : 'auto'}>
+      <View style={[styles.controls, won && styles.controlsWon]} pointerEvents={won ? 'none' : 'auto'}>
         <HoldingTray
           layoutVersion={boardSize}
           holding={state.holding}
@@ -249,21 +249,27 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     alignItems: 'center',
   },
+  controlsWon: {
+    opacity: 0,
+  },
   tutorial: {
     position: 'absolute',
     top: spacing.sm,
     alignSelf: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: 999,
-    backgroundColor: 'rgba(12,20,34,0.82)',
+    maxWidth: '96%',
+    zIndex: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    backgroundColor: 'rgba(12,20,34,0.92)',
     borderWidth: 1,
     borderColor: 'rgba(200,230,255,0.35)',
   },
   tutorialText: {
     color: '#DCEEFF',
-    fontSize: 13,
+    fontSize: 10.5,
     fontWeight: '600',
-    letterSpacing: 0.2,
+    letterSpacing: -0.1,
+    textAlign: 'center',
   },
 });
