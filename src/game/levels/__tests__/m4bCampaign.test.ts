@@ -18,7 +18,7 @@ test('M4B adds three ordered ten-level worlds and Levels 31-60', () => {
 test('Shielded teaches once on L41 and never repeats the Frozen tutorial', () => {
   const tutorials = LEVEL_DEFINITIONS.filter((level) => level.id <= 60 && level.tutorial);
   expect(tutorials.map((level) => level.id)).toEqual([21, 41]);
-  expect(LEVEL_DEFINITIONS.find((level) => level.id === 41)!.tutorial).toMatch(/Shielded pixels need an extra hit/);
+  expect(LEVEL_DEFINITIONS.find((level) => level.id === 41)!.tutorial).toMatch(/Shielded pixels absorb one hit/);
 });
 
 test('production modifier rollout uses one kind per cell and one durability layer', () => {

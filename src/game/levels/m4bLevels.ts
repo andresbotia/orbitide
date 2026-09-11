@@ -119,7 +119,7 @@ export const M4B_LEVELS: LevelDefinition[] = [
 
   // WORLD 5 · PRISM WORKS — luminous glass and the Shielded rollout.
   makeLevel({ id: 41, title: 'Glass Seed', themeId: 'prism-works', difficulty: 'medium',
-    tutorial: 'Shielded pixels need an extra hit.',
+    tutorial: 'Shielded pixels absorb one hit — launch that color again to clear.',
     art: ['....C....','...CCC...','..CTTTC..','.CTGGGTC.','CTGLLLGTC','.CTGGGTC.','..CTTTC..','...CCC...'],
     queues: [['lime'],['green'],['teal','cyan']], modifiers: S(['4,4']) }),
   makeLevel({ id: 42, title: 'Light Bulb', themeId: 'prism-works', difficulty: 'medium',
@@ -136,19 +136,19 @@ export const M4B_LEVELS: LevelDefinition[] = [
     queues: [['gold','yellow'],['pink','red'],['green']], modifiers: S(['4,4','2,4','6,4']) }),
   makeLevel({ id: 46, title: 'Neon Mirror', themeId: 'prism-works', difficulty: 'medium',
     art: ['.MMMMMMM.','M.NNNNN.M','M..WWW..M','MNWCCCWNM','MNWCRCWNM','MNWCCCWNM','M..WWW..M','M.NNNNN.M','.MMMMMMM.'],
-    queues: [['red','cyan'],['white','indigo'],['magenta']], modifiers: S(['4,4','3,3','5,5','2,1']) }),
+    queues: [['cyan','red'],['white','indigo'],['magenta']], modifiers: S(['4,4','3,3','5,5','2,1']) }),
   makeLevel({ id: 47, title: 'Sun Catcher', themeId: 'prism-works', difficulty: 'medium',
     art: ['YY..A..YY','.Y..A..Y.','..YAAA Y..'.replace(' ',''),'AAAOYOAAA','..YRRRY..','.Y.PPP.Y.','Y..BBB..Y','...CCC...'],
-    queues: [['orange','red','purple'],['blue','cyan'],['yellow','gold']], modifiers: S(['4,3','3,4','5,4','4,5']) }),
+    queues: [['purple','red','orange'],['cyan','blue'],['yellow','gold']], modifiers: S(['4,3','3,4','5,4','4,5']) }),
   makeLevel({ id: 48, title: 'Spectrum Vase', themeId: 'prism-works', difficulty: 'medium',
     art: ['..WWWWW..','...WWW...','..RRRRR..','.ROOOOOR.','.OYYYYYO.','.YGGGGGY.','.GGGGGGG.','..BBBBB..','...BBB...'],
-    queues: [['yellow','green'],['orange','blue'],['white','red']], modifiers: S(['4,4','4,5','4,6','4,7']) }),
+    queues: [['green','yellow'],['orange','blue'],['white','red']], modifiers: S(['4,4','4,5','4,6','4,7']) }),
   makeLevel({ id: 49, title: 'Aurora Lens', themeId: 'prism-works', difficulty: 'hard',
     art: ['.BBBBBBB.','B.PPPPP.B','P.PPPPP.P','PPRRRRRPP','PPRYYYRPP','PPPOOOPPP','B.PCCCP.B','.BBBBBBB.','...CCC...'],
     queues: [['yellow','red'],['orange','cyan'],['blue','purple']], modifiers: S(['4,3','3,4','5,4','4,5','4,6']) }),
   makeLevel({ id: 50, title: 'The Grand Prism', themeId: 'prism-works', difficulty: 'hard',
-    art: ['....W....','...YYY...','..RRRRR..','.PPPPPPP.','BBBBBBBBB','.CCCCCCC.','..YYYYY..','...RRR...','....P....'],
-    queues: [['purple','red'],['blue','cyan'],['white','yellow']], modifiers: S(['4,0','3,1','4,2','3,3','4,4','4,5']) }),
+    art: ['....W....','...WYW...','..PRRRP..','.PPPPPPP.','BBBBBBBBB','.CCCCCCC.','..CYYYC..','...PRP...','....P....'],
+    queues: [['yellow','white'],['red','purple'],['blue','cyan']], modifiers: S(['4,0','4,1','4,2','3,3','4,4','4,5']) }),
 
   // WORLD 6 · FROSTGLASS FORGE — premium mixed-material objects.
   makeLevel({ id: 51, title: 'Frostglass Bell', themeId: 'frostglass-forge', difficulty: 'medium',
