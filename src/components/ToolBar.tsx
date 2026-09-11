@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { arcade } from '@/theme/arcade';
-import { spacing } from '@/theme/spacing';
+import { radius, spacing } from '@/theme/spacing';
 
 interface ToolBarProps {
   /** Presentation-only for M2A. Booster logic arrives in a later M2 pass. */
@@ -17,9 +17,12 @@ const TOOLS = [
 ] as const;
 
 /**
- * Secondary tools: Undo, Scanner/Hint, Extra Slot. Deliberately subordinate to
- * the board and controls. Disabled / presentation-only in M2A — no booster
- * logic, no economy.
+ * Secondary tools: Undo, Scanner/Hint, Extra Slot. Presentation-only in M2A —
+ * no booster logic, no economy. Rendered as dormant hardware — a recessed
+ * socket housing present but unlit — rather than a row of floating low-
+ * opacity glyphs, so an intentionally-unshipped feature still reads as a
+ * designed "not yet" (DESIGN.md §15), the same "structure without the light"
+ * idea as `LogoMark`'s `unlit` variant.
  */
 export function ToolBar({ onUndo, onHint, onExtraSlot }: ToolBarProps) {
   const handlers: Record<string, (() => void) | undefined> = {
@@ -40,7 +43,9 @@ export function ToolBar({ onUndo, onHint, onExtraSlot }: ToolBarProps) {
           accessibilityLabel={`${tool.label} (coming soon)`}
           style={styles.tool}
         >
-          <Text style={styles.glyph}>{tool.glyph}</Text>
+          <View style={styles.housing}>
+            <Text style={styles.glyph}>{tool.glyph}</Text>
+          </View>
           <Text style={styles.label}>{tool.label}</Text>
         </Pressable>
       ))}
@@ -49,13 +54,19 @@ export function ToolBar({ onUndo, onHint, onExtraSlot }: ToolBarProps) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', justifyContent: 'center', gap: spacing.lg, opacity: 0.55 },
-  tool: {
+  row: { flexDirection: 'row', justifyContent: 'center', gap: spacing.lg },
+  tool: { alignItems: 'center', gap: 4 },
+  housing: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: arcade.metalLo,
+    backgroundColor: arcade.socket,
     alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    justifyContent: 'center',
+    opacity: 0.6,
   },
-  glyph: { color: arcade.metalEdge, fontSize: 18, lineHeight: 22 },
-  label: { color: arcade.metalEdge, fontSize: 9, letterSpacing: 2, fontWeight: '600' },
+  glyph: { color: arcade.metalEdge, fontSize: 16, opacity: 0.7 },
+  label: { color: arcade.metalEdge, fontSize: 9, letterSpacing: 2, fontWeight: '600', opacity: 0.7 },
 });
