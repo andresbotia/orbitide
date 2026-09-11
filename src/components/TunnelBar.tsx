@@ -139,7 +139,12 @@ const styles = StyleSheet.create({
     borderRadius: (CHARGE + 12) / 2,
     backgroundColor: arcade.socket,
     borderWidth: 1,
-    borderColor: arcade.socketRim,
+    // Recessed-well shading (dark top-left, rim bottom-right) — same concave
+    // language as HoldingTray's socket, so both hardware read as one family.
+    borderTopColor: arcade.metalLo,
+    borderLeftColor: arcade.metalLo,
+    borderRightColor: arcade.socketRim,
+    borderBottomColor: arcade.socketRim,
     alignItems: 'center',
     justifyContent: 'center',
   },
