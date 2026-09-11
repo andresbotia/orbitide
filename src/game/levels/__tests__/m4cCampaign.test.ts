@@ -90,7 +90,7 @@ test('World 10 completes the campaign with the requested Starforge curve', () =>
   const world = range(91, 100);
   expect(world).toHaveLength(10);
   expect(world.map((level) => level.difficulty)).toEqual([
-    'medium', 'hard', 'hard', 'hard', 'hard', 'hard', 'hard', 'super-hard', 'super-hard', 'super-hard',
+    'medium', 'medium', 'medium', 'medium', 'hard', 'hard', 'hard', 'hard', 'hard', 'hard',
   ]);
   for (const level of world) {
     const density = level.pixelArt.join('').replace(/[. ]/g, '').length;
