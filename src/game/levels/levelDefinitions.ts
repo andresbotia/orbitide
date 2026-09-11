@@ -628,14 +628,14 @@ export const LEVEL_DEFINITIONS: LevelDefinition[] = [
       '...C...',
     ],
     modifiers: {
+      '3,0': { kind: 'frozen', level: 1 },
       '3,2': { kind: 'frozen', level: 1 },
-      '2,3': { kind: 'frozen', level: 1 },
       '3,3': { kind: 'frozen', level: 1 },
-      '4,3': { kind: 'frozen', level: 1 },
       '3,4': { kind: 'frozen', level: 1 },
+      '3,6': { kind: 'frozen', level: 1 },
     },
     tunnels: [
-      [{ color: 'white', capacity: 10 }, { color: 'cyan', capacity: 10 }],
+      [{ color: 'white', capacity: 8 }, { color: 'cyan', capacity: 12 }],
       [{ color: 'cyan', capacity: 6 }],
       [{ color: 'cyan', capacity: 4 }],
     ],
