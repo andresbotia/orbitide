@@ -10,17 +10,20 @@ import { LEVEL_DEFINITIONS } from './levelDefinitions';
  * that actually exist, so the manifest stays valid while a world is still being
  * authored.
  */
+// `display.accent` is per-world identity colour for the world-select screen
+// (M4C.11.3) — content data, like `orbColors`, never reused as chrome and
+// never drawn from the 15 gameplay colours (brand ⟂ gameplay separation).
 const WORLD_BLUEPRINT: Omit<CampaignWorld, 'order' | 'levelIds'>[] = [
-  { id: 'first-light', title: 'First Light', themeId: 'first-light', display: { subtitle: 'Learn the light' } },
-  { id: 'wild-garden', title: 'Wild Garden', themeId: 'wild-garden', display: { subtitle: 'The garden wakes' } },
-  { id: 'deep-frost', title: 'Deep Frost', themeId: 'deep-frost', display: { subtitle: 'Break the ice' } },
-  { id: 'curio-cabinet', title: 'Curio Cabinet', themeId: 'curio-cabinet', display: { subtitle: 'Treasures under glass' } },
-  { id: 'prism-works', title: 'Prism Works', themeId: 'prism-works', display: { subtitle: 'Bend the light' } },
-  { id: 'frostglass-forge', title: 'Frostglass Forge', themeId: 'frostglass-forge', display: { subtitle: 'Master ice and energy' } },
-  { id: 'skybound', title: 'Skybound', themeId: 'skybound', display: { subtitle: 'Ride the upper winds' } },
-  { id: 'tidal-depths', title: 'Tidal Depths', themeId: 'tidal-depths', display: { subtitle: 'Awaken the deep' } },
-  { id: 'arcane-relics', title: 'Arcane Relics', themeId: 'arcane-relics', display: { subtitle: 'Bind the old magic' } },
-  { id: 'starforge', title: 'Starforge', themeId: 'starforge', display: { subtitle: 'Build beyond the stars' } },
+  { id: 'first-light', title: 'First Light', themeId: 'first-light', display: { subtitle: 'Learn the light', accent: '#E3B15A' } },
+  { id: 'wild-garden', title: 'Wild Garden', themeId: 'wild-garden', display: { subtitle: 'The garden wakes', accent: '#8FC768' } },
+  { id: 'deep-frost', title: 'Deep Frost', themeId: 'deep-frost', display: { subtitle: 'Break the ice', accent: '#5FB4D6' } },
+  { id: 'curio-cabinet', title: 'Curio Cabinet', themeId: 'curio-cabinet', display: { subtitle: 'Treasures under glass', accent: '#C98953' } },
+  { id: 'prism-works', title: 'Prism Works', themeId: 'prism-works', display: { subtitle: 'Bend the light', accent: '#A87AE0' } },
+  { id: 'frostglass-forge', title: 'Frostglass Forge', themeId: 'frostglass-forge', display: { subtitle: 'Master ice and energy', accent: '#4FAF9E' } },
+  { id: 'skybound', title: 'Skybound', themeId: 'skybound', display: { subtitle: 'Ride the upper winds', accent: '#7FB8E8' } },
+  { id: 'tidal-depths', title: 'Tidal Depths', themeId: 'tidal-depths', display: { subtitle: 'Awaken the deep', accent: '#2E8494' } },
+  { id: 'arcane-relics', title: 'Arcane Relics', themeId: 'arcane-relics', display: { subtitle: 'Bind the old magic', accent: '#B15CC4' } },
+  { id: 'starforge', title: 'Starforge', themeId: 'starforge', display: { subtitle: 'Build beyond the stars', accent: '#E0784D' } },
 ];
 
 const known = new Set(LEVEL_DEFINITIONS.map((l) => l.id));

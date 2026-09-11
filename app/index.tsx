@@ -24,6 +24,7 @@ export default function HomeRoute() {
           params: { level: String(progress.highestUnlockedLevel) },
         })
       }
+      onWorlds={() => router.push('/worlds')}
       onSecretReset={() => void reset()}
     />
   );

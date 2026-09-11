@@ -32,6 +32,8 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="index" />
+          <Stack.Screen name="worlds" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="world/[id]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="game" />
         </Stack>
       </SafeAreaProvider>

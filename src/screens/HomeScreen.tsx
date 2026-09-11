@@ -5,13 +5,13 @@ import { useReducedMotion, useSharedValue, withTiming } from 'react-native-reani
 import { useFocusEffect } from 'expo-router';
 
 import { PlayButton } from '@/components/PlayButton';
-import { PixelArcadiaWordmark } from '@/components/brand';
+import { PixelArcadiaWordmark, PrimaryCta } from '@/components/brand';
 import { FloatingFragments } from '@/components/home/FloatingFragments';
 import { HomeCenterpiece } from '@/components/home/HomeCenterpiece';
 import { LevelBadge } from '@/components/home/LevelBadge';
 import { StarfieldBackdrop } from '@/components/home/StarfieldBackdrop';
 import { TopUtility } from '@/components/home/TopUtility';
-import { getLevel, requireLevel, TOTAL_LEVELS } from '@/game/levels/levels';
+import { FIRST_LEVEL, getLevel, requireLevel, TOTAL_LEVELS } from '@/game/levels/levels';
 import { ambientChargeSpecs, computeHomeLayout, homeLevelPreview } from '@/game/rendering/homeGeometry';
 import { useAmbientActive } from '@/hooks/useAmbientActive';
 import { feedback } from '@/game/feedback';
@@ -23,6 +23,8 @@ interface HomeScreenProps {
   highestUnlockedLevel: number;
   loading: boolean;
   onPlay: () => void;
+  /** Open the world/level-select campaign map. */
+  onWorlds: () => void;
   /** Dev-only: hidden long-press affordance on the wordmark. */
   onSecretReset?: () => void;
 }
@@ -30,7 +32,7 @@ interface HomeScreenProps {
 /** Home → Gameplay transition budget (activation response + nav). */
 const TRANSITION_MS = 300;
 
-export function HomeScreen({ highestUnlockedLevel, loading, onPlay, onSecretReset }: HomeScreenProps) {
+export function HomeScreen({ highestUnlockedLevel, loading, onPlay, onWorlds, onSecretReset }: HomeScreenProps) {
   const window = useWindowDimensions();
   const reducedMotion = useReducedMotion();
   const active = useAmbientActive();
@@ -120,7 +122,20 @@ export function HomeScreen({ highestUnlockedLevel, loading, onPlay, onSecretRese
 
         <View style={styles.controls}>
           <LevelBadge levelId={level.id} difficulty={level.difficulty} />
-          <PlayButton onPress={handlePlay} onPressIn={handlePressIn} disabled={loading} />
+          <PlayButton
+            label={highestUnlockedLevel > FIRST_LEVEL ? 'Continue' : 'Play'}
+            onPress={handlePlay}
+            onPressIn={handlePressIn}
+            disabled={loading}
+          />
+          <PrimaryCta
+            label="Worlds"
+            variant="secondary"
+            onPress={onWorlds}
+            onPressIn={handlePressIn}
+            disabled={loading}
+            style={styles.worldsCta}
+          />
           <View style={styles.reward}>
             <Text style={styles.rewardText}>PICTURES RESTORED {cleared}/{TOTAL_LEVELS}</Text>
           </View>
@@ -175,6 +190,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     paddingTop: spacing.sm,
   },
+  worldsCta: { width: 236 },
   reward: {
     paddingHorizontal: 12,
     paddingVertical: 5,
