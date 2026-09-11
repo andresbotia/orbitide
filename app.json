@@ -14,7 +14,6 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.andresbotia.orbitide",
-      "buildNumber": "2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
