@@ -1,7 +1,7 @@
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 
 import { BrandLoader } from '@/components/brand';
 import { IconButton } from '@/components/IconButton';
@@ -35,6 +35,7 @@ export function WorldLevelsScreen({
   onBack,
 }: WorldLevelsScreenProps) {
   const { width } = useWindowDimensions();
+  const reducedMotion = useReducedMotion();
   const accent = world.display?.accent ?? arcade.accent;
 
   if (loading) {
@@ -68,7 +69,10 @@ export function WorldLevelsScreen({
           <View style={{ width: 40 }} />
         </View>
 
-        <Animated.View entering={FadeInDown.duration(220)} style={[styles.grid, { gap: GRID_GAP }]}>
+        <Animated.View
+          entering={reducedMotion ? undefined : FadeInDown.duration(220)}
+          style={[styles.grid, { gap: GRID_GAP }]}
+        >
           {world.levelIds.map((levelId, i) => (
             <LevelNode
               key={levelId}

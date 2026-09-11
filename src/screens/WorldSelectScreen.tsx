@@ -1,7 +1,7 @@
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 
 import { BrandLoader } from '@/components/brand';
 import { IconButton } from '@/components/IconButton';
@@ -23,6 +23,8 @@ interface WorldSelectScreenProps {
  * → a selected world's level grid → the level itself (M4C.11.3).
  */
 export function WorldSelectScreen({ summaries, loading, onSelectWorld, onBack }: WorldSelectScreenProps) {
+  const reducedMotion = useReducedMotion();
+
   if (loading) {
     return (
       <View style={styles.root}>
@@ -49,7 +51,11 @@ export function WorldSelectScreen({ summaries, loading, onSelectWorld, onBack }:
           keyExtractor={(s) => s.world.id}
           contentContainerStyle={styles.list}
           renderItem={({ item, index }) => (
-            <Animated.View entering={FadeInDown.duration(220).delay(Math.min(index, 6) * 30)}>
+            <Animated.View
+              entering={
+                reducedMotion ? undefined : FadeInDown.duration(220).delay(Math.min(index, 6) * 30)
+              }
+            >
               <WorldCard
                 summary={item}
                 onPress={() => {

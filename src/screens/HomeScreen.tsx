@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
+import { runOnJS, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useFocusEffect } from 'expo-router';
 
 import { PlayButton } from '@/components/PlayButton';
@@ -28,9 +28,6 @@ interface HomeScreenProps {
   /** Dev-only: hidden long-press affordance on the wordmark. */
   onSecretReset?: () => void;
 }
-
-/** Home → Gameplay transition budget (activation response + nav). */
-const TRANSITION_MS = 300;
 
 export function HomeScreen({ highestUnlockedLevel, loading, onPlay, onWorlds, onSecretReset }: HomeScreenProps) {
   const window = useWindowDimensions();
@@ -71,8 +68,13 @@ export function HomeScreen({ highestUnlockedLevel, loading, onPlay, onWorlds, on
   const handlePlay = useCallback(() => {
     if (navigating.current) return;
     navigating.current = true;
-    activation.set(withTiming(1, { duration: 160 }));
-    setTimeout(onPlay, TRANSITION_MS);
+    // Navigate off the animation's own completion rather than a decoupled
+    // timeout, so the activation ramp is the actual cause of the transition.
+    activation.set(
+      withTiming(1, { duration: 160 }, (finished) => {
+        if (finished) runOnJS(onPlay)();
+      }),
+    );
   }, [activation, onPlay]);
 
   const cleared = Math.max(0, Math.min(TOTAL_LEVELS, highestUnlockedLevel - 1));
