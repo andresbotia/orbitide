@@ -209,9 +209,7 @@ export function GameScreen({
       ) : null}
 
       <ResultOverlay
-        status={state.status === 'lost' ? 'lost' : 'playing'}
-        hasNextLevel={next !== undefined}
-        onNext={() => next !== undefined && onAdvance(next)}
+        visible={state.status === 'lost'}
         onRetry={session.restart}
         onHome={onExit}
       />

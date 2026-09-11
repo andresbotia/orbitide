@@ -1,8 +1,9 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { remainingPixelCount } from '@/game/engine/pixels';
 import type { GameState, LevelDifficulty } from '@/game/engine/types';
 import { DifficultyGate } from '@/components/difficulty/DifficultyGate';
+import { IconButton } from '@/components/IconButton';
 import { arcade } from '@/theme/arcade';
 import { palette } from '@/theme/colors';
 import { typography } from '@/theme/spacing';
@@ -29,16 +30,7 @@ export function Hud({ state, title, difficulty, onRestart, onSettings }: HudProp
 
   return (
     <View style={styles.container}>
-      <Pressable
-        style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
-        onPress={onSettings}
-        disabled={!onSettings}
-        accessibilityRole="button"
-        accessibilityLabel="Settings (coming soon)"
-        hitSlop={10}
-      >
-        <Text style={styles.icon}>⚙</Text>
-      </Pressable>
+      <IconButton glyph="⚙" onPress={onSettings} accessibilityLabel="Settings (coming soon)" />
 
       <View style={styles.center}>
         <Text style={styles.eyebrow}>
@@ -53,15 +45,7 @@ export function Hud({ state, title, difficulty, onRestart, onSettings }: HudProp
         </View>
       </View>
 
-      <Pressable
-        style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
-        onPress={onRestart}
-        accessibilityRole="button"
-        accessibilityLabel="Restart level"
-        hitSlop={10}
-      >
-        <Text style={styles.icon}>↺</Text>
-      </Pressable>
+      <IconButton glyph="↺" onPress={onRestart} accessibilityLabel="Restart level" />
     </View>
   );
 }
@@ -74,21 +58,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 12,
   },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderTopColor: arcade.metalHi,
-    borderLeftColor: arcade.metalHi,
-    borderRightColor: arcade.metalLo,
-    borderBottomColor: arcade.metalLo,
-    backgroundColor: arcade.metal,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pressed: { opacity: 0.6, transform: [{ scale: 0.96 }] },
-  icon: { color: palette.textSecondary, fontSize: 18 },
   center: { flex: 1, alignItems: 'center', gap: 5 },
   eyebrow: { ...typography.label, color: palette.textSecondary, fontSize: 11 },
   track: {

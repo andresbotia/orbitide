@@ -1,33 +1,23 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
-import type { GameStatus } from '@/game/engine/types';
 import { PrimaryCta } from '@/components/brand';
 import { brandColor } from '@/theme/brand';
-import { palette } from '@/theme/colors';
 import { radius, spacing, typography } from '@/theme/spacing';
 
 interface ResultOverlayProps {
-  status: GameStatus;
-  hasNextLevel: boolean;
-  onNext: () => void;
+  /** Win is owned by DiscoveryOverlay/DiscoveryReveal — this handles fail only. */
+  visible: boolean;
   onRetry: () => void;
   onHome: () => void;
 }
 
 /**
- * Lightweight in-place win/fail treatment. Deliberately minimal so the player
- * can press Next / Try Again almost immediately.
+ * Lightweight in-place fail treatment. Deliberately minimal so the player can
+ * press Try Again almost immediately (no punitive delay).
  */
-export function ResultOverlay({
-  status,
-  hasNextLevel,
-  onNext,
-  onRetry,
-  onHome,
-}: ResultOverlayProps) {
-  if (status === 'playing') return null;
-  const won = status === 'won';
+export function ResultOverlay({ visible, onRetry, onHome }: ResultOverlayProps) {
+  if (!visible) return null;
 
   return (
     <Animated.View
@@ -36,27 +26,10 @@ export function ResultOverlay({
       pointerEvents="auto"
     >
       <Animated.View entering={FadeInDown.duration(220)} style={styles.card}>
-        <Text style={[styles.heading, won ? styles.win : styles.lose]}>
-          {won ? 'PICTURE CLEAR' : 'HOLDING FULL'}
-        </Text>
-        <Text style={styles.sub}>
-          {won
-            ? hasNextLevel
-              ? 'Level complete.'
-              : 'Milestone 1 cleared — every picture restored.'
-            : 'The tray is jammed and nothing can resolve.'}
-        </Text>
+        <Text style={styles.heading}>HOLDING FULL</Text>
+        <Text style={styles.sub}>The tray is jammed and nothing can resolve.</Text>
 
-        {won ? (
-          <PrimaryCta
-            label={hasNextLevel ? 'Next Level' : 'Back to Home'}
-            onPress={hasNextLevel ? onNext : onHome}
-            fullWidth
-            style={styles.cta}
-          />
-        ) : (
-          <PrimaryCta label="Try Again" onPress={onRetry} fullWidth style={styles.cta} />
-        )}
+        <PrimaryCta label="Try Again" onPress={onRetry} fullWidth style={styles.cta} />
 
         <Pressable onPress={onHome} hitSlop={10} accessibilityRole="button">
           <Text style={styles.secondary}>Home</Text>
@@ -90,18 +63,16 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 340,
   },
-  heading: { ...typography.title, fontSize: 22 },
-  win: { color: palette.success },
-  lose: { color: palette.danger },
+  heading: { ...typography.title, fontSize: 22, color: brandColor.textPrimary },
   sub: {
-    color: palette.textSecondary,
+    color: brandColor.textSecondary,
     textAlign: 'center',
     fontSize: 14,
     lineHeight: 20,
   },
   cta: { marginTop: spacing.sm },
   secondary: {
-    color: palette.textFaint,
+    color: brandColor.textSecondary,
     fontSize: 13,
     letterSpacing: 1,
     paddingTop: spacing.xs,

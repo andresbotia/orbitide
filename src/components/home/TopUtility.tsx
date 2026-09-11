@@ -1,5 +1,6 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { IconButton } from '@/components/IconButton';
 import { arcade } from '@/theme/arcade';
 import { palette } from '@/theme/colors';
 
@@ -16,16 +17,7 @@ interface TopUtilityProps {
 export function TopUtility({ coins = 0, onSettings }: TopUtilityProps) {
   return (
     <View style={styles.row}>
-      <Pressable
-        onPress={onSettings}
-        disabled={!onSettings}
-        accessibilityRole="button"
-        accessibilityLabel="Settings (coming soon)"
-        hitSlop={12}
-        style={({ pressed }) => [styles.gear, pressed && styles.pressed]}
-      >
-        <Text style={styles.gearIcon}>⚙</Text>
-      </Pressable>
+      <IconButton glyph="⚙" onPress={onSettings} accessibilityLabel="Settings (coming soon)" />
 
       <View style={styles.coins} accessibilityLabel={`${coins} coins`}>
         <Text style={styles.coinIcon}>◈</Text>
@@ -42,16 +34,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
   },
-  gear: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  pressed: { opacity: 0.5 },
-  gearIcon: { color: arcade.metalEdge, fontSize: 18 },
   coins: {
     flexDirection: 'row',
     alignItems: 'center',
