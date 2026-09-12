@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE — DO NOT EDIT DIRECTLY.
  * Produced by Orbitide Level Authoring Compiler from:
  * content\levels
- * Total compiled levels: 20
+ * Total compiled levels: 30
  */
 import type { LevelDefinition } from '../engine/types';
 
@@ -2748,6 +2748,2211 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
         3
       ],
       "collectionId": "neon-nights"
+    }
+  },
+  {
+    "id": 31,
+    "title": "Gearbox",
+    "themeId": "mechanical-city",
+    "difficulty": "medium",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      "..TTGGTTGGTTG..",
+      "GLGDLGDLGDLGDLT",
+      "TDGGTTGGTTGGTDG",
+      "TLGDLAGGTOALTLG",
+      "GDDLAODTOAODODT",
+      "GDLL.LLOAD.DALT",
+      "TLD...OAO...LDG",
+      "TAOO.OOLDA.ADOG",
+      "GDDLAODTOAODODT",
+      "GLTAODLADLDOGLT",
+      "TDGGTLA.OLGGTDG",
+      "TLGGTA...AGGTLG",
+      "GDTTGDO.ADTTGDT",
+      "GLGDLGLADDLGDLT",
+      "..GGTTGGTTGGT.."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "gold",
+          "capacity": 6
+        },
+        {
+          "color": "green",
+          "capacity": 13
+        },
+        {
+          "color": "coral",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "green",
+          "capacity": 12
+        }
+      ],
+      [
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "lime",
+          "capacity": 8
+        },
+        {
+          "color": "green",
+          "capacity": 13
+        },
+        {
+          "color": "gold",
+          "capacity": 6
+        },
+        {
+          "color": "coral",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        }
+      ],
+      [
+        {
+          "color": "coral",
+          "capacity": 9
+        },
+        {
+          "color": "lime",
+          "capacity": 8
+        },
+        {
+          "color": "green",
+          "capacity": 13
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "coral",
+          "capacity": 9
+        },
+        {
+          "color": "lime",
+          "capacity": 8
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "GEARBOX",
+      "nodes": [
+        {
+          "x": 2,
+          "y": 1
+        },
+        {
+          "x": 12,
+          "y": 1
+        },
+        {
+          "x": 3,
+          "y": 5
+        },
+        {
+          "x": 11,
+          "y": 5
+        },
+        {
+          "x": 3,
+          "y": 9
+        },
+        {
+          "x": 11,
+          "y": 9
+        },
+        {
+          "x": 5,
+          "y": 13
+        },
+        {
+          "x": 9,
+          "y": 13
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        2,
+        3
+      ],
+      "collectionId": "mechanical-city"
+    }
+  },
+  {
+    "id": 32,
+    "title": "Steam Gauge",
+    "themeId": "mechanical-city",
+    "difficulty": "medium",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      ".TDDGGTTDDGGTT.",
+      ".TDDGAOLOAGGTT.",
+      "D.GAALDLDLALD.G",
+      "D.GADTGTTGOAD.G",
+      "GGALTGTTGOTLAGT",
+      "GGOLGTTGOTGLOGT",
+      "TTALTTG.TGTLLTD",
+      "T.OLTGTTGTTLO.D",
+      "DDALGTTGTTGLADG",
+      "DDGADTGTTGDADDG",
+      "GGTAALDLDLALGGT",
+      "G.TTDDALOODDG.T",
+      "T..DGALOODGG..D",
+      "TTDDGLOODAGGTTD",
+      ".DGGTOO.ALTTDD."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "teal",
+          "capacity": 13
+        },
+        {
+          "color": "coral",
+          "capacity": 10
+        },
+        {
+          "color": "green",
+          "capacity": 12
+        },
+        {
+          "color": "lime",
+          "capacity": 6
+        },
+        {
+          "color": "orange",
+          "capacity": 6
+        },
+        {
+          "color": "teal",
+          "capacity": 13
+        }
+      ],
+      [
+        {
+          "color": "green",
+          "capacity": 13
+        },
+        {
+          "color": "coral",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "teal",
+          "capacity": 13
+        },
+        {
+          "color": "lime",
+          "capacity": 6
+        },
+        {
+          "color": "green",
+          "capacity": 12
+        },
+        {
+          "color": "orange",
+          "capacity": 6
+        }
+      ],
+      [
+        {
+          "color": "orange",
+          "capacity": 5
+        },
+        {
+          "color": "lime",
+          "capacity": 6
+        },
+        {
+          "color": "teal",
+          "capacity": 14
+        },
+        {
+          "color": "coral",
+          "capacity": 10
+        },
+        {
+          "color": "green",
+          "capacity": 13
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "coral",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 6
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "STEAM GAUGE",
+      "nodes": [
+        {
+          "x": 7,
+          "y": 1
+        },
+        {
+          "x": 3,
+          "y": 4
+        },
+        {
+          "x": 11,
+          "y": 4
+        },
+        {
+          "x": 2,
+          "y": 7
+        },
+        {
+          "x": 12,
+          "y": 7
+        },
+        {
+          "x": 4,
+          "y": 10
+        },
+        {
+          "x": 10,
+          "y": 10
+        },
+        {
+          "x": 8,
+          "y": 14
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        0
+      ],
+      "collectionId": "mechanical-city"
+    }
+  },
+  {
+    "id": 33,
+    "title": "Mechanical Clock",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      "...TDDLLAAOO...",
+      ".GTTDOLLDOOOGG.",
+      ".DLLOGDLTGATDD.",
+      "DDLODLGTALTODDL",
+      "AAALGTADOLGLOAO",
+      "AOTGADOOGTAGDOO",
+      "GLDDOLGDADOLTLT",
+      "GLTLGTA.OLGTDLT",
+      "DDDTADOLOTADTDL",
+      "DOTGOLGTAOOGDOL",
+      "AAOLGTADOLOLAAO",
+      "AAOODLOLGLTOAAO",
+      ".GTTAGDLTGOOGG.",
+      ".GTTDOLLDOOOGG.",
+      "..LLAAOOGGTTD.."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "orange",
+          "capacity": 11
+        },
+        {
+          "color": "green",
+          "capacity": 8
+        },
+        {
+          "color": "lime",
+          "capacity": 9
+        },
+        {
+          "color": "coral",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "orange",
+          "capacity": 11
+        },
+        {
+          "color": "lime",
+          "capacity": 9
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "coral",
+          "capacity": 9
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "green",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 11
+        },
+        {
+          "color": "lime",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        }
+      ],
+      [
+        {
+          "color": "lime",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 11
+        },
+        {
+          "color": "green",
+          "capacity": 7
+        },
+        {
+          "color": "coral",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "green",
+          "capacity": 8
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "MECHANICAL CLOCK",
+      "nodes": [
+        {
+          "x": 7,
+          "y": 0
+        },
+        {
+          "x": 3,
+          "y": 3
+        },
+        {
+          "x": 11,
+          "y": 3
+        },
+        {
+          "x": 2,
+          "y": 7
+        },
+        {
+          "x": 12,
+          "y": 7
+        },
+        {
+          "x": 4,
+          "y": 11
+        },
+        {
+          "x": 10,
+          "y": 11
+        },
+        {
+          "x": 7,
+          "y": 14
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        0,
+        7
+      ],
+      "collectionId": "mechanical-city"
+    }
+  },
+  {
+    "id": 34,
+    "title": "Robot Arm",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      ".DGGTTDDGGTTDD.",
+      "DOAOAOAOAOAOOAL",
+      "GDTTDDGGTTDDDDD",
+      "GLT..DGGTTDOALT",
+      "TDDDGGTTDDDLTDD",
+      "TDDDGGTTOLAGTDD",
+      "DL.GTTDO.OTT.LG",
+      "DDGGTTDDOGTTDDG",
+      "GDTT.DGLDT.DGDT",
+      "GLTTDDOATTDDGLT",
+      "TDAODADTDDG..DD",
+      "TDODLAOTDDGGTDD",
+      "DLDLAO.DGGTTDLG",
+      "DOLAODLOAOAOAOG",
+      ".GTTDDGGTTDDGG."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "coral",
+          "capacity": 11
+        },
+        {
+          "color": "teal",
+          "capacity": 12
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "coral",
+          "capacity": 12
+        },
+        {
+          "color": "gold",
+          "capacity": 6
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "teal",
+          "capacity": 12
+        }
+      ],
+      [
+        {
+          "color": "green",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 11
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 12
+        },
+        {
+          "color": "gold",
+          "capacity": 6
+        },
+        {
+          "color": "coral",
+          "capacity": 12
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 12
+        },
+        {
+          "color": "lime",
+          "capacity": 6
+        },
+        {
+          "color": "coral",
+          "capacity": 11
+        },
+        {
+          "color": "green",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 5
+        },
+        {
+          "color": "coral",
+          "capacity": 12
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "ROBOT ARM",
+      "nodes": [
+        {
+          "x": 2,
+          "y": 1
+        },
+        {
+          "x": 12,
+          "y": 1
+        },
+        {
+          "x": 4,
+          "y": 4
+        },
+        {
+          "x": 10,
+          "y": 4
+        },
+        {
+          "x": 5,
+          "y": 8
+        },
+        {
+          "x": 11,
+          "y": 8
+        },
+        {
+          "x": 3,
+          "y": 13
+        },
+        {
+          "x": 11,
+          "y": 13
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        2,
+        4
+      ],
+      "collectionId": "mechanical-city"
+    }
+  },
+  {
+    "id": 35,
+    "title": "Industrial Engine",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      ".GTTDDGGTTDDGG.",
+      ".OLAOLAOLAOLAO.",
+      "TLDGLGLAODOTDLD",
+      "TDLAOGOTDDDGLDD",
+      "DLO.DTD.LGL.OLG",
+      "DDDGLTLAOGOTDDG",
+      "GLLAODOTDTDGLLT",
+      "GDOTDDDGLTLAODT",
+      "TLDODODODODODLD",
+      "TDTLATLATLATLDD",
+      "DLODLTLGTGTAOLG",
+      "DDD.GTG.AGA.DDG",
+      "GLLGTDTAOTODLLT",
+      ".OLAOLAOLAOLAO.",
+      ".TDDGGTTDDGGTT."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "coral",
+          "capacity": 13
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "green",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 5
+        },
+        {
+          "color": "lime",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "coral",
+          "capacity": 13
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        }
+      ],
+      [
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "lime",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 13
+        },
+        {
+          "color": "green",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 5
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "lime",
+          "capacity": 10
+        }
+      ],
+      [
+        {
+          "color": "green",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 5
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "coral",
+          "capacity": 14
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "lime",
+          "capacity": 10
+        },
+        {
+          "color": "green",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 5
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "INDUSTRIAL ENGINE",
+      "nodes": [
+        {
+          "x": 2,
+          "y": 1
+        },
+        {
+          "x": 12,
+          "y": 1
+        },
+        {
+          "x": 4,
+          "y": 4
+        },
+        {
+          "x": 10,
+          "y": 4
+        },
+        {
+          "x": 4,
+          "y": 8
+        },
+        {
+          "x": 10,
+          "y": 8
+        },
+        {
+          "x": 3,
+          "y": 13
+        },
+        {
+          "x": 11,
+          "y": 13
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        2,
+        3,
+        4
+      ],
+      "collectionId": "mechanical-city"
+    }
+  },
+  {
+    "id": 36,
+    "title": "Steam Locomotive",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      ".LAOOODDDOOAL..",
+      "GOTTTGGGTTTOO..",
+      "OTGAGLGAGTGDOOA",
+      "ODTTDODTTDODOO.",
+      "OOOAAOOOAAOOO.G",
+      "GGTDGGTDGGTDGGO",
+      "GLAOG...OGLAOGO",
+      "GTDOG...GTDOGGO",
+      "GGGTTAAATTGGGGO",
+      "DDOOGTTTGGOODDO",
+      "DAGGODODODGGADO",
+      "GGTTGAGAGTTGGGO",
+      "GDOGGTGTGGODGGO",
+      "GGGGODDDOGGGGGO",
+      "GGTTGGGGGTTGGG."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "orange",
+          "capacity": 9
+        },
+        {
+          "color": "green",
+          "capacity": 13
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "coral",
+          "capacity": 9
+        },
+        {
+          "color": "gold",
+          "capacity": 6
+        },
+        {
+          "color": "green",
+          "capacity": 13
+        },
+        {
+          "color": "lime",
+          "capacity": 2
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        }
+      ],
+      [
+        {
+          "color": "green",
+          "capacity": 12
+        },
+        {
+          "color": "coral",
+          "capacity": 9
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "gold",
+          "capacity": 6
+        },
+        {
+          "color": "green",
+          "capacity": 13
+        },
+        {
+          "color": "lime",
+          "capacity": 1
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 12
+        },
+        {
+          "color": "orange",
+          "capacity": 9
+        },
+        {
+          "color": "green",
+          "capacity": 13
+        },
+        {
+          "color": "gold",
+          "capacity": 6
+        },
+        {
+          "color": "coral",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "lime",
+          "capacity": 2
+        },
+        {
+          "color": "green",
+          "capacity": 12
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "STEAM LOCOMOTIVE",
+      "nodes": [
+        {
+          "x": 2,
+          "y": 1
+        },
+        {
+          "x": 12,
+          "y": 1
+        },
+        {
+          "x": 3,
+          "y": 4
+        },
+        {
+          "x": 11,
+          "y": 4
+        },
+        {
+          "x": 3,
+          "y": 8
+        },
+        {
+          "x": 11,
+          "y": 8
+        },
+        {
+          "x": 4,
+          "y": 13
+        },
+        {
+          "x": 10,
+          "y": 13
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        0,
+        1
+      ],
+      "collectionId": "mechanical-city"
+    }
+  },
+  {
+    "id": 37,
+    "title": "Turbine Hall",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      ".AOTGTLGDTOGA..",
+      "GTDGTDGTDGTDGTD",
+      "TTAGLDOOALDGTTA",
+      "DGLTGAGTAGTLGDD",
+      "GTAODTGATDGOATG",
+      "TGDLTGATGTDLGTT",
+      "DGAO.DGTGD.OAGD",
+      "GTLT.DA.AO.TLGT",
+      "TADG.OT.TD.GDAT",
+      "DGTLTGAGTGTLGDD",
+      "GTAODTGATDGOATG",
+      "TTGLDAGAGADLGTT",
+      "DGATGTODOTGTAGD",
+      "GTDGLTATATLGDTD",
+      ".GGTTDDOODDTTG."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "coral",
+          "capacity": 13
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "orange",
+          "capacity": 5
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        }
+      ],
+      [
+        {
+          "color": "coral",
+          "capacity": 13
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 5
+        },
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        }
+      ],
+      [
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "coral",
+          "capacity": 14
+        },
+        {
+          "color": "orange",
+          "capacity": 6
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "TURBINE HALL",
+      "nodes": [
+        {
+          "x": 2,
+          "y": 1
+        },
+        {
+          "x": 12,
+          "y": 1
+        },
+        {
+          "x": 3,
+          "y": 5
+        },
+        {
+          "x": 11,
+          "y": 5
+        },
+        {
+          "x": 3,
+          "y": 9
+        },
+        {
+          "x": 11,
+          "y": 9
+        },
+        {
+          "x": 4,
+          "y": 13
+        },
+        {
+          "x": 10,
+          "y": 13
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        2,
+        3
+      ],
+      "collectionId": "mechanical-city"
+    }
+  },
+  {
+    "id": 38,
+    "title": "Automated Factory",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      "GGTTDDOAOODDTTG",
+      "GALOGALOGALOGAG",
+      "TDTGTDGTDGTDGTT",
+      "DOLADOLADOLADOD",
+      "GGTTAAGGTTAAGGG",
+      "ODTG.OTGDTO.GOD",
+      "TGAL.GTADL.TAGT",
+      "DGTO.DOTAGT.ODG",
+      "GATLGGTALGGTLAG",
+      "TTDODTTDODTTDTT",
+      "DAGODAGODAGODAD",
+      "GTLG.GTLGGT.LGG",
+      "TODGATODGATODGT",
+      "DGTTALDGTTALDGD",
+      "GGODOGGODOGGODG"
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "green",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 13
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        }
+      ],
+      [
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "coral",
+          "capacity": 13
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "green",
+          "capacity": 10
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "lime",
+          "capacity": 6
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "coral",
+          "capacity": 14
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "green",
+          "capacity": 10
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "AUTOMATED FACTORY",
+      "nodes": [
+        {
+          "x": 2,
+          "y": 1
+        },
+        {
+          "x": 12,
+          "y": 1
+        },
+        {
+          "x": 3,
+          "y": 5
+        },
+        {
+          "x": 10,
+          "y": 5
+        },
+        {
+          "x": 3,
+          "y": 9
+        },
+        {
+          "x": 11,
+          "y": 9
+        },
+        {
+          "x": 4,
+          "y": 13
+        },
+        {
+          "x": 10,
+          "y": 13
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "collectionId": "mechanical-city"
+    }
+  },
+  {
+    "id": 39,
+    "title": "Clockwork Tower",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      "..AODTGDTGOA...",
+      "GTDGALALAGDTGGO",
+      "DGAOTDGTDOAGDTT",
+      "TAGLDOTODLAGTGG",
+      "ODTGAL.ALGTODTD",
+      "GALTDOA.AODTGAG",
+      "TDOGATL.LTAGODT",
+      "DAGLTDOAODTLAGD",
+      "GODATGLALGTADOG",
+      "TGLDAGTATGADLGT",
+      "DGATODLGLDOTAGD",
+      "GTALDGTAGLDTAGO",
+      "ODTGAGATGODTOLD",
+      "TGALDGTALDOGATG",
+      "GGTTADOGGADTGGG"
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "gold",
+          "capacity": 6
+        },
+        {
+          "color": "green",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "coral",
+          "capacity": 13
+        },
+        {
+          "color": "lime",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        }
+      ],
+      [
+        {
+          "color": "coral",
+          "capacity": 6
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "green",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 12
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "coral",
+          "capacity": 7
+        },
+        {
+          "color": "lime",
+          "capacity": 7
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        }
+      ],
+      [
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "lime",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 13
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "coral",
+          "capacity": 12
+        },
+        {
+          "color": "orange",
+          "capacity": 9
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "CLOCKWORK TOWER",
+      "nodes": [
+        {
+          "x": 7,
+          "y": 0
+        },
+        {
+          "x": 3,
+          "y": 3
+        },
+        {
+          "x": 11,
+          "y": 3
+        },
+        {
+          "x": 2,
+          "y": 7
+        },
+        {
+          "x": 12,
+          "y": 7
+        },
+        {
+          "x": 3,
+          "y": 11
+        },
+        {
+          "x": 11,
+          "y": 11
+        },
+        {
+          "x": 7,
+          "y": 14
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        0
+      ],
+      "collectionId": "mechanical-city"
+    }
+  },
+  {
+    "id": 40,
+    "title": "The Machine",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      ".AODTGGLTDOA...",
+      "GTDGALODLAGTGGO",
+      "DGAOTDGTDOAGDTT",
+      "TAGLDOAODLAGTGG",
+      "ODTGALGTALGTODT",
+      "GALTDOAODTGAGTG",
+      "TDOGATLGLTAGODT",
+      "DAGLTDO.ODTLAGD",
+      "GODATGLALGTADOG",
+      "TGLDAGTATGADLGT",
+      "DGATODLGLDOTAGD",
+      "GTALDGTAGLDTAGO",
+      "ODTGAGATGODTOLD",
+      "TGALDGTALDOGATG",
+      "GGTTADOGGADTGGG"
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "gold",
+          "capacity": 6
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "coral",
+          "capacity": 6
+        },
+        {
+          "color": "lime",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 6
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "coral",
+          "capacity": 6
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "coral",
+          "capacity": 6
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "gold",
+          "capacity": 6
+        },
+        {
+          "color": "orange",
+          "capacity": 9
+        },
+        {
+          "color": "lime",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "coral",
+          "capacity": 6
+        },
+        {
+          "color": "gold",
+          "capacity": 6
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        }
+      ],
+      [
+        {
+          "color": "orange",
+          "capacity": 9
+        },
+        {
+          "color": "lime",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 6
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "coral",
+          "capacity": 6
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 6
+        },
+        {
+          "color": "green",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 7
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "THE MACHINE",
+      "nodes": [
+        {
+          "x": 7,
+          "y": 0
+        },
+        {
+          "x": 3,
+          "y": 3
+        },
+        {
+          "x": 11,
+          "y": 3
+        },
+        {
+          "x": 2,
+          "y": 7
+        },
+        {
+          "x": 12,
+          "y": 7
+        },
+        {
+          "x": 3,
+          "y": 11
+        },
+        {
+          "x": 11,
+          "y": 11
+        },
+        {
+          "x": 7,
+          "y": 14
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "collectionId": "mechanical-city"
     }
   }
 ];
