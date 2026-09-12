@@ -42,7 +42,7 @@ test('artwork footprint stays ~constant while cell size shrinks with density', (
 
 test('adaptive depth cues only ever decrease as the board gets denser', () => {
   const keys = ['bevel', 'cornerRadius', 'gutter', 'glow', 'highlight', 'shadow', 'popOvershoot'] as const;
-  const series = [7, 9, 11, 13, 15, 17, 19, 21, 23, 24].map(pixelAdaptive);
+  const series = [7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 28].map(pixelAdaptive);
   for (const key of keys) {
     for (let i = 1; i < series.length; i++) {
       expect(series[i]![key]).toBeLessThanOrEqual(series[i - 1]![key] + 1e-9);

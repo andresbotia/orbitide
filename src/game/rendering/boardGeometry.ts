@@ -47,9 +47,9 @@ export interface PixelAdaptive {
 }
 
 /** Board densities the production renderer is tuned for. */
-export const SUPPORTED_DENSITIES = [7, 9, 11, 13, 15, 17, 19, 21, 23, 24] as const;
+export const SUPPORTED_DENSITIES = [7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 28] as const;
 /** Max density prepared for in the adaptive renderer. */
-export const MAX_READY_DENSITY = 24;
+export const MAX_READY_DENSITY = 28;
 
 const DENSITY_MIN = 7;
 
@@ -126,7 +126,7 @@ export interface BoardGeometry {
  * densities so the picture does not shrink just because the grid got finer.
  */
 const FOOTPRINT = 0.56;
-const MIN_CELL = 4;
+const MIN_CELL = 3;
 
 /** Geometry for a square board rendering a `cols x rows` picture. */
 export function computeBoardGeometry(

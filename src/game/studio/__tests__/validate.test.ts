@@ -53,7 +53,7 @@ describe('error rules block export', () => {
   });
 
   test('grid dimension outside the supported range', () => {
-    const level = setGridSize(tiny(), 25, 7);
+    const level = setGridSize(tiny(), 29, 7);
     expect(codes(level).errors).toContain('meta/width');
   });
 
