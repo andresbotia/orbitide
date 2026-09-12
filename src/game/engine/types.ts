@@ -235,6 +235,8 @@ export interface LevelDefinition {
    * Level 21). Purely presentational — the engine never reads it.
    */
   tutorial?: string;
+  /** When true, explicitly declares that this authored level replaces an existing legacy level ID. */
+  replacesLegacy?: boolean;
 }
 
 export type GameStatus = 'playing' | 'won' | 'lost';

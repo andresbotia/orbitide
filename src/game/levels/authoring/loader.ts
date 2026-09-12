@@ -30,6 +30,7 @@ export function parseAuthoredJSON(
   const rawLevels: AuthoredLevel[] = [];
   const errors: string[] = [];
   let defaultThemeId: string | undefined;
+  let defaultReplacesLegacy: boolean | undefined;
 
   if (Array.isArray(parsed)) {
     rawLevels.push(...(parsed as AuthoredLevel[]));
@@ -38,6 +39,7 @@ export function parseAuthoredJSON(
     if (Array.isArray(obj.levels)) {
       const packet = parsed as AuthoredWorldPacket;
       defaultThemeId = packet.themeId ?? packet.theme;
+      defaultReplacesLegacy = packet.replacesLegacy;
       rawLevels.push(...packet.levels);
     } else if (typeof obj.id === 'number') {
       rawLevels.push(parsed as AuthoredLevel);
@@ -55,7 +57,7 @@ export function parseAuthoredJSON(
       errors.push(`${sourceName} (item ${i}): Missing required 'id' number`);
       continue;
     }
-    levels.push(normalizeAuthoredLevel(raw, defaultThemeId));
+    levels.push(normalizeAuthoredLevel(raw, defaultThemeId, defaultReplacesLegacy));
   }
 
   return { levels, errors };

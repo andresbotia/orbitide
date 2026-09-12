@@ -4,32 +4,76 @@ import { LEVEL_DEFINITIONS as LEGACY_LEVEL_DEFINITIONS } from './levelDefinition
 
 /**
  * Combines legacy handcrafted levels with compiled authored levels.
- * Detects duplicate level IDs and fails clearly to prevent silent overrides.
+ *
+ * Safety requirements:
+ * - Accidental collisions without 'replacesLegacy: true' fail with an error.
+ * - Explicit replacements ('replacesLegacy: true') must exist in legacy definitions.
+ * - Duplicate authored IDs fail.
+ * - Replaced legacy levels are completely excluded so each ID has exactly one definition.
+ * - Neighboring legacy levels remain untouched.
+ * - Unified list is strictly unique and sorted by ID.
  */
 export function combineLevelDefinitions(
   legacy: LevelDefinition[],
   compiled: LevelDefinition[],
 ): LevelDefinition[] {
-  const seen = new Set<number>();
-  const collisions: number[] = [];
-
-  for (const lvl of legacy) {
-    seen.add(lvl.id);
+  // 1. Ensure compiled levels have unique IDs within themselves
+  const seenCompiled = new Set<number>();
+  for (const lvl of compiled) {
+    if (seenCompiled.has(lvl.id)) {
+      throw new Error(`Duplicate level ID ${lvl.id} found in compiled levels.`);
+    }
+    seenCompiled.add(lvl.id);
   }
 
+  // 2. Index legacy levels and check collision / replacement validity
+  const legacyMap = new Map<number, LevelDefinition>();
+  for (const lvl of legacy) {
+    legacyMap.set(lvl.id, lvl);
+  }
+
+  const replacementIds = new Set<number>();
+  const accidentalCollisions: number[] = [];
+  const invalidReplacements: number[] = [];
+
   for (const lvl of compiled) {
-    if (seen.has(lvl.id)) {
-      collisions.push(lvl.id);
+    if (lvl.replacesLegacy === true) {
+      if (!legacyMap.has(lvl.id)) {
+        invalidReplacements.push(lvl.id);
+      } else {
+        replacementIds.add(lvl.id);
+      }
+    } else if (legacyMap.has(lvl.id)) {
+      accidentalCollisions.push(lvl.id);
     }
   }
 
-  if (collisions.length > 0) {
+  if (accidentalCollisions.length > 0) {
     throw new Error(
-      `Level ID collision detected between legacy levelDefinitions.ts and compiledLevels.ts for ID(s): ${collisions.join(', ')}. Each level ID must be unique across legacy and authored levels.`,
+      `Level ID collision detected: Authored level ID(s) [${accidentalCollisions.join(', ')}] collide with legacy levelDefinitions.ts. Set 'replacesLegacy: true' if this is an intentional replacement.`,
     );
   }
 
-  return [...legacy, ...compiled].sort((a, b) => a.id - b.id);
+  if (invalidReplacements.length > 0) {
+    throw new Error(
+      `Invalid replacement: Authored level ID(s) [${invalidReplacements.join(', ')}] declared 'replacesLegacy: true', but do not exist in legacy levelDefinitions.ts.`,
+    );
+  }
+
+  // 3. Exclude replaced legacy levels and combine with compiled
+  const retainedLegacy = legacy.filter((lvl) => !replacementIds.has(lvl.id));
+  const unified = [...retainedLegacy, ...compiled].sort((a, b) => a.id - b.id);
+
+  // 4. Verify invariant: strictly unique IDs in unified definitions
+  const unifiedSeen = new Set<number>();
+  for (const lvl of unified) {
+    if (unifiedSeen.has(lvl.id)) {
+      throw new Error(`Critical invariant failure: duplicate level ID ${lvl.id} in unified definitions.`);
+    }
+    unifiedSeen.add(lvl.id);
+  }
+
+  return unified;
 }
 
 export const LEVEL_DEFINITIONS: LevelDefinition[] = combineLevelDefinitions(

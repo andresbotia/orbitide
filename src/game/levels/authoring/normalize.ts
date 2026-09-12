@@ -9,6 +9,7 @@ import type { AuthoredLevel } from './types';
 export function normalizeAuthoredLevel(
   authored: AuthoredLevel,
   defaultThemeId?: string,
+  defaultReplacesLegacy?: boolean,
 ): LevelDefinition {
   const themeId = authored.themeId ?? authored.theme ?? defaultThemeId ?? 'first-light';
   const holdingCapacity = authored.holdingCapacity ?? authored.holding ?? 3;
@@ -23,6 +24,11 @@ export function normalizeAuthoredLevel(
     pixelArt,
     tunnels: authored.tunnels ?? [[], [], []],
   };
+
+  const replacesLegacy = authored.replacesLegacy ?? defaultReplacesLegacy;
+  if (replacesLegacy !== undefined) {
+    def.replacesLegacy = replacesLegacy;
+  }
 
   if (authored.legend && Object.keys(authored.legend).length > 0) {
     def.legend = { ...authored.legend };

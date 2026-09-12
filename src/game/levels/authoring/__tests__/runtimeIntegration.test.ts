@@ -179,3 +179,147 @@ describe('Runtime Integration Proof — Authored JSON to Engine Replay', () => {
     expect(state.pixels.every((p) => p.cleared)).toBe(true);
   });
 });
+
+describe('Safe Explicit Replacement (replacesLegacy: true)', () => {
+  const replacementJson = JSON.stringify({
+    world: 2,
+    worldId: 'world-02',
+    worldTitle: 'Wild Garden Rebuilt',
+    themeId: 'wild-garden',
+    replacesLegacy: true,
+    levels: [
+      {
+        id: 11,
+        title: 'Authored Ladybird Rebuilt',
+        difficulty: 'easy',
+        holding: 3,
+        grid: [
+          '...WWW...',
+          '..WWWWW..',
+          '.WWWWWWW.',
+          '..WWWWW..',
+          '...WWW...',
+        ],
+        tunnels: [
+          [{ color: 'white', capacity: 8 }],
+          [{ color: 'white', capacity: 8 }],
+          [{ color: 'white', capacity: 7 }],
+        ],
+      },
+    ],
+  });
+
+  it('Requirement 1: normal collision without replacesLegacy fails with an error', () => {
+    const unflaggedLevel: LevelDefinition = {
+      id: 11,
+      title: 'Accidental Collision',
+      themeId: 'wild-garden',
+      difficulty: 'easy',
+      holdingCapacity: 3,
+      pixelArt: ['W'],
+      tunnels: [[{ color: 'white', capacity: 1 }], [], []],
+    };
+
+    expect(() => {
+      combineLevelDefinitions(LEGACY_LEVEL_DEFINITIONS, [unflaggedLevel]);
+    }).toThrow(/Level ID collision detected/);
+  });
+
+  it('Requirement 2: explicit replacement with replacesLegacy: true succeeds', () => {
+    const { levels, errors } = parseAuthoredJSON(replacementJson, 'world-02.replacement.json');
+    expect(errors).toHaveLength(0);
+    expect(levels).toHaveLength(1);
+
+    const replacementLevel = levels[0]!;
+    expect(replacementLevel.replacesLegacy).toBe(true);
+
+    expect(() => {
+      combineLevelDefinitions(LEGACY_LEVEL_DEFINITIONS, [replacementLevel]);
+    }).not.toThrow();
+  });
+
+  it('Requirement 3 & 4: runtime returns the authored version and legacy version is excluded', () => {
+    const { levels } = parseAuthoredJSON(replacementJson);
+    const replacementLevel = levels[0]!;
+
+    const unified = combineLevelDefinitions(LEGACY_LEVEL_DEFINITIONS, [replacementLevel]);
+
+    // Exactly one definition for ID 11 exists in the unified campaign
+    const matches = unified.filter((l) => l.id === 11);
+    expect(matches).toHaveLength(1);
+
+    // It is the authored version, not the legacy version
+    const activeLevel = matches[0]!;
+    expect(activeLevel.title).toBe('Authored Ladybird Rebuilt');
+    expect(activeLevel.title).not.toBe('Ladybird');
+    expect(activeLevel.pixelArt).toHaveLength(5);
+  });
+
+  it('Requirement 5: neighboring legacy levels remain completely unchanged', () => {
+    const { levels } = parseAuthoredJSON(replacementJson);
+    const replacementLevel = levels[0]!;
+
+    const unified = combineLevelDefinitions(LEGACY_LEVEL_DEFINITIONS, [replacementLevel]);
+
+    // Level 10 (preceding neighbor) remains the exact legacy level
+    const level10 = unified.find((l) => l.id === 10);
+    const legacy10 = LEGACY_LEVEL_DEFINITIONS.find((l) => l.id === 10);
+    expect(level10).toBeDefined();
+    expect(level10?.title).toBe('Ring Nebula');
+    expect(level10).toEqual(legacy10);
+
+    // Level 12 (following neighbor) remains the exact legacy level
+    const level12 = unified.find((l) => l.id === 12);
+    const legacy12 = LEGACY_LEVEL_DEFINITIONS.find((l) => l.id === 12);
+    expect(level12).toBeDefined();
+    expect(level12?.title).toBe('Tulip');
+    expect(level12).toEqual(legacy12);
+
+    // Total campaign level count remains unchanged (1 replaced, 0 net change)
+    expect(unified.length).toBe(LEGACY_LEVEL_DEFINITIONS.length);
+  });
+
+  it('Requirement 6: createGame() successfully initializes the authored replacement', () => {
+    const { levels } = parseAuthoredJSON(replacementJson);
+    const replacementLevel = levels[0]!;
+
+    const unified = combineLevelDefinitions(LEGACY_LEVEL_DEFINITIONS, [replacementLevel]);
+    const level11 = unified.find((l) => l.id === 11)!;
+
+    const state = createGame(level11);
+    expect(state.levelId).toBe(11);
+    expect(state.status).toBe('playing');
+    expect(state.pixels.length).toBe(23);
+    expect(state.tunnels.length).toBe(3);
+
+    // Playable end-to-end
+    const solveRes = solve(level11, { mode: 'sequential-compat' });
+    expect(solveRes.solved).toBe(true);
+
+    let curState = state;
+    for (const move of solveRes.moves) {
+      const outcome = resolveAction(curState, move);
+      expect(outcome.accepted).toBe(true);
+      curState = outcome.state;
+    }
+    expect(curState.status).toBe('won');
+  });
+
+  it('fails safely if replacesLegacy is declared for an ID not in the legacy campaign', () => {
+    const invalidReplacement: LevelDefinition = {
+      id: 9999, // Does NOT exist in legacy definitions
+      title: 'Invalid Replacement ID',
+      themeId: 'wild-garden',
+      difficulty: 'easy',
+      holdingCapacity: 3,
+      pixelArt: ['W'],
+      tunnels: [[{ color: 'white', capacity: 1 }], [], []],
+      replacesLegacy: true,
+    };
+
+    expect(() => {
+      combineLevelDefinitions(LEGACY_LEVEL_DEFINITIONS, [invalidReplacement]);
+    }).toThrow(/Invalid replacement/);
+  });
+});
+

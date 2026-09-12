@@ -74,16 +74,43 @@ export function compileLevels(options: CompileOptions = {}): CompileResult {
     }
   }
 
-  // Collision protection: ensure no authored level collides with legacy levelDefinitions.ts
+  // Validate that all authored levels have unique IDs within the packet/batch
+  const seenAuthoredIds = new Set<number>();
+  for (const lvl of levels) {
+    if (seenAuthoredIds.has(lvl.id)) {
+      validationErrors.push(
+        `[DUPLICATE_AUTHORED_ID] Duplicate level ID ${lvl.id} ("${lvl.title}") found in authored levels.`,
+      );
+    }
+    seenAuthoredIds.add(lvl.id);
+  }
+
+  // Collision protection with legacy levelDefinitions.ts
+  const replacedIds: number[] = [];
   if (!options.ignoreLegacyCollisions) {
     const legacyIds = new Set(LEGACY_LEVEL_DEFINITIONS.map((l) => l.id));
     for (const lvl of levels) {
-      if (legacyIds.has(lvl.id)) {
+      if (lvl.replacesLegacy === true) {
+        if (!legacyIds.has(lvl.id)) {
+          validationErrors.push(
+            `[INVALID_REPLACEMENT] Authored level ID ${lvl.id} ("${lvl.title}") declared 'replacesLegacy: true', but ID ${lvl.id} does not exist in legacy levelDefinitions.ts.`,
+          );
+        } else {
+          replacedIds.push(lvl.id);
+        }
+      } else if (legacyIds.has(lvl.id)) {
         validationErrors.push(
-          `[ID_COLLISION] Authored level ID ${lvl.id} ("${lvl.title}") collides with an existing level in legacy levelDefinitions.ts. Each level ID must be unique across legacy and authored levels.`,
+          `[ID_COLLISION] Authored level ID ${lvl.id} ("${lvl.title}") collides with legacy level ${lvl.id}. Set 'replacesLegacy: true' if this is an intentional replacement.`,
         );
       }
     }
+  }
+
+  if (replacedIds.length > 0 && validationErrors.length === 0) {
+    const minId = Math.min(...replacedIds);
+    const maxId = Math.max(...replacedIds);
+    const rangeStr = replacedIds.length === 1 ? `Level ${minId}` : `Levels ${minId}–${maxId}`;
+    console.log(`ℹ️ Authored packet explicitly replaces legacy ${rangeStr}.`);
   }
 
   if (validationErrors.length > 0) {

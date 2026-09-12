@@ -27,17 +27,20 @@ export interface AuthoredLevel {
   tunnels: ChargeSpec[][];
   reveal?: LevelReveal;
   tutorial?: string;
+  replacesLegacy?: boolean;
 }
 
 /**
  * World packet container. Allows bundling an entire world or batch (e.g. 10 levels)
- * with shared world metadata, so individual levels can inherit themeId.
+ * with shared world metadata, so individual levels can inherit themeId and replacesLegacy.
  */
 export interface AuthoredWorldPacket {
   worldId?: string;
+  world?: number | string;
   worldTitle?: string;
   themeId?: string;
   theme?: string;
+  replacesLegacy?: boolean;
   levels: AuthoredLevel[];
 }
 
