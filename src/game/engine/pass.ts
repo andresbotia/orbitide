@@ -1,6 +1,6 @@
 import { isLinkedPrimed, resolveBoardHit } from './linked';
-import { ORBIT_ENTRY_FRACTION, clockwiseGap } from './orbit';
-import { pictureCenter, pixelEncounterFraction, reachablePixels } from './pixels';
+import { orbitFraction } from './orbit';
+import { clearOrder, reachablePixels } from './pixels';
 import type { Charge, GameState, OrbColor, Pixel } from './types';
 
 export interface Encounter {
@@ -28,11 +28,11 @@ export function startPass(state: GameState, charge: Charge): ChargePass {
   return { state, charge: { ...charge }, progress: 0, phase: 'encounter', encounters: [] };
 }
 /**
- * The pure "which pixel does this charge reach next" selection, over an
- * already-computed list of currently-reachable pixels. Nearest ahead of
- * `fromProgress`, then outer radius, then pixel id — identical ordering to the
- * M1 deterministic clear order. Shared by the M1 one-pass resolver and the M2B
- * concurrent {@link simulateEpoch} so both agree exactly.
+ * Immediate target acquisition: a charge with legal matching targets fires
+ * immediately from its current actual orbit position `fromProgress` without
+ * waiting or travelling around the ring to reach the target's side. When multiple
+ * targets exist, deterministic selection sorts clockwise from the charge's
+ * current orbital angle using {@link clearOrder}.
  */
 export function pickEncounter(
   size: Pick<GameState, 'width' | 'height'>,
@@ -43,23 +43,14 @@ export function pickEncounter(
    * Frozen pixel stays reachable, so it must not be re-hit at the same point). */
   exclude?: ReadonlySet<string>,
 ): { pixelId: string; progress: number } | null {
-  const { cx, cy } = pictureCenter(size);
   const candidates = reachable
-    .filter((p) => p.color === color && !isLinkedPrimed(p) && !(exclude?.has(p.id)))
-    .map((p) => ({
-      pixel: p,
-      // The centre is equally near everywhere: encounter it at the current position.
-      progress: p.x === cx && p.y === cy ? fromProgress : clockwiseGap(
-        ORBIT_ENTRY_FRACTION, pixelEncounterFraction(size, p, ORBIT_ENTRY_FRACTION)),
-      radius: (p.x - cx) ** 2 + (p.y - cy) ** 2,
-    }))
-    .filter((p) => p.progress + 1e-9 >= fromProgress)
-    .sort((a, b) => Math.abs(a.progress - b.progress) > 1e-9
-      ? a.progress - b.progress
-      : b.radius - a.radius || (a.pixel.id < b.pixel.id ? -1 : a.pixel.id > b.pixel.id ? 1 : 0));
-  const target = candidates[0];
-  if (!target) return null;
-  return { pixelId: target.pixel.id, progress: Math.max(fromProgress, target.progress) };
+    .filter((p) => p.color === color && !isLinkedPrimed(p) && !(exclude?.has(p.id)));
+  if (candidates.length === 0) return null;
+
+  const currentAngle = orbitFraction(fromProgress);
+  candidates.sort(clearOrder(size, currentAngle));
+  const target = candidates[0]!;
+  return { pixelId: target.id, progress: fromProgress };
 }
 /**
  * The next reachable matching pixel a charge reaches, reading fresh exposure

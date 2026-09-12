@@ -88,8 +88,8 @@ describe('engine ↔ presentation target agreement (concurrent path)', () => {
     }
   });
 
-  test('target order follows the physical (clockwise-from-entry) encounter order', () => {
-    // Four white pixels at the compass points, cleared in bottom→left→top→right.
+  test('target order follows the physical (clockwise-from-entry) encounter order with immediate targeting', () => {
+    // Four white pixels at the compass points, cleared in bottom→left→top→right immediately at launch.
     const base = createGame(level(
       ['.W.', 'W.W', '.W.'],
       [[{ color: 'white', capacity: 4 }], [{ color: 'white', capacity: 4 }], [{ color: 'white', capacity: 4 }]],
@@ -97,7 +97,8 @@ describe('engine ↔ presentation target agreement (concurrent path)', () => {
     const res = simulateEpoch(base, [rawLaunch('white', 4, 0)]);
     expect(res.charges[0]!.encounters.map((e) => e.pixelId))
       .toEqual(['L720-p1-2', 'L720-p0-1', 'L720-p1-0', 'L720-p2-1']);
-    expect(res.charges[0]!.encounters.map((e) => e.progress)).toEqual([0, 0.25, 0.5, 0.75]);
+    // All four fire immediately from the charge's current position (0) without pointless travel.
+    expect(res.charges[0]!.encounters.map((e) => e.progress)).toEqual([0, 0, 0, 0]);
   });
 });
 
@@ -171,5 +172,139 @@ describe('concurrent target claiming', () => {
     const b = run();
     expect(a.state).toBe(b.state);
     expect(a.scripts).toEqual(b.scripts);
+  });
+});
+
+describe('Part 5 — targeting regression tests A–J', () => {
+  // A. One exposed matching pixel exists at launch -> charge fires immediately.
+  test('A: one exposed matching pixel at launch fires immediately at progress 0', () => {
+    const def = level(['...', '.W.', '...'], [[{ color: 'white', capacity: 1 }], [], []]);
+    const base = createGame(def);
+    const outcome = resolveAction(base, T(0));
+    expect(outcome.accepted).toBe(true);
+    expect(outcome.pass!.encounters).toHaveLength(1);
+    expect(outcome.pass!.encounters[0]!.progress).toBe(0);
+    expect(outcome.state.pixels.find((p) => p.id === 'L720-p1-1')!.cleared).toBe(true);
+  });
+
+  // B. Matching pixel is geometrically on the "other side" of the board -> no pointless half/full orbit before firing.
+  test('B: pixel on the far side (12 o clock vs 6 o clock entry) fires immediately at progress 0', () => {
+    // Only the top-most pixel exists; entry is at bottom center.
+    const def = level(['.W.', '...', '...'], [[{ color: 'white', capacity: 1 }], [], []]);
+    const base = createGame(def);
+    const outcome = resolveAction(base, T(0));
+    expect(outcome.accepted).toBe(true);
+    expect(outcome.pass!.encounters[0]!.progress).toBe(0); // fires immediately, not after 0.5 lap
+  });
+
+  // C. Multiple matching pixels exist -> deterministic target selected.
+  test('C: multiple matching pixels select deterministically using canonical clearOrder', () => {
+    const def = level(['.W.', 'W.W', '.W.'], [[{ color: 'white', capacity: 2 }], [], []]);
+    const base = createGame(def);
+    const outcome = resolveAction(base, T(0));
+    expect(outcome.pass!.encounters.map((e) => e.pixelId)).toEqual(['L720-p1-2', 'L720-p0-1']);
+    expect(outcome.pass!.encounters.map((e) => e.progress)).toEqual([0, 0]);
+  });
+
+  // D. Hit reveals another matching pixel -> second target acquired immediately.
+  test('D: hit reveals another matching pixel which is acquired immediately in the same pass', () => {
+    // p1-1 (white) is shielded behind p1-2 (white); clearing p1-2 exposes p1-1.
+    const def = level(['RRR', 'RWR', '.W.'], [[{ color: 'white', capacity: 2 }], [], []]);
+    const base = createGame(def);
+    const outcome = resolveAction(base, T(0));
+    expect(outcome.pass!.encounters.map((e) => e.pixelId)).toEqual(['L720-p1-2', 'L720-p1-1']);
+    expect(outcome.pass!.encounters.map((e) => e.progress)).toEqual([0, 0]);
+    expect(outcome.pass!.charge.capacity).toBe(0);
+  });
+
+  // E. Frozen hit exposes/changes state -> immediately re-query.
+  test('E: frozen hit cracks ice and immediately re-queries other matching targets', () => {
+    const def: LevelDefinition = {
+      ...level(['.W.', '...', '.W.'], [[{ color: 'white', capacity: 2 }], [], []]),
+      modifiers: { '1,2': { kind: 'frozen', level: 1 } },
+    };
+    const base = createGame(def);
+    const outcome = resolveAction(base, T(0));
+    expect(outcome.accepted).toBe(true);
+    // Hits frozen pixel first (bottom, cracks ice), then immediately hits top pixel (clears)
+    expect(outcome.pass!.encounters).toHaveLength(2);
+    expect(outcome.pass!.encounters[0]!.pixelId).toBe('L720-p1-2');
+    expect(outcome.pass!.encounters[0]!.frozenBreak).toBe(true);
+    expect(outcome.pass!.encounters[1]!.pixelId).toBe('L720-p1-0');
+    expect(outcome.pass!.encounters[1]!.frozenBreak).toBeFalsy();
+  });
+
+  // F. Shield break -> immediately re-query.
+  test('F: shield break collapses energy shield and immediately re-queries next target', () => {
+    const def: LevelDefinition = {
+      ...level(['.W.', '...', '.W.'], [[{ color: 'white', capacity: 2 }], [], []]),
+      modifiers: { '1,2': { kind: 'shielded', level: 1 } },
+    };
+    const base = createGame(def);
+    const outcome = resolveAction(base, T(0));
+    expect(outcome.accepted).toBe(true);
+    expect(outcome.pass!.encounters).toHaveLength(2);
+    expect(outcome.pass!.encounters[0]!.pixelId).toBe('L720-p1-2');
+    expect(outcome.pass!.encounters[0]!.shieldBreak).toBe(true);
+    expect(outcome.pass!.encounters[1]!.pixelId).toBe('L720-p1-0');
+  });
+
+  // G. Concurrent charges competing for a target -> no duplicate claim.
+  test('G: concurrent charges competing for a target do not duplicate claim', () => {
+    const def = level(['.W.', '...', '...'], [[{ color: 'white', capacity: 1 }], [{ color: 'white', capacity: 1 }], []]);
+    const base = createGame(def);
+    const res = simulateEpoch(base, [rawLaunch('white', 1, 0), rawLaunch('white', 1, 1)]);
+    const allEncounters = res.charges.flatMap((c) => c.encounters);
+    expect(allEncounters).toHaveLength(1);
+    expect(allEncounters[0]!.pixelId).toBe('L720-p1-0');
+  });
+
+  // H. Target disappears before resolution -> no capacity incorrectly spent.
+  test('H: target disappeared before resolution preserves charge capacity', () => {
+    const def = level(['.W.', '...', '...'], [[{ color: 'white', capacity: 1 }], [{ color: 'white', capacity: 3 }], []]);
+    const base = createGame(def);
+    const res = simulateEpoch(base, [rawLaunch('white', 1, 0), rawLaunch('white', 3, 1)]);
+    expect(res.charges[1]!.encounters).toHaveLength(0);
+    expect(res.charges[1]!.remainingCapacity).toBe(3);
+    expect(res.charges[1]!.landed).toBe('holding');
+  });
+
+  // I. Charge has no matching exposed targets -> continues/settles according to normal rules.
+  test('I: charge with no matching targets coasts a full lap and lands in holding', () => {
+    const def = level(['.R.', '...', '...'], [[{ color: 'blue', capacity: 2 }], [], []]);
+    const base = createGame(def);
+    const outcome = resolveAction(base, T(0));
+    expect(outcome.accepted).toBe(true);
+    expect(outcome.pass!.encounters).toHaveLength(0);
+    expect(outcome.pass!.progress).toBe(1);
+    expect(outcome.heldCharge).toMatchObject({ color: 'blue', capacity: 2 });
+  });
+
+  // J. Held relaunch has a legal target -> relaunch fires without artificial orbit delay.
+  test('J: held relaunch with a legal target fires immediately without artificial delay', () => {
+    const def = level(
+      ['WWW', 'WBW', 'WWW'],
+      [[{ color: 'blue', capacity: 1 }], [{ color: 'white', capacity: 8 }], []],
+    );
+    let state = createGame(def);
+    // Launch Blue: no exposed blue pixels, flies full lap, lands in holding.
+    const blueLaunch = resolveAction(state, T(0));
+    expect(blueLaunch.accepted).toBe(true);
+    expect(blueLaunch.heldCharge).toMatchObject({ color: 'blue', capacity: 1 });
+    state = blueLaunch.state;
+    expect(state.holding).toHaveLength(1);
+    const heldId = state.holding[0]!.id;
+
+    // Launch White: clears all 8 white pixels, exposing Blue.
+    const whiteLaunch = resolveAction(state, T(1));
+    expect(whiteLaunch.accepted).toBe(true);
+    state = whiteLaunch.state;
+
+    // Relaunch held Blue: Blue is now legal and exposed.
+    const relaunch = resolveAction(state, { kind: 'holding', id: heldId });
+    expect(relaunch.accepted).toBe(true);
+    expect(relaunch.pass!.encounters).toHaveLength(1);
+    expect(relaunch.pass!.encounters[0]!.progress).toBe(0); // immediate firing
+    expect(relaunch.state.status).toBe('won');
   });
 });

@@ -12,25 +12,22 @@ test('every tunnel uses identical bottom-left-top-right encounter order', () => 
   for (const id of ['tunnel-0', 'tunnel-1', 'tunnel-2']) {
     const result = resolveLaunch(state, id);
     expect(result.pass!.encounters.map((e) => e.pixelId)).toEqual(['L990-p1-2', 'L990-p0-1', 'L990-p1-0', 'L990-p2-1']);
-    expect(result.pass!.encounters.map((e) => e.progress)).toEqual([0, 0.25, 0.5, 0.75]);
+    expect(result.pass!.encounters.map((e) => e.progress)).toEqual([0, 0, 0, 0]);
   }
 });
-test('a shot exposes a target encountered later in the SAME orbit', () => {
+test('a shot exposes a target encountered immediately in the SAME orbit', () => {
   const state = createGame({ ...base, pixelArt: ['RRRRR', 'RWRRR', '.WRRR', 'RRRRR', 'RRRRR'] });
   expect(reachablePixels(state).map((p) => p.id)).not.toContain('L990-p1-1');
   const pass = resolvePass(state, { id: 'charge', color: 'white', capacity: 2 });
   expect(pass.encounters.map((e) => e.pixelId)).toEqual(['L990-p1-2', 'L990-p1-1']);
-  expect(pass.encounters[1]!.progress).toBeGreaterThan(pass.encounters[0]!.progress);
+  expect(pass.encounters[1]!.progress).toBe(0);
   expect(pass.charge.capacity).toBe(0);
 });
-test('newly exposed targets behind the orb wait for the next manual pass', () => {
+test('newly exposed targets are cleared immediately by remaining capacity', () => {
   const state = createGame({ ...base, pixelArt: ['RRR.R', 'RWW.R', 'RRR.R', 'R...R', 'RRRRR'] });
   const first = resolvePass(state, { id: 'charge', color: 'white', capacity: 2 });
-  expect(first.encounters.map((e) => e.pixelId)).toEqual(['L990-p2-1']);
-  expect(first.progress).toBe(1);
-  expect(first.charge.capacity).toBe(1);
-  const second = resolvePass(first.state, first.charge);
-  expect(second.encounters.map((e) => e.pixelId)).toEqual(['L990-p1-1']);
+  expect(first.encounters.map((e) => e.pixelId)).toEqual(['L990-p2-1', 'L990-p1-1']);
+  expect(first.charge.capacity).toBe(0);
 });
 test('same-ray targets clear outer first; newly exposed centre can be reached immediately', () => {
   const state = createGame({ ...base, pixelArt: ['WWWWW', 'WWWWW', 'WWWWW', 'WWWWW', 'WWWWW'] });
