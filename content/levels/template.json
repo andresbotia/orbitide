@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "worldId": "world-XX",
+  "worldTitle": "World Title",
+  "themeId": "first-light",
+  "levels": [
+    {
+      "id": 101,
+      "title": "Template Level",
+      "difficulty": "easy",
+      "holding": 3,
+      "grid": [
+        "...WWW...",
+        "..WWWWW..",
+        ".WWWWWWW.",
+        "WWWWWWWWW",
+        ".WWWWWWW.",
+        "..WWWWW..",
+        "...WWW..."
+      ],
+      "legend": {},
+      "tunnels": [
+        [{ "color": "white", "capacity": 10 }],
+        [{ "color": "white", "capacity": 10 }],
+        [{ "color": "white", "capacity": 9 }]
+      ]
+    }
+  ]
+}

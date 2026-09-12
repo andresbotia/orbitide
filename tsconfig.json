@@ -6,7 +6,8 @@
     "noImplicitOverride": true,
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "types": ["node", "jest"]
   },
   "include": [
     "**/*.ts",

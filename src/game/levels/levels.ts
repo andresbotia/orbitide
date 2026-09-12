@@ -1,7 +1,41 @@
 import type { LevelDefinition, OrbColor } from '../engine/types';
-import { LEVEL_DEFINITIONS } from './levelDefinitions';
+import { COMPILED_LEVELS } from './compiledLevels';
+import { LEVEL_DEFINITIONS as LEGACY_LEVEL_DEFINITIONS } from './levelDefinitions';
 
-export { LEVEL_DEFINITIONS };
+/**
+ * Combines legacy handcrafted levels with compiled authored levels.
+ * Detects duplicate level IDs and fails clearly to prevent silent overrides.
+ */
+export function combineLevelDefinitions(
+  legacy: LevelDefinition[],
+  compiled: LevelDefinition[],
+): LevelDefinition[] {
+  const seen = new Set<number>();
+  const collisions: number[] = [];
+
+  for (const lvl of legacy) {
+    seen.add(lvl.id);
+  }
+
+  for (const lvl of compiled) {
+    if (seen.has(lvl.id)) {
+      collisions.push(lvl.id);
+    }
+  }
+
+  if (collisions.length > 0) {
+    throw new Error(
+      `Level ID collision detected between legacy levelDefinitions.ts and compiledLevels.ts for ID(s): ${collisions.join(', ')}. Each level ID must be unique across legacy and authored levels.`,
+    );
+  }
+
+  return [...legacy, ...compiled].sort((a, b) => a.id - b.id);
+}
+
+export const LEVEL_DEFINITIONS: LevelDefinition[] = combineLevelDefinitions(
+  LEGACY_LEVEL_DEFINITIONS,
+  COMPILED_LEVELS,
+);
 
 /** Total number of handcrafted levels available in Milestone 1. */
 export const TOTAL_LEVELS = LEVEL_DEFINITIONS.length;
