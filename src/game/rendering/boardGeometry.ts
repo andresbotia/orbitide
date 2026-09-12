@@ -47,9 +47,9 @@ export interface PixelAdaptive {
 }
 
 /** Board densities the production renderer is tuned for. */
-export const SUPPORTED_DENSITIES = [7, 9, 11, 13, 15, 17, 19, 21] as const;
+export const SUPPORTED_DENSITIES = [7, 9, 11, 13, 15, 17, 19, 21, 23, 24] as const;
 /** Max density prepared for in the adaptive renderer. */
-export const MAX_READY_DENSITY = 21;
+export const MAX_READY_DENSITY = 24;
 
 const DENSITY_MIN = 7;
 

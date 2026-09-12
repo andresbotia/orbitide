@@ -12,9 +12,9 @@ export const VALID_ORB_COLORS = new Set<OrbColor>([
 
 export const VALID_DIFFICULTIES = new Set(['easy', 'medium', 'hard', 'super-hard', 'extreme']);
 
-export const MAX_BOARD_WIDTH = 20;
-export const MAX_BOARD_HEIGHT = 20;
-export const MAX_BOARD_DIMENSION = 20;
+export const MAX_BOARD_WIDTH = 24;
+export const MAX_BOARD_HEIGHT = 24;
+export const MAX_BOARD_DIMENSION = 24;
 export const MIN_BOARD_DIMENSION = 1;
 
 export interface ValidationOptions {
