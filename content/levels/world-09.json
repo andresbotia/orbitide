@@ -1,0 +1,4582 @@
+{
+  "world": 9,
+  "worldId": "world-09",
+  "worldTitle": "Prehistoric Titans",
+  "themeId": "prehistoric-titans",
+  "replacesLegacy": true,
+  "levels": [
+    {
+      "id": 81,
+      "title": "Triceratops",
+      "difficulty": "hard",
+      "holding": 3,
+      "legend": {
+        "W": "white",
+        "Y": "yellow",
+        "A": "gold",
+        "O": "orange",
+        "R": "red",
+        "D": "coral",
+        "P": "purple",
+        "N": "indigo",
+        "T": "teal",
+        "G": "green",
+        "L": "lime"
+      },
+      "grid": [
+        "...NNNNNNNNNNNNNNNNNNNNN...",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNLNN.",
+        ".NNLNNNNNNNNNNNNNNNNNNNLNN.",
+        ".NNLLNNNNNNNNNNNNNAANNLNNN.",
+        ".NNLNNNNNNNNNNNNAYAAANNLNN.",
+        ".NNNNLNNNNNNNNNAYYYOAANNNN.",
+        ".NLNNNNNNNNNNNNYYWODDANNNN.",
+        ".NNLNNNNNPPPPNAAOORDDOONNN.",
+        ".NNNNNPPPPPPPPAAOYOOOOOONW.",
+        ".NLNNAAPPPOPPPAAOOPOOYRWWN.",
+        ".NNNAAAYAAAPPYPAOPOROOOOON.",
+        ".ANAAAOOOOOOOOOAAOPODDOONN.",
+        ".TAAAOOOPOOODOOOAAAADPPPPP.",
+        ".TTAAAOOOOOOODDDOAAATDDTTT.",
+        ".TTODAADDDDDDDDYDOAATTTTTT.",
+        ".TLAODODDDDDDOODDDAATTTTTT.",
+        ".TTTOOOOPDDDYOOOOAATTTTLTT.",
+        ".GGGGOOOOODDDDOOPAGGGGGGGG.",
+        ".GGGGOOOOAAAAAOOOOGGGGGGLG.",
+        ".GGGGOOOOGGGGGOOOOGGGGGLGG.",
+        ".GGGGODDOGGGGGODDOGGGGGGGG.",
+        ".GGGGGDDOGGGGGODDGGGGGGGGG.",
+        ".GGGGGDDGGGGGGGDDGGGGGGGGG.",
+        "....................NNNN..."
+      ],
+      "reveal": {
+        "name": "TRICERATOPS",
+        "nodes": [
+          {
+            "x": 13,
+            "y": 0
+          },
+          {
+            "x": 5,
+            "y": 5
+          },
+          {
+            "x": 21,
+            "y": 5
+          },
+          {
+            "x": 2,
+            "y": 13
+          },
+          {
+            "x": 24,
+            "y": 13
+          },
+          {
+            "x": 5,
+            "y": 22
+          },
+          {
+            "x": 21,
+            "y": 22
+          },
+          {
+            "x": 13,
+            "y": 26
+          }
+        ],
+        "lines": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            5,
+            6
+          ]
+        ],
+        "accentNodes": [
+          0
+        ],
+        "collectionId": "prehistoric-titans"
+      },
+      "tunnels": [
+        [
+          {
+            "color": "indigo",
+            "capacity": 13
+          },
+          {
+            "color": "indigo",
+            "capacity": 13
+          },
+          {
+            "color": "green",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "green",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "orange",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "orange",
+            "capacity": 9
+          },
+          {
+            "color": "gold",
+            "capacity": 11
+          },
+          {
+            "color": "gold",
+            "capacity": 10
+          },
+          {
+            "color": "teal",
+            "capacity": 13
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "purple",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 7
+          },
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 7
+          },
+          {
+            "color": "white",
+            "capacity": 4
+          },
+          {
+            "color": "lime",
+            "capacity": 3
+          }
+        ],
+        [
+          {
+            "color": "green",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "gold",
+            "capacity": 13
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 9
+          },
+          {
+            "color": "purple",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 11
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "gold",
+            "capacity": 13
+          },
+          {
+            "color": "teal",
+            "capacity": 10
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 8
+          },
+          {
+            "color": "green",
+            "capacity": 8
+          },
+          {
+            "color": "indigo",
+            "capacity": 6
+          },
+          {
+            "color": "gold",
+            "capacity": 3
+          },
+          {
+            "color": "yellow",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "indigo",
+            "capacity": 14
+          },
+          {
+            "color": "indigo",
+            "capacity": 13
+          },
+          {
+            "color": "green",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "purple",
+            "capacity": 8
+          },
+          {
+            "color": "lime",
+            "capacity": 13
+          },
+          {
+            "color": "indigo",
+            "capacity": 13
+          },
+          {
+            "color": "yellow",
+            "capacity": 11
+          },
+          {
+            "color": "coral",
+            "capacity": 12
+          },
+          {
+            "color": "orange",
+            "capacity": 11
+          },
+          {
+            "color": "green",
+            "capacity": 13
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "green",
+            "capacity": 7
+          },
+          {
+            "color": "red",
+            "capacity": 3
+          },
+          {
+            "color": "purple",
+            "capacity": 3
+          },
+          {
+            "color": "green",
+            "capacity": 1
+          }
+        ]
+      ]
+    },
+    {
+      "id": 82,
+      "title": "Stegosaurus",
+      "difficulty": "hard",
+      "holding": 3,
+      "legend": {
+        "W": "white",
+        "Y": "yellow",
+        "A": "gold",
+        "O": "orange",
+        "R": "red",
+        "D": "coral",
+        "P": "purple",
+        "N": "indigo",
+        "T": "teal",
+        "G": "green"
+      },
+      "grid": [
+        "...NNNNNNNNNNNNNNNNNNNNN...",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNYNNPNNNNNNNNNNN.",
+        ".NNNNNNNNNNYNNPNNRNNNNNNNN.",
+        ".DDDDDDDRDDYODPYDRDDDDDDDD.",
+        ".DDDDDDDRDYYYPPPRRODYDDDDD.",
+        ".WDDDDRRRRDYYDPPDRRYYDDDDD.",
+        ".DWDDYYDRRAAAAAAADRDDYDDDD.",
+        ".DDWDAAAAAAAAAAAAAAAAYAOOD.",
+        ".DDAWWAAAAOOYOOAAAAAAAAAWO.",
+        ".PAAAOYOOTOOOOOTOOAAAAAAAO.",
+        ".PAODDOOOOOOOOOOOOYAAAAAOO.",
+        ".PAWDDDDDDDOOOOOOAAAYAOOOT.",
+        ".PWOOWDODTDDDYDDDODDDDTPTT.",
+        ".PTTPWDOOODDDDDDTOOODTTPTT.",
+        ".GGGWGGOOODDDDDDDOOOGGGGGG.",
+        ".GGGGGGOOOOGGGGGGOOOOGGGGG.",
+        ".GGGGGGOOOOGGGGGGOOOOGGGGG.",
+        ".GGGGGGGDDOGGGGGGGODDGGGGG.",
+        ".GGGGGGGDDOGGGGGGGODDGGGGG.",
+        ".GGGGGGGDDGGGGGGGGGDDGGGGG.",
+        "..........NNNNNNNNNNNNNN..."
+      ],
+      "reveal": {
+        "name": "STEGOSAURUS",
+        "nodes": [
+          {
+            "x": 13,
+            "y": 0
+          },
+          {
+            "x": 5,
+            "y": 5
+          },
+          {
+            "x": 21,
+            "y": 5
+          },
+          {
+            "x": 2,
+            "y": 13
+          },
+          {
+            "x": 24,
+            "y": 13
+          },
+          {
+            "x": 5,
+            "y": 22
+          },
+          {
+            "x": 21,
+            "y": 22
+          },
+          {
+            "x": 13,
+            "y": 26
+          }
+        ],
+        "lines": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            5,
+            6
+          ]
+        ],
+        "accentNodes": [
+          0
+        ],
+        "collectionId": "prehistoric-titans"
+      },
+      "tunnels": [
+        [
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "coral",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "coral",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 8
+          },
+          {
+            "color": "green",
+            "capacity": 9
+          },
+          {
+            "color": "yellow",
+            "capacity": 12
+          },
+          {
+            "color": "coral",
+            "capacity": 9
+          },
+          {
+            "color": "purple",
+            "capacity": 12
+          },
+          {
+            "color": "gold",
+            "capacity": 7
+          },
+          {
+            "color": "coral",
+            "capacity": 6
+          },
+          {
+            "color": "orange",
+            "capacity": 10
+          },
+          {
+            "color": "green",
+            "capacity": 7
+          },
+          {
+            "color": "teal",
+            "capacity": 2
+          },
+          {
+            "color": "red",
+            "capacity": 2
+          },
+          {
+            "color": "gold",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "coral",
+            "capacity": 13
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "coral",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 8
+          },
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 11
+          },
+          {
+            "color": "red",
+            "capacity": 6
+          },
+          {
+            "color": "coral",
+            "capacity": 7
+          },
+          {
+            "color": "gold",
+            "capacity": 8
+          },
+          {
+            "color": "gold",
+            "capacity": 8
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "yellow",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 8
+          },
+          {
+            "color": "coral",
+            "capacity": 11
+          },
+          {
+            "color": "green",
+            "capacity": 9
+          },
+          {
+            "color": "purple",
+            "capacity": 4
+          },
+          {
+            "color": "coral",
+            "capacity": 3
+          }
+        ],
+        [
+          {
+            "color": "green",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "green",
+            "capacity": 13
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "orange",
+            "capacity": 13
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "green",
+            "capacity": 10
+          },
+          {
+            "color": "gold",
+            "capacity": 8
+          },
+          {
+            "color": "green",
+            "capacity": 8
+          },
+          {
+            "color": "green",
+            "capacity": 7
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "white",
+            "capacity": 11
+          },
+          {
+            "color": "gold",
+            "capacity": 8
+          },
+          {
+            "color": "red",
+            "capacity": 7
+          },
+          {
+            "color": "gold",
+            "capacity": 10
+          },
+          {
+            "color": "orange",
+            "capacity": 9
+          },
+          {
+            "color": "green",
+            "capacity": 6
+          },
+          {
+            "color": "orange",
+            "capacity": 7
+          }
+        ]
+      ]
+    },
+    {
+      "id": 83,
+      "title": "Pteranodon",
+      "difficulty": "hard",
+      "holding": 3,
+      "legend": {
+        "W": "white",
+        "Y": "yellow",
+        "A": "gold",
+        "O": "orange",
+        "R": "red",
+        "D": "coral",
+        "P": "purple",
+        "N": "indigo",
+        "B": "blue",
+        "C": "cyan",
+        "G": "green"
+      },
+      "grid": [
+        "............................",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNWWWWWNNNNNNNNNNNNNNNNNNN.",
+        ".NNWWWWWNNNNNNNNNNNNNNNNNNN.",
+        ".NDNNNNNNNNNNNNDDNNNNNNOONN.",
+        ".NNDDDDNNNNNNNNNDDNNOOOONNN.",
+        ".NNNPAADPDNNNNNNNDDORYYNRNN.",
+        ".CCCCPPAAPDCCCCCCAADYYRYYYC.",
+        ".CCCCCCPAAPDCCCCAAWRYYYYWCC.",
+        ".CCCCCCCPPPAACCAAAAAYYWWWCC.",
+        ".CCCCCCCCCPPAACAAAACCCCCCCC.",
+        ".CCCCCCCCCCPPAAAAACCCCCCCCC.",
+        ".CCCCCCCCCCCAAAACCCCCCCCCCC.",
+        ".CCAACCCCCCCAAAACCCCCCCCCCC.",
+        ".CCAAACCCCCCAOAAACCCCCCCCCC.",
+        ".CAAAACCCCCCAOOAACCCCCCOOCC.",
+        ".AAGAABBBBBBBAOPPBBBBBOOOBB.",
+        ".AAAAAABBBBBBAPPPPBBBBOOGOB.",
+        ".AAAGAABBBBBBPPPPPPBBBOOOOO.",
+        ".AAAAAABBBBBBPPPPPPBBOOOOGO.",
+        ".AGAAAABBBBBPPPBBPPPBOOOOOO.",
+        ".AAAAAABBBBBPPPBBPPPBOOOOOO.",
+        ".AAAAGABBBBPYPBBBBPYPOOGOOO.",
+        ".AAAAAABBBYYYBBBBBYPYYOOOOO.",
+        ".AAAAAABBBBBBYBBBBYBBOOOOOO.",
+        ".AAAAAABBBBBBBBBBBBBBOOOOOO.",
+        "............................"
+      ],
+      "reveal": {
+        "name": "PTERANODON",
+        "nodes": [
+          {
+            "x": 13,
+            "y": 0
+          },
+          {
+            "x": 5,
+            "y": 5
+          },
+          {
+            "x": 22,
+            "y": 5
+          },
+          {
+            "x": 2,
+            "y": 14
+          },
+          {
+            "x": 25,
+            "y": 14
+          },
+          {
+            "x": 5,
+            "y": 23
+          },
+          {
+            "x": 22,
+            "y": 23
+          },
+          {
+            "x": 14,
+            "y": 27
+          }
+        ],
+        "lines": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            5,
+            6
+          ]
+        ],
+        "accentNodes": [
+          0
+        ],
+        "collectionId": "prehistoric-titans"
+      },
+      "tunnels": [
+        [
+          {
+            "color": "gold",
+            "capacity": 13
+          },
+          {
+            "color": "blue",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 13
+          },
+          {
+            "color": "cyan",
+            "capacity": 10
+          },
+          {
+            "color": "blue",
+            "capacity": 13
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "cyan",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "purple",
+            "capacity": 7
+          },
+          {
+            "color": "cyan",
+            "capacity": 8
+          },
+          {
+            "color": "gold",
+            "capacity": 10
+          },
+          {
+            "color": "blue",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "yellow",
+            "capacity": 14
+          },
+          {
+            "color": "purple",
+            "capacity": 7
+          },
+          {
+            "color": "purple",
+            "capacity": 7
+          },
+          {
+            "color": "blue",
+            "capacity": 7
+          },
+          {
+            "color": "purple",
+            "capacity": 8
+          },
+          {
+            "color": "gold",
+            "capacity": 8
+          },
+          {
+            "color": "cyan",
+            "capacity": 12
+          },
+          {
+            "color": "blue",
+            "capacity": 12
+          },
+          {
+            "color": "yellow",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 3
+          },
+          {
+            "color": "indigo",
+            "capacity": 3
+          },
+          {
+            "color": "blue",
+            "capacity": 3
+          }
+        ],
+        [
+          {
+            "color": "cyan",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "cyan",
+            "capacity": 10
+          },
+          {
+            "color": "cyan",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 13
+          },
+          {
+            "color": "cyan",
+            "capacity": 9
+          },
+          {
+            "color": "blue",
+            "capacity": 13
+          },
+          {
+            "color": "gold",
+            "capacity": 14
+          },
+          {
+            "color": "gold",
+            "capacity": 13
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "purple",
+            "capacity": 8
+          },
+          {
+            "color": "cyan",
+            "capacity": 9
+          },
+          {
+            "color": "blue",
+            "capacity": 9
+          },
+          {
+            "color": "cyan",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 7
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "blue",
+            "capacity": 7
+          },
+          {
+            "color": "purple",
+            "capacity": 7
+          },
+          {
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "purple",
+            "capacity": 5
+          },
+          {
+            "color": "red",
+            "capacity": 4
+          },
+          {
+            "color": "gold",
+            "capacity": 4
+          }
+        ],
+        [
+          {
+            "color": "indigo",
+            "capacity": 13
+          },
+          {
+            "color": "indigo",
+            "capacity": 13
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "cyan",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "cyan",
+            "capacity": 10
+          },
+          {
+            "color": "gold",
+            "capacity": 12
+          },
+          {
+            "color": "blue",
+            "capacity": 9
+          },
+          {
+            "color": "blue",
+            "capacity": 9
+          },
+          {
+            "color": "cyan",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "cyan",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "gold",
+            "capacity": 10
+          },
+          {
+            "color": "cyan",
+            "capacity": 11
+          },
+          {
+            "color": "white",
+            "capacity": 8
+          },
+          {
+            "color": "white",
+            "capacity": 7
+          },
+          {
+            "color": "indigo",
+            "capacity": 8
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "indigo",
+            "capacity": 7
+          },
+          {
+            "color": "indigo",
+            "capacity": 7
+          },
+          {
+            "color": "gold",
+            "capacity": 7
+          },
+          {
+            "color": "green",
+            "capacity": 7
+          }
+        ]
+      ]
+    },
+    {
+      "id": 84,
+      "title": "Ankylosaurus",
+      "difficulty": "hard",
+      "holding": 3,
+      "legend": {
+        "W": "white",
+        "Y": "yellow",
+        "A": "gold",
+        "O": "orange",
+        "R": "red",
+        "D": "coral",
+        "P": "purple",
+        "N": "indigo",
+        "B": "blue",
+        "C": "cyan",
+        "T": "teal",
+        "G": "green"
+      },
+      "grid": [
+        "............................",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".BBBBBBBBBBBBBBBBBBBBBBBBBB.",
+        ".BBBBBBBBBBBBBBBBBBBBBBBBBB.",
+        ".BBBCCBCCBCCBCCBCCBCCBCCBBB.",
+        ".BBBBBBBBBBAABYYBBBBBBBBBBB.",
+        ".OOOOOWWYYYAWWYYYDWWOYYOOOO.",
+        ".OOOOOWWYYYGWWOYYDWWYYYOOOO.",
+        ".OOOOOOOGGPPGOGGPPGGYOOOTOO.",
+        ".OOOOGOGGWPGGGWGPGGGOOTTTTO.",
+        ".OOOGGGYYGGDDGGYYWGGOTTTTYR.",
+        ".PPPGGGYGGGDGGGYGGDDGTTTTGG.",
+        "PNNNPTTGGPPGGOOGGPPGTTTGGGG.",
+        "NNNNNPTTTPGWGOGWGPGGGTTGGGO.",
+        "PNNNPTPGTGGGGGPPPPPWGGTGGGA.",
+        ".PPPAAGPPPPPPPPPPPPPPPTAAAA.",
+        ".AAAAAAGGGGGGPPPPPPGTAAAAAA.",
+        ".AAAAAAGGGGATTTTTGGGGAAAAAA.",
+        ".AAAAAAGGGGAAAAAAAGGGGAAAAA.",
+        ".AAAAAGTTTGAAAAAAAGTTTAAAAA.",
+        ".AAAAAGTTTGAAAAAAAGTTTAAAAA.",
+        ".AAAAAATTTAAAAAAAAATTTAAAAA.",
+        ".AAAAAATTTAAAAAAAAATTTAAAAA.",
+        "............................"
+      ],
+      "reveal": {
+        "name": "ANKYLOSAURUS",
+        "nodes": [
+          {
+            "x": 13,
+            "y": 0
+          },
+          {
+            "x": 5,
+            "y": 5
+          },
+          {
+            "x": 22,
+            "y": 5
+          },
+          {
+            "x": 2,
+            "y": 14
+          },
+          {
+            "x": 25,
+            "y": 14
+          },
+          {
+            "x": 5,
+            "y": 23
+          },
+          {
+            "x": 22,
+            "y": 23
+          },
+          {
+            "x": 14,
+            "y": 27
+          }
+        ],
+        "lines": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            5,
+            6
+          ]
+        ],
+        "accentNodes": [
+          0
+        ],
+        "collectionId": "prehistoric-titans"
+      },
+      "tunnels": [
+        [
+          {
+            "color": "gold",
+            "capacity": 12
+          },
+          {
+            "color": "gold",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "gold",
+            "capacity": 11
+          },
+          {
+            "color": "gold",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "gold",
+            "capacity": 11
+          },
+          {
+            "color": "blue",
+            "capacity": 10
+          },
+          {
+            "color": "green",
+            "capacity": 10
+          },
+          {
+            "color": "purple",
+            "capacity": 11
+          },
+          {
+            "color": "purple",
+            "capacity": 10
+          },
+          {
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 11
+          },
+          {
+            "color": "orange",
+            "capacity": 9
+          },
+          {
+            "color": "yellow",
+            "capacity": 7
+          },
+          {
+            "color": "indigo",
+            "capacity": 8
+          },
+          {
+            "color": "purple",
+            "capacity": 7
+          },
+          {
+            "color": "green",
+            "capacity": 13
+          },
+          {
+            "color": "cyan",
+            "capacity": 13
+          },
+          {
+            "color": "orange",
+            "capacity": 9
+          },
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "blue",
+            "capacity": 3
+          },
+          {
+            "color": "red",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "blue",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "gold",
+            "capacity": 10
+          },
+          {
+            "color": "gold",
+            "capacity": 10
+          },
+          {
+            "color": "green",
+            "capacity": 10
+          },
+          {
+            "color": "teal",
+            "capacity": 11
+          },
+          {
+            "color": "teal",
+            "capacity": 11
+          },
+          {
+            "color": "green",
+            "capacity": 10
+          },
+          {
+            "color": "green",
+            "capacity": 10
+          },
+          {
+            "color": "orange",
+            "capacity": 11
+          },
+          {
+            "color": "green",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "yellow",
+            "capacity": 7
+          },
+          {
+            "color": "blue",
+            "capacity": 8
+          },
+          {
+            "color": "indigo",
+            "capacity": 7
+          },
+          {
+            "color": "green",
+            "capacity": 7
+          },
+          {
+            "color": "blue",
+            "capacity": 7
+          },
+          {
+            "color": "blue",
+            "capacity": 6
+          },
+          {
+            "color": "indigo",
+            "capacity": 6
+          },
+          {
+            "color": "yellow",
+            "capacity": 11
+          },
+          {
+            "color": "teal",
+            "capacity": 10
+          },
+          {
+            "color": "coral",
+            "capacity": 7
+          },
+          {
+            "color": "white",
+            "capacity": 6
+          },
+          {
+            "color": "purple",
+            "capacity": 6
+          },
+          {
+            "color": "cyan",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "gold",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "gold",
+            "capacity": 11
+          },
+          {
+            "color": "blue",
+            "capacity": 11
+          },
+          {
+            "color": "gold",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "blue",
+            "capacity": 10
+          },
+          {
+            "color": "teal",
+            "capacity": 10
+          },
+          {
+            "color": "green",
+            "capacity": 9
+          },
+          {
+            "color": "green",
+            "capacity": 9
+          },
+          {
+            "color": "blue",
+            "capacity": 8
+          },
+          {
+            "color": "white",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 7
+          },
+          {
+            "color": "purple",
+            "capacity": 7
+          },
+          {
+            "color": "blue",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 7
+          },
+          {
+            "color": "gold",
+            "capacity": 10
+          },
+          {
+            "color": "green",
+            "capacity": 9
+          },
+          {
+            "color": "purple",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 6
+          },
+          {
+            "color": "teal",
+            "capacity": 4
+          },
+          {
+            "color": "yellow",
+            "capacity": 1
+          }
+        ]
+      ]
+    },
+    {
+      "id": 85,
+      "title": "Velociraptor",
+      "difficulty": "hard",
+      "holding": 3,
+      "legend": {
+        "W": "white",
+        "Y": "yellow",
+        "A": "gold",
+        "O": "orange",
+        "R": "red",
+        "D": "coral",
+        "P": "purple",
+        "N": "indigo",
+        "C": "cyan",
+        "T": "teal",
+        "G": "green",
+        "L": "lime"
+      },
+      "grid": [
+        "...NNNNNNNNNN...............",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NLNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNLNNNNNNNNNNNNNNNNNNNNONN.",
+        ".TTTLTTTTTPTTTTTTTTTTTOOOOT.",
+        ".TTTTTTTTTPPTRTTTTTTDOOOYRA.",
+        ".TTTTTTTTTTPPRRTTTODWOOPWPWP",
+        ".TTLTTTTTTTPORROYOWWDDDDDDT.",
+        ".TTTLTTTTTOOOROOYOODDDDDDTT.",
+        ".TTCCTTCCDOOYOOPOOODDCCTCCT.",
+        ".TTTTTTTDDOOOOOOOROOOTTTWTT.",
+        ".GGGGGGGDOOAOOOOOOYOOOWWGGG.",
+        ".GGGPPGGDDDOOOYOOOOOOWWGGGG.",
+        ".GGGGPPPDDDDODDOPOODGOOWWWG.",
+        ".GLGDDPOOOODDADDDOOOGGOGGGG.",
+        ".GGDRROOOGGGGDDDDROOOGLGGGG.",
+        ".GDDRRRGGGGGGGGDDDDOOOGLGGG.",
+        ".DDOGGGGGGGGGGGDDDDGOOOLGGG.",
+        "DGGGGGGGGGGGGGDDDDGGGOOGGGG.",
+        ".GGGGGGGGGGGGDDDDGGGGOOOGGG.",
+        ".GGGGGGGGGGWWDGGGGGGGGOOGGG.",
+        ".GGGGGGGGWWWGGGGGGGGGGWGGGG.",
+        ".GGGGGGGGGGGGGGGGGGGGGGWGGG.",
+        ".GGGGGGGGGGGGGGGGGGGGGGGGGG.",
+        "............................"
+      ],
+      "reveal": {
+        "name": "VELOCIRAPTOR",
+        "nodes": [
+          {
+            "x": 13,
+            "y": 0
+          },
+          {
+            "x": 5,
+            "y": 5
+          },
+          {
+            "x": 22,
+            "y": 5
+          },
+          {
+            "x": 2,
+            "y": 14
+          },
+          {
+            "x": 25,
+            "y": 14
+          },
+          {
+            "x": 5,
+            "y": 23
+          },
+          {
+            "x": 22,
+            "y": 23
+          },
+          {
+            "x": 14,
+            "y": 27
+          }
+        ],
+        "lines": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            5,
+            6
+          ]
+        ],
+        "accentNodes": [
+          0
+        ],
+        "collectionId": "prehistoric-titans"
+      },
+      "tunnels": [
+        [
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 13
+          },
+          {
+            "color": "green",
+            "capacity": 13
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 8
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "teal",
+            "capacity": 8
+          },
+          {
+            "color": "indigo",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "green",
+            "capacity": 7
+          },
+          {
+            "color": "white",
+            "capacity": 6
+          },
+          {
+            "color": "green",
+            "capacity": 8
+          },
+          {
+            "color": "teal",
+            "capacity": 7
+          },
+          {
+            "color": "orange",
+            "capacity": 10
+          },
+          {
+            "color": "orange",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "green",
+            "capacity": 7
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "coral",
+            "capacity": 11
+          },
+          {
+            "color": "cyan",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 4
+          },
+          {
+            "color": "coral",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 11
+          },
+          {
+            "color": "teal",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "teal",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 7
+          },
+          {
+            "color": "white",
+            "capacity": 7
+          },
+          {
+            "color": "orange",
+            "capacity": 10
+          },
+          {
+            "color": "green",
+            "capacity": 8
+          },
+          {
+            "color": "purple",
+            "capacity": 7
+          },
+          {
+            "color": "orange",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "coral",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 9
+          },
+          {
+            "color": "red",
+            "capacity": 7
+          },
+          {
+            "color": "white",
+            "capacity": 7
+          },
+          {
+            "color": "teal",
+            "capacity": 5
+          },
+          {
+            "color": "indigo",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 13
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "teal",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "teal",
+            "capacity": 13
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "green",
+            "capacity": 7
+          },
+          {
+            "color": "orange",
+            "capacity": 10
+          },
+          {
+            "color": "purple",
+            "capacity": 7
+          },
+          {
+            "color": "coral",
+            "capacity": 10
+          },
+          {
+            "color": "teal",
+            "capacity": 7
+          },
+          {
+            "color": "green",
+            "capacity": 7
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "red",
+            "capacity": 7
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "lime",
+            "capacity": 9
+          },
+          {
+            "color": "yellow",
+            "capacity": 6
+          },
+          {
+            "color": "purple",
+            "capacity": 3
+          },
+          {
+            "color": "green",
+            "capacity": 3
+          },
+          {
+            "color": "gold",
+            "capacity": 3
+          }
+        ]
+      ]
+    },
+    {
+      "id": 86,
+      "title": "Woolly Mammoth",
+      "difficulty": "hard",
+      "holding": 3,
+      "legend": {
+        "W": "white",
+        "Y": "yellow",
+        "A": "gold",
+        "O": "orange",
+        "R": "red",
+        "D": "coral",
+        "P": "purple",
+        "N": "indigo",
+        "B": "blue",
+        "C": "cyan",
+        "T": "teal"
+      },
+      "grid": [
+        "...NNNNNNNNNNNNNNNNNNNN.....",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNWNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNWWNNNNNNWNNNNNNNNNWNNNN.",
+        ".NNWWWWNNNNNNNNNNNNNNWWWNNN.",
+        ".NWWWWWWNNNNNNNNWNNNWWWWWNN.",
+        ".NNNNNNNWNNNNNNNNNNWWWWWWWN.",
+        ".BBBBBBBBBBBBBBBBBBBBBBBBBB.",
+        ".BBWBPBBBBAAAAABBBAAAAAPBBB.",
+        ".BBBPPPYYAAAAAAAAAAAAOOAPBW.",
+        ".BPPPPYYYYADDAAAAADOOOOOOPB.",
+        ".BBBBAAYYODDDDOOADPDOOWROPP.",
+        ".BBBAPAOOOODDOOADPPPDYDDDAB.",
+        ".BWBPPPOOOOOOOOOADPDYYYDDBB.",
+        ".BBBPPOOOOOOOOOOAADOOYYYDBW.",
+        ".CCCAOOOYYOOOPPOOAOOOOYYYDC.",
+        ".CCCAOOOYYYOOPPPOOAAOODYYYC.",
+        ".CCCCDOOOYODODPDODODCCCDYYY.",
+        ".CCCCDDOOODDDDOOODDDDCCYYYWW",
+        ".CCWCDDOOOODDDDOOODDDCDYYYW.",
+        ".CCCCCCOOOOAAAAOOOOCOOYYYWW.",
+        ".CCCCCCOOOOOTCCOOOOOOOOYWWC.",
+        ".CTCCCCODDDOTCCOODDDOOOOWCC.",
+        ".CCTCCCODDDOCTCCODDDCDTDCCC.",
+        ".CCCTCCODDDCCCTCODDDCCCTCCC.",
+        ".CCCCTCCDDDCCCTCCDDDCCCCTCC.",
+        "............................"
+      ],
+      "reveal": {
+        "name": "WOOLLY MAMMOTH",
+        "nodes": [
+          {
+            "x": 13,
+            "y": 0
+          },
+          {
+            "x": 5,
+            "y": 5
+          },
+          {
+            "x": 22,
+            "y": 5
+          },
+          {
+            "x": 2,
+            "y": 14
+          },
+          {
+            "x": 25,
+            "y": 14
+          },
+          {
+            "x": 5,
+            "y": 23
+          },
+          {
+            "x": 22,
+            "y": 23
+          },
+          {
+            "x": 14,
+            "y": 27
+          }
+        ],
+        "lines": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            5,
+            6
+          ]
+        ],
+        "accentNodes": [
+          0
+        ],
+        "collectionId": "prehistoric-titans"
+      },
+      "tunnels": [
+        [
+          {
+            "color": "cyan",
+            "capacity": 11
+          },
+          {
+            "color": "cyan",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "blue",
+            "capacity": 12
+          },
+          {
+            "color": "cyan",
+            "capacity": 9
+          },
+          {
+            "color": "cyan",
+            "capacity": 9
+          },
+          {
+            "color": "white",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "coral",
+            "capacity": 7
+          },
+          {
+            "color": "indigo",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 7
+          },
+          {
+            "color": "cyan",
+            "capacity": 11
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 7
+          },
+          {
+            "color": "yellow",
+            "capacity": 7
+          },
+          {
+            "color": "orange",
+            "capacity": 7
+          },
+          {
+            "color": "gold",
+            "capacity": 11
+          },
+          {
+            "color": "gold",
+            "capacity": 11
+          },
+          {
+            "color": "orange",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 9
+          },
+          {
+            "color": "yellow",
+            "capacity": 6
+          },
+          {
+            "color": "gold",
+            "capacity": 7
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "blue",
+            "capacity": 8
+          },
+          {
+            "color": "white",
+            "capacity": 4
+          }
+        ],
+        [
+          {
+            "color": "indigo",
+            "capacity": 13
+          },
+          {
+            "color": "indigo",
+            "capacity": 13
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "cyan",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "cyan",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "white",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "blue",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "gold",
+            "capacity": 12
+          },
+          {
+            "color": "purple",
+            "capacity": 12
+          },
+          {
+            "color": "orange",
+            "capacity": 7
+          },
+          {
+            "color": "purple",
+            "capacity": 11
+          },
+          {
+            "color": "orange",
+            "capacity": 7
+          },
+          {
+            "color": "coral",
+            "capacity": 11
+          },
+          {
+            "color": "yellow",
+            "capacity": 7
+          },
+          {
+            "color": "orange",
+            "capacity": 11
+          },
+          {
+            "color": "gold",
+            "capacity": 7
+          },
+          {
+            "color": "yellow",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 2
+          },
+          {
+            "color": "cyan",
+            "capacity": 2
+          },
+          {
+            "color": "red",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "blue",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "blue",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "coral",
+            "capacity": 7
+          },
+          {
+            "color": "indigo",
+            "capacity": 7
+          },
+          {
+            "color": "orange",
+            "capacity": 7
+          },
+          {
+            "color": "coral",
+            "capacity": 12
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "teal",
+            "capacity": 11
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "yellow",
+            "capacity": 6
+          },
+          {
+            "color": "coral",
+            "capacity": 11
+          },
+          {
+            "color": "white",
+            "capacity": 10
+          },
+          {
+            "color": "blue",
+            "capacity": 11
+          },
+          {
+            "color": "white",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "cyan",
+            "capacity": 10
+          },
+          {
+            "color": "orange",
+            "capacity": 6
+          },
+          {
+            "color": "coral",
+            "capacity": 12
+          },
+          {
+            "color": "cyan",
+            "capacity": 11
+          },
+          {
+            "color": "orange",
+            "capacity": 10
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "purple",
+            "capacity": 7
+          },
+          {
+            "color": "yellow",
+            "capacity": 4
+          },
+          {
+            "color": "teal",
+            "capacity": 1
+          }
+        ]
+      ]
+    },
+    {
+      "id": 87,
+      "title": "Spinosaurus",
+      "difficulty": "hard",
+      "holding": 3,
+      "legend": {
+        "W": "white",
+        "Y": "yellow",
+        "A": "gold",
+        "O": "orange",
+        "R": "red",
+        "D": "coral",
+        "P": "purple",
+        "N": "indigo",
+        "B": "blue",
+        "C": "cyan",
+        "T": "teal",
+        "G": "green",
+        "L": "lime"
+      },
+      "grid": [
+        "...NNNNNNNNNNNNNNNNNNNNNN...",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNDDDNNNNNNNNNNNN.",
+        ".NNNNNNNNNNDYDDYDDNNNNNNNNN.",
+        ".NNNNNNNNNNDYDDYPDYNNNNNNNN.",
+        ".NNNNNNNNNDYRRDYPPYNNNNNNNN.",
+        ".NNNNNNNNNDYRRDYPPYNNNNNNNN.",
+        ".GGGGGGGGDDYRRDYPPYGGGGGGGG.",
+        ".GGGGGGGGDYRRRYPPPYGGGGGGOO.",
+        ".GGGGGGGDDYRRRYPPPPYGAYROOO.",
+        ".GGGGGGGDRYRRRYPPPPYAAPWPWGW",
+        ".GGGGGGDDYDDRRYPPPPAAAAOAPPP",
+        ".GGGGOOOOYOOOOYOOOOYAAAAGGG.",
+        ".GLGLOOOGOOOOOOOOODOOAGLGLG.",
+        ".TLTAOOOOOOYOOOODDDDDOALTLT.",
+        ".AAAAOOOOOOOOOGDDDDDDDOLTLT.",
+        ".TAAAAAAOOOOOOOODYDDDYDLTLT.",
+        ".TLOOOAAAOODOOOPOODDDDDDTLT.",
+        ".TOOOOOOOAOOOOOOOOGOATDWDLT.",
+        ".TLTLOOOOAOOOOOAAAOOOTTDWWT.",
+        ".BBBBBBBBBOOOOOBBBBOOOBBBBB.",
+        ".BBCBBCBBBOOOOBBBBBBOOOBBBB.",
+        ".BBBBBBBBOOOOOBCBBBBBOOBBBB.",
+        ".BBCBBBBBOOOOBBBBBCBBOOOBBB.",
+        ".BBBBBBBCBWWBBBBBBBBBOWCBBB.",
+        ".BBBBBBBWWBBBBBBBBBBBBBBWWB.",
+        ".................NNNNNNNN..."
+      ],
+      "reveal": {
+        "name": "SPINOSAURUS",
+        "nodes": [
+          {
+            "x": 13,
+            "y": 0
+          },
+          {
+            "x": 5,
+            "y": 5
+          },
+          {
+            "x": 22,
+            "y": 5
+          },
+          {
+            "x": 2,
+            "y": 14
+          },
+          {
+            "x": 25,
+            "y": 14
+          },
+          {
+            "x": 5,
+            "y": 23
+          },
+          {
+            "x": 22,
+            "y": 23
+          },
+          {
+            "x": 14,
+            "y": 27
+          }
+        ],
+        "lines": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            5,
+            6
+          ]
+        ],
+        "accentNodes": [
+          0
+        ],
+        "collectionId": "prehistoric-titans"
+      },
+      "tunnels": [
+        [
+          {
+            "color": "green",
+            "capacity": 8
+          },
+          {
+            "color": "blue",
+            "capacity": 8
+          },
+          {
+            "color": "green",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 10
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "yellow",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 14
+          },
+          {
+            "color": "orange",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 10
+          },
+          {
+            "color": "coral",
+            "capacity": 9
+          },
+          {
+            "color": "blue",
+            "capacity": 7
+          },
+          {
+            "color": "red",
+            "capacity": 13
+          },
+          {
+            "color": "purple",
+            "capacity": 7
+          },
+          {
+            "color": "gold",
+            "capacity": 7
+          },
+          {
+            "color": "lime",
+            "capacity": 8
+          },
+          {
+            "color": "coral",
+            "capacity": 13
+          },
+          {
+            "color": "teal",
+            "capacity": 6
+          },
+          {
+            "color": "red",
+            "capacity": 6
+          },
+          {
+            "color": "gold",
+            "capacity": 4
+          },
+          {
+            "color": "yellow",
+            "capacity": 2
+          },
+          {
+            "color": "purple",
+            "capacity": 2
+          },
+          {
+            "color": "orange",
+            "capacity": 1
+          },
+          {
+            "color": "coral",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "blue",
+            "capacity": 13
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "blue",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "green",
+            "capacity": 9
+          },
+          {
+            "color": "green",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "orange",
+            "capacity": 10
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 11
+          },
+          {
+            "color": "green",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 11
+          },
+          {
+            "color": "gold",
+            "capacity": 8
+          },
+          {
+            "color": "gold",
+            "capacity": 8
+          },
+          {
+            "color": "blue",
+            "capacity": 10
+          },
+          {
+            "color": "blue",
+            "capacity": 9
+          },
+          {
+            "color": "blue",
+            "capacity": 7
+          },
+          {
+            "color": "purple",
+            "capacity": 12
+          },
+          {
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "lime",
+            "capacity": 7
+          },
+          {
+            "color": "orange",
+            "capacity": 5
+          },
+          {
+            "color": "blue",
+            "capacity": 3
+          },
+          {
+            "color": "white",
+            "capacity": 1
+          },
+          {
+            "color": "lime",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "blue",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "blue",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "blue",
+            "capacity": 7
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "teal",
+            "capacity": 14
+          },
+          {
+            "color": "orange",
+            "capacity": 11
+          },
+          {
+            "color": "green",
+            "capacity": 8
+          },
+          {
+            "color": "yellow",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 9
+          },
+          {
+            "color": "blue",
+            "capacity": 13
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "yellow",
+            "capacity": 12
+          },
+          {
+            "color": "purple",
+            "capacity": 7
+          },
+          {
+            "color": "white",
+            "capacity": 12
+          },
+          {
+            "color": "gold",
+            "capacity": 7
+          },
+          {
+            "color": "cyan",
+            "capacity": 7
+          },
+          {
+            "color": "coral",
+            "capacity": 6
+          },
+          {
+            "color": "green",
+            "capacity": 4
+          },
+          {
+            "color": "indigo",
+            "capacity": 1
+          }
+        ]
+      ]
+    },
+    {
+      "id": 88,
+      "title": "Tyrannosaurus Rex",
+      "difficulty": "hard",
+      "holding": 3,
+      "legend": {
+        "W": "white",
+        "Y": "yellow",
+        "A": "gold",
+        "O": "orange",
+        "R": "red",
+        "D": "coral",
+        "P": "purple",
+        "N": "indigo",
+        "B": "blue",
+        "C": "cyan",
+        "T": "teal",
+        "G": "green"
+      },
+      "grid": [
+        "...NNNNNNNNNNNNNNNNNNNNNN...",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNBCNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNBCNNNNNNNNNNNNGGGGTTTT.",
+        ".NNNNNNNNNNNNNNNNNDDDDDDTTT.",
+        ".PPPPPPPPPPPPPPPPGTTYRTTTTT.",
+        ".PPPPPPPPPPPPPPPGGGNNWTWTWG.",
+        ".PPPPPPPPPPPPPPPGGGNNNNNNGP.",
+        ".PPBCPPPPPPTTPPPRGGGGGWNNNN.",
+        ".PPPBCPPTTTTTTTTPRGGGGGGWGW.",
+        ".PPPPPPTTTYTTTTTTRGGGGGGGGP.",
+        ".PPPPPGTTTTTTATTTGRGGPGGGPP.",
+        ".GDDDGTTTTTTTTTTDTTGGGDDDDD.",
+        ".GGGGGTTATTTTTTTTTTTGGGDDBC.",
+        ".DGGGGGTTTTYTTTTTTTTTGWWODD.",
+        ".DTGGGGGTTTTTTDTTTTTTTGOBCD.",
+        ".DDTTTTGTTTTTTTGTATGTOOOOOD.",
+        ".DDDTTTTGTDTTTTTGGGDOOOOOOD.",
+        ".DDDDDDTTTTTTYTTTGGGGDDOOOO.",
+        ".AAAAAAAATTTTTTAAAGGGGAAAAA.",
+        ".AAAAAAAATTTTTTAAAAGGGGAAAA.",
+        ".AARAAARATTTTTTRAAARGGGGAAA.",
+        ".AAAOAAATTTTTTAAOAAAOGGGOAA.",
+        ".AAAAAAATTTTTTAAAAAAAGGGGAA.",
+        ".AAAAAAAAWWWWWAAAAAAAWWWWWA.",
+        ".......NNNNNNNNNNNNNNNNNN.WW"
+      ],
+      "reveal": {
+        "name": "TYRANNOSAURUS REX",
+        "nodes": [
+          {
+            "x": 13,
+            "y": 0
+          },
+          {
+            "x": 5,
+            "y": 5
+          },
+          {
+            "x": 22,
+            "y": 5
+          },
+          {
+            "x": 2,
+            "y": 14
+          },
+          {
+            "x": 25,
+            "y": 14
+          },
+          {
+            "x": 5,
+            "y": 23
+          },
+          {
+            "x": 22,
+            "y": 23
+          },
+          {
+            "x": 14,
+            "y": 27
+          }
+        ],
+        "lines": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            5,
+            6
+          ]
+        ],
+        "accentNodes": [
+          0
+        ],
+        "collectionId": "prehistoric-titans"
+      },
+      "tunnels": [
+        [
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "purple",
+            "capacity": 8
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "teal",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "teal",
+            "capacity": 10
+          },
+          {
+            "color": "teal",
+            "capacity": 9
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "gold",
+            "capacity": 8
+          },
+          {
+            "color": "teal",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 7
+          },
+          {
+            "color": "green",
+            "capacity": 10
+          },
+          {
+            "color": "teal",
+            "capacity": 8
+          },
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "green",
+            "capacity": 9
+          },
+          {
+            "color": "teal",
+            "capacity": 7
+          },
+          {
+            "color": "green",
+            "capacity": 9
+          },
+          {
+            "color": "purple",
+            "capacity": 12
+          },
+          {
+            "color": "gold",
+            "capacity": 6
+          },
+          {
+            "color": "green",
+            "capacity": 6
+          },
+          {
+            "color": "coral",
+            "capacity": 6
+          },
+          {
+            "color": "teal",
+            "capacity": 4
+          },
+          {
+            "color": "orange",
+            "capacity": 1
+          },
+          {
+            "color": "gold",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "gold",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "purple",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "purple",
+            "capacity": 8
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "teal",
+            "capacity": 10
+          },
+          {
+            "color": "teal",
+            "capacity": 9
+          },
+          {
+            "color": "gold",
+            "capacity": 8
+          },
+          {
+            "color": "teal",
+            "capacity": 11
+          },
+          {
+            "color": "purple",
+            "capacity": 10
+          },
+          {
+            "color": "white",
+            "capacity": 9
+          },
+          {
+            "color": "teal",
+            "capacity": 9
+          },
+          {
+            "color": "green",
+            "capacity": 10
+          },
+          {
+            "color": "coral",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "teal",
+            "capacity": 6
+          },
+          {
+            "color": "orange",
+            "capacity": 6
+          },
+          {
+            "color": "gold",
+            "capacity": 6
+          },
+          {
+            "color": "teal",
+            "capacity": 6
+          },
+          {
+            "color": "red",
+            "capacity": 9
+          },
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "cyan",
+            "capacity": 6
+          },
+          {
+            "color": "blue",
+            "capacity": 6
+          },
+          {
+            "color": "yellow",
+            "capacity": 4
+          }
+        ],
+        [
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "purple",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "purple",
+            "capacity": 8
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 9
+          },
+          {
+            "color": "teal",
+            "capacity": 9
+          },
+          {
+            "color": "green",
+            "capacity": 10
+          },
+          {
+            "color": "green",
+            "capacity": 10
+          },
+          {
+            "color": "teal",
+            "capacity": 11
+          },
+          {
+            "color": "purple",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 7
+          },
+          {
+            "color": "white",
+            "capacity": 8
+          },
+          {
+            "color": "green",
+            "capacity": 10
+          },
+          {
+            "color": "gold",
+            "capacity": 8
+          },
+          {
+            "color": "green",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 6
+          },
+          {
+            "color": "green",
+            "capacity": 7
+          },
+          {
+            "color": "teal",
+            "capacity": 6
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "green",
+            "capacity": 5
+          },
+          {
+            "color": "white",
+            "capacity": 3
+          }
+        ]
+      ]
+    },
+    {
+      "id": 89,
+      "title": "Extinction Event",
+      "difficulty": "hard",
+      "holding": 3,
+      "legend": {
+        "W": "white",
+        "Y": "yellow",
+        "A": "gold",
+        "O": "orange",
+        "R": "red",
+        "D": "coral",
+        "P": "purple",
+        "N": "indigo",
+        "B": "blue",
+        "C": "cyan",
+        "T": "teal",
+        "G": "green"
+      },
+      "grid": [
+        "...NNNNNNNNNNNNNNNNNNNNNN...",
+        ".PPPPPPPPPPPPPPPPPPPPPPPPPP.",
+        ".PPPBBBPPPPPPPPPPPPPPPPPYYP.",
+        "NPBBBBBBBPPPPPPPPPPPPYYWYOP.",
+        "NPBBBBBBBBPPPPPPPPPPYYWYWOP.",
+        "NPPBBBBBBPPPPPPPPPPYYWYYYWP.",
+        "NPPPPPYYPPPPNNNPPPPYYPWYWPP.",
+        "NDDDDYYYYDNNNNNNNDDDDDDWDDD.",
+        "NDDDOYYYYDNNNTNNNDTTDDDDDDD.",
+        "NDCDOYYYDDDNNNTTTTTDDDDDDDD.",
+        "NDDCDOYDDDDDNNNNTTDDDDDDDDD.",
+        "NDDDDODDDDDDDDDDDDDDCDDDDDD.",
+        "NDDDDPPDDDDDDDDDDDYDDDDCDDD.",
+        "NRRRRPOPRRRRRRRRRRRYRRRRRRR.",
+        ".RRRPOOORRRRRRCRRRRYOOOOORR.",
+        ".RRRPOOOPRRRRRRCRRROYOYOOOR.",
+        ".RRPPOOYPPRRYYRRRROOYYYYYOO.",
+        ".RPPNOOYNPTRRRYYRROYYWWWYYO.",
+        ".RPPNOOOYTTTRRRRYYOYYWWWYYOO",
+        ".PPNNOOOTTTPRRRRRROYYWWWYYO.",
+        ".AAAATOOTGTAAGGAAOOOYYYYYOO.",
+        ".AOOTTTTTTGGGGGGGAOOOOYOOOO.",
+        ".OYTTTTTTYOAGGGGAOYOOOOOOYO.",
+        ".OOATTTTTOAGAOOAGOOAAAAAOOA.",
+        ".OOAOTAATOGAAOOAGOWAAAWAOOA.",
+        ".OOATOAAOTAAAOOAAGWWWWWAOOA.",
+        ".AAATAAAATAAAAAAAAWAAAWAAAA.",
+        "...NNNNNNNNNNNNNNNNNNNNNN..."
+      ],
+      "reveal": {
+        "name": "EXTINCTION EVENT",
+        "nodes": [
+          {
+            "x": 13,
+            "y": 0
+          },
+          {
+            "x": 5,
+            "y": 5
+          },
+          {
+            "x": 22,
+            "y": 5
+          },
+          {
+            "x": 2,
+            "y": 14
+          },
+          {
+            "x": 25,
+            "y": 14
+          },
+          {
+            "x": 5,
+            "y": 23
+          },
+          {
+            "x": 22,
+            "y": 23
+          },
+          {
+            "x": 14,
+            "y": 27
+          }
+        ],
+        "lines": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            5,
+            6
+          ]
+        ],
+        "accentNodes": [
+          0
+        ],
+        "collectionId": "prehistoric-titans"
+      },
+      "tunnels": [
+        [
+          {
+            "color": "purple",
+            "capacity": 13
+          },
+          {
+            "color": "purple",
+            "capacity": 12
+          },
+          {
+            "color": "gold",
+            "capacity": 10
+          },
+          {
+            "color": "orange",
+            "capacity": 13
+          },
+          {
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "purple",
+            "capacity": 9
+          },
+          {
+            "color": "purple",
+            "capacity": 8
+          },
+          {
+            "color": "teal",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "purple",
+            "capacity": 11
+          },
+          {
+            "color": "coral",
+            "capacity": 11
+          },
+          {
+            "color": "red",
+            "capacity": 11
+          },
+          {
+            "color": "red",
+            "capacity": 8
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "gold",
+            "capacity": 10
+          },
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "red",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 9
+          },
+          {
+            "color": "blue",
+            "capacity": 7
+          },
+          {
+            "color": "yellow",
+            "capacity": 7
+          },
+          {
+            "color": "white",
+            "capacity": 9
+          },
+          {
+            "color": "purple",
+            "capacity": 7
+          },
+          {
+            "color": "orange",
+            "capacity": 7
+          },
+          {
+            "color": "orange",
+            "capacity": 6
+          },
+          {
+            "color": "blue",
+            "capacity": 8
+          },
+          {
+            "color": "green",
+            "capacity": 7
+          },
+          {
+            "color": "red",
+            "capacity": 8
+          },
+          {
+            "color": "yellow",
+            "capacity": 4
+          },
+          {
+            "color": "blue",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "indigo",
+            "capacity": 11
+          },
+          {
+            "color": "purple",
+            "capacity": 12
+          },
+          {
+            "color": "purple",
+            "capacity": 9
+          },
+          {
+            "color": "purple",
+            "capacity": 10
+          },
+          {
+            "color": "coral",
+            "capacity": 10
+          },
+          {
+            "color": "yellow",
+            "capacity": 10
+          },
+          {
+            "color": "coral",
+            "capacity": 10
+          },
+          {
+            "color": "red",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 9
+          },
+          {
+            "color": "yellow",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 10
+          },
+          {
+            "color": "teal",
+            "capacity": 10
+          },
+          {
+            "color": "orange",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "red",
+            "capacity": 9
+          },
+          {
+            "color": "yellow",
+            "capacity": 7
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "green",
+            "capacity": 9
+          },
+          {
+            "color": "white",
+            "capacity": 7
+          },
+          {
+            "color": "orange",
+            "capacity": 7
+          },
+          {
+            "color": "coral",
+            "capacity": 5
+          },
+          {
+            "color": "green",
+            "capacity": 3
+          },
+          {
+            "color": "white",
+            "capacity": 1
+          },
+          {
+            "color": "teal",
+            "capacity": 1
+          },
+          {
+            "color": "indigo",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "teal",
+            "capacity": 8
+          },
+          {
+            "color": "purple",
+            "capacity": 11
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "purple",
+            "capacity": 11
+          },
+          {
+            "color": "red",
+            "capacity": 12
+          },
+          {
+            "color": "yellow",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 11
+          },
+          {
+            "color": "red",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "yellow",
+            "capacity": 10
+          },
+          {
+            "color": "coral",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "teal",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 10
+          },
+          {
+            "color": "blue",
+            "capacity": 8
+          },
+          {
+            "color": "white",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "purple",
+            "capacity": 8
+          },
+          {
+            "color": "yellow",
+            "capacity": 8
+          },
+          {
+            "color": "yellow",
+            "capacity": 7
+          },
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 8
+          },
+          {
+            "color": "teal",
+            "capacity": 7
+          },
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "cyan",
+            "capacity": 6
+          },
+          {
+            "color": "orange",
+            "capacity": 2
+          },
+          {
+            "color": "red",
+            "capacity": 1
+          }
+        ]
+      ]
+    },
+    {
+      "id": 90,
+      "title": "Primeval Titan",
+      "difficulty": "hard",
+      "holding": 3,
+      "legend": {
+        "W": "white",
+        "Y": "yellow",
+        "A": "gold",
+        "O": "orange",
+        "R": "red",
+        "D": "coral",
+        "P": "purple",
+        "N": "indigo",
+        "B": "blue",
+        "C": "cyan",
+        "T": "teal",
+        "G": "green",
+        "L": "lime"
+      },
+      "grid": [
+        "...NNNNNNNNNNNNNNNNNNNNNN...",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        ".NNNNNNNNNNNNNNNNNNNNNNNNNN.",
+        "NNNNNNNNNNNNNNNNNNNWNNNNNNN.",
+        "NNNNNNNNNNNNNNNNNNNNWNBCNNY.",
+        "NNNBCNNNNNNNNNBNNNNNWWNNNYN.",
+        "NNNNNNBCNNCNNNNGWNNNNWAAYYN.",
+        "NNNNNNNNNNNTTNNGGWNNAAADDDN.",
+        "NPPPPPPGYPTTTGYGGYWWDDLYDDA.",
+        "NPPPPPPGGPTTTGGGGTRDDDDDDDD.",
+        "NPBCPPPGGPTTTTGGGGARNWNWDWP.",
+        "NAPPPPGGGTTTGGGTGGARNNNNNNN.",
+        "NADPPPPDDDDDDDDDDTTTTTWNWNW.",
+        "NADDPPPDYDDOOOODDTGGGTDDDDD.",
+        "NPADDPDDOOTOOOOPTTGGGTTDDDP.",
+        "NRAADADDDOOOGOOOPTDDDTDDDRRN",
+        "NRRAAADDGOOOOOYOPTDDDDAARRRN",
+        "NRBCAADDDOOTOOOOOPDDDDDDRRRN",
+        "NRRROAADDAOOOOOGOOODTDDDDRRN",
+        "NRRRRRAADDAAAOOODDYDDDDDDDAN",
+        "NRYRRRRRADDAAADDDDDDDDDDWDRN",
+        "NOOOOOOOOAAAAAADDADDDDDDYWWN",
+        "NOOOOROOOOAAAAAOOOODDDDDOWON",
+        "NOOYOOOYOOAAAAAOOOYODDDDDOON",
+        "NOOOAOOOAOAAAAAOOOOAODDDDAON",
+        ".OOOOOOOOAAAAAAOOOOOODDDDDO.",
+        ".OOOOOOOWOAWAOWOOOOOOWDDWDW.",
+        "...NNNNNNNNNNNNNNNNNNNNNN..."
+      ],
+      "reveal": {
+        "name": "PRIMEVAL TITAN",
+        "nodes": [
+          {
+            "x": 13,
+            "y": 0
+          },
+          {
+            "x": 5,
+            "y": 5
+          },
+          {
+            "x": 22,
+            "y": 5
+          },
+          {
+            "x": 2,
+            "y": 14
+          },
+          {
+            "x": 25,
+            "y": 14
+          },
+          {
+            "x": 5,
+            "y": 23
+          },
+          {
+            "x": 22,
+            "y": 23
+          },
+          {
+            "x": 14,
+            "y": 27
+          }
+        ],
+        "lines": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            5,
+            6
+          ]
+        ],
+        "accentNodes": [
+          0
+        ],
+        "collectionId": "prehistoric-titans"
+      },
+      "tunnels": [
+        [
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 8
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 8
+          },
+          {
+            "color": "white",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "orange",
+            "capacity": 11
+          },
+          {
+            "color": "gold",
+            "capacity": 7
+          },
+          {
+            "color": "coral",
+            "capacity": 9
+          },
+          {
+            "color": "gold",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "red",
+            "capacity": 10
+          },
+          {
+            "color": "coral",
+            "capacity": 10
+          },
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "teal",
+            "capacity": 10
+          },
+          {
+            "color": "green",
+            "capacity": 10
+          },
+          {
+            "color": "coral",
+            "capacity": 10
+          },
+          {
+            "color": "yellow",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "teal",
+            "capacity": 6
+          },
+          {
+            "color": "green",
+            "capacity": 8
+          },
+          {
+            "color": "red",
+            "capacity": 6
+          },
+          {
+            "color": "blue",
+            "capacity": 6
+          },
+          {
+            "color": "teal",
+            "capacity": 3
+          },
+          {
+            "color": "red",
+            "capacity": 2
+          },
+          {
+            "color": "green",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 8
+          },
+          {
+            "color": "indigo",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "indigo",
+            "capacity": 8
+          },
+          {
+            "color": "white",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "red",
+            "capacity": 10
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "coral",
+            "capacity": 10
+          },
+          {
+            "color": "purple",
+            "capacity": 10
+          },
+          {
+            "color": "gold",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 9
+          },
+          {
+            "color": "teal",
+            "capacity": 9
+          },
+          {
+            "color": "green",
+            "capacity": 10
+          },
+          {
+            "color": "purple",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 8
+          },
+          {
+            "color": "coral",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 7
+          },
+          {
+            "color": "green",
+            "capacity": 7
+          },
+          {
+            "color": "white",
+            "capacity": 6
+          },
+          {
+            "color": "gold",
+            "capacity": 4
+          },
+          {
+            "color": "purple",
+            "capacity": 3
+          },
+          {
+            "color": "orange",
+            "capacity": 3
+          }
+        ],
+        [
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 7
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
+            "capacity": 10
+          },
+          {
+            "color": "gold",
+            "capacity": 8
+          },
+          {
+            "color": "gold",
+            "capacity": 7
+          },
+          {
+            "color": "coral",
+            "capacity": 10
+          },
+          {
+            "color": "gold",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 11
+          },
+          {
+            "color": "purple",
+            "capacity": 9
+          },
+          {
+            "color": "coral",
+            "capacity": 10
+          },
+          {
+            "color": "purple",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 7
+          },
+          {
+            "color": "coral",
+            "capacity": 11
+          },
+          {
+            "color": "yellow",
+            "capacity": 8
+          },
+          {
+            "color": "coral",
+            "capacity": 7
+          },
+          {
+            "color": "coral",
+            "capacity": 7
+          },
+          {
+            "color": "coral",
+            "capacity": 9
+          },
+          {
+            "color": "teal",
+            "capacity": 6
+          },
+          {
+            "color": "red",
+            "capacity": 5
+          },
+          {
+            "color": "cyan",
+            "capacity": 6
+          },
+          {
+            "color": "coral",
+            "capacity": 3
+          },
+          {
+            "color": "lime",
+            "capacity": 1
+          }
+        ]
+      ]
+    }
+  ]
+}
