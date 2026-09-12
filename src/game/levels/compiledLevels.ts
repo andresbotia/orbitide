@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE — DO NOT EDIT DIRECTLY.
  * Produced by Orbitide Level Authoring Compiler from:
  * content\levels
- * Total compiled levels: 10
+ * Total compiled levels: 20
  */
 import type { LevelDefinition } from '../engine/types';
 
@@ -722,6 +722,2032 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
         0
       ],
       "collectionId": "wild-garden"
+    }
+  },
+  {
+    "id": 21,
+    "title": "Neon Street Lamp",
+    "themeId": "neon-nights",
+    "difficulty": "easy",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      "....AAOAA......",
+      "...AOTDOTA.....",
+      "..AOTTTTDOA....",
+      "...DTAATOD.....",
+      "....OTAO.......",
+      ".....DTO.......",
+      ".....OTA.......",
+      "....TDOT.......",
+      ".....ODA.......",
+      "....TDOO.......",
+      "GGGTOADTOADGGGG",
+      "GGTDTOGATODTGGG",
+      "GTAGDTTAGDGGTAG",
+      "GGTDOGATDGGGTTA",
+      "GTAGGTTAGDGGTOD"
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "gold",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "green",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 6
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        }
+      ],
+      [
+        {
+          "color": "orange",
+          "capacity": 6
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 5
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "coral",
+          "capacity": 7
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 8
+        },
+        {
+          "color": "green",
+          "capacity": 12
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "NEON STREET LAMP",
+      "nodes": [
+        {
+          "x": 6,
+          "y": 2
+        },
+        {
+          "x": 4,
+          "y": 2
+        },
+        {
+          "x": 8,
+          "y": 2
+        },
+        {
+          "x": 6,
+          "y": 5
+        },
+        {
+          "x": 6,
+          "y": 9
+        },
+        {
+          "x": 3,
+          "y": 12
+        },
+        {
+          "x": 11,
+          "y": 12
+        },
+        {
+          "x": 7,
+          "y": 14
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ]
+      ],
+      "accentNodes": [
+        0
+      ],
+      "collectionId": "neon-nights"
+    }
+  },
+  {
+    "id": 22,
+    "title": "Retro Taxi",
+    "themeId": "neon-nights",
+    "difficulty": "easy",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      ".....LAAAL.....",
+      ".....AOOOA.....",
+      "...OOODDOOO....",
+      "..OATTTTTDAO...",
+      ".OATGTGTGTDAO..",
+      "OOODDDODDDOOOO.",
+      "OLAOLOAOLOAOLAO",
+      "ODDDOOOOODDDOOO",
+      "OOOTTOOOTTOOOOO",
+      ".OOOG...GOOO...",
+      "..GGD...DGG....",
+      "..GAG...GAG....",
+      ".TGOT...GOTTT..",
+      "..TDAG...GTD...",
+      "...GT....TG...."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "gold",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 14
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "green",
+          "capacity": 6
+        },
+        {
+          "color": "coral",
+          "capacity": 6
+        },
+        {
+          "color": "orange",
+          "capacity": 13
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "coral",
+          "capacity": 7
+        },
+        {
+          "color": "orange",
+          "capacity": 14
+        },
+        {
+          "color": "lime",
+          "capacity": 3
+        },
+        {
+          "color": "green",
+          "capacity": 6
+        },
+        {
+          "color": "gold",
+          "capacity": 8
+        }
+      ],
+      [
+        {
+          "color": "orange",
+          "capacity": 15
+        },
+        {
+          "color": "green",
+          "capacity": 7
+        },
+        {
+          "color": "lime",
+          "capacity": 3
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "coral",
+          "capacity": 7
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "RETRO TAXI",
+      "nodes": [
+        {
+          "x": 7,
+          "y": 0
+        },
+        {
+          "x": 5,
+          "y": 2
+        },
+        {
+          "x": 10,
+          "y": 2
+        },
+        {
+          "x": 2,
+          "y": 6
+        },
+        {
+          "x": 13,
+          "y": 6
+        },
+        {
+          "x": 4,
+          "y": 10
+        },
+        {
+          "x": 10,
+          "y": 10
+        },
+        {
+          "x": 7,
+          "y": 13
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ]
+      ],
+      "accentNodes": [
+        0,
+        5,
+        6
+      ],
+      "collectionId": "neon-nights"
+    }
+  },
+  {
+    "id": 23,
+    "title": "Neon Diner Sign",
+    "themeId": "neon-nights",
+    "difficulty": "easy",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      "...AODTDOA.....",
+      "..DGTAGTAGD....",
+      ".OATTTTTTTAO...",
+      "DATODODODODAD..",
+      "GTTAAALLAATTG..",
+      "OTDALTLLLADTO..",
+      "GTTAAALLAATTG..",
+      "DATODODODODAD..",
+      ".OATTTTTTTAO...",
+      "..DGTAGTAGD....",
+      "...AODTDOA.....",
+      ".....OAO.......",
+      "....TODOT......",
+      "...GGDODGG.....",
+      "..GTAGOGATG...."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "green",
+          "capacity": 6
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        }
+      ],
+      [
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "green",
+          "capacity": 6
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "lime",
+          "capacity": 4
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 11
+        },
+        {
+          "color": "green",
+          "capacity": 6
+        },
+        {
+          "color": "lime",
+          "capacity": 4
+        },
+        {
+          "color": "coral",
+          "capacity": 9
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "NEON DINER SIGN",
+      "nodes": [
+        {
+          "x": 7,
+          "y": 0
+        },
+        {
+          "x": 3,
+          "y": 3
+        },
+        {
+          "x": 11,
+          "y": 3
+        },
+        {
+          "x": 3,
+          "y": 7
+        },
+        {
+          "x": 11,
+          "y": 7
+        },
+        {
+          "x": 7,
+          "y": 10
+        },
+        {
+          "x": 7,
+          "y": 12
+        },
+        {
+          "x": 7,
+          "y": 14
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ],
+      "accentNodes": [
+        0,
+        5
+      ],
+      "collectionId": "neon-nights"
+    }
+  },
+  {
+    "id": 24,
+    "title": "Subway Entrance",
+    "themeId": "neon-nights",
+    "difficulty": "medium",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      "..GAGTATGAGG...",
+      ".GOTATATATOGG..",
+      "GODODODODODAG..",
+      "OOTTTAAATTTDO..",
+      "ODTG.......TTDO",
+      "OTAG.......ATTO",
+      "DTAG..L.L..ATTD",
+      "OTAG.LTLTL.ATTO",
+      "DTAGLTT.TTLATTD",
+      "OTAGTTT.TTTATTO",
+      "ODAGTA...TGADDO",
+      ".DODAG...DODO..",
+      "GATOD.....TAGG.",
+      ".GADO...ODAGT..",
+      "..TAD...DATG..."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "green",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 12
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "teal",
+          "capacity": 12
+        }
+      ],
+      [
+        {
+          "color": "orange",
+          "capacity": 6
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "green",
+          "capacity": 8
+        },
+        {
+          "color": "lime",
+          "capacity": 3
+        },
+        {
+          "color": "gold",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 13
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 12
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "lime",
+          "capacity": 4
+        },
+        {
+          "color": "orange",
+          "capacity": 6
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "SUBWAY ENTRANCE",
+      "nodes": [
+        {
+          "x": 7,
+          "y": 0
+        },
+        {
+          "x": 2,
+          "y": 2
+        },
+        {
+          "x": 12,
+          "y": 2
+        },
+        {
+          "x": 3,
+          "y": 5
+        },
+        {
+          "x": 11,
+          "y": 5
+        },
+        {
+          "x": 4,
+          "y": 10
+        },
+        {
+          "x": 10,
+          "y": 10
+        },
+        {
+          "x": 7,
+          "y": 14
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        0,
+        7
+      ],
+      "collectionId": "neon-nights"
+    }
+  },
+  {
+    "id": 25,
+    "title": "Rooftop Water Tower",
+    "themeId": "neon-nights",
+    "difficulty": "medium",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      ".....AAOAA.....",
+      "...OODDDDOO....",
+      "..OATTTTTTAO...",
+      ".ODTLGAGTTTDO..",
+      "ODTTLGAGLLTTDO.",
+      "OTTLTALLLTATTO.",
+      "ODTTGAGTLGTTDO.",
+      ".OATTTTTTTTAO..",
+      "..OODODODOOO...",
+      "..D.TG.A.GT.D..",
+      ".DAGGT...TGGAD.",
+      "DGTAG.A.A.GATGD",
+      "DGATDG...GDTAGD",
+      "GTTAGG...GGATTG",
+      "GGADTGAGTDAGGGG"
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "orange",
+          "capacity": 6
+        },
+        {
+          "color": "teal",
+          "capacity": 12
+        },
+        {
+          "color": "green",
+          "capacity": 11
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 6
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 6
+        },
+        {
+          "color": "lime",
+          "capacity": 4
+        },
+        {
+          "color": "green",
+          "capacity": 12
+        },
+        {
+          "color": "gold",
+          "capacity": 9
+        }
+      ],
+      [
+        {
+          "color": "orange",
+          "capacity": 6
+        },
+        {
+          "color": "green",
+          "capacity": 12
+        },
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 12
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "coral",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 12
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "ROOFTOP WATER TOWER",
+      "nodes": [
+        {
+          "x": 7,
+          "y": 0
+        },
+        {
+          "x": 3,
+          "y": 2
+        },
+        {
+          "x": 11,
+          "y": 2
+        },
+        {
+          "x": 2,
+          "y": 5
+        },
+        {
+          "x": 12,
+          "y": 5
+        },
+        {
+          "x": 4,
+          "y": 10
+        },
+        {
+          "x": 10,
+          "y": 10
+        },
+        {
+          "x": 7,
+          "y": 14
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        0
+      ],
+      "collectionId": "neon-nights"
+    }
+  },
+  {
+    "id": 26,
+    "title": "City Tram",
+    "themeId": "neon-nights",
+    "difficulty": "medium",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      "...AODTDOA.....",
+      ".OOADDDDAOO....",
+      "OATGTGTGTGTAO..",
+      "ODTTAAATTTTDOO.",
+      "OTGLTGLTGLTDOO.",
+      "ODTTDODTTDODOO.",
+      "OATGTATGTATGOO.",
+      "OTTTAAATTTTDOO.",
+      "ODGOGDGOGDGDOO.",
+      ".OATTTTTTTAOO..",
+      "GGGDO...ODGGGG.",
+      "GGATG...GTAGGG.",
+      "GGDAG...GADGGG.",
+      "GTTOG...GOTTTG.",
+      "GGGGG...GGGGG.."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "teal",
+          "capacity": 12
+        },
+        {
+          "color": "green",
+          "capacity": 13
+        },
+        {
+          "color": "orange",
+          "capacity": 9
+        },
+        {
+          "color": "coral",
+          "capacity": 7
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "green",
+          "capacity": 12
+        }
+      ],
+      [
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "green",
+          "capacity": 12
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "lime",
+          "capacity": 3
+        },
+        {
+          "color": "orange",
+          "capacity": 9
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 12
+        },
+        {
+          "color": "orange",
+          "capacity": 9
+        },
+        {
+          "color": "green",
+          "capacity": 13
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "CITY TRAM",
+      "nodes": [
+        {
+          "x": 3,
+          "y": 1
+        },
+        {
+          "x": 11,
+          "y": 1
+        },
+        {
+          "x": 1,
+          "y": 4
+        },
+        {
+          "x": 13,
+          "y": 4
+        },
+        {
+          "x": 2,
+          "y": 9
+        },
+        {
+          "x": 12,
+          "y": 9
+        },
+        {
+          "x": 4,
+          "y": 12
+        },
+        {
+          "x": 10,
+          "y": 12
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ]
+      ],
+      "accentNodes": [
+        0,
+        1
+      ],
+      "collectionId": "neon-nights"
+    }
+  },
+  {
+    "id": 27,
+    "title": "Suspension Bridge",
+    "themeId": "neon-nights",
+    "difficulty": "medium",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      "...A.......A...",
+      "..TDA.....ADT..",
+      ".TTDAL...LADTT.",
+      "TADTLAGAGLGTADT",
+      "DTATG...GTATD..",
+      "OTTTDALALDTTTOO",
+      "ODALTTGGTGADLOD",
+      "GGODTT...TTDOGG",
+      "AAODAAODAAODAAA",
+      "ODTGODTGODTGODO",
+      "TTGGTTGGTTGGTTG",
+      "GODAGODAGODAGOD",
+      "GTDTG...GTDTTGG",
+      "DGATDG...GDTAGD",
+      "GGTTAGG.GGATTGG"
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 8
+        },
+        {
+          "color": "green",
+          "capacity": 11
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 6
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "lime",
+          "capacity": 4
+        }
+      ],
+      [
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "green",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 6
+        },
+        {
+          "color": "green",
+          "capacity": 11
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        }
+      ],
+      [
+        {
+          "color": "green",
+          "capacity": 11
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 4
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "SUSPENSION BRIDGE",
+      "nodes": [
+        {
+          "x": 3,
+          "y": 0
+        },
+        {
+          "x": 11,
+          "y": 0
+        },
+        {
+          "x": 4,
+          "y": 5
+        },
+        {
+          "x": 10,
+          "y": 5
+        },
+        {
+          "x": 0,
+          "y": 8
+        },
+        {
+          "x": 14,
+          "y": 8
+        },
+        {
+          "x": 4,
+          "y": 14
+        },
+        {
+          "x": 10,
+          "y": 14
+        }
+      ],
+      "lines": [
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ]
+      ],
+      "accentNodes": [
+        0,
+        1
+      ],
+      "collectionId": "neon-nights"
+    }
+  },
+  {
+    "id": 28,
+    "title": "Neon Skyscraper",
+    "themeId": "neon-nights",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      "......ALA......",
+      "....AODTDOA....",
+      "...GATLTATG....",
+      "..ODTGAGATDO...",
+      ".TALGDTALGDTAL.",
+      "GODTGALDGTATDOG",
+      "TGATODLGATODLGT",
+      "DTAGLTODAGLTADT",
+      "ODTGAGATGODTOLD",
+      "GALTODLAGTALGDO",
+      "TDOGATGODATGTAL",
+      "AODTGLATODTGAGD",
+      "GTALDGTAGLDTAGO",
+      "DOGATLODATGTLAD",
+      "GGTTADOGGADTGGG"
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "green",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "green",
+          "capacity": 10
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "green",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "coral",
+          "capacity": 7
+        }
+      ],
+      [
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "green",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "NEON SKYSCRAPER",
+      "nodes": [
+        {
+          "x": 7,
+          "y": 0
+        },
+        {
+          "x": 5,
+          "y": 2
+        },
+        {
+          "x": 9,
+          "y": 2
+        },
+        {
+          "x": 3,
+          "y": 5
+        },
+        {
+          "x": 11,
+          "y": 5
+        },
+        {
+          "x": 2,
+          "y": 10
+        },
+        {
+          "x": 12,
+          "y": 10
+        },
+        {
+          "x": 7,
+          "y": 14
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        0
+      ],
+      "collectionId": "neon-nights"
+    }
+  },
+  {
+    "id": 29,
+    "title": "Elevated Train at Night",
+    "themeId": "neon-nights",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      ".AAODTTDOAAL...",
+      "ODDDOOOOODDDOOG",
+      "OTGTGTGTGTGTGOT",
+      "OATATATATATAOOL",
+      "ODTTDODTTDODOOG",
+      "OGLGOGGLGOGGLOT",
+      "OTTTAAATTTTDOOD",
+      "OOOOODDDOOOOOOO",
+      "AAODAAODAAODAAA",
+      "GTDG...GTDG.GTG",
+      "DGAG...DGAG.GDG",
+      "GTGG...GTGG.GTG",
+      "GTDG...GTDG.GTG",
+      "DGAG...DGAG.GDG",
+      "GGGGTTGGGGTTGGG"
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "green",
+          "capacity": 15
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "orange",
+          "capacity": 11
+        },
+        {
+          "color": "green",
+          "capacity": 14
+        }
+      ],
+      [
+        {
+          "color": "green",
+          "capacity": 14
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "lime",
+          "capacity": 2
+        },
+        {
+          "color": "gold",
+          "capacity": 8
+        },
+        {
+          "color": "coral",
+          "capacity": 7
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "orange",
+          "capacity": 11
+        },
+        {
+          "color": "green",
+          "capacity": 15
+        },
+        {
+          "color": "lime",
+          "capacity": 3
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "ELEVATED TRAIN AT NIGHT",
+      "nodes": [
+        {
+          "x": 1,
+          "y": 1
+        },
+        {
+          "x": 13,
+          "y": 1
+        },
+        {
+          "x": 2,
+          "y": 7
+        },
+        {
+          "x": 12,
+          "y": 7
+        },
+        {
+          "x": 3,
+          "y": 9
+        },
+        {
+          "x": 11,
+          "y": 9
+        },
+        {
+          "x": 3,
+          "y": 14
+        },
+        {
+          "x": 11,
+          "y": 14
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          4,
+          5
+        ]
+      ],
+      "accentNodes": [
+        0,
+        1
+      ],
+      "collectionId": "neon-nights"
+    }
+  },
+  {
+    "id": 30,
+    "title": "Midnight Metropolis",
+    "themeId": "neon-nights",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      "..A..L..T..G...",
+      ".DAD.LAL.TGT.G.",
+      "ODADGLALGTGTGDO",
+      "OTATGT.TGADTGDO",
+      "GDTAGT.TAGLTADO",
+      "AODTGLATODTGAGD",
+      "GTALDGTAGLDTAGO",
+      "DOGATLODATGTLAD",
+      "TGODALTGODALTGO",
+      "ALGTODALGTODALG",
+      "GDTAGLDTAGODTGA",
+      "ODTGAGATGODTOLD",
+      "TGALDGTALDOGATG",
+      "GODATGTLADOGTGA",
+      "GGTTADOGGADTGGG"
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "green",
+          "capacity": 12
+        },
+        {
+          "color": "orange",
+          "capacity": 6
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "green",
+          "capacity": 13
+        },
+        {
+          "color": "gold",
+          "capacity": 9
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "green",
+          "capacity": 12
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 6
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 9
+        }
+      ],
+      [
+        {
+          "color": "orange",
+          "capacity": 6
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "green",
+          "capacity": 13
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "orange",
+          "capacity": 5
+        },
+        {
+          "color": "lime",
+          "capacity": 6
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "L": "lime",
+      "T": "teal",
+      "A": "gold",
+      "D": "coral"
+    },
+    "reveal": {
+      "name": "MIDNIGHT METROPOLIS",
+      "nodes": [
+        {
+          "x": 2,
+          "y": 0
+        },
+        {
+          "x": 5,
+          "y": 0
+        },
+        {
+          "x": 8,
+          "y": 0
+        },
+        {
+          "x": 11,
+          "y": 0
+        },
+        {
+          "x": 1,
+          "y": 5
+        },
+        {
+          "x": 13,
+          "y": 5
+        },
+        {
+          "x": 3,
+          "y": 14
+        },
+        {
+          "x": 11,
+          "y": 14
+        }
+      ],
+      "lines": [
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "accentNodes": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "collectionId": "neon-nights"
     }
   }
 ];

@@ -240,3 +240,88 @@ export function solve(level: LevelDefinition, opts: SolveOptions = {}): SolveRes
   };
 }
 export const audit = solve;
+
+export interface FirstWinOptions {
+  nodeCap?: number;
+  timeCapMs?: number;
+  signal?: { cancelled: boolean };
+}
+
+export interface FirstWinResult {
+  solved: boolean;
+  moves: GameAction[];
+  nodes: number;
+  nodeCapHit: boolean;
+  timeCapHit: boolean;
+}
+
+/**
+ * Rapidly answers: "Does at least ONE valid winning sequence exist?"
+ * Explores sequentially-launchable action paths with DFS and stops
+ * immediately once the first winning state is encountered.
+ *
+ * Does not calculate difficulty, rank paths, or explore alternative branches.
+ */
+export function findFirstWinningWitness(
+  level: LevelDefinition,
+  opts: FirstWinOptions = {},
+): FirstWinResult {
+  const { nodeCap = 100_000, timeCapMs = 30_000, signal } = opts;
+  const initial = createGame(level);
+  if (initial.status === 'won') {
+    return { solved: true, moves: [], nodes: 1, nodeCapHit: false, timeCapHit: false };
+  }
+  if (initial.status === 'lost') {
+    return { solved: false, moves: [], nodes: 1, nodeCapHit: false, timeCapHit: false };
+  }
+
+  const memo = new Map<string, GameAction[] | null>();
+  let nodes = 0;
+  let nodeCapHit = false;
+  let timeCapHit = false;
+  const startTime = performance.now();
+
+  function visit(state: GameState): GameAction[] | null {
+    if (signal?.cancelled) return null;
+    if (state.status === 'won') return [];
+    if (state.status === 'lost') return null;
+
+    const key = stateKey(state);
+    if (memo.has(key)) return memo.get(key)!;
+
+    if (++nodes > nodeCap) {
+      nodeCapHit = true;
+      return null;
+    }
+    if (performance.now() - startTime > timeCapMs) {
+      timeCapHit = true;
+      return null;
+    }
+
+    const actions = legalActions(state, { includeJoin: false });
+    for (const action of actions) {
+      const outcome = resolveAction(state, action);
+      if (!outcome.accepted) continue;
+      const childWin = visit(outcome.state);
+      if (childWin !== null) {
+        const win = [action, ...childWin];
+        memo.set(key, win);
+        return win;
+      }
+      if (nodeCapHit || timeCapHit) return null;
+    }
+
+    memo.set(key, null);
+    return null;
+  }
+
+  const moves = visit(initial);
+  return {
+    solved: moves !== null,
+    moves: moves ?? [],
+    nodes,
+    nodeCapHit,
+    timeCapHit,
+  };
+}
+

@@ -1,7 +1,7 @@
 import { DEFAULT_ART_LEGEND } from '@/game/engine/art';
 import { createGame, TUNNEL_COUNT } from '@/game/engine/createGame';
 import { resolveAction } from '@/game/engine/resolveLaunch';
-import { solve } from '@/game/engine/solver';
+import { findFirstWinningWitness } from '@/game/engine/solver';
 import type { LevelDefinition, OrbColor } from '@/game/engine/types';
 import type { LevelValidationResult, ValidationDiagnostic } from './types';
 
@@ -20,6 +20,8 @@ export interface ValidationOptions {
   skipSolvability?: boolean;
   /** Maximum node expansion cap for solver. Default: 100,000 */
   nodeCap?: number;
+  /** Maximum elapsed time in milliseconds before capping search. Default: 30,000 */
+  timeCapMs?: number;
   /** Allow tunnels to contain more charges than pixels require. Default: false */
   allowOverBudget?: boolean;
 }
@@ -283,18 +285,19 @@ export function validateLevelPacket(
 
   // ── 5. Solvability & Runtime Replay Verification ──────────────────────────
   const nodeCap = options.nodeCap ?? 100_000;
+  const timeCapMs = options.timeCapMs ?? 30_000;
+  let solveResult: ReturnType<typeof findFirstWinningWitness> | undefined;
   try {
-    const solveResult = solve(def, {
-      mode: 'sequential-compat',
+    solveResult = findFirstWinningWitness(def, {
       nodeCap,
-      partialOnCap: true,
+      timeCapMs,
     });
 
     if (!solveResult.solved) {
-      if (solveResult.nodeCapHit) {
+      if (solveResult.nodeCapHit || solveResult.timeCapHit) {
         err(
           'SOLVER_NODE_CAP_EXCEEDED',
-          `${levelTag} Level could not be verified within ${nodeCap} solver states`,
+          `${levelTag} Level could not be verified within ${nodeCap} solver states / ${timeCapMs}ms (UNVERIFIED / NODE CAP)`,
         );
       } else {
         err(
@@ -351,6 +354,7 @@ export function validateLevelPacket(
     valid,
     diagnostics,
     definition: valid ? def : null,
+    witnessLength: solveResult?.solved ? solveResult.moves.length : undefined,
   };
 }
 

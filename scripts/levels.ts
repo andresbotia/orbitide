@@ -203,6 +203,7 @@ async function handleValidate(flags: Record<string, string | boolean>) {
   const selection = resolveScope(flags);
   const skipSolvability = Boolean(flags.fast || flags['skip-solve']);
   const nodeCap = flags['node-cap'] ? parseInt(String(flags['node-cap']), 10) : 100_000;
+  const timeCapMs = flags['time-cap'] ? parseInt(String(flags['time-cap']), 10) : 30_000;
 
   console.log('Orbitide Level Validator');
   console.log(`Scope: ${selection.scopeLabel}`);
@@ -218,7 +219,7 @@ async function handleValidate(flags: Record<string, string | boolean>) {
     const t0 = performance.now();
     const result = skipSolvability
       ? validateLevelStructure(lvl)
-      : validateLevelPacket(lvl, { nodeCap });
+      : validateLevelPacket(lvl, { nodeCap, timeCapMs });
     const dt = performance.now() - t0;
     const timeStr = formatDuration(dt);
 
@@ -233,7 +234,8 @@ async function handleValidate(flags: Record<string, string | boolean>) {
     if (errors.length === 0) {
       validCount += 1;
       const warnSuffix = warnings.length > 0 ? ` (${warnings.length} warnings)` : '';
-      console.log(`  ✓ L${String(lvl.id).padEnd(3)} "${lvl.title}" [${lvl.difficulty}]${warnSuffix}`);
+      const witnessSuffix = result.witnessLength !== undefined ? ` [witness: ${result.witnessLength} moves]` : '';
+      console.log(`  ✓ L${String(lvl.id).padEnd(3)} "${lvl.title}" [${lvl.difficulty}]${witnessSuffix}${warnSuffix}`);
       warnings.forEach((w) => console.log(`      ⚠️ [${w.code}] ${w.message}`));
       warningCount += warnings.length;
     } else {
