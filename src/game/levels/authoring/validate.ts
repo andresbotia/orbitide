@@ -12,7 +12,9 @@ export const VALID_ORB_COLORS = new Set<OrbColor>([
 
 export const VALID_DIFFICULTIES = new Set(['easy', 'medium', 'hard', 'super-hard', 'extreme']);
 
-export const MAX_BOARD_DIMENSION = 15;
+export const MAX_BOARD_WIDTH = 20;
+export const MAX_BOARD_HEIGHT = 20;
+export const MAX_BOARD_DIMENSION = 20;
 export const MIN_BOARD_DIMENSION = 1;
 
 export interface ValidationOptions {
@@ -78,23 +80,28 @@ export function validateLevelStructure(
   }
 
   // ── 2. Grid Dimensions & Character Integrity ─────────────────────────────
+  const inferredHeight = Array.isArray(def.pixelArt) ? def.pixelArt.length : 0;
+  const inferredWidth = Array.isArray(def.pixelArt) && typeof def.pixelArt[0] === 'string'
+    ? def.pixelArt[0].length
+    : 0;
+
   if (!Array.isArray(def.pixelArt) || def.pixelArt.length === 0) {
     err('EMPTY_GRID', `${levelTag} pixelArt must be a non-empty array of strings`, 'pixelArt');
   } else {
-    const height = def.pixelArt.length;
-    if (height < MIN_BOARD_DIMENSION || height > MAX_BOARD_DIMENSION) {
+    const height = inferredHeight;
+    if (height < MIN_BOARD_DIMENSION || height > MAX_BOARD_HEIGHT) {
       err(
         'GRID_HEIGHT_OOB',
-        `${levelTag} Grid height ${height} is outside valid range (${MIN_BOARD_DIMENSION}–${MAX_BOARD_DIMENSION})`,
+        `${levelTag} Grid height ${height} is outside valid range (${MIN_BOARD_DIMENSION}–${MAX_BOARD_HEIGHT})`,
         'pixelArt',
       );
     }
 
-    const firstRowLen = typeof def.pixelArt[0] === 'string' ? def.pixelArt[0].length : 0;
-    if (firstRowLen < MIN_BOARD_DIMENSION || firstRowLen > MAX_BOARD_DIMENSION) {
+    const firstRowLen = inferredWidth;
+    if (firstRowLen < MIN_BOARD_DIMENSION || firstRowLen > MAX_BOARD_WIDTH) {
       err(
         'GRID_WIDTH_OOB',
-        `${levelTag} Grid width ${firstRowLen} is outside valid range (${MIN_BOARD_DIMENSION}–${MAX_BOARD_DIMENSION})`,
+        `${levelTag} Grid width ${firstRowLen} is outside valid range (${MIN_BOARD_DIMENSION}–${MAX_BOARD_WIDTH})`,
         'pixelArt',
       );
     }
@@ -260,6 +267,8 @@ export function validateLevelStructure(
     valid,
     diagnostics,
     definition: valid ? def : null,
+    width: valid ? inferredWidth : undefined,
+    height: valid ? inferredHeight : undefined,
   };
 }
 
@@ -355,6 +364,8 @@ export function validateLevelPacket(
     diagnostics,
     definition: valid ? def : null,
     witnessLength: solveResult?.solved ? solveResult.moves.length : undefined,
+    width: structResult.width,
+    height: structResult.height,
   };
 }
 

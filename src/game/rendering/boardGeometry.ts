@@ -126,7 +126,7 @@ export interface BoardGeometry {
  * densities so the picture does not shrink just because the grid got finer.
  */
 const FOOTPRINT = 0.56;
-const MIN_CELL = 6;
+const MIN_CELL = 4;
 
 /** Geometry for a square board rendering a `cols x rows` picture. */
 export function computeBoardGeometry(
@@ -155,9 +155,12 @@ export function computeBoardGeometry(
   // Outer rail: as large as fits, but always outside the artwork corner with
   // clearance for the token and its capacity label.
   const outer = Math.min(size * 0.45, size / 2 - chargeRadius - 2);
-  const innerGuide = Math.max(
-    Math.hypot(gridWidth, gridHeight) / 2 + cell * 0.9,
-    outer * 0.7,
+  const innerGuide = Math.min(
+    outer - 2,
+    Math.max(
+      Math.hypot(gridWidth, gridHeight) / 2 + cell * 0.9,
+      outer * 0.7,
+    ),
   );
   const orbit = [
     { rx: outer, ry: outer },

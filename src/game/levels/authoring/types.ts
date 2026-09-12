@@ -63,6 +63,8 @@ export interface LevelValidationResult {
   diagnostics: ValidationDiagnostic[];
   definition: LevelDefinition | null;
   witnessLength?: number;
+  width?: number;
+  height?: number;
 }
 
 export interface BatchValidationSummary {

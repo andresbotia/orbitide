@@ -12,8 +12,8 @@ import type { OrbColor } from '@/game/engine/types';
  * 6×6, 7×7, 7×9 and 8×8 boards, so the Studio treats anything in
  * {@link GRID_RANGE} as legal and only *warns* outside {@link TUNED_GRID_SIZES}.
  */
-export const TUNED_GRID_SIZES = [7, 9, 11, 13, 15] as const;
-export const GRID_RANGE = { min: 4, max: 17 } as const;
+export const TUNED_GRID_SIZES = [7, 9, 11, 13, 15, 17, 19, 20] as const;
+export const GRID_RANGE = { min: 4, max: 20 } as const;
 
 export function cellKey(x: number, y: number): string {
   return `${x},${y}`;
