@@ -60,11 +60,7 @@ export function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayo
               pressed && !empty && styles.tunnelPressed,
             ]}
           >
-            {/* Recessed magazine — depth only, never the actual queue. */}
-            <View style={styles.magazine}>
-              <View style={[styles.plate, hasMore ? styles.plateLoaded : styles.plateFlat]} />
-              <View style={[styles.plate, styles.plateBack, queued > 2 ? styles.plateLoaded : styles.plateFlat]} />
-            </View>
+            <Text style={styles.tunnelLabel}>T{index + 1}</Text>
 
             <View style={styles.port}>
               {charge ? (
@@ -94,7 +90,39 @@ export function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayo
               )}
             </View>
 
-            <Text style={styles.tunnelLabel}>T{index + 1}</Text>
+            {/* Look-ahead queue preview: next 2-3 charges in recessed magazine tray */}
+            <View style={styles.queueTray}>
+              {Array.from({ length: MAX_PREVIEWS }).map((_, previewIdx) => {
+                const nextCharge = tunnel?.queue[previewIdx + 1];
+                if (nextCharge) {
+                  return (
+                    <View
+                      key={nextCharge.id}
+                      style={[
+                        styles.previewChip,
+                        {
+                          backgroundColor: orbColors[nextCharge.color],
+                          borderColor: orbGlow[nextCharge.color],
+                        },
+                      ]}
+                    >
+                      <View style={styles.previewGloss} />
+                      <Text style={styles.previewCapacity}>{nextCharge.capacity}</Text>
+                      {colorAssist ? (
+                        <View style={styles.previewAssist} pointerEvents="none">
+                          <ColorAssistMark color={nextCharge.color} size={7} etched />
+                        </View>
+                      ) : null}
+                    </View>
+                  );
+                }
+                return (
+                  <View key={`empty-${previewIdx}`} style={[styles.previewChip, styles.previewEmpty]}>
+                    <View style={styles.previewDot} />
+                  </View>
+                );
+              })}
+            </View>
           </Pressable>
         );
       })}
@@ -103,14 +131,16 @@ export function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayo
 }
 
 const CHARGE = 46;
+const PREVIEW_SIZE = 18;
+const MAX_PREVIEWS = 3;
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'center', gap: spacing.md },
   tunnel: {
     alignItems: 'center',
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
+    paddingHorizontal: spacing.sm,
     borderRadius: 16,
     borderWidth: 1,
     borderTopColor: arcade.metalHi,
@@ -118,21 +148,10 @@ const styles = StyleSheet.create({
     borderRightColor: arcade.metalLo,
     borderBottomColor: arcade.metalLo,
     backgroundColor: arcade.metal,
-    minWidth: 82,
+    minWidth: 84,
   },
   tunnelEmpty: { opacity: 0.35 },
   tunnelPressed: { transform: [{ translateY: 1 }, { scale: 0.97 }], backgroundColor: arcade.metalLo },
-  magazine: {
-    width: 34,
-    height: 10,
-    marginBottom: spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-  plate: { position: 'absolute', width: 30, height: 4, borderRadius: 2 },
-  plateBack: { width: 22, bottom: 5 },
-  plateLoaded: { backgroundColor: arcade.accentDim },
-  plateFlat: { backgroundColor: arcade.metalLo },
   port: {
     width: CHARGE + 12,
     height: CHARGE + 12,
@@ -171,5 +190,62 @@ const styles = StyleSheet.create({
   assist: { position: 'absolute', bottom: 3, alignSelf: 'center' },
   capacity: { color: '#05060A', fontSize: 18, fontWeight: '800' },
   emptyMark: { color: arcade.metalEdge, fontSize: 16 },
-  tunnelLabel: { marginTop: spacing.xs, color: arcade.metalEdge, fontSize: 10, letterSpacing: 3, fontWeight: '700' },
+  tunnelLabel: { marginBottom: 3, color: arcade.metalEdge, fontSize: 10, letterSpacing: 2, fontWeight: '700' },
+  queueTray: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: spacing.xs,
+    paddingVertical: 3,
+    paddingHorizontal: 4,
+    borderRadius: 11,
+    backgroundColor: arcade.socket,
+    borderWidth: 1,
+    borderTopColor: arcade.metalLo,
+    borderLeftColor: arcade.metalLo,
+    borderRightColor: arcade.socketRim,
+    borderBottomColor: arcade.socketRim,
+  },
+  previewChip: {
+    width: PREVIEW_SIZE,
+    height: PREVIEW_SIZE,
+    borderRadius: PREVIEW_SIZE / 2,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  previewGloss: {
+    position: 'absolute',
+    top: 1.5,
+    left: 2.5,
+    width: PREVIEW_SIZE * 0.5,
+    height: PREVIEW_SIZE * 0.35,
+    borderRadius: PREVIEW_SIZE * 0.25,
+    backgroundColor: arcade.glassHi,
+    opacity: 0.5,
+  },
+  previewCapacity: {
+    color: '#05060A',
+    fontSize: 9,
+    fontWeight: '800',
+    lineHeight: 11,
+  },
+  previewAssist: {
+    position: 'absolute',
+    bottom: 0.5,
+    alignSelf: 'center',
+  },
+  previewEmpty: {
+    backgroundColor: arcade.metalLo,
+    borderColor: arcade.socketRim,
+    opacity: 0.35,
+  },
+  previewDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: arcade.metalEdge,
+  },
 });
