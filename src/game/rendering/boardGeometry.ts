@@ -47,28 +47,28 @@ export interface PixelAdaptive {
 }
 
 /** Board densities the production renderer is tuned for. */
-export const SUPPORTED_DENSITIES = [7, 9, 11, 13, 15] as const;
-/** 17x17 is prepared for but not a tuning target yet. */
-export const MAX_READY_DENSITY = 17;
+export const SUPPORTED_DENSITIES = [7, 9, 11, 13, 15, 17, 19, 21] as const;
+/** Max density prepared for in the adaptive renderer. */
+export const MAX_READY_DENSITY = 21;
 
 const DENSITY_MIN = 7;
 
 /**
  * Adaptive parameters for a `density x density` (max of cols/rows) board.
- * Linear interpolation between the 7x7 look and the 17x17 look, clamped.
+ * Linear interpolation between the 7x7 look and the 21x21 look, clamped.
  */
 export function pixelAdaptive(density: number): PixelAdaptive {
   const d = Math.max(DENSITY_MIN, Math.min(MAX_READY_DENSITY, density));
   const t = (d - DENSITY_MIN) / (MAX_READY_DENSITY - DENSITY_MIN);
   const lerp = (a: number, b: number) => a + (b - a) * t;
   return {
-    bevel: lerp(2.2, 0.7),
-    cornerRadius: lerp(0.26, 0.09),
-    gutter: lerp(2.2, 0.7),
-    glow: lerp(0.5, 0.14),
-    highlight: lerp(0.4, 0.16),
-    shadow: lerp(0.36, 0.14),
-    popOvershoot: lerp(0.35, 0.08),
+    bevel: lerp(2.2, 0.5),
+    cornerRadius: lerp(0.26, 0.08),
+    gutter: lerp(2.2, 0.5),
+    glow: lerp(0.5, 0.12),
+    highlight: lerp(0.4, 0.14),
+    shadow: lerp(0.36, 0.12),
+    popOvershoot: lerp(0.35, 0.06),
   };
 }
 
