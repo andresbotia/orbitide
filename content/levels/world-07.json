@@ -1,0 +1,4370 @@
+{
+  "world": 7,
+  "worldId": "world-07",
+  "worldTitle": "Ocean Depths",
+  "themeId": "ocean-depths",
+  "replacesLegacy": true,
+  "levels": [
+  {
+    "id": 61,
+    "title": "Sea Turtle",
+    "difficulty": "hard",
+    "holding": 3,
+    "legend": {
+      "W": "white",
+      "Y": "yellow",
+      "A": "gold",
+      "D": "coral",
+      "P": "purple",
+      "N": "indigo",
+      "B": "blue",
+      "C": "cyan",
+      "T": "teal",
+      "G": "green",
+      "L": "lime"
+    },
+    "grid": [
+      "NCNCPBTNBTNB.NCPBTBTN.N.P",
+      "TBTNCPBCPBCP.TNCPCPBPBTNC",
+      "CPBTNC.NCT.CP..NT.CNCPBTN",
+      "NCPBTPBTPB.NCPBPBTBTNC.BC",
+      "TNCPNCP.CPBTNCN...P.TNC.N",
+      "B.NTT.B.NCPBTB.NTNCPBT.BT",
+      "PBCPLCPBTNCPCPBPBTNCPNCP.",
+      "CTNCGTCPBTNTL.N..BCN.TN.T",
+      "PB.PBCL.DGGGWYGGATG.PBCPB",
+      "C.NCPLGTDWADLDAWGCYCGT..P",
+      "N.T.C.TCLLYLLLYLTLTWCYTN.",
+      "..GTNCAGGTGGTLTGGDGYWWGTN",
+      "N.PGTGAAWADAGTDAWACGWWCBT",
+      ".NCT.PALLYGLAGTYLDWCGTCPC",
+      "BTTCNCALDGGGLGGGCLDP.TNTN",
+      "..TBTNTLDAWDLDWAAC.CPB.BT",
+      "CPCPBPBTDLLLYLLLABCN.NCPC",
+      ".TNCNCPBTNBTL.T.CP.T.TNTN",
+      "PBTBTNCP.CPBCPB.N.PCPBPBT",
+      "CPCPBTN.T.CTNCPB.NTNCNC..",
+      "NTNCP...BTPBTNCPBP.TBTNCP",
+      ".BTNC..CPNCPBTNCNCPCPB.NC",
+      "CPBTNBTNBTNCP.TBTN.NC.BT.",
+      "NCP.CPBCPBTNCPCPB.BTNCPNC",
+      "TN.T.CT.CPBTNTNCNCPB.NBT."
+    ],
+    "reveal": {
+      "name": "SEA TURTLE",
+      "nodes": [
+        {
+          "x": 12,
+          "y": 0
+        },
+        {
+          "x": 5,
+          "y": 5
+        },
+        {
+          "x": 19,
+          "y": 5
+        },
+        {
+          "x": 2,
+          "y": 12
+        },
+        {
+          "x": 22,
+          "y": 12
+        },
+        {
+          "x": 5,
+          "y": 20
+        },
+        {
+          "x": 19,
+          "y": 20
+        },
+        {
+          "x": 12,
+          "y": 24
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        0
+      ],
+      "collectionId": "ocean-depths"
+    },
+    "tunnels": [
+      [
+        {
+          "color": "green",
+          "capacity": 5
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "white",
+          "capacity": 2
+        },
+        {
+          "color": "cyan",
+          "capacity": 16
+        },
+        {
+          "color": "gold",
+          "capacity": 3
+        },
+        {
+          "color": "indigo",
+          "capacity": 14
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "teal",
+          "capacity": 15
+        },
+        {
+          "color": "yellow",
+          "capacity": 1
+        },
+        {
+          "color": "blue",
+          "capacity": 12
+        },
+        {
+          "color": "coral",
+          "capacity": 5
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "white",
+          "capacity": 2
+        },
+        {
+          "color": "cyan",
+          "capacity": 17
+        },
+        {
+          "color": "green",
+          "capacity": 5
+        },
+        {
+          "color": "indigo",
+          "capacity": 14
+        },
+        {
+          "color": "gold",
+          "capacity": 3
+        },
+        {
+          "color": "teal",
+          "capacity": 17
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "blue",
+          "capacity": 12
+        },
+        {
+          "color": "yellow",
+          "capacity": 2
+        }
+      ],
+      [
+        {
+          "color": "cyan",
+          "capacity": 16
+        },
+        {
+          "color": "coral",
+          "capacity": 4
+        },
+        {
+          "color": "indigo",
+          "capacity": 14
+        },
+        {
+          "color": "white",
+          "capacity": 2
+        },
+        {
+          "color": "blue",
+          "capacity": 11
+        },
+        {
+          "color": "gold",
+          "capacity": 2
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "yellow",
+          "capacity": 1
+        },
+        {
+          "color": "teal",
+          "capacity": 15
+        },
+        {
+          "color": "green",
+          "capacity": 5
+        },
+        {
+          "color": "cyan",
+          "capacity": 17
+        },
+        {
+          "color": "white",
+          "capacity": 2
+        },
+        {
+          "color": "indigo",
+          "capacity": 14
+        },
+        {
+          "color": "gold",
+          "capacity": 3
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "blue",
+          "capacity": 13
+        },
+        {
+          "color": "yellow",
+          "capacity": 2
+        },
+        {
+          "color": "teal",
+          "capacity": 17
+        },
+        {
+          "color": "green",
+          "capacity": 6
+        }
+      ],
+      [
+        {
+          "color": "gold",
+          "capacity": 3
+        },
+        {
+          "color": "white",
+          "capacity": 2
+        },
+        {
+          "color": "blue",
+          "capacity": 12
+        },
+        {
+          "color": "yellow",
+          "capacity": 1
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "green",
+          "capacity": 6
+        },
+        {
+          "color": "cyan",
+          "capacity": 16
+        },
+        {
+          "color": "coral",
+          "capacity": 5
+        },
+        {
+          "color": "indigo",
+          "capacity": 14
+        },
+        {
+          "color": "lime",
+          "capacity": 4
+        },
+        {
+          "color": "teal",
+          "capacity": 15
+        },
+        {
+          "color": "gold",
+          "capacity": 3
+        },
+        {
+          "color": "white",
+          "capacity": 3
+        },
+        {
+          "color": "blue",
+          "capacity": 13
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "green",
+          "capacity": 5
+        },
+        {
+          "color": "cyan",
+          "capacity": 17
+        },
+        {
+          "color": "yellow",
+          "capacity": 2
+        },
+        {
+          "color": "indigo",
+          "capacity": 14
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "teal",
+          "capacity": 17
+        }
+      ]
+    ]
+  },
+  {
+    "id": 62,
+    "title": "Manta Ray",
+    "difficulty": "hard",
+    "holding": 3,
+    "legend": {
+      "W": "white",
+      "Y": "yellow",
+      "K": "pink",
+      "M": "magenta",
+      "P": "purple",
+      "N": "indigo",
+      "B": "blue",
+      "C": "cyan",
+      "T": "teal",
+      "L": "lime"
+    },
+    "grid": [
+      ".CNCP.TNB..BTNC.BTBTNTNC.",
+      "TBTNCPBCPBCPBTNCP..BPBTNC",
+      "CPBTNCTNCTNCPBTNTNC.....N",
+      "NCP..PBTPBTNCPBPBTBTNCPBC",
+      "TNC.NC.NCKBTNCWCPCPBTNCTN",
+      "B.NLLNB.NCKBCKT.TNCPBCL.T",
+      ".B.PLLCLTNCKCWBPB.LLCL.PN",
+      "CTNCTNCCLBYPCWYBPLLNBTNB.",
+      "P.TPBTTMPNTKKKBNBCTCPB.PB",
+      "C.NPNBCTMWTPWWBWNBCTMPN.P",
+      "N.TMPNBCCCCPYWCCCNBCTMP.C",
+      "C.CTMPNBYKKKKKKKYPNBCTMTN",
+      "NNBCTMPNWWWWWWWWWMPNBCTMT",
+      "TNNBCTMYCCCPCWCCCYMPNBCPC",
+      "BTNCNCTMKBYKKKY.KCTMBTNTN",
+      ".BTB.NTN.PTPTWBPBTNCPBPBT",
+      "CPCPBP..NCPPTWN.PBTNCNCPC",
+      "NTNCNC.B.NBTTLTN..BTBTNTN",
+      ".BT.TNC.BCPBTT.T.CPCPBPBT",
+      "CPCP.TN.TNCTLCPBTN.NCNC..",
+      "NTNCPBTPBTPBLCCPB.BTBTNC.",
+      "PBTN..NCPNCPCCN..CP.PBTNC",
+      "CPBTNB..BTNCPL.B.NTNCPB.P",
+      "NCPBCPBCPBTNCLCPBPBTNCPNC",
+      "TNCTN.TNCPB.NTN.NCPBTNBTN"
+    ],
+    "reveal": {
+      "name": "MANTA RAY",
+      "nodes": [
+        {
+          "x": 12,
+          "y": 0
+        },
+        {
+          "x": 5,
+          "y": 5
+        },
+        {
+          "x": 19,
+          "y": 5
+        },
+        {
+          "x": 2,
+          "y": 12
+        },
+        {
+          "x": 22,
+          "y": 12
+        },
+        {
+          "x": 5,
+          "y": 20
+        },
+        {
+          "x": 19,
+          "y": 20
+        },
+        {
+          "x": 12,
+          "y": 24
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        0
+      ],
+      "collectionId": "ocean-depths"
+    },
+    "tunnels": [
+      [
+        {
+          "color": "magenta",
+          "capacity": 2
+        },
+        {
+          "color": "yellow",
+          "capacity": 3
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "lime",
+          "capacity": 3
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 4
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 3
+        },
+        {
+          "color": "cyan",
+          "capacity": 12
+        },
+        {
+          "color": "white",
+          "capacity": 3
+        },
+        {
+          "color": "blue",
+          "capacity": 9
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "pink",
+          "capacity": 3
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "cyan",
+          "capacity": 12
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "cyan",
+          "capacity": 12
+        },
+        {
+          "color": "pink",
+          "capacity": 3
+        },
+        {
+          "color": "magenta",
+          "capacity": 2
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        }
+      ],
+      [
+        {
+          "color": "cyan",
+          "capacity": 12
+        },
+        {
+          "color": "lime",
+          "capacity": 3
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "magenta",
+          "capacity": 2
+        },
+        {
+          "color": "cyan",
+          "capacity": 12
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "white",
+          "capacity": 3
+        },
+        {
+          "color": "cyan",
+          "capacity": 13
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "pink",
+          "capacity": 4
+        },
+        {
+          "color": "yellow",
+          "capacity": 3
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 3
+        },
+        {
+          "color": "lime",
+          "capacity": 3
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "magenta",
+          "capacity": 3
+        },
+        {
+          "color": "pink",
+          "capacity": 3
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        }
+      ],
+      [
+        {
+          "color": "yellow",
+          "capacity": 3
+        },
+        {
+          "color": "magenta",
+          "capacity": 2
+        },
+        {
+          "color": "cyan",
+          "capacity": 13
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 3
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "magenta",
+          "capacity": 3
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "cyan",
+          "capacity": 13
+        },
+        {
+          "color": "pink",
+          "capacity": 3
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 2
+        },
+        {
+          "color": "indigo",
+          "capacity": 12
+        },
+        {
+          "color": "white",
+          "capacity": 4
+        },
+        {
+          "color": "cyan",
+          "capacity": 13
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "pink",
+          "capacity": 3
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "white",
+          "capacity": 3
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        }
+      ]
+    ]
+  },
+  {
+    "id": 63,
+    "title": "Great White Shark",
+    "difficulty": "hard",
+    "holding": 3,
+    "legend": {
+      "W": "white",
+      "Y": "yellow",
+      "A": "gold",
+      "R": "red",
+      "D": "coral",
+      "P": "purple",
+      "N": "indigo",
+      "B": "blue",
+      "C": "cyan",
+      "T": "teal",
+      "L": "lime"
+    },
+    "grid": [
+      "NCNCPBTNBT.BTN.PBT..NTNCPB",
+      "TBTNCP.CP.C.BTNCPC.BPBTN..",
+      "CPBTNCTNCTNCPBTNTNCNCPBTNB",
+      "NCPBTPB.P.TNCPBP.TB.N.PBCP",
+      "TNCPNCPNCPBT.C.C.CPBTNCTNC",
+      "BTCCLLBTNCPBTBT.TNCPBCCLLP",
+      "PBCPBCCLLNCPNBBPBTCCLLCP.C",
+      "CTNC.NCPBTN.PNNCPBTNBTNBT.",
+      "PBTPBTNCPBP.YYYNCPB.PB.PBT",
+      "CP.CPBTNCTAAAAAACN.NCTNCPB",
+      "NBT.CPCNPABCNPTBCNPCYYBC.P",
+      "CNPTNBCNATBCNPTBCDDBCTYYCC",
+      "N.TBTBCAPTBCNPTBDDDDBCTNBB",
+      "T.BNTBCNPTBCNPTDDDDDRRRRNB",
+      "BBNCTBCTWYTWCTWDTWBRRRRRRC",
+      "PNTBTBCCTWCTWCTWBTNBWWWWCB",
+      "C.CPBPCNCTNBTWCTWBTNBCTNCP",
+      "..NCNCPB.TTNNPTBCNB..TNTNC",
+      "P.TBTNCPBNBBCPBTNC...BPBTN",
+      "CPCPBT.CBTC.NCP.T..NCNCPBT",
+      "NTNCPBTPN.PBTN..BPBTBTNCPB",
+      "PBTNC..BPNCPB.NCNCPCPBTNCT",
+      "C.BT.BTNBTNCP.T.TNTNCP.TPB",
+      "NC.BCPBCPBT.CPCPB.BTNCPNC.",
+      "TNC...TN.PBT.TN..CP.T.B.NB",
+      "BTPBTPBTNCPBPBTBTNCPBC.BC."
+    ],
+    "reveal": {
+      "name": "GREAT WHITE SHARK",
+      "nodes": [
+        {
+          "x": 12,
+          "y": 0
+        },
+        {
+          "x": 5,
+          "y": 5
+        },
+        {
+          "x": 20,
+          "y": 5
+        },
+        {
+          "x": 2,
+          "y": 13
+        },
+        {
+          "x": 23,
+          "y": 13
+        },
+        {
+          "x": 5,
+          "y": 21
+        },
+        {
+          "x": 20,
+          "y": 21
+        },
+        {
+          "x": 13,
+          "y": 25
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        0
+      ],
+      "collectionId": "ocean-depths"
+    },
+    "tunnels": [
+      [
+        {
+          "color": "blue",
+          "capacity": 12
+        },
+        {
+          "color": "blue",
+          "capacity": 11
+        },
+        {
+          "color": "blue",
+          "capacity": 11
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 9
+        },
+        {
+          "color": "indigo",
+          "capacity": 9
+        },
+        {
+          "color": "indigo",
+          "capacity": 9
+        },
+        {
+          "color": "indigo",
+          "capacity": 9
+        },
+        {
+          "color": "blue",
+          "capacity": 12
+        },
+        {
+          "color": "blue",
+          "capacity": 11
+        },
+        {
+          "color": "blue",
+          "capacity": 11
+        },
+        {
+          "color": "blue",
+          "capacity": 11
+        },
+        {
+          "color": "purple",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "cyan",
+          "capacity": 12
+        },
+        {
+          "color": "cyan",
+          "capacity": 12
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 12
+        },
+        {
+          "color": "yellow",
+          "capacity": 8
+        }
+      ],
+      [
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "cyan",
+          "capacity": 11
+        },
+        {
+          "color": "cyan",
+          "capacity": 11
+        },
+        {
+          "color": "cyan",
+          "capacity": 11
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 7
+        },
+        {
+          "color": "white",
+          "capacity": 6
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "cyan",
+          "capacity": 7
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "coral",
+          "capacity": 12
+        },
+        {
+          "color": "blue",
+          "capacity": 9
+        },
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "lime",
+          "capacity": 8
+        }
+      ]
+    ]
+  },
+  {
+    "id": 64,
+    "title": "Coral Kingdom",
+    "difficulty": "hard",
+    "holding": 3,
+    "legend": {
+      "W": "white",
+      "Y": "yellow",
+      "O": "orange",
+      "D": "coral",
+      "K": "pink",
+      "M": "magenta",
+      "P": "purple",
+      "N": "indigo",
+      "B": "blue",
+      "C": "cyan",
+      "T": "teal",
+      "G": "green",
+      "L": "lime"
+    },
+    "grid": [
+      "NCN.P....T.BT.C.B.BTNTNCP.",
+      "TBTNCPBCPBCPBTN..C.B.BTNCP",
+      ".P.TN.TNC.NCP.WNTN..CPBTN.",
+      "NCWB..BTPBTNCP...TB.NCPBCP",
+      "T.CP.C.WCPBTN.N.PCPBT.WTNC",
+      "BT.BTN.TWCP.WB.NT.CPBT..TP",
+      "PWCPBYPBY.YYYYY..TNCP...NC",
+      "CYNCCCCCBTNTCCNYPB.CB...TN",
+      "PB..BWNCPBPBT.TWCWWWWWC.B.",
+      "C.NWWBT.YNCPC.BT.CTY...CPB",
+      "N.TNY.CCCCCTNWPBTCBTPBTWCP",
+      "C.KTK.DOWO.OTYCWWWWWCG.TN.",
+      "N.KKDDDOOOOOBPPKKY.GGTTTTB",
+      ".KDDKDOOOOOCPKKPKCGTTGTPCP",
+      "BKMMKKODYOOOPMMPPKLLLGGTTC",
+      "PBDDDDDOOOOYOKKKKMKGTTTLT.",
+      "CP.MDMMMYOOOCPMKPKGCLTGTCP",
+      "N.NCKMD.TOOTN.TPK..GLGT..C",
+      "PBTBMD.D.OPBCP.KN.LCCGPBTN",
+      "OPOKMMDLOOOTOLOPTLOGLGLLOL",
+      "NPDMMBDKDYPPDPDMDPCGBGCCDB",
+      "GYDMKMGYGOGYGYNKGYG.LCCCCY",
+      "LMKMKKLOYOOOLBMPPOTOLGGGGO",
+      "PDPDMDP.PYPDCDPMPPPDPL.DPD",
+      "YNYGYG.GYGYTYGYGNGYGYNYGYG",
+      "BLOLO.OLOLPLOLOBOLOLBLOLOP"
+    ],
+    "reveal": {
+      "name": "CORAL KINGDOM",
+      "nodes": [
+        {
+          "x": 12,
+          "y": 0
+        },
+        {
+          "x": 5,
+          "y": 5
+        },
+        {
+          "x": 20,
+          "y": 5
+        },
+        {
+          "x": 2,
+          "y": 13
+        },
+        {
+          "x": 23,
+          "y": 13
+        },
+        {
+          "x": 5,
+          "y": 21
+        },
+        {
+          "x": 20,
+          "y": 21
+        },
+        {
+          "x": 13,
+          "y": 25
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        0
+      ],
+      "collectionId": "ocean-depths"
+    },
+    "tunnels": [
+      [
+        {
+          "color": "purple",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 9
+        },
+        {
+          "color": "purple",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 11
+        },
+        {
+          "color": "blue",
+          "capacity": 11
+        },
+        {
+          "color": "orange",
+          "capacity": 11
+        },
+        {
+          "color": "magenta",
+          "capacity": 7
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "yellow",
+          "capacity": 8
+        },
+        {
+          "color": "green",
+          "capacity": 7
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "lime",
+          "capacity": 9
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "coral",
+          "capacity": 12
+        },
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "white",
+          "capacity": 4
+        },
+        {
+          "color": "pink",
+          "capacity": 3
+        },
+        {
+          "color": "lime",
+          "capacity": 3
+        },
+        {
+          "color": "yellow",
+          "capacity": 2
+        }
+      ],
+      [
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "indigo",
+          "capacity": 12
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 12
+        },
+        {
+          "color": "purple",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "pink",
+          "capacity": 12
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "purple",
+          "capacity": 12
+        },
+        {
+          "color": "lime",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 8
+        },
+        {
+          "color": "magenta",
+          "capacity": 7
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "pink",
+          "capacity": 7
+        },
+        {
+          "color": "green",
+          "capacity": 9
+        },
+        {
+          "color": "purple",
+          "capacity": 6
+        },
+        {
+          "color": "teal",
+          "capacity": 4
+        },
+        {
+          "color": "blue",
+          "capacity": 2
+        },
+        {
+          "color": "cyan",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "cyan",
+          "capacity": 7
+        },
+        {
+          "color": "indigo",
+          "capacity": 9
+        },
+        {
+          "color": "yellow",
+          "capacity": 7
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 8
+        },
+        {
+          "color": "coral",
+          "capacity": 12
+        },
+        {
+          "color": "yellow",
+          "capacity": 10
+        },
+        {
+          "color": "green",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "coral",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 11
+        },
+        {
+          "color": "white",
+          "capacity": 12
+        },
+        {
+          "color": "pink",
+          "capacity": 10
+        },
+        {
+          "color": "green",
+          "capacity": 12
+        },
+        {
+          "color": "yellow",
+          "capacity": 10
+        },
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 5
+        },
+        {
+          "color": "indigo",
+          "capacity": 3
+        }
+      ]
+    ]
+  },
+  {
+    "id": 65,
+    "title": "Sunken Galleon",
+    "difficulty": "hard",
+    "holding": 3,
+    "legend": {
+      "W": "white",
+      "Y": "yellow",
+      "A": "gold",
+      "O": "orange",
+      "R": "red",
+      "D": "coral",
+      "P": "purple",
+      "N": "indigo",
+      "B": "blue",
+      "C": "cyan",
+      "T": "teal",
+      "G": "green",
+      "L": "lime"
+    },
+    "grid": [
+      "NCNCPBTN.TNBTNCPB...NTNCP.T",
+      "TBTNCP..PBCP.T.C.CP.P.TNCPN",
+      "CPBTNC..CTNCPB....CNCPOTNBT",
+      "NCPB.P.TPBTNC.B..O.TAA.BCPB",
+      "T.CPNCPNCPBTNC...OAACP.TNCT",
+      "BTNBTW.TNAPBTNWCTACPWC...PB",
+      "PBCP..PBTACNWCNWBDWCP.C..CP",
+      ".TNW.NCPBOWCN.CNPDP.CWNBT.C",
+      "PBT.B.NCPO.WCNWCCDCP.BCP.TN",
+      "CPNCPBTNCOCNWCN.NDWCCTN..BT",
+      "NBTN.PBTBONTNWCNTDBTPB.WCPB",
+      "CPBTNCPCPOPWNN.PNDPNCPBT.CN",
+      "NCWBTN.N.ONP.NPWTDBTNCPBTBT",
+      "T.CPBPBT.OWNPWNPBDPBTNCPCPB",
+      ".TNCWOAWOOWONPWAWDOAWOATNCN",
+      "PBTDOARDOORDOARDODRDOARBTBT",
+      "C.COARDOADDOARDOAADOARD.CP.",
+      "NTNARDOWRDOWRDOWRDOWRDNT..P",
+      "PBTRDOGLYOYYYLYYYOYLYOPBGN.",
+      "CPCDOADLOARCDLRCOADLODCPGTN",
+      "NTNCDGGDGRDOADGOARDDG.DGGBC",
+      "PBTNCGGLGDOARLGARDOLGBTGG.N",
+      ".PBTNLARLOARDOLBTNTNL..LPBT",
+      "NCPB.T.CTB.NC.T.BPB.TCPT.PN",
+      "TNC..CTNCPBTNTN...PBTN.TNBT",
+      "BTP.TPB.NCPBP...TNCPBC.BCPB",
+      "PN..N..BTNCN.PC.BTNCTNCTN.P"
+    ],
+    "reveal": {
+      "name": "SUNKEN GALLEON",
+      "nodes": [
+        {
+          "x": 13,
+          "y": 0
+        },
+        {
+          "x": 5,
+          "y": 5
+        },
+        {
+          "x": 21,
+          "y": 5
+        },
+        {
+          "x": 2,
+          "y": 13
+        },
+        {
+          "x": 24,
+          "y": 13
+        },
+        {
+          "x": 5,
+          "y": 22
+        },
+        {
+          "x": 21,
+          "y": 22
+        },
+        {
+          "x": 13,
+          "y": 26
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        0
+      ],
+      "collectionId": "ocean-depths"
+    },
+    "tunnels": [
+      [
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 12
+        },
+        {
+          "color": "cyan",
+          "capacity": 7
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "blue",
+          "capacity": 9
+        },
+        {
+          "color": "purple",
+          "capacity": 11
+        },
+        {
+          "color": "indigo",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "cyan",
+          "capacity": 12
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 9
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 9
+        },
+        {
+          "color": "coral",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 11
+        },
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "purple",
+          "capacity": 11
+        },
+        {
+          "color": "indigo",
+          "capacity": 12
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 9
+        },
+        {
+          "color": "green",
+          "capacity": 7
+        },
+        {
+          "color": "purple",
+          "capacity": 2
+        }
+      ],
+      [
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "cyan",
+          "capacity": 11
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 12
+        },
+        {
+          "color": "blue",
+          "capacity": 11
+        },
+        {
+          "color": "indigo",
+          "capacity": 7
+        },
+        {
+          "color": "purple",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 12
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "green",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "yellow",
+          "capacity": 7
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "blue",
+          "capacity": 4
+        },
+        {
+          "color": "yellow",
+          "capacity": 2
+        },
+        {
+          "color": "cyan",
+          "capacity": 1
+        },
+        {
+          "color": "coral",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 12
+        },
+        {
+          "color": "indigo",
+          "capacity": 7
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 8
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "coral",
+          "capacity": 12
+        },
+        {
+          "color": "purple",
+          "capacity": 7
+        },
+        {
+          "color": "purple",
+          "capacity": 11
+        },
+        {
+          "color": "white",
+          "capacity": 8
+        },
+        {
+          "color": "blue",
+          "capacity": 12
+        },
+        {
+          "color": "coral",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 9
+        },
+        {
+          "color": "white",
+          "capacity": 7
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 6
+        },
+        {
+          "color": "gold",
+          "capacity": 5
+        },
+        {
+          "color": "red",
+          "capacity": 1
+        }
+      ]
+    ]
+  },
+  {
+    "id": 66,
+    "title": "Giant Jellyfish",
+    "difficulty": "hard",
+    "holding": 3,
+    "legend": {
+      "W": "white",
+      "Y": "yellow",
+      "D": "coral",
+      "K": "pink",
+      "M": "magenta",
+      "P": "purple",
+      "N": "indigo",
+      "B": "blue",
+      "C": "cyan",
+      "T": "teal",
+      "L": "lime"
+    },
+    "grid": [
+      "NCNCP.T..TNBTNCP.TBTN.NCPB.",
+      "TBTNCP....CPBTNCPCPBPBTNC..",
+      "CPBTN.TNCTNC.M.NTNCNCPBTNBT",
+      "NCWBTPB.PPCPCPCPCPBTNCWBCPB",
+      ".NCP.WPNKWKWKWKWKWKB.NCT.CT",
+      "B.N.TNBTMTMTMWMTMTMT.T.B.P.",
+      ".B.PB.PCPCYWYYYMYCPCPNCPW..",
+      "C.N.TNWKWMMMKMYMMMWKWT...N.",
+      "P..PBMTMTYWWKCYMWKTMTM.P.TN",
+      "CPNCPBCPCPMYKCYYWPCPCT.C.B.",
+      "NBT.CPKWKWMMMCMMMWKWK..N.PB",
+      ".PBWNCPTMTMWMCMWMTMTCPBTNCN",
+      "N.PBT.MNPCPCPCPCPCPTPCPBT.T",
+      "TNC.BPPCKMCCWWCCKKPLTMCWCPB",
+      ".TNCNMPCPT.TCW.CTDDCCTN.NCN",
+      ".BTBPCCMCTBTPWWCCTMCTPPBTBT",
+      "..CPPPCTNTPTCWMCB.KKLLPP.PB",
+      "NTNCMMPBTTBTNYYPP.BK.LMMNCP",
+      "PB.CTPM.BT.TCPYTPCPDMCTMTNC",
+      "C.MPBM.CTMCCNCMBBNTNK.LTTTN",
+      ".TPCCCTPTMPCTNMPPPB.K.LLM.C",
+      "PBTNMPNCMKCCBTMCPCPCKBCCCTN",
+      "CPBPCB.NMTLCPWMBP..NKMBCP.T",
+      "NCPCM.BCMBCL.MWPPPBTDDPCCP.",
+      "TN.C.CTKKPCTNMNCPCPBTDBTLBT",
+      "B.PM.PBKMCC.PMT.PNCPBDPCLPB",
+      "PNC.NCPMTNT..YCPCTNCTK..T.P"
+    ],
+    "reveal": {
+      "name": "GIANT JELLYFISH",
+      "nodes": [
+        {
+          "x": 13,
+          "y": 0
+        },
+        {
+          "x": 5,
+          "y": 5
+        },
+        {
+          "x": 21,
+          "y": 5
+        },
+        {
+          "x": 2,
+          "y": 13
+        },
+        {
+          "x": 24,
+          "y": 13
+        },
+        {
+          "x": 5,
+          "y": 22
+        },
+        {
+          "x": 21,
+          "y": 22
+        },
+        {
+          "x": 13,
+          "y": 26
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        0
+      ],
+      "collectionId": "ocean-depths"
+    },
+    "tunnels": [
+      [
+        {
+          "color": "magenta",
+          "capacity": 7
+        },
+        {
+          "color": "cyan",
+          "capacity": 14
+        },
+        {
+          "color": "coral",
+          "capacity": 3
+        },
+        {
+          "color": "lime",
+          "capacity": 4
+        },
+        {
+          "color": "blue",
+          "capacity": 8
+        },
+        {
+          "color": "white",
+          "capacity": 6
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "pink",
+          "capacity": 5
+        },
+        {
+          "color": "yellow",
+          "capacity": 2
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "magenta",
+          "capacity": 8
+        },
+        {
+          "color": "pink",
+          "capacity": 5
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "indigo",
+          "capacity": 7
+        },
+        {
+          "color": "cyan",
+          "capacity": 14
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "white",
+          "capacity": 6
+        },
+        {
+          "color": "magenta",
+          "capacity": 7
+        },
+        {
+          "color": "yellow",
+          "capacity": 3
+        },
+        {
+          "color": "cyan",
+          "capacity": 14
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "purple",
+          "capacity": 12
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "indigo",
+          "capacity": 7
+        }
+      ],
+      [
+        {
+          "color": "cyan",
+          "capacity": 14
+        },
+        {
+          "color": "magenta",
+          "capacity": 8
+        },
+        {
+          "color": "white",
+          "capacity": 6
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "cyan",
+          "capacity": 14
+        },
+        {
+          "color": "yellow",
+          "capacity": 3
+        },
+        {
+          "color": "white",
+          "capacity": 5
+        },
+        {
+          "color": "magenta",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "indigo",
+          "capacity": 7
+        },
+        {
+          "color": "pink",
+          "capacity": 5
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "lime",
+          "capacity": 4
+        },
+        {
+          "color": "yellow",
+          "capacity": 2
+        },
+        {
+          "color": "pink",
+          "capacity": 5
+        },
+        {
+          "color": "cyan",
+          "capacity": 14
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 12
+        },
+        {
+          "color": "magenta",
+          "capacity": 8
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "indigo",
+          "capacity": 7
+        },
+        {
+          "color": "coral",
+          "capacity": 2
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        }
+      ],
+      [
+        {
+          "color": "yellow",
+          "capacity": 3
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 12
+        },
+        {
+          "color": "cyan",
+          "capacity": 14
+        },
+        {
+          "color": "white",
+          "capacity": 6
+        },
+        {
+          "color": "blue",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 12
+        },
+        {
+          "color": "magenta",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 14
+        },
+        {
+          "color": "lime",
+          "capacity": 3
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "pink",
+          "capacity": 6
+        },
+        {
+          "color": "magenta",
+          "capacity": 7
+        },
+        {
+          "color": "cyan",
+          "capacity": 14
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "indigo",
+          "capacity": 7
+        },
+        {
+          "color": "pink",
+          "capacity": 5
+        },
+        {
+          "color": "magenta",
+          "capacity": 7
+        },
+        {
+          "color": "yellow",
+          "capacity": 2
+        },
+        {
+          "color": "purple",
+          "capacity": 12
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "white",
+          "capacity": 6
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "coral",
+          "capacity": 2
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        }
+      ]
+    ]
+  },
+  {
+    "id": 67,
+    "title": "Blue Whale",
+    "difficulty": "hard",
+    "holding": 3,
+    "legend": {
+      "W": "white",
+      "Y": "yellow",
+      "A": "gold",
+      "D": "coral",
+      "P": "purple",
+      "N": "indigo",
+      "B": "blue",
+      "C": "cyan",
+      "T": "teal",
+      "L": "lime"
+    },
+    "grid": [
+      "NC.C.BT.BTNBTNCPB.BT.TNCPB.",
+      "TBT.CPBC.B.PBT.C.CPBPBTNCP.",
+      "CPBT.C...TNCPBTN...NCPBTNBT",
+      "NCWB.PBTPBTNCPBP...T.CP..PB",
+      "TNC.N.PCACBTNC..PC.B.NCTW.T",
+      "BTNBYAYTNCP..BTNTNC.YAYBTPB",
+      "PBCWBCABTNCPC.PNBTNCANCPN.P",
+      "CTNCT.CPBTNTNCBP...NBTCACNC",
+      ".B..BTNCPBBCNPNBCNPCPBAPBWN",
+      "TPNC.BTNPTBCDPDNBNPTNBCCPBT",
+      "PBN.C.CNPTDCNPTBDNYCYWBCCPB",
+      "CNTP.BCNDTBCNPTBYNDBCTYBC.N",
+      ".CPBNBCNYTYCYPYWCNTNBYTWB.T",
+      "TNCNTBYNPWBCWPTBCBCTNBCTNBB",
+      "BTNTNBCNWCTWCTWCTCCDWLTCTCN",
+      "PNTBTBCNPDCTWCTWCDWLTCNWCB.",
+      "NTCPBPCNPTWDTDCDWCLWCCWNCPB",
+      "NTN.NCP.PTTWCTWCWCLTCBWTNCP",
+      "PBTBTN..B.BCNPTPCTP.PBPBTNC",
+      "CP.PBTNCTNCTNCPCT.TNCNCPBTN",
+      "NTNA.BTPBTPBTNCTBPBTB.N.P.C",
+      "PB.AAANC.NCPB.T..C.CPBTNCTN",
+      ".PLTNBTABTNCPT.BTNTNC..LP.T",
+      "NCPL.LBCPBTNC.CP.PBTNCLNLPN",
+      "T..TLCLNCPBTNTNCNCPBTLBTNLT",
+      "BTPBT.BTNCPBPBTBTNCPBCPBCP.",
+      "PNCPNCPBT.C.CPCP.TNCTNCTN.."
+    ],
+    "reveal": {
+      "name": "BLUE WHALE",
+      "nodes": [
+        {
+          "x": 13,
+          "y": 0
+        },
+        {
+          "x": 5,
+          "y": 5
+        },
+        {
+          "x": 21,
+          "y": 5
+        },
+        {
+          "x": 2,
+          "y": 13
+        },
+        {
+          "x": 24,
+          "y": 13
+        },
+        {
+          "x": 5,
+          "y": 22
+        },
+        {
+          "x": 21,
+          "y": 22
+        },
+        {
+          "x": 13,
+          "y": 26
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        0
+      ],
+      "collectionId": "ocean-depths"
+    },
+    "tunnels": [
+      [
+        {
+          "color": "cyan",
+          "capacity": 11
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 11
+        },
+        {
+          "color": "purple",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 12
+        },
+        {
+          "color": "blue",
+          "capacity": 11
+        },
+        {
+          "color": "cyan",
+          "capacity": 11
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 12
+        },
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "white",
+          "capacity": 9
+        },
+        {
+          "color": "yellow",
+          "capacity": 13
+        },
+        {
+          "color": "cyan",
+          "capacity": 11
+        },
+        {
+          "color": "cyan",
+          "capacity": 13
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "coral",
+          "capacity": 11
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "indigo",
+          "capacity": 6
+        },
+        {
+          "color": "cyan",
+          "capacity": 3
+        },
+        {
+          "color": "gold",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "cyan",
+          "capacity": 13
+        },
+        {
+          "color": "indigo",
+          "capacity": 13
+        },
+        {
+          "color": "blue",
+          "capacity": 11
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "indigo",
+          "capacity": 12
+        },
+        {
+          "color": "teal",
+          "capacity": 13
+        },
+        {
+          "color": "purple",
+          "capacity": 11
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 12
+        },
+        {
+          "color": "blue",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "indigo",
+          "capacity": 9
+        },
+        {
+          "color": "blue",
+          "capacity": 11
+        },
+        {
+          "color": "purple",
+          "capacity": 8
+        },
+        {
+          "color": "lime",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 5
+        },
+        {
+          "color": "blue",
+          "capacity": 2
+        },
+        {
+          "color": "coral",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "blue",
+          "capacity": 12
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 12
+        },
+        {
+          "color": "blue",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "cyan",
+          "capacity": 13
+        },
+        {
+          "color": "purple",
+          "capacity": 11
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "cyan",
+          "capacity": 12
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 11
+        },
+        {
+          "color": "blue",
+          "capacity": 12
+        },
+        {
+          "color": "gold",
+          "capacity": 11
+        },
+        {
+          "color": "purple",
+          "capacity": 7
+        },
+        {
+          "color": "lime",
+          "capacity": 5
+        },
+        {
+          "color": "yellow",
+          "capacity": 1
+        }
+      ]
+    ]
+  },
+  {
+    "id": 68,
+    "title": "Giant Squid",
+    "difficulty": "hard",
+    "holding": 3,
+    "legend": {
+      "W": "white",
+      "Y": "yellow",
+      "A": "gold",
+      "R": "red",
+      "D": "coral",
+      "K": "pink",
+      "M": "magenta",
+      "P": "purple",
+      "N": "indigo",
+      "B": "blue",
+      "C": "cyan",
+      "T": "teal",
+      "L": "lime"
+    },
+    "grid": [
+      "NCMBTMBT.N.TMMCMBTNCPBTMBTMN",
+      "TNCPNC.M.TPCPNKMCKTM.PNCPNBT",
+      "BTM.TMNCPMNKMCPNKMCTMBTMBCP.",
+      "PNWPNB.MNCCPNKMCPNNN.PN.TMBC",
+      "BT.BCPNBTNKMCPNKMCPTMBTPWCTM",
+      "PNC.MB.PNCPNKMCPNKMCCPMBT.NC",
+      "BTPNWTMBTKMCPNKMCPNNMNC.M.TM",
+      "PMB.P..PCPNKMCPNKMCPTT.NCPWC",
+      "N.PMB.MBKMCPNKMCPNKMP.B.MBTM",
+      "T.NC.NCPNNKMCPNKMCPPBC.NCPNC",
+      "NBTM.T..PCPNKMTPAKMTTMBTMBTN",
+      "C.N.PNC.BTMCMDTAAAMPNC.NCPBT",
+      "MBTWBTNCPBPCMDARRRABTMBTMCPN",
+      "CPNCP.TM.TPCMDRARARTNCPNTMBP",
+      "MBT.CPNT..PCMRTPYMDRTMBPNWMB",
+      ".PNTMBPN.MKBRTMBMNCMRCMBTNCP",
+      "MBPNCMBTMBN.LLPBKNMMTNCPBTM.",
+      "CMBTNCPPCCB.LPKBPNDMCTMCP.CP",
+      "NCPBT.C.WYTLCBTT.PBCWYTMBT.B",
+      "TMCPNMPBNKWYMPBKPNWYCPTCPNCT",
+      "NTMBPMBN.KCTWYBPWYPMCBTCBT.N",
+      "PNCC..CMBTTNP.WYPBNNPP.CL.BT",
+      "BTPMTPCCMMLTDBBBPPBPKCTMCTPM",
+      "PNMP.BNWYCCCCPBTCCPNNWYB.TNC",
+      "BTCNCPNTT.DLMCPKCMBTMBCC.LLM",
+      ".PM.MTNPNCDCLMBPTBPNCMPMM.LC",
+      "BMCN.MNBTMPLTCMPTTCTPMCNCBTT",
+      "TC.CTNB.ND.BC.CMNCTMBKP.NCNC"
+    ],
+    "reveal": {
+      "name": "GIANT SQUID",
+      "nodes": [
+        {
+          "x": 13,
+          "y": 0
+        },
+        {
+          "x": 5,
+          "y": 5
+        },
+        {
+          "x": 22,
+          "y": 5
+        },
+        {
+          "x": 2,
+          "y": 14
+        },
+        {
+          "x": 25,
+          "y": 14
+        },
+        {
+          "x": 5,
+          "y": 23
+        },
+        {
+          "x": 22,
+          "y": 23
+        },
+        {
+          "x": 14,
+          "y": 27
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        0
+      ],
+      "collectionId": "ocean-depths"
+    },
+    "tunnels": [
+      [
+        {
+          "color": "magenta",
+          "capacity": 13
+        },
+        {
+          "color": "white",
+          "capacity": 3
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "cyan",
+          "capacity": 13
+        },
+        {
+          "color": "purple",
+          "capacity": 12
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "pink",
+          "capacity": 5
+        },
+        {
+          "color": "lime",
+          "capacity": 4
+        },
+        {
+          "color": "indigo",
+          "capacity": 12
+        },
+        {
+          "color": "gold",
+          "capacity": 2
+        },
+        {
+          "color": "blue",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "red",
+          "capacity": 3
+        },
+        {
+          "color": "cyan",
+          "capacity": 14
+        },
+        {
+          "color": "purple",
+          "capacity": 12
+        },
+        {
+          "color": "white",
+          "capacity": 2
+        },
+        {
+          "color": "blue",
+          "capacity": 9
+        },
+        {
+          "color": "magenta",
+          "capacity": 12
+        },
+        {
+          "color": "purple",
+          "capacity": 12
+        },
+        {
+          "color": "pink",
+          "capacity": 5
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "yellow",
+          "capacity": 3
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 13
+        },
+        {
+          "color": "magenta",
+          "capacity": 13
+        },
+        {
+          "color": "coral",
+          "capacity": 3
+        }
+      ],
+      [
+        {
+          "color": "cyan",
+          "capacity": 13
+        },
+        {
+          "color": "pink",
+          "capacity": 5
+        },
+        {
+          "color": "purple",
+          "capacity": 12
+        },
+        {
+          "color": "white",
+          "capacity": 3
+        },
+        {
+          "color": "lime",
+          "capacity": 4
+        },
+        {
+          "color": "red",
+          "capacity": 3
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "gold",
+          "capacity": 3
+        },
+        {
+          "color": "coral",
+          "capacity": 3
+        },
+        {
+          "color": "white",
+          "capacity": 2
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "magenta",
+          "capacity": 12
+        },
+        {
+          "color": "pink",
+          "capacity": 5
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "purple",
+          "capacity": 12
+        },
+        {
+          "color": "cyan",
+          "capacity": 13
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "purple",
+          "capacity": 12
+        },
+        {
+          "color": "magenta",
+          "capacity": 13
+        },
+        {
+          "color": "blue",
+          "capacity": 9
+        },
+        {
+          "color": "cyan",
+          "capacity": 13
+        },
+        {
+          "color": "yellow",
+          "capacity": 4
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "magenta",
+          "capacity": 13
+        }
+      ],
+      [
+        {
+          "color": "red",
+          "capacity": 4
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "yellow",
+          "capacity": 3
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "white",
+          "capacity": 2
+        },
+        {
+          "color": "gold",
+          "capacity": 3
+        },
+        {
+          "color": "cyan",
+          "capacity": 13
+        },
+        {
+          "color": "lime",
+          "capacity": 4
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "purple",
+          "capacity": 12
+        },
+        {
+          "color": "magenta",
+          "capacity": 12
+        },
+        {
+          "color": "pink",
+          "capacity": 4
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "cyan",
+          "capacity": 13
+        },
+        {
+          "color": "magenta",
+          "capacity": 12
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        },
+        {
+          "color": "blue",
+          "capacity": 9
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "teal",
+          "capacity": 11
+        },
+        {
+          "color": "white",
+          "capacity": 3
+        },
+        {
+          "color": "cyan",
+          "capacity": 13
+        },
+        {
+          "color": "magenta",
+          "capacity": 12
+        },
+        {
+          "color": "purple",
+          "capacity": 12
+        },
+        {
+          "color": "coral",
+          "capacity": 3
+        },
+        {
+          "color": "pink",
+          "capacity": 5
+        },
+        {
+          "color": "blue",
+          "capacity": 9
+        },
+        {
+          "color": "indigo",
+          "capacity": 11
+        }
+      ]
+    ]
+  },
+  {
+    "id": 69,
+    "title": "The Abyss",
+    "difficulty": "hard",
+    "holding": 3,
+    "legend": {
+      "W": "white",
+      "Y": "yellow",
+      "D": "coral",
+      "M": "magenta",
+      "P": "purple",
+      "N": "indigo",
+      "B": "blue",
+      "C": "cyan",
+      "T": "teal",
+      "G": "green",
+      "L": "lime"
+    },
+    "grid": [
+      "NPMBC...TCPCMBCMBCNPBBCMBCMN",
+      "CNPTNPTMBBTNPTN.TBCMBTNPTNBC",
+      "BCMBCMNPTMCCMBCM.TNCM.W.BPTN",
+      "TNPTNBCMM.BN.TN...TBPCCCCMBP",
+      "BCMCPTNCCCBC.BTNPMBBM.CTNP.M",
+      "TNWWW.PTWP.BPM.CNPTB.N..CTNP",
+      "BCPLP.PBCMBCM.TBCNCPPPPP.BCM",
+      "TMN.MMMMMPTCCCPTN.BY.MM..TNP",
+      "NP.MBCNBCMPTBCM.CMLWYNB.MWCM",
+      ".MNPTNPTNCMBTNPTNPCLB.TNYYY.",
+      "NBC.BCMBTNPMBCMBCLN.C.BCMCCN",
+      "P.NPT.PMBCN...PTCBCTNPTNPTBP",
+      "BBCMB.NPTBCM.CBCPTMNCMBPMPTB",
+      "NTNPMBBNP.NMPTBNMPPPNMMMMMBD",
+      "P.NNNNNBNBNMPTBNYYTB.MBNNPMG",
+      "NPNCPBTPBNNMPTBNMPTBNPMB.NBN",
+      "PBTNPMBNPBNMPTBNDDDD..PTBCDP",
+      "BDBCNP.BPTMMPTBNWWWWBCMPTNGB",
+      "DGNBCMN.M.PTMBBM.C.PTNCMBBND",
+      "GNPTNCT.B.MN.T.P.NCMBTCP.DPG",
+      "NPBBWWWPTNBWMB.M.TN..WWWBGBN",
+      "PBDGNM.MBPMMMT..M.C.PTL.BNDP",
+      "BDGNC..PCMBCMBCNPTBCM.CMDPGB",
+      "GGDTPBNDTPGNDTPGN.TPGTDTPBND",
+      "GPGNDTPGCDTPMNDTCGNDMPGNNTPG",
+      "NDTDGNDTPGNNTPGTDTPNNDTDGNDN",
+      "PGDDTPMNDTBGND.PGNBTPGPDTPDN",
+      "DDPGNBTPGPDTPNNDTPGNDCPGNPTP"
+    ],
+    "reveal": {
+      "name": "THE ABYSS",
+      "nodes": [
+        {
+          "x": 13,
+          "y": 0
+        },
+        {
+          "x": 5,
+          "y": 5
+        },
+        {
+          "x": 22,
+          "y": 5
+        },
+        {
+          "x": 2,
+          "y": 14
+        },
+        {
+          "x": 25,
+          "y": 14
+        },
+        {
+          "x": 5,
+          "y": 23
+        },
+        {
+          "x": 22,
+          "y": 23
+        },
+        {
+          "x": 14,
+          "y": 27
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        0
+      ],
+      "collectionId": "ocean-depths"
+    },
+    "tunnels": [
+      [
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "coral",
+          "capacity": 5
+        },
+        {
+          "color": "indigo",
+          "capacity": 13
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 4
+        },
+        {
+          "color": "white",
+          "capacity": 3
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "blue",
+          "capacity": 12
+        },
+        {
+          "color": "green",
+          "capacity": 4
+        },
+        {
+          "color": "yellow",
+          "capacity": 2
+        },
+        {
+          "color": "indigo",
+          "capacity": 13
+        },
+        {
+          "color": "lime",
+          "capacity": 2
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "purple",
+          "capacity": 12
+        },
+        {
+          "color": "white",
+          "capacity": 3
+        },
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 14
+        },
+        {
+          "color": "blue",
+          "capacity": 12
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "green",
+          "capacity": 3
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 4
+        },
+        {
+          "color": "blue",
+          "capacity": 12
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "green",
+          "capacity": 4
+        }
+      ],
+      [
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "indigo",
+          "capacity": 14
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 11
+        },
+        {
+          "color": "white",
+          "capacity": 3
+        },
+        {
+          "color": "indigo",
+          "capacity": 13
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "green",
+          "capacity": 4
+        },
+        {
+          "color": "coral",
+          "capacity": 4
+        },
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 3
+        },
+        {
+          "color": "green",
+          "capacity": 3
+        },
+        {
+          "color": "yellow",
+          "capacity": 2
+        },
+        {
+          "color": "magenta",
+          "capacity": 11
+        },
+        {
+          "color": "indigo",
+          "capacity": 13
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 12
+        },
+        {
+          "color": "lime",
+          "capacity": 2
+        },
+        {
+          "color": "coral",
+          "capacity": 5
+        },
+        {
+          "color": "green",
+          "capacity": 3
+        },
+        {
+          "color": "blue",
+          "capacity": 11
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "coral",
+          "capacity": 5
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        }
+      ],
+      [
+        {
+          "color": "white",
+          "capacity": 3
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "green",
+          "capacity": 3
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 5
+        },
+        {
+          "color": "blue",
+          "capacity": 12
+        },
+        {
+          "color": "indigo",
+          "capacity": 13
+        },
+        {
+          "color": "white",
+          "capacity": 3
+        },
+        {
+          "color": "green",
+          "capacity": 4
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "coral",
+          "capacity": 4
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 1
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "coral",
+          "capacity": 5
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "yellow",
+          "capacity": 3
+        },
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 13
+        },
+        {
+          "color": "green",
+          "capacity": 4
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "blue",
+          "capacity": 12
+        },
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 13
+        },
+        {
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "blue",
+          "capacity": 12
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        }
+      ]
+    ]
+  },
+  {
+    "id": 70,
+    "title": "Leviathan",
+    "difficulty": "hard",
+    "holding": 3,
+    "legend": {
+      "W": "white",
+      "Y": "yellow",
+      "A": "gold",
+      "R": "red",
+      "D": "coral",
+      "K": "pink",
+      "M": "magenta",
+      "P": "purple",
+      "N": "indigo",
+      "B": "blue",
+      "C": "cyan",
+      "T": "teal",
+      "L": "lime"
+    },
+    "grid": [
+      "NPMB.MBCTNPCMBCMBCNP.BCMBC..",
+      "CNPTNPW..C.NPT...BCMPTWPTNBC",
+      "BCCBCCCCTMBCMBCMP.NCMCCCCP.N",
+      "TWWWNBDMNPTNPTNC.BTNPTMYYYBP",
+      "BCWB.WN.CMBMMBD.P.BCMBCTW.CM",
+      "TNPCCCCTNPTNRD.PRDTNPTMBCTCP",
+      "BCTNPAMBDMBMNMNMNMPRMNPTMWWW",
+      "TM.CTN.TNPRBCBLBCBCDCBMNPTWP",
+      "NN.M.CDBTPTPLCTPLCTYPRT.MMNM",
+      "CNPPTNPPRNMNMNMNMKWYMAMNBDPP",
+      "NB.PNNBBNCLCBCBCAKWYRAKPMNBN",
+      "PTCP.PNNPPPTPTPTPKWYMANBDPMC",
+      "MCCCBCNMNLNMNMNMDLMYBLPMNBDN",
+      "PTWP.BPMCBCBCBCBNBDPMNBDRRDR",
+      "MBCMPTTPTPTLTPTLTMNDWDWRWDWB",
+      ".TNTTBTNMNMNMLCNMNLMNBDPMNBT",
+      "MBTMPMBMCCNCBCBCBCBCBCBTBCMB",
+      "PPMCNPPP.BTTKTPTPTNBPTMPTCPT",
+      "PMTBCMPCMTBMKMCMPDNCNNCMWWWB",
+      "PMPTNCMNBTMNKKTTPMP.NCNPTWP.",
+      "NCMBCMB.BTBCMPCLCMDM.BBCCCTN",
+      "TNPTPPCMTNTNMP.TCBDMD.N.LLLC",
+      "BCMWMTN.NMBCMMCNTTBPPMC.NWNM",
+      "T.CCC.CCTPT.PP.CMTTNMD.B.MBN",
+      "B.CKP.AAAMBCKMTN.TTC.YPT..C.",
+      "TMPCMNTWNPT.KM.TNLCNWWWMP.NP",
+      "MPTN.TB.C.BKMPMBCCLCTCPPPB.M",
+      "MMBP.TPTNPMKCNPTNPLMBCTPPTNP"
+    ],
+    "reveal": {
+      "name": "LEVIATHAN",
+      "nodes": [
+        {
+          "x": 13,
+          "y": 0
+        },
+        {
+          "x": 5,
+          "y": 5
+        },
+        {
+          "x": 22,
+          "y": 5
+        },
+        {
+          "x": 2,
+          "y": 14
+        },
+        {
+          "x": 25,
+          "y": 14
+        },
+        {
+          "x": 5,
+          "y": 23
+        },
+        {
+          "x": 22,
+          "y": 23
+        },
+        {
+          "x": 14,
+          "y": 27
+        }
+      ],
+      "lines": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "accentNodes": [
+        0
+      ],
+      "collectionId": "ocean-depths"
+    },
+    "tunnels": [
+      [
+        {
+          "color": "magenta",
+          "capacity": 9
+        },
+        {
+          "color": "blue",
+          "capacity": 8
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "lime",
+          "capacity": 6
+        },
+        {
+          "color": "blue",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 3
+        },
+        {
+          "color": "red",
+          "capacity": 4
+        },
+        {
+          "color": "magenta",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "blue",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "yellow",
+          "capacity": 3
+        },
+        {
+          "color": "magenta",
+          "capacity": 9
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "pink",
+          "capacity": 5
+        },
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "indigo",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "coral",
+          "capacity": 7
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        }
+      ],
+      [
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "indigo",
+          "capacity": 9
+        },
+        {
+          "color": "blue",
+          "capacity": 8
+        },
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 2
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "magenta",
+          "capacity": 9
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "magenta",
+          "capacity": 9
+        },
+        {
+          "color": "yellow",
+          "capacity": 3
+        },
+        {
+          "color": "lime",
+          "capacity": 6
+        },
+        {
+          "color": "blue",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "red",
+          "capacity": 4
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "magenta",
+          "capacity": 9
+        },
+        {
+          "color": "pink",
+          "capacity": 4
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "magenta",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 8
+        }
+      ],
+      [
+        {
+          "color": "coral",
+          "capacity": 8
+        },
+        {
+          "color": "yellow",
+          "capacity": 3
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "red",
+          "capacity": 3
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "indigo",
+          "capacity": 9
+        },
+        {
+          "color": "magenta",
+          "capacity": 9
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "pink",
+          "capacity": 4
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "magenta",
+          "capacity": 9
+        },
+        {
+          "color": "lime",
+          "capacity": 6
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 3
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "magenta",
+          "capacity": 9
+        },
+        {
+          "color": "blue",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 9
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "magenta",
+          "capacity": 9
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        }
+      ]
+    ]
+  }
+]
+}
