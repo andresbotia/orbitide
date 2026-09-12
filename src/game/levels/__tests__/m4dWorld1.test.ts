@@ -101,7 +101,7 @@ test('First Light analyzer report stays scoped to Levels 1-10', async () => {
   expect(rows[8]!.score).toBeGreaterThan(rows[7]!.score);
   expect(rows[9]).toMatchObject({ authored: 'hard', suggested: 'hard' });
   expect(rows[9]!.con.minWinningPeak).toBeGreaterThanOrEqual(2);
-  expect(rows[9]!.con.heldLaunches).toBeGreaterThanOrEqual(2);
+  expect(rows[9]!.seq.heldLaunches).toBeGreaterThanOrEqual(2);
   expect(rows[9]!.con.lossProbability).toBeGreaterThan(0.5);
   expect(rows[9]!.con.viableFirstMoves).toBe(rows[9]!.con.totalFirstMoves);
   expect(rows[9]!.con.failPathLength).toBeGreaterThan(2);

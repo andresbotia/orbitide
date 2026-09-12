@@ -37,8 +37,6 @@ export function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayo
     <View style={styles.row}>
       {charges.map(({ tunnelId, charge }, index) => {
         const tunnel = state.tunnels[index];
-        const queued = tunnel?.queue.length ?? 0;
-        const hasMore = queued > 1;
         const empty = !charge;
 
         return (
