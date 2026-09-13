@@ -10,8 +10,11 @@ const added = LEVEL_DEFINITIONS.filter((level) => level.id >= 31 && level.id <= 
 
 test('M4B adds three ordered ten-level worlds and Levels 31-60', () => {
   expect(added.map((level) => level.id)).toEqual(Array.from({ length: 30 }, (_, i) => i + 31));
+  // World ids/titles here are the CURRENT campaign metadata (redesign
+  // Milestone 1 fix), not the legacy codenames these worlds shipped under —
+  // the underlying level ids/content assertions below are unaffected.
   expect(CAMPAIGN_MANIFEST.worlds.slice(3, 6).map((world) => [world.id, world.levelIds.length])).toEqual([
-    ['curio-cabinet', 10], ['prism-works', 10], ['frostglass-forge', 10],
+    ['mechanical-city', 10], ['cosmic-frontier', 10], ['world-landmarks', 10],
   ]);
 });
 

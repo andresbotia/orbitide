@@ -16,28 +16,44 @@ is untouched by this document entirely.
 
 ## 1. Token systems — which one, where
 
-Three token modules currently exist and each has a real job. **Use the one
-whose job matches the surface — do not invent a fourth, and do not reach
-across systems inside one component** (the audit flagged `ResultOverlay.tsx`
-and `LevelBadge.tsx` mixing systems; fix as touched, don't blanket-refactor).
+**Updated in redesign Milestone 1.** Four token modules now exist. `arcade`
+is in a documented, deliberate migration — it is not gone, but it is no
+longer where new work should draw from. **Use the one whose job matches the
+surface, do not reach across systems inside one component** (the audit
+flagged `ResultOverlay.tsx` and `LevelBadge.tsx` mixing systems; fix as
+touched, don't blanket-refactor).
 
 | System | File | Job | Use for |
 | --- | --- | --- | --- |
 | `brandColor` / `brandGradient` / `brandMotion` | `theme/brand.ts` | Brand surface | Logo/wordmark, primary CTAs, card/sheet chrome (surface/border fills), splash, empty/loading states |
 | `palette` | `theme/colors.ts` | UI/system chrome text + status | Body/heading text color, success/danger/warning semantics *when the surface isn't a branded card* |
-| `arcade` | `theme/arcade.ts` | In-game material language | Board environment, HUD metal bezels, sockets/tunnels/holding hardware, gameplay accent/warn/danger |
+| `material` | `theme/material.ts` | **New Pixel Arcadia product-chrome material system** | Any *new* in-game/product chrome work from Milestone 2 onward — HUD, tunnels, holding, board environment, world map. This is the target system. |
+| `arcade` | `theme/arcade.ts` | **Legacy "Cosmic Arcade" material language — deprecated, mid-migration** | Existing consumers only (`OrbitBoard`, `TunnelBar`, `HoldingTray`, `Hud`, `WorldCard`, `LevelNode`, ...), unchanged until their own redesign milestone reskins them onto `material`. **Do not add new consumers.** |
 
-Rule of thumb: **if it's a physical piece of the game machine (HUD, tunnels,
-holding, board), it's `arcade`. If it's brand chrome (a CTA, a modal card, an
-empty state), it's `brandColor`. `palette` is the fallback for plain UI text
-that isn't inside a branded card.** A single component should draw from at
-most two of the three, and only when there's a real reason (e.g. a branded
-card containing plain status text).
+Rule of thumb, current state: **if it's an *existing* physical piece of the
+game machine that hasn't been touched by its redesign milestone yet, it's
+still `arcade` (untouched, unchanged — this is intentional, not an oversight).
+Any *new* in-game/product chrome, or a component actively being redesigned
+this phase, is `material`. Brand chrome (a CTA, a modal card, an empty state)
+stays `brandColor`. `palette` is the fallback for plain UI text that isn't
+inside a branded card.** A single component should draw from at most two
+systems, and only when there's a real reason (e.g. a branded card containing
+plain status text).
+
+Migration discipline (see §22 for the full rationale): `arcade.ts`'s cosmic-
+specific tokens (`nebulaCore`, `nebulaEdge`, `starFar`, `starNear`) are
+`@deprecated` in code and must never be silently repurposed to mean something
+new — add the new role to `material.ts` instead. `arcade.ts`'s generic
+hardware-material tokens (`metal*`, `socket*`, `glass*`, `rail*`, `accent`/
+`warn`/`danger`) are a temporary compatibility layer, not deprecated in the
+same sense — they keep working exactly as-is until their consumer's milestone
+lands.
 
 `orbColors` / `orbGlow` / `orbLabel` (also `theme/colors.ts`) are the 15
 gameplay charge colors — reserved for charges/pixels only, never for chrome,
 per the existing brand ⟂ gameplay separation rule (asserted in
-`brand.test.ts`; do not weaken).
+`brand.test.ts`; do not weaken). `theme/worldSkins.ts`'s per-world accents
+follow the same rule — see §26.
 
 ## 2. Spacing scale
 
@@ -287,3 +303,178 @@ follow that same cap rather than stretching edge-to-edge on large screens;
 full-bleed board/HUD surfaces should continue to scale by measured available
 space (as `GameScreen`'s `onBoardArea` already does) rather than a fixed
 breakpoint table.
+
+---
+
+# Part 2 — Redesign Foundations (Milestone 1)
+
+Everything below was added by the Pixel Arcadia identity redesign's first
+implementation milestone (see the redesign audit for full context: Orbitide
+remnants, the KEEP/REBUILD/REMOVE matrix, and the phased roadmap). Part 1
+above is the M4C.11-era document and is left intact as the historical record
+of what shipped before this phase — its rules still apply to every component
+`arcade`/`brandColor`/`palette` continue to describe; nothing in Part 1 was
+invalidated, only extended.
+
+## 22. The `material` system and the `arcade` deprecation
+
+**Why a new file instead of rewriting `arcade.ts` in place**: `arcade.ts` is
+imported by ~10 live components (`OrbitBoard`, `TunnelBar`, `HoldingTray`,
+`Hud`, `IconButton`, `WorldCard`, `LevelNode`, `WorldSelectScreen`,
+`WorldLevelsScreen`, `DifficultyGate`, ...). Changing its token *values* would
+re-theme every one of those at once, in an uncontrolled way, before their
+individual redesign milestones (Home = 2, World map = 3, Gameplay board/HUD =
+4, Tunnels/Holding = 5, Win/fail = 7) have actually redesigned their
+composition, motion, and content — not just their colours. `theme/material.ts`
+is therefore new and additive; `arcade.ts` is untouched in *value*, only
+annotated in *documentation*.
+
+**What changed in `arcade.ts` this milestone**: comments only.
+- A file-level migration-status note explaining the new system exists and
+  that new consumers should not be added here.
+- `nebulaCore`, `nebulaEdge`, `starFar`, `starNear` are now `@deprecated` in
+  code — these are the Orbitide-era "deep space" tokens (redesign audit
+  findings B.1/B.2). They must not be silently repurposed for an unrelated
+  new effect; a genuinely new visual role belongs in `material.ts`.
+- `metal*`/`socket*`/`glass*`/`rail*`/`accent`/`warn`/`danger` are explicitly
+  *not* deprecated in the same sense — they're the still-useful "physical
+  hardware" compatibility layer and keep working unchanged until their
+  consumer's own milestone reskins it.
+
+**`theme/material.ts` roles** (see the file for exact values): `background`,
+`elevatedBackground`, `structuralSurface`, `raisedSurface`,
+`recessedSurface`, `bevelHighlight`, `bevelShadow`, `outline`, `energyWarm`,
+`energyGlow`, `accentCyan`, `success`/`danger`/`warning` (identical values to
+`palette`'s, so status colour meaning doesn't fork), `textPrimary`/
+`textSecondary`, `disabled`, `overlay`. Values are a first pass, derived from
+the existing `brandColor` palette (already icon-correct) plus a small set of
+new bevel/surface tones in the same family — expect these to be tuned once a
+real screen (Milestone 2+) actually uses them, not treated as final.
+
+**Nothing consumes `material.ts` yet.** That is intentional — this milestone
+is foundation only; wiring it into Home/board/etc. is each later milestone's
+job.
+
+## 23. Motion system (`theme/motion.ts`)
+
+Three tiers — MICRO 50-150ms (press/selection), STANDARD 150-350ms
+(cards/panels), MAJOR 350-800ms (wins/transitions/reward) — and eight named
+presets (`pressSquash`, `release`, `selectionTick`, `panelEnter`, `cardEnter`,
+`warningPulse`, `successResponse`, `rewardResponse`), each with a duration,
+easing/spring config, and a reduced-motion resolution. This is the general
+product-chrome motion vocabulary — the equivalent of `brandMotion` (§ brand
+moments only) but for buttons/cards/panels/alerts generally.
+
+**Explicitly out of scope for this system**: gameplay-board choreography
+(`game/presentation/motion.ts`/`constants.ts` — `FEEL`, `LAUNCH_HUB`), which
+is engine-event-timed and must stay exactly as it is; this system must never
+be used to re-time a launch/orbit/clear beat.
+
+No screen is wired to `motion.ts` yet — later milestones reach for a named
+preset instead of hand-rolling a new duration/easing pair at the call site.
+
+## 24. Haptic hierarchy (documentation only — no rewrite)
+
+The existing service (`game/haptics.ts` + `hapticArbiter.ts` + `feedback.ts`)
+was audited, not rewritten: its semantic-event-name discipline, throttling,
+cross-charge coalescing (§ `hapticArbiter`'s `COALESCE_WINDOW_MS`), and sound-
+hook stub already implement most of what the redesign brief asks for. The
+current roster now maps onto six tiers (also documented as a comment directly
+above `haptics.ts`'s `haptics` export):
+
+| Tier | Events |
+| --- | --- |
+| micro | `select`, `orbitEnter`, `denied` |
+| light | `iceCrack`, `shieldBreak` |
+| medium | `heldRelaunch`, `pixelPop`, `pixelCombo`, `chargeConsumed`, `holdingLand`, `linkPrime`, `nextPress`, `gateLock` |
+| warning | `holdingCritical`, `holdingFull`, `fail` |
+| success | `win`, `discoveryResolve`, `finalClear`, `linkClear`, `pixelBurst` |
+| special/capstone | `capstoneWin` (new this milestone — reserved, not yet called from any screen) |
+
+`capstoneWin` is the one new semantic event added this milestone: a heavier
+variant of the existing `win`/`discoveryResolve` success-bloom pattern
+(success notification + a heavy impact after 160ms instead of medium after
+120ms), reserved for a world-capstone or Level 100 completion. It is defined
+and tested but not wired into `DiscoveryOverlay`/`GameScreen` — that's
+Milestone 7's job, once the win-screen capstone treatment actually exists.
+
+## 25. Typography + iconography foundations
+
+`theme/spacing.ts`'s `typography` gained three additive tokens (existing
+`wordmark`/`title`/`label`/`body`/`numeric` values are unchanged):
+- `display` (28/700) — hero-level headlines (world-map/campaign titles),
+  larger than `title`.
+- `cta` (17/700, tracked 0.16em) — matches `PrimaryCta`'s existing hardcoded
+  label style exactly, so future CTA-adjacent text has one token to reference
+  instead of re-deriving it. `PrimaryCta` itself is not changed this
+  milestone.
+- `metadata` (10/500) — tiny footer/secondary metadata, one step below
+  `label`.
+
+**Iconography plan (not implemented this milestone)**: icon buttons currently
+render bare Unicode glyphs (`⚙ ↺ ← ◈ ⟲ ◎ ＋`) at a shared 40×40 hit target
+(`IconButton`, §9 above) — functional, but not an owned design system, and
+the redesign brief specifically warns against an uncontrolled icon mix once
+more icons (boosters, store, settings destinations) get added. The plan is to
+build a small owned icon set the same way `DifficultyGate` already builds its
+machined-frame difficulty icon: Skia-drawn from geometry primitives, not an
+icon font or asset library. Initial roster once undertaken: settings,
+restart, back, pause, undo, hint/scan, extra-slot, coins/currency, locked.
+`IconButton` keeps its current glyphs unchanged until that system exists and
+a component's own milestone adopts it.
+
+## 26. World-skin architecture: global product UI + world-specific environmental skin
+
+**GLOBAL PIXEL ARCADIA PRODUCT UI + WORLD-SPECIFIC ENVIRONMENTAL SKIN.**
+Product chrome — HUD, tunnels, Holding, buttons, boosters, the win/fail
+surfaces — is the same everywhere and must stay that way; a player should
+never have to relearn a control because they're in a different world. World
+identity is expressed through *environment and accent only*: `theme/
+worldSkins.ts` is a small declarative registry, keyed by the campaign's real
+`themeId` (§27), of `accent`, `secondaryAccent`, a forward-looking
+`ambientId` (a named future treatment — e.g. `foliage`, `neonSignage`,
+`gearsSteam`, `starfield` — not wired to any renderer yet), and an
+`intensity` hint (`low`/`medium`/`high`).
+
+**The architectural rule this exists to enforce**: a component that wants a
+world's identity calls `worldSkin(world.themeId)` — it never branches on a
+specific world id/name (no `if (themeId === 'ocean-depths')` anywhere in
+component code). Adding an eleventh world would only ever mean one new
+registry entry, never a new conditional scattered through the UI.
+
+Notably, `cosmic-frontier`'s skin deliberately claims the `starfield`
+ambient — the old Cosmic Arcade starfield (§22, `arcade.ts`'s deprecated
+tokens) becomes ONE world's specific identity once world skinning is actually
+implemented (a later milestone), instead of the whole product's default
+background. That is the concrete shape of "global UI + world-specific skin"
+for the one visual motif most associated with the old identity.
+
+Only `accent` is consumed today — `campaign.ts`'s `display.accent` per world
+now reads from `worldSkin(id).accent` rather than a second, hand-duplicated
+hex value, so there is exactly one authored colour per world. No ambient
+treatment is rendered yet; that is explicitly future scope (the World Map
+milestone and beyond).
+
+## 27. Campaign metadata correction (redesign audit finding B.6)
+
+`campaign.ts`'s world blueprint used to group levels by the *pre-authoring-
+pipeline* legacy `themeId` taxonomy (`deep-frost`, `curio-cabinet`,
+`prism-works`, `frostglass-forge`, `skybound`, `tidal-depths`,
+`arcane-relics`, `starforge`), imported from `levelDefinitions.ts` directly.
+Since the JSON content-authoring pipeline (`content/levels/world-0N.json` +
+`replacesLegacy: true`) had since replaced the actual played content for
+those same level-id ranges with new worlds under new names (Neon Nights,
+Mechanical City, Cosmic Frontier, World Landmarks, Ocean Depths, Mythic
+Realm, Prehistoric Titans, Masterpiece Gallery), World Select / World Levels
+were showing stale placeholder names for 8 of the 10 shipped worlds, while
+the player was actually playing the new content.
+
+**Fix**: `campaign.ts` now imports `LEVEL_DEFINITIONS` from `./levels` (the
+runtime-merged, `replacesLegacy`-aware list — the same one `GameScreen`
+actually plays) instead of the raw legacy file, and its `WORLD_BLUEPRINT`
+titles/ids/themeIds/subtitles were updated to the real, current campaign.
+Level ids, level content, level ordering, and gameplay definitions were not
+touched — this is campaign-organisation metadata only. A dedicated regression
+test (`game/levels/__tests__/campaignMetadata.test.ts`) pins the ten current
+world names/ids/order and asserts none of the retired codenames can leak back
+into consumer-facing metadata.

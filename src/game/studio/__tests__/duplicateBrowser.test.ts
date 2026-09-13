@@ -74,9 +74,15 @@ describe('level browser', () => {
   test('one row per level, no solver required', () => {
     const rows = buildBrowserRows(defs, CAMPAIGN_MANIFEST);
     expect(rows).toHaveLength(defs.length);
+    // Independent re-derivation of "which world owns this level" from the
+    // manifest itself. NOT `defs[id-1].themeId`: that reads the legacy
+    // per-level themeId, which the JSON authoring pipeline's `replacesLegacy`
+    // overrides are allowed to diverge from (redesign Milestone 1 — see
+    // `campaign.ts`'s comment on why it groups by the real, current themeId).
+    const worldIdFor = (id: number) => CAMPAIGN_MANIFEST.worlds.find((w) => w.levelIds.includes(id))?.id ?? null;
     for (const r of rows) {
       expect(r.status).toBe('ok');
-      expect(r.worldId).toBe(defs[r.id - 1]!.themeId);
+      expect(r.worldId).toBe(worldIdFor(defs[r.id - 1]!.id));
       expect(r.pixelCount).toBe(createGame(defs[r.id - 1]!).pixels.length);
       expect(r.suggestedDifficulty).toBeNull(); // no analysis supplied
     }

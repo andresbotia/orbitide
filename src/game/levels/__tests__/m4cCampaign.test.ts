@@ -14,7 +14,10 @@ test('World 7 adds ten ordered Skybound levels with its authored curves', () => 
   expect(world.map((level) => level.difficulty)).toEqual([
     'medium', 'medium', 'medium', 'medium', 'medium', 'medium', 'medium', 'medium', 'hard', 'hard',
   ]);
-  expect(CAMPAIGN_MANIFEST.worlds.find((candidate) => candidate.id === 'skybound')?.levelIds)
+  // 'ocean-depths' is the current campaign id for this level range (redesign
+  // Milestone 1 fix) — the legacy 'skybound' codename lives on only in the
+  // superseded legacy level file this test otherwise exercises.
+  expect(CAMPAIGN_MANIFEST.worlds.find((candidate) => candidate.id === 'ocean-depths')?.levelIds)
     .toEqual(world.map((level) => level.id));
   for (const level of world) {
     const density = level.pixelArt.join('').replace(/[. ]/g, '').length;

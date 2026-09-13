@@ -30,6 +30,33 @@ function successThenBloom() {
   if (!HAPTICS_ENABLED) return;
   winTimer = setTimeout(() => { winTimer = undefined; impact(Haptics.ImpactFeedbackStyle.Medium); }, 120);
 }
+/** Same shape as {@link successThenBloom}, heavier bloom for a capstone moment. */
+function successThenHeavyBloom() {
+  cancelPendingHaptics();
+  notification(Haptics.NotificationFeedbackType.Success);
+  if (!HAPTICS_ENABLED) return;
+  winTimer = setTimeout(() => { winTimer = undefined; impact(Haptics.ImpactFeedbackStyle.Heavy); }, 160);
+}
+/**
+ * PIXEL ARCADIA HAPTIC HIERARCHY (redesign Milestone 1 — documentation only;
+ * no event below is rewired to any new UI this milestone).
+ *
+ *   micro     select, orbitEnter, denied            — navigation/selection ticks
+ *   light     iceCrack, shieldBreak                  — small, frequent board events
+ *   medium    heldRelaunch, pixelPop, pixelCombo,     — routine confirmed actions
+ *             chargeConsumed, holdingLand, linkPrime,
+ *             nextPress, gateLock
+ *   warning   holdingCritical, holdingFull, fail      — near-danger / failure states
+ *   success   win, discoveryResolve, finalClear,      — level-complete family
+ *             linkClear, pixelBurst
+ *   special/  capstoneWin                             — reserved for a world-capstone
+ *   capstone                                            or Level 100 completion; not
+ *                                                        wired to any screen yet (that
+ *                                                        is Milestone 7's job)
+ *
+ * This mapping documents intent for later milestones; it does not change how
+ * any existing event behaves.
+ */
 export const haptics = {
   select: () => throttled('press', 80, () => impact(Haptics.ImpactFeedbackStyle.Medium)),
   heldRelaunch: () => throttled('press', 80, () => impact(Haptics.ImpactFeedbackStyle.Rigid)),
@@ -58,4 +85,8 @@ export const haptics = {
   nextPress: () => throttled('press', 80, () => impact(Haptics.ImpactFeedbackStyle.Medium)),
   // Difficulty Gate intro (tier >= 3).
   gateLock: () => impact(Haptics.ImpactFeedbackStyle.Rigid),
+  // Reserved for a world-capstone / Level 100 completion (not yet called from
+  // any screen — wiring it in is Milestone 7's job, once the win-screen
+  // capstone treatment exists).
+  capstoneWin: successThenHeavyBloom,
 };

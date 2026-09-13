@@ -36,6 +36,15 @@ test.each(['win', 'discoveryResolve'] as const)('%s produces success plus one co
   expect(Native.impactAsync).toHaveBeenCalledWith('medium');
 });
 
+test('capstoneWin produces success plus one heavier impact after 160ms (redesign Milestone 1 addition)', () => {
+  haptics.capstoneWin();
+  expect(Native.notificationAsync).toHaveBeenCalledWith('success');
+  expect(Native.impactAsync).not.toHaveBeenCalled();
+  jest.advanceTimersByTime(160);
+  expect(Native.impactAsync).toHaveBeenCalledTimes(1);
+  expect(Native.impactAsync).toHaveBeenCalledWith('heavy');
+});
+
 test('finalClear and the discovery success buzz do not stack into one another', () => {
   haptics.finalClear();
   expect(Native.impactAsync).toHaveBeenCalledWith('heavy');
