@@ -127,7 +127,7 @@ const FlightActor = memo(function FlightActor({ pass, geo, presentThrough, color
       if (next !== 'active') cancelAnimation(clock);
     });
     return () => { cancelAnimation(clock); sub.remove(); };
-  }, [pass, clock]);
+  }, [pass.passId, pass.totalMs, clock]);
 
   useAnimatedReaction(
     () => eventCountAt(pass, clock.value),

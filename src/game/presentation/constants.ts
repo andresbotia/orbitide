@@ -17,12 +17,20 @@ export const LAUNCH_HUB = {
 } as const;
 
 /**
- * M5.3 — Core V2's slower, readable perimeter pass. Legacy V1 keeps
+ * M5.8 — Core V2's readable perimeter pass. Legacy V1 keeps
  * `FEEL.ORBIT_DURATION` (1800ms) exactly as before; this only applies to
  * `coreV2` passes (selected in `buildScript.ts`, never scattered as a magic
- * `8000` elsewhere). Spec-acceptable tuning range: 7500-9000ms.
+ * number elsewhere). One obvious tunable: convoy pauses can make a lap feel
+ * slower than this base, so perceived speed is tuned here first.
  */
-export const CORE_V2_ORBIT_DURATION_MS = 8000;
+export const CORE_V2_ORBIT_DURATION_MS = 7200;
+
+/**
+ * M5.8 — minimum Core V2 rail gap between consecutive active Pals, as a
+ * fraction of one lap. Launch/tap order is preserved; a trailing Pal may
+ * close to this bumper but never overtake. Presentation-only.
+ */
+export const CORE_V2_CONVOY_SPACING = 0.045;
 
 export const FEEL = {
   ORBIT_DURATION: 1800,

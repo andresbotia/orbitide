@@ -4,13 +4,16 @@ import { DEFAULT_ACTIVE_CAPACITY } from '@/game/engine/concurrency';
 import { createGame } from '@/game/engine/createGame';
 import { epochHasCapacity } from '@/game/engine/epoch';
 import { resolveAction, type LaunchOutcome } from '@/game/engine/resolveLaunch';
+import { isCoreV2 } from '@/game/engine/ruleset';
 import type { GameAction } from '@/game/engine/actions';
-import type { GameState, LevelDefinition } from '@/game/engine/types';
+import type { Charge, GameState, LevelDefinition } from '@/game/engine/types';
 import { feedback } from '@/game/feedback';
 import { cancelHits, registerHit } from '@/game/hapticArbiter';
 import { requireLevel } from '@/game/levels/levels';
 import { buildLaunchScript } from '@/game/presentation/buildScript';
+import { applyCoreV2Convoy } from '@/game/presentation/convoy';
 import type { FlightPass, Point } from '@/game/presentation/events';
+import { reserveHoldingSlot } from '@/game/presentation/holdingSlot';
 import {
   applyTutorialEvent,
   catchUpTutorial,
@@ -43,6 +46,19 @@ interface Options {
 
 interface ActiveFlight { pass: FlightPass; outcome: LaunchOutcome; cursor: number }
 
+/** True once this flight has presented its own Holding arrival beat. */
+function hasPresentedHoldingLanding(flight: ActiveFlight): boolean {
+  if (flight.pass.endKind !== 'toHolding') return false;
+  const at = flight.pass.events.findIndex((event) => event.kind === 'holdingLanded');
+  return at >= 0 && flight.cursor > at;
+}
+
+/** Append one Pal to presented Holding; never copy the whole engine tray. */
+function appendPresentedHolding(holding: Charge[], landed: Charge | null): Charge[] {
+  if (!landed || holding.some((charge) => charge.id === landed.id)) return holding;
+  return [...holding, landed];
+}
+
 export interface GameSession {
   state: GameState; engineState: GameState; locked: boolean;
   /** Every charge currently on the rail. */
@@ -58,8 +74,8 @@ export interface GameSession {
   message: string;
   /** M5.4B UI contract. Presentation-only consumers must not drive engine truth. */
   tutorial: TutorialView;
-  launch: (tunnelId: string, from?: Point, holdingTarget?: Point) => void;
-  launchHeld: (chargeId: string, from?: Point, holdingTarget?: Point) => void;
+  launch: (tunnelId: string, from?: Point, holdingSlots?: (Point | undefined)[]) => void;
+  launchHeld: (chargeId: string, from?: Point, holdingSlots?: (Point | undefined)[]) => void;
   presentThrough: (passId: number, eventCount: number) => void;
   restart: () => void;
 }
@@ -136,7 +152,9 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     return () => { sub.remove(); flights.clear(); feedback.cancelPending(); cancelHits(); };
   }, [settleAll]);
 
-  const perform = useCallback((action: GameAction, from?: Point, holdingTarget?: Point) => {
+  const holdingSlotsRef = useRef<(Point | undefined)[]>([]);
+
+  const perform = useCallback((action: GameAction, from?: Point, holdingSlots?: (Point | undefined)[]) => {
     if (truth.current.status !== 'playing') return;
     if (!isTutorialActionAllowed(tutorialRef.current, action)) {
       feedback.emit('denied');
@@ -144,6 +162,14 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     }
     const cap = truth.current.activeCapacity || DEFAULT_ACTIVE_CAPACITY;
     // Visible flights occupy Active slots until they land. Deny with no mutation.
+    if (action.kind === 'holding') {
+      for (const flight of active.current.values()) {
+        if (flight.pass.charge.id === action.id && !hasPresentedHoldingLanding(flight)) {
+          feedback.emit('denied');
+          return;
+        }
+      }
+    }
     if (active.current.size >= cap) {
       setMessage('Rail is full — wait for a charge to land.');
       feedback.emit('denied');
@@ -167,6 +193,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     setMessage('');
     feedback.emit('launch', { haptic: false });
     truth.current = outcome.state;
+    if (holdingSlots) holdingSlotsRef.current = holdingSlots;
     if (outcome.launchedCharge) {
       advanceTutorial({
         type: 'launchAccepted',
@@ -176,16 +203,49 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
       });
     }
     setEngineState(outcome.state);
-    const pass = buildLaunchScript(outcome, before, ++serial.current, from, holdingTarget).pass;
+    let presentedHolding = view.current.holding;
+    if (action.kind === 'holding') {
+      presentedHolding = view.current.holding.filter((charge) => charge.id !== action.id);
+      const pending = [...active.current.values()]
+        .filter((flight) => flight.pass.endKind === 'toHolding' && !hasPresentedHoldingLanding(flight))
+        .sort((a, b) => a.pass.passId - b.pass.passId);
+      pending.forEach((flight, index) => {
+        const slot = presentedHolding.length + index;
+        const target = holdingSlotsRef.current[slot];
+        flight.pass = {
+          ...flight.pass,
+          holdingSlotIndex: slot,
+          ...(target ? { holdingTarget: target } : {}),
+        };
+      });
+    }
+    let pass = buildLaunchScript(outcome, before, ++serial.current, from).pass;
+    if (isCoreV2(before.ruleset)) {
+      pass = {
+        ...pass,
+        launchedAtMs: Date.now(),
+      };
+      pass = applyCoreV2Convoy(pass, [...active.current.values()].map((f) => f.pass));
+    }
+    if (pass.endKind === 'toHolding') {
+      const pending = [...active.current.values()]
+        .filter((flight) => flight.pass.endKind === 'toHolding' && !hasPresentedHoldingLanding(flight))
+        .map((flight) => flight.pass);
+      const slot = reserveHoldingSlot(presentedHolding, pending, outcome.state.holdingCapacity);
+      const target = holdingSlotsRef.current[slot];
+      pass = {
+        ...pass,
+        holdingSlotIndex: slot,
+        ...(target ? { holdingTarget: target } : {}),
+      };
+    }
     active.current.set(pass.passId, { pass, outcome, cursor: 0 });
     // Show the source consumption immediately; keep the board itself lagged.
     view.current = {
       ...view.current,
       movesApplied: outcome.state.movesApplied,
       tunnels: outcome.state.tunnels,
-      holding: action.kind === 'holding'
-        ? view.current.holding.filter((c) => c.id !== action.id)
-        : view.current.holding,
+      holding: presentedHolding,
     };
     setState(view.current);
     publishFlights();
@@ -225,11 +285,17 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
             p.id === event.pixelId ? { ...p, modifier: truthPixel.modifier } : p) };
         }
       } else if (event.kind === 'holdingLanded') {
-        view.current = { ...view.current, holding: truth.current.holding };
+        // Engine truth already parked every remaining-capacity charge in the
+        // epoch. Presentation Holding occupies a slot only after THIS Pal's
+        // own landing beat — convoy-delayed trailers stay off the tray.
+        view.current = {
+          ...view.current,
+          holding: appendPresentedHolding(view.current.holding, flight.outcome.heldCharge),
+        };
         if (truth.current.status === 'playing') setMessage('Tap a held charge to launch it again.');
         advanceTutorial({ type: 'holdingEntered', chargeId: flight.pass.charge.id });
       } else if (event.kind === 'win' || event.kind === 'fail') {
-        view.current = truth.current;
+        view.current = { ...truth.current, holding: view.current.holding };
         if (event.kind === 'win') advanceTutorial({ type: 'levelWon' });
         reportResult();
       } else if (event.kind === 'complete') {

@@ -14,14 +14,6 @@ interface HudProps {
   onRestart: () => void;
   /** Placeholder for M2's settings screen — presentation-only in M2A. */
   onSettings?: () => void;
-  /**
-   * M5.3 — Core V2's compact ACTIVE X/Y status (spec §10). Gated behind this
-   * flag rather than shown unconditionally: Legacy V1's shipped HUD keeps its
-   * existing, already-live appearance untouched (spec §18).
-   */
-  showActiveStatus?: boolean;
-  activeCount?: number;
-  activeCapacity?: number;
 }
 
 /**
@@ -36,7 +28,7 @@ interface HudProps {
  * centered). Passing `onSettings` in the future brings it back unchanged.
  */
 export function Hud({
-  state, title, difficulty, onRestart, onSettings, showActiveStatus, activeCount, activeCapacity,
+  state, title, difficulty, onRestart, onSettings,
 }: HudProps) {
   const remaining = remainingPixelCount(state);
   const total = state.pixels.length;
@@ -61,11 +53,6 @@ export function Hud({
         <View style={styles.subRow}>
           <DifficultyGate difficulty={difficulty} variant="hud" showLabel />
           <Text style={styles.sub}>· {cleared}/{total}</Text>
-          {showActiveStatus && activeCapacity ? (
-            <View style={styles.activePill}>
-              <Text style={styles.activeText}>ACTIVE {activeCount ?? 0}/{activeCapacity}</Text>
-            </View>
-          ) : null}
         </View>
       </View>
 
@@ -95,14 +82,4 @@ const styles = StyleSheet.create({
   fill: { height: 4, borderRadius: 2, backgroundColor: material.accentCyan },
   subRow: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 18 },
   sub: { fontSize: 10, color: material.textSecondary, letterSpacing: 1 },
-  activePill: {
-    marginLeft: 2,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 8,
-    backgroundColor: material.recessedSurface,
-    borderWidth: 1,
-    borderColor: material.accentCyan,
-  },
-  activeText: { fontSize: 9, fontWeight: '700', letterSpacing: 0.6, color: material.accentCyan },
 });

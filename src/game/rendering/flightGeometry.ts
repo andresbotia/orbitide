@@ -68,6 +68,16 @@ export function flightPosition(
   }
   if (time > pass.orbitEndAt && pass.endKind === 'toHolding') {
     const to = pass.holdingTarget ?? { x: layout.center.x, y: layout.size + 100 };
+    // Core V2: never cut off the rail. Stay on the perimeter until presented
+    // progress has actually reached the bottom-center exit, then depart from
+    // that gate — not from whatever rail point we happen to occupy.
+    if (layout.perimeter) {
+      const progress = progressAt(pass, time);
+      if (progress < pass.endProgress - 1e-6) return point;
+      const from = layout.insertion;
+      const p = Math.min(1, (time - pass.orbitEndAt) / Math.max(1, pass.landingAt - pass.orbitEndAt));
+      return { x: from.x + (to.x - from.x) * p, y: from.y + (to.y - from.y) * p };
+    }
     const p = Math.min(1, (time - pass.orbitEndAt) / (pass.landingAt - pass.orbitEndAt));
     return { x: point.x + (to.x - point.x) * p, y: point.y + (to.y - point.y) * p };
   }

@@ -10,6 +10,7 @@ import Animated, {
   Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming,
 } from 'react-native-reanimated';
 
+import { ActiveStatus } from '@/components/ActiveStatus';
 import { BoardFrame } from '@/components/gameplay/BoardFrame';
 import { GameplayEnvironment } from '@/components/gameplay/GameplayEnvironment';
 import { DebugOverlay } from '@/components/DebugOverlay';
@@ -52,7 +53,7 @@ interface GameScreenProps {
  * Production Pixel Arcadia gameplay shell (UI-R3 — Cosmic Arcade materials
  * removed; `OrbitBoard`'s concurrency architecture and all engine/session
  * logic below are unchanged). Screen hierarchy, top to bottom:
- *   TOP HUD -> ENERGY-TRACK / PIXEL-ART BOARD -> HOLDING -> LAUNCH TUNNELS -> TOOLS.
+ *   TOP HUD -> BOARD / RAIL -> ACTIVE X/Y (Core V2) -> HOLDING -> LAUNCH TUNNELS.
  * On a win the board transforms into the Discovery constellation reveal in
  * place; on a loss the minimal retry overlay is shown. Engine truth is
  * unchanged — the reveal is triggered by, never the trigger of, the win.
@@ -110,6 +111,8 @@ export function GameScreen({
   });
   const { state } = session;
   const won = state.status === 'won';
+  const holdingSlotPoints = (): (Point | undefined)[] =>
+    Array.from({ length: state.holdingCapacity }, (_, index) => boardPoint(`holding-${index}`));
 
   // Lightweight, non-modal teaching cue (Level 21's Frozen intro). Shows while
   // the level still has all its ice and the player is in their first few moves;
@@ -217,9 +220,6 @@ export function GameScreen({
           title={level.title}
           difficulty={level.difficulty}
           onRestart={session.restart}
-          showActiveStatus={isCoreV2(state.ruleset)}
-          activeCount={session.activeCount}
-          activeCapacity={session.activeCapacity}
         />
       </View>
 
@@ -276,6 +276,9 @@ export function GameScreen({
       </View>
 
       <Animated.View style={[styles.controls, controlsFadeStyle]} pointerEvents={won ? 'none' : 'auto'}>
+        {isCoreV2(state.ruleset) ? (
+          <ActiveStatus count={session.activeCount} capacity={session.activeCapacity} />
+        ) : null}
         <HoldingTray
           layoutVersion={boardSize}
           holding={state.holding}
@@ -286,8 +289,11 @@ export function GameScreen({
           colorAssist={colorAssist}
           pixelPal={isCoreV2(state.ruleset)}
           onSourceLayout={onSourceLayout}
-          onLaunch={(id) => session.launchHeld(id, boardPoint(`holding-${state.holding.findIndex((c) => c.id === id)}`),
-            boardPoint(`holding-${state.holding.length - 1}`))}
+          onLaunch={(id) => session.launchHeld(
+            id,
+            boardPoint(`holding-${state.holding.findIndex((c) => c.id === id)}`),
+            holdingSlotPoints(),
+          )}
           message={session.message}
           tutorial={session.tutorial}
         />
@@ -298,7 +304,7 @@ export function GameScreen({
           disabled={controlsLocked}
           colorAssist={colorAssist}
           onSourceLayout={onSourceLayout}
-          onLaunch={(id) => session.launch(id, boardPoint(id), boardPoint(`holding-${state.holding.length}`))}
+          onLaunch={(id) => session.launch(id, boardPoint(id), holdingSlotPoints())}
           tutorial={session.tutorial}
         />
 

@@ -156,7 +156,7 @@ test('a coreV2 pass travels the rounded perimeter and reaches the four cardinal 
   expect(maxY).toBeCloseTo(p.y + p.height, 0);
 });
 
-test('Core V2 gets the slower 8s perimeter pass; Legacy V1 keeps its existing 1800ms pacing', () => {
+test('Core V2 gets the slower perimeter pass; Legacy V1 keeps its existing 1800ms pacing', () => {
   const v2State = createGame(coreV2Level());
   const v2Pass = buildLaunchScript(resolveLaunch(v2State, 'tunnel-1'), v2State).pass;
   expect(v2Pass.orbitDurationMs).toBe(CORE_V2_ORBIT_DURATION_MS);

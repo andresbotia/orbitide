@@ -31,9 +31,12 @@ export function buildLaunchScript(outcome: LaunchOutcome, prevState: GameState,
       linkedGroupClear: encounter.linkedGroupClear === true,
       ...(linkedClearTargets ? { linkedClearTargets } : {}) };
   });
-  const orbitEndAt = chargePass.charge.capacity === 0 && shots.length > 0
+  // Holding always completes a full visual lap to the bottom-center exit
+  // (progress 1) before departing. Burst still ends at the last contact.
+  const endProgress = outcome.heldCharge ? 1 : chargePass.progress;
+  const orbitEndAt = !outcome.heldCharge && shots.length > 0
     ? shots[shots.length - 1]!.clearAt
-    : FEEL.LAUNCH_DURATION + chargePass.progress * orbitMs + shots.length * FEEL.PIXEL_CLEAR_INTERVAL;
+    : FEEL.LAUNCH_DURATION + endProgress * orbitMs + shots.length * FEEL.PIXEL_CLEAR_INTERVAL;
   const landingAt = orbitEndAt + (outcome.heldCharge ? FEEL.HOLDING_TRAVEL_DURATION : FEEL.BURST_DURATION);
   const won = outcome.state.status === 'won';
   const lastShot = shots[shots.length - 1];
@@ -72,7 +75,8 @@ export function buildLaunchScript(outcome: LaunchOutcome, prevState: GameState,
   events.sort((a, b) => a.at - b.at);
   const pass: FlightPass = { passId, origin: outcome.action.kind, sourceIndex: outcome.sourceIndex,
     from, holdingTarget, charge: outcome.launchedCharge, shots, liftMs: FEEL.LAUNCH_DURATION,
-    orbitDurationMs: orbitMs, orbitEndAt, endProgress: chargePass.progress, landingAt, totalMs,
-    endKind: outcome.heldCharge ? 'toHolding' : 'burst', events, finalClearPixelId };
+    orbitDurationMs: orbitMs, orbitEndAt, endProgress, landingAt, totalMs,
+    endKind: outcome.heldCharge ? 'toHolding' : 'burst', events, finalClearPixelId,
+    launchedAtMs: 0, convoyHolds: [] };
   return { pass, totalMs };
 }

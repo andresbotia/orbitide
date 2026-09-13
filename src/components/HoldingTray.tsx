@@ -22,7 +22,7 @@ import type { TutorialView } from '@/game/tutorial';
 import { markContrast } from '@/theme/colorAssist';
 import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
 import { material } from '@/theme/material';
-import { spacing, typography } from '@/theme/spacing';
+import { spacing } from '@/theme/spacing';
 
 interface HoldingTrayProps {
   holding: Charge[];
@@ -73,13 +73,6 @@ export function HoldingTray({
 
   return (
     <View style={styles.container}>
-      <View style={styles.labelRow}>
-        <Text style={[styles.label, tier === 'warn' && styles.labelWarn, tier === 'danger' && styles.labelDanger]}>
-          HOLDING {holding.length}/{capacity}
-        </Text>
-        <PressureDots filled={holding.length} capacity={capacity} tier={tier} />
-      </View>
-
       <View style={[styles.deck, tier === 'warn' && styles.deckWarn, tier === 'danger' && styles.deckDanger]}>
         {Array.from({ length: capacity }, (_, index) => {
           const charge = holding[index];
@@ -254,32 +247,8 @@ const Slot = memo(function Slot({
   );
 });
 
-/** Shape-based pressure cue (not colour-only): fills left-to-right with the tray. */
-function PressureDots({ filled, capacity, tier }: { filled: number; capacity: number; tier: 'normal' | 'warn' | 'danger' }) {
-  const color = tier === 'danger' ? material.danger : tier === 'warn' ? material.warning : material.textSecondary;
-  return (
-    <View style={styles.dots} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      {Array.from({ length: capacity }, (_, i) => (
-        <View
-          key={i}
-          style={[
-            styles.dot,
-            { backgroundColor: i < filled ? color : material.outline, opacity: i < filled ? 1 : 0.6 },
-          ]}
-        />
-      ))}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { alignItems: 'center', gap: spacing.sm },
-  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  label: { ...typography.label, color: material.textSecondary },
-  labelWarn: { color: material.warning },
-  labelDanger: { color: material.danger },
-  dots: { flexDirection: 'row', gap: 3 },
-  dot: { width: 4, height: 4, borderRadius: 2 },
   deck: {
     flexDirection: 'row',
     flexWrap: 'wrap',
