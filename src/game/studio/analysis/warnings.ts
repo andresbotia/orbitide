@@ -3,10 +3,12 @@
  * and documented — no magic numbers in the caller. Warnings never block
  * anything; they are design signals.
  */
-import type { LevelDifficulty } from '@/game/engine/types';
+import type { GameRuleset, LevelDifficulty } from '@/game/engine/types';
+import { isCoreV2 } from '@/game/engine/ruleset';
 import type { Trace } from '@/game/engine/trace';
 import type {
-  AnalysisWarning, FirstMoveAnalysis, HoldingPressure, SeqConComparison, SolveSummary,
+  AnalysisWarning, AntiSpamResult, ChoiceMetrics, DirectionalGeometry, FirstMoveAnalysis,
+  HoldingPressure, ResourcePressure, SeqConComparison, SolveSummary,
 } from './types';
 
 export const WARNING_THRESHOLDS = {
@@ -35,6 +37,10 @@ export const WARNING_THRESHOLDS = {
   /** Tiers that are expected to use Holding / have a fail state. */
   pressureExpectedTiers: ['medium', 'hard', 'super-hard', 'extreme'] as LevelDifficulty[],
   hardTiers: ['hard', 'super-hard', 'extreme'] as LevelDifficulty[],
+  /** CORE_V2_LOW_DIRECTIONAL_DEPTH: occupied cells below this skip the warning (tutorial-scale). */
+  lowDepthMinOccupied: 8,
+  /** LOW_MEANINGFUL_CHOICE: need at least this many witness decisions. */
+  lowChoiceMinDecisions: 2,
 } as const;
 
 export interface WarningContext {
@@ -55,6 +61,12 @@ export interface WarningContext {
   nodes: number;
   /** Total authored tunnel capacity (for the unused-capacity ratio). */
   totalAuthoredCapacity: number;
+  ruleset?: GameRuleset;
+  occupiedCells?: number;
+  directionalGeometry?: DirectionalGeometry;
+  choiceMetrics?: ChoiceMetrics;
+  antiSpam?: AntiSpamResult;
+  resourcePressure?: ResourcePressure;
 }
 
 export function deriveWarnings(ctx: WarningContext): AnalysisWarning[] {
@@ -152,6 +164,58 @@ export function deriveWarnings(ctx: WarningContext): AnalysisWarning[] {
     add('EARLY_DEADLOCK', 'warn',
       `The level can be lost in ${ctx.failWitnessLength} move(s).`,
       'a reasonable early choice leads to a quick deadlock.');
+  }
+
+  const geo = ctx.directionalGeometry;
+  const occupied = ctx.occupiedCells ?? 0;
+  if (
+    isCoreV2(ctx.ruleset)
+    && geo
+    && geo.mode === 'coreV2'
+    && occupied >= T.lowDepthMinOccupied
+    && geo.maxLayerDepth === 0
+    && ctx.authoredDifficulty !== 'easy'
+  ) {
+    add('CORE_V2_LOW_DIRECTIONAL_DEPTH', 'warn',
+      'Core V2 board has no layered directional geometry.',
+      `max layer depth 0 across ${occupied} occupied cells — every pixel is first-visible.`);
+  }
+
+  if (
+    T.hardTiers.includes(ctx.authoredDifficulty)
+    && ctx.antiSpam
+    && ctx.antiSpam.outcome === 'won'
+  ) {
+    add('NAIVE_SPAM_WINS', 'warn',
+      'Deterministic round-robin tunnel spam wins this Hard+ level.',
+      `naive policy won in ${ctx.antiSpam.steps} step(s) — sequencing may not matter.`);
+  }
+
+  const choice = ctx.choiceMetrics;
+  if (
+    solvable
+    && T.hardTiers.includes(ctx.authoredDifficulty)
+    && choice
+    && choice.totalDecisionStates >= T.lowChoiceMinDecisions
+    && choice.statesWithMultipleWinningOptions === 0
+    && choice.statesWithTrapOptions === 0
+    && choice.multiOptionStates === 0
+  ) {
+    add('LOW_MEANINGFUL_CHOICE', 'info',
+      `Authored ${ctx.authoredDifficulty} but the winning line has no branching decisions.`,
+      `${choice.forcedStates}/${choice.totalDecisionStates} decision states are forced.`);
+  }
+
+  const pressure = ctx.resourcePressure ?? ctx.holdingPressure;
+  if (
+    solvable
+    && T.hardTiers.includes(ctx.authoredDifficulty)
+    && pressure.maxHolding === 0
+    && pressure.manualRelaunches === 0
+  ) {
+    add('HOLDING_IRRELEVANCE', 'warn',
+      `Authored ${ctx.authoredDifficulty} but Holding is unused on the winning line.`,
+      'peak Holding 0 and no manual relaunches — Hard+ should use the tray.');
   }
 
   return out;

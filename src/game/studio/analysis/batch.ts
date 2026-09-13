@@ -6,6 +6,7 @@
 import { SolverCancelled } from '@/game/engine/solver';
 import type { LevelDefinition } from '@/game/engine/types';
 import { analyzeLevel, type AnalyzeLevelOptions } from './analyzeLevel';
+import { adjacentPaletteComparisons, paletteRepeatWarning } from './palette';
 import type { BatchResult, BatchRow, LevelAnalysis } from './types';
 
 export function toBatchRow(a: LevelAnalysis): BatchRow {
@@ -26,6 +27,10 @@ export function toBatchRow(a: LevelAnalysis): BatchRow {
     warningCount: a.warnings.length,
     warnings: a.warnings,
     complete: a.complete,
+    antiSpamOutcome: a.antiSpam.outcome,
+    density: a.boardMetrics.density,
+    uniqueColors: a.boardMetrics.uniqueColors,
+    maxLayerDepth: a.directionalGeometry.maxLayerDepth,
   };
 }
 
@@ -39,7 +44,8 @@ export async function analyzeBatch(
   opts: AnalyzeBatchOptions = {},
 ): Promise<BatchResult> {
   const rows: BatchRow[] = [];
-  const stopped = (): BatchResult => ({ rows, complete: false, cancelled: true });
+  const paletteComparisons = adjacentPaletteComparisons(defs);
+  const stopped = (): BatchResult => ({ rows, complete: false, cancelled: true, paletteComparisons });
   for (const def of defs) {
     if (opts.signal?.cancelled) return stopped();
     opts.onProgress?.(rows.length, defs.length, def.id);
@@ -56,5 +62,17 @@ export async function analyzeBatch(
       throw e;
     }
   }
-  return { rows, complete: rows.length === defs.length, cancelled: false };
+
+  // Palette repetition is a campaign signal — attach to the later of each pair.
+  const byId = new Map(rows.map((r) => [r.levelId, r]));
+  for (const cmp of paletteComparisons) {
+    const warning = paletteRepeatWarning(cmp);
+    if (!warning) continue;
+    const row = byId.get(cmp.toLevelId);
+    if (!row) continue;
+    row.warnings = [...row.warnings, warning];
+    row.warningCount = row.warnings.length;
+  }
+
+  return { rows, complete: rows.length === defs.length, cancelled: false, paletteComparisons };
 }

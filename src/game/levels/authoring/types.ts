@@ -109,5 +109,11 @@ export interface LevelAnalysisReport {
   solvable: boolean;
   replaysSuccessfully: boolean;
   antiSpam: AntiSpamAssessment;
+  /** Deterministic round-robin naive-policy outcome (M5.6E). Separate from the heuristic antiSpam score. */
+  naiveSpamOutcome: 'won' | 'lost' | 'deadlocked' | 'step-cap';
+  naiveSpamSteps: number;
+  density: number;
+  uniqueColors: number;
+  maxLayerDepth: number;
   warnings: string[];
 }

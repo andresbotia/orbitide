@@ -34,6 +34,88 @@ export interface FirstMoveAnalysis {
   reasons: string[];
 }
 
+export interface BoardMetrics {
+  rows: number;
+  cols: number;
+  totalCells: number;
+  occupiedCells: number;
+  /** occupiedCells / totalCells; 0 when the grid is empty. */
+  density: number;
+  uniqueColors: number;
+  colorHistogram: Partial<Record<OrbColor, number>>;
+  /** Colours tied for the highest histogram count, in palette order. */
+  dominantColors: OrbColor[];
+}
+
+export interface QueueMetrics {
+  tunnelCount: number;
+  totalCharges: number;
+  perTunnelDepth: number[];
+  maxTunnelDepth: number;
+  minTunnelDepth: number;
+}
+
+export interface DirectionalGeometry {
+  /** `coreV2` uses attack-bin rays; `legacyV1` uses exterior flood-fill. */
+  mode: 'coreV2' | 'legacyV1';
+  initiallyExposed: number;
+  buried: number;
+  maxLayerDepth: number;
+  averageLayerDepth: number;
+  singleSideExposed: number;
+  multiSideExposed: number;
+}
+
+export interface ChoiceMetrics {
+  totalDecisionStates: number;
+  forcedStates: number;
+  multiOptionStates: number;
+  statesWithMultipleWinningOptions: number;
+  statesWithTrapOptions: number;
+}
+
+export type AntiSpamOutcome = 'won' | 'lost' | 'deadlocked' | 'step-cap';
+
+export interface AntiSpamResult {
+  policy: 'round-robin';
+  outcome: AntiSpamOutcome;
+  steps: number;
+  peakHolding: number;
+  maxActive: number;
+  holdingEntries: number;
+  manualRelaunches: number;
+}
+
+export interface ResourcePressure {
+  maxHolding: number;
+  holdingCapacity: number;
+  /** maxHolding / holdingCapacity (0 when capacity is 0). */
+  holdingUtilization: number;
+  manualRelaunches: number;
+  chargesEnteringHolding: number;
+  longestHeldDurationSteps: number;
+  maxActive: number;
+  activeCapacity: number;
+  /** maxActive / activeCapacity (0 when capacity is 0). */
+  activeUtilization: number;
+}
+
+export interface PaletteSnapshot {
+  uniqueColors: OrbColor[];
+  dominantColors: OrbColor[];
+  colorHistogram: Partial<Record<OrbColor, number>>;
+}
+
+export interface PaletteComparison {
+  jaccard: number;
+  dominantOverlap: number;
+}
+
+export interface AdjacentPaletteComparison extends PaletteComparison {
+  fromLevelId: number;
+  toLevelId: number;
+}
+
 export interface HoldingPressure {
   /** Holding occupancy after each resolved step of the winning line. */
   timeline: number[];
@@ -175,6 +257,13 @@ export interface LevelAnalysis {
 
   holdingPressure: HoldingPressure;
 
+  boardMetrics: BoardMetrics;
+  queueMetrics: QueueMetrics;
+  directionalGeometry: DirectionalGeometry;
+  choiceMetrics: ChoiceMetrics;
+  resourcePressure: ResourcePressure;
+  antiSpam: AntiSpamResult;
+
   warnings: AnalysisWarning[];
 }
 
@@ -196,12 +285,18 @@ export interface BatchRow {
   warningCount: number;
   warnings: AnalysisWarning[];
   complete: boolean;
+  antiSpamOutcome: AntiSpamOutcome | null;
+  density: number;
+  uniqueColors: number;
+  maxLayerDepth: number;
 }
 
 export interface BatchResult {
   rows: BatchRow[];
   complete: boolean;
   cancelled: boolean;
+  /** Consecutive-pair palette comparisons in the batch's given order. */
+  paletteComparisons: AdjacentPaletteComparison[];
 }
 
 export type { FirstMoveStat };

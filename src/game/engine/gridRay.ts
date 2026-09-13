@@ -49,19 +49,19 @@ function exitedBoard(
 }
 
 /**
- * First in-bounds occupied cell along `dir` from `origin`, or `null` if the
- * ray leaves the board without hitting one. `occupied` is true for an
- * uncleared pixel at that cell.
+ * Walk every in-bounds cell the DDA visits, in ray order. `visit` returning
+ * `false` stops the walk. Off-board cells are not visited; the walk ends when
+ * the ray leaves the board.
  */
-export function firstOccupiedOnRay(
+export function walkRayCells(
   origin: RayOrigin,
   dir: RayDir,
   width: number,
   height: number,
-  occupied: (x: number, y: number) => boolean,
-): GridCell | null {
+  visit: (cell: GridCell) => boolean,
+): void {
   const len = Math.hypot(dir.x, dir.y);
-  if (!(len > 1e-12) || width <= 0 || height <= 0) return null;
+  if (!(len > 1e-12) || width <= 0 || height <= 0) return;
   const dx = dir.x / len;
   const dy = dir.y / len;
 
@@ -86,9 +86,9 @@ export function firstOccupiedOnRay(
   const limit = (width + height + 8) * 2;
   for (let i = 0; i < limit; i += 1) {
     if (cellX >= 0 && cellY >= 0 && cellX < width && cellY < height) {
-      if (occupied(cellX, cellY)) return { x: cellX, y: cellY };
+      if (!visit({ x: cellX, y: cellY })) return;
     } else if (exitedBoard(cellX, cellY, stepX, stepY, width, height)) {
-      return null;
+      return;
     }
 
     if (tMaxX <= tMaxY) {
@@ -99,5 +99,46 @@ export function firstOccupiedOnRay(
       tMaxY += tDeltaY;
     }
   }
-  return null;
+}
+
+/**
+ * First in-bounds occupied cell along `dir` from `origin`, or `null` if the
+ * ray leaves the board without hitting one. `occupied` is true for an
+ * uncleared pixel at that cell.
+ */
+export function firstOccupiedOnRay(
+  origin: RayOrigin,
+  dir: RayDir,
+  width: number,
+  height: number,
+  occupied: (x: number, y: number) => boolean,
+): GridCell | null {
+  let hit: GridCell | null = null;
+  walkRayCells(origin, dir, width, height, (cell) => {
+    if (occupied(cell.x, cell.y)) {
+      hit = cell;
+      return false;
+    }
+    return true;
+  });
+  return hit;
+}
+
+/**
+ * Every in-bounds occupied cell along `dir`, front-to-back. Used by Core V2
+ * authoring geometry (layer depth) — the same DDA as {@link firstOccupiedOnRay}.
+ */
+export function occupiedCellsOnRay(
+  origin: RayOrigin,
+  dir: RayDir,
+  width: number,
+  height: number,
+  occupied: (x: number, y: number) => boolean,
+): GridCell[] {
+  const cells: GridCell[] = [];
+  walkRayCells(origin, dir, width, height, (cell) => {
+    if (occupied(cell.x, cell.y)) cells.push(cell);
+    return true;
+  });
+  return cells;
 }

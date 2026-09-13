@@ -7,14 +7,21 @@
  * only *composes* them; the scoring / classification / warning rules live in
  * their own modules.
  */
+import { createGame } from '@/game/engine/createGame';
 import { reachablePixels } from '@/game/engine/pixels';
 import { SolverCancelled, solve, type SolveResult } from '@/game/engine/solver';
 import { traceActions, type Trace, describeTraceAction } from '@/game/engine/trace';
 import type { GameAction } from '@/game/engine/actions';
 import type { LevelDefinition, OrbColor } from '@/game/engine/types';
+import { evaluateRoundRobinSpam } from './antiSpam';
+import { boardMetrics } from './boardMetrics';
+import { choiceMetricsFromStats, EMPTY_CHOICE_METRICS } from './choiceMetrics';
 import { scoreDifficulty, tierDistance, type DifficultyFeatures } from './difficulty';
+import { directionalGeometry } from './directionalGeometry';
 import { classifyFirstMoves, type FirstMoveMetrics } from './firstMoves';
 import { holdingPressure } from './holdingPressure';
+import { queueMetrics } from './queueMetrics';
+import { resourcePressure as composeResourcePressure } from './resourcePressure';
 import { deriveWarnings, WARNING_THRESHOLDS } from './warnings';
 import {
   toSolveSummary, type FirstMoveAnalysis, type LevelAnalysis, type SeqConComparison,
@@ -58,13 +65,18 @@ export async function analyzeLevel(def: LevelDefinition, opts: AnalyzeLevelOptio
   const conSolve = solve(def, { mode: 'metrics', nodeCap, signal: opts.signal, partialOnCap: true });
 
   await phase('winning-trace');
-  const winTrace: Trace | null = conSolve.moves.length > 0 ? traceActions(def, conSolve.moves) : null;
+  // Concurrent search can hit the node cap before rediscovering a sequential
+  // win (join variants explode the first-move subtree). A sequential witness
+  // is always legal under Core V2 — the player may wait for the rail to settle.
+  const witnessSolve = conSolve.solved ? conSolve : seqSolve.solved ? seqSolve : conSolve;
+  const winTrace: Trace | null = witnessSolve.moves.length > 0 ? traceActions(def, witnessSolve.moves) : null;
 
   await phase('failing-trace');
   const failTrace: Trace | null = conSolve.failPath ? traceActions(def, conSolve.failPath) : null;
 
   await phase('first-moves');
-  const firstMoveAnalysis = buildFirstMoveAnalysis(def, conSolve);
+  const firstMoveSource = conSolve.complete ? conSolve : seqSolve;
+  const firstMoveAnalysis = buildFirstMoveAnalysis(def, firstMoveSource);
 
   await phase('scoring');
 
@@ -73,19 +85,23 @@ export async function analyzeLevel(def: LevelDefinition, opts: AnalyzeLevelOptio
   const comparison = compareSeqCon(seq, con);
 
   const complete = seqSolve.complete && conSolve.complete;
-  const solvable: boolean | 'unknown' = conSolve.nodeCapHit && !conSolve.solved ? 'unknown' : conSolve.solved;
+  const solvable: boolean | 'unknown' = conSolve.solved || seqSolve.solved
+    ? true
+    : (conSolve.nodeCapHit || seqSolve.nodeCapHit) ? 'unknown'
+      : false;
 
   const exposureDepth = winTrace ? deepestColorExposureDepth(winTrace) : 0;
   const concurrencyGap = seq.solved && con.solved ? Math.max(0, seq.length - con.length) : 0;
+  const scoredFrom = witnessSolve;
 
   const features: DifficultyFeatures = {
-    minWinningPeak: con.solved && con.minWinningPeak >= 0 ? con.minWinningPeak : 0,
+    minWinningPeak: scoredFrom.solved && scoredFrom.minWinningPeak >= 0 ? scoredFrom.minWinningPeak : 0,
     holdingCapacity: def.holdingCapacity,
-    lossProbability: con.lossProbability,
-    viableFirstMoves: con.viableFirstMoves,
-    totalFirstMoves: con.totalFirstMoves,
-    heldRelaunches: con.heldLaunches,
-    winningLength: con.length,
+    lossProbability: scoredFrom.lossProbability,
+    viableFirstMoves: firstMoveSource.viableFirstMoves,
+    totalFirstMoves: firstMoveSource.totalFirstMoves,
+    heldRelaunches: scoredFrom.heldLaunches,
+    winningLength: scoredFrom.length,
     exposureDepth,
     concurrencyGap,
     nodes: Math.max(seq.nodes, con.nodes),
@@ -101,6 +117,22 @@ export async function analyzeLevel(def: LevelDefinition, opts: AnalyzeLevelOptio
       fractionAtOrAbove2: 0, manualRelaunches: 0, chargesEnteringHolding: 0, longestHeldDurationSteps: 0,
     };
 
+  const board = boardMetrics(def);
+  const queues = queueMetrics(def);
+  const geometry = directionalGeometry(createGame(def));
+  const choiceSource = conSolve.complete && conSolve.solved
+    ? conSolve
+    : seqSolve.complete && seqSolve.solved ? seqSolve : null;
+  const choices = choiceSource
+    ? choiceMetricsFromStats(choiceSource.decisionStats)
+    : EMPTY_CHOICE_METRICS;
+  const antiSpam = evaluateRoundRobinSpam(def);
+  const resources = composeResourcePressure({
+    def,
+    holding: pressure,
+    maxActiveOnWitness: witnessSolve.solved ? witnessSolve.maxActiveOnWitness : 0,
+  });
+
   const totalAuthoredCapacity = def.tunnels.reduce(
     (n, queue) => n + queue.reduce((m, spec) => m + spec.capacity, 0), 0,
   );
@@ -112,7 +144,7 @@ export async function analyzeLevel(def: LevelDefinition, opts: AnalyzeLevelOptio
     solvable,
     complete,
     firstMoveAnalysis,
-    viableFirstMoves: con.viableFirstMoves,
+    viableFirstMoves: firstMoveSource.viableFirstMoves,
     seq, con, comparison,
     holdingPressure: pressure,
     winTrace,
@@ -120,12 +152,28 @@ export async function analyzeLevel(def: LevelDefinition, opts: AnalyzeLevelOptio
     avgBranching: con.avgBranching,
     nodes: Math.max(seq.nodes, con.nodes),
     totalAuthoredCapacity,
+    ruleset: def.ruleset,
+    occupiedCells: board.occupiedCells,
+    directionalGeometry: geometry,
+    choiceMetrics: choices,
+    antiSpam,
+    resourcePressure: resources,
   });
 
   const limitations: string[] = [];
   if (!seqSolve.complete) limitations.push(`Sequential solve hit the ${nodeCap.toLocaleString()}-node cap — sequential numbers are incomplete.`);
-  if (!conSolve.complete) limitations.push(`Concurrent solve hit the ${nodeCap.toLocaleString()}-node cap — solvability is unknown, not "no".`);
-  if (conSolve.nodeCapHit) limitations.push('First-move analysis is unavailable on a truncated run.');
+  if (!conSolve.complete && seqSolve.solved) {
+    limitations.push(`Concurrent solve hit the ${nodeCap.toLocaleString()}-node cap — sequential witness used (settle-first is always legal).`);
+  } else if (!conSolve.complete) {
+    limitations.push(`Concurrent solve hit the ${nodeCap.toLocaleString()}-node cap — solvability is unknown, not "no".`);
+  }
+  if (conSolve.nodeCapHit && !seqSolve.complete) limitations.push('First-move analysis is unavailable on a truncated run.');
+  if (!choiceSource) {
+    limitations.push('Choice metrics require a complete winning witness — omitted on this run.');
+  }
+  if (antiSpam.outcome === 'step-cap') {
+    limitations.push(`Round-robin anti-spam hit the ${antiSpam.steps}-step cap.`);
+  }
 
   return {
     levelId: def.id,
@@ -147,23 +195,23 @@ export async function analyzeLevel(def: LevelDefinition, opts: AnalyzeLevelOptio
     suggestedDifficulty: suggested,
     difficultyScore: scored.score,
 
-    winningWitness: conSolve.moves.length > 0 ? conSolve.moves : null,
-    failWitness: conSolve.failPath,
+    winningWitness: witnessSolve.moves.length > 0 ? witnessSolve.moves : null,
+    failWitness: conSolve.failPath ?? seqSolve.failPath,
     winningTrace: winTrace,
     failingTrace: failTrace,
-    shortestWinningLength: con.length,
-    peakHoldingOnWinningLine: conSolve.peakHolding,
-    maxActiveOnWinningWitness: conSolve.maxActiveOnWitness,
-    heldRelaunches: con.heldLaunches,
-    maxHoldingObserved: con.maxHolding,
-    maxActiveObserved: con.maxActive,
+    shortestWinningLength: scoredFrom.length,
+    peakHoldingOnWinningLine: witnessSolve.peakHolding,
+    maxActiveOnWinningWitness: witnessSolve.maxActiveOnWitness,
+    heldRelaunches: scoredFrom.heldLaunches,
+    maxHoldingObserved: Math.max(seq.maxHolding, con.maxHolding),
+    maxActiveObserved: Math.max(seq.maxActive, con.maxActive),
     exploredNodes: Math.max(seq.nodes, con.nodes),
-    avgBranching: con.avgBranching,
+    avgBranching: firstMoveSource.avgBranching,
     solveDurationMs: now() - started,
-    lossProbability: con.lossProbability,
+    lossProbability: scoredFrom.lossProbability,
 
-    totalFirstMoves: con.totalFirstMoves,
-    viableFirstMoves: con.viableFirstMoves,
+    totalFirstMoves: firstMoveSource.totalFirstMoves,
+    viableFirstMoves: firstMoveSource.viableFirstMoves,
     firstMoveAnalysis,
 
     sequentialResult: seq,
@@ -171,6 +219,14 @@ export async function analyzeLevel(def: LevelDefinition, opts: AnalyzeLevelOptio
     comparison,
 
     holdingPressure: pressure,
+
+    boardMetrics: board,
+    queueMetrics: queues,
+    directionalGeometry: geometry,
+    choiceMetrics: choices,
+    resourcePressure: resources,
+    antiSpam,
+
     warnings,
   };
 }

@@ -1,6 +1,9 @@
 import type { Trace } from '@/game/engine/trace';
 import { WARNING_THRESHOLDS, deriveWarnings, type WarningContext } from '../warnings';
-import type { FirstMoveAnalysis, SeqConComparison, SolveSummary } from '../types';
+import type {
+  AntiSpamResult, ChoiceMetrics, DirectionalGeometry, FirstMoveAnalysis, ResourcePressure,
+  SeqConComparison, SolveSummary,
+} from '../types';
 
 const summary = (o: Partial<SolveSummary> = {}): SolveSummary => ({
   mode: 'metrics', solved: true, complete: true, nodeCapHit: false, length: 6,
@@ -116,6 +119,69 @@ test('NO_FAIL_PATH: authored medium+, complete, no failing line', () => {
 test('EARLY_DEADLOCK: shortest fail line ≤ 2 moves', () => {
   expect(codes(ctx({ failWitnessLength: WARNING_THRESHOLDS.earlyDeadlockLen }))).toContain('EARLY_DEADLOCK');
   expect(codes(ctx({ failWitnessLength: WARNING_THRESHOLDS.earlyDeadlockLen + 1 }))).not.toContain('EARLY_DEADLOCK');
+});
+
+const geometry = (o: Partial<DirectionalGeometry> = {}): DirectionalGeometry => ({
+  mode: 'coreV2', initiallyExposed: 8, buried: 0, maxLayerDepth: 0, averageLayerDepth: 0,
+  singleSideExposed: 8, multiSideExposed: 0, ...o,
+});
+
+test('CORE_V2_LOW_DIRECTIONAL_DEPTH: medium+ Core V2 with no layers', () => {
+  expect(codes(ctx({
+    ruleset: 'coreV2', occupiedCells: 8, directionalGeometry: geometry(), authoredDifficulty: 'medium',
+  }))).toContain('CORE_V2_LOW_DIRECTIONAL_DEPTH');
+  expect(codes(ctx({
+    ruleset: 'coreV2', occupiedCells: 8, directionalGeometry: geometry(), authoredDifficulty: 'easy',
+  }))).not.toContain('CORE_V2_LOW_DIRECTIONAL_DEPTH');
+  expect(codes(ctx({
+    ruleset: 'legacyV1', occupiedCells: 8, directionalGeometry: geometry({ mode: 'legacyV1' }),
+    authoredDifficulty: 'medium',
+  }))).not.toContain('CORE_V2_LOW_DIRECTIONAL_DEPTH');
+});
+
+test('NAIVE_SPAM_WINS: Hard+ only, when round-robin wins', () => {
+  const spam: AntiSpamResult = {
+    policy: 'round-robin', outcome: 'won', steps: 4, peakHolding: 0, maxActive: 1,
+    holdingEntries: 0, manualRelaunches: 0,
+  };
+  expect(codes(ctx({ authoredDifficulty: 'hard', antiSpam: spam }))).toContain('NAIVE_SPAM_WINS');
+  expect(codes(ctx({ authoredDifficulty: 'easy', antiSpam: spam }))).not.toContain('NAIVE_SPAM_WINS');
+  expect(codes(ctx({ authoredDifficulty: 'hard', antiSpam: { ...spam, outcome: 'lost' } })))
+    .not.toContain('NAIVE_SPAM_WINS');
+});
+
+test('LOW_MEANINGFUL_CHOICE: Hard+ with only forced decisions', () => {
+  const choice: ChoiceMetrics = {
+    totalDecisionStates: 4, forcedStates: 4, multiOptionStates: 0,
+    statesWithMultipleWinningOptions: 0, statesWithTrapOptions: 0,
+  };
+  expect(codes(ctx({ authoredDifficulty: 'hard', choiceMetrics: choice }))).toContain('LOW_MEANINGFUL_CHOICE');
+  expect(codes(ctx({ authoredDifficulty: 'easy', choiceMetrics: choice }))).not.toContain('LOW_MEANINGFUL_CHOICE');
+});
+
+test('HOLDING_IRRELEVANCE: Hard+ with unused Holding', () => {
+  const pressure: ResourcePressure = {
+    maxHolding: 0, holdingCapacity: 4, holdingUtilization: 0, manualRelaunches: 0,
+    chargesEnteringHolding: 0, longestHeldDurationSteps: 0, maxActive: 1, activeCapacity: 5,
+    activeUtilization: 0.2,
+  };
+  expect(codes(ctx({
+    authoredDifficulty: 'hard',
+    resourcePressure: pressure,
+    holdingPressure: {
+      timeline: [], holdingCapacity: 4, maxHolding: 0, stepsAtOrAbove2: 0,
+      fractionAtOrAbove2: 0, manualRelaunches: 0, chargesEnteringHolding: 0, longestHeldDurationSteps: 0,
+    },
+    con: summary({ minWinningPeak: 0, heldLaunches: 0 }),
+  }))).toContain('HOLDING_IRRELEVANCE');
+  expect(codes(ctx({
+    authoredDifficulty: 'easy',
+    resourcePressure: pressure,
+    holdingPressure: {
+      timeline: [], holdingCapacity: 4, maxHolding: 0, stepsAtOrAbove2: 0,
+      fractionAtOrAbove2: 0, manualRelaunches: 0, chargesEnteringHolding: 0, longestHeldDurationSteps: 0,
+    },
+  }))).not.toContain('HOLDING_IRRELEVANCE');
 });
 
 test('every warning is advisory (info | warn) and deterministic', () => {

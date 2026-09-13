@@ -290,7 +290,7 @@ async function handleAnalyze(flags: Record<string, string | boolean>) {
   // Output ASCII Table
   const headers = [
     'Lvl', 'Title', 'Grid', 'Px', 'Clr', 'Authored', 'Calc', 'Score',
-    'Peak', 'MaxH', 'LossProb', 'FailPath', 'Solv', 'Anti-Spam', 'Time',
+    'Peak', 'MaxH', 'LossProb', 'FailPath', 'Solv', 'Anti-Spam', 'Naive', 'Time',
   ];
 
   console.log('\n| ' + headers.join(' | ') + ' |');
@@ -317,6 +317,7 @@ async function handleAnalyze(flags: Record<string, string | boolean>) {
       r.failPathLength === null ? 'None'.padEnd(8) : `${r.failPathLength} moves`.padEnd(8),
       r.solvable ? 'Yes ' : 'NO  ',
       antiSpamCol.padEnd(9),
+      r.naiveSpamOutcome.padEnd(10),
       timeStr.padEnd(6),
     ];
     console.log('| ' + row.join(' | ') + ' |');

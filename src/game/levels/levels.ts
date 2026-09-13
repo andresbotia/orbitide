@@ -1,5 +1,6 @@
 import type { LevelDefinition, OrbColor } from '../engine/types';
 import { COMPILED_LEVELS } from './compiledLevels';
+import { COMPILED_LEVELS as CORE_V2_WORLD_1 } from './compiledWorld1';
 import { LEVEL_DEFINITIONS as LEGACY_LEVEL_DEFINITIONS } from './levelDefinitions';
 
 /**
@@ -78,7 +79,7 @@ export function combineLevelDefinitions(
 
 export const LEVEL_DEFINITIONS: LevelDefinition[] = combineLevelDefinitions(
   LEGACY_LEVEL_DEFINITIONS,
-  COMPILED_LEVELS,
+  [...CORE_V2_WORLD_1, ...COMPILED_LEVELS],
 );
 
 /** Total number of handcrafted levels available in Milestone 1. */

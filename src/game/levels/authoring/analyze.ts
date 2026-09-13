@@ -164,6 +164,11 @@ export async function analyzeAuthoredLevel(
     solvable: seq.solved && con.solved,
     replaysSuccessfully: seq.solved,
     antiSpam,
+    naiveSpamOutcome: studioAnalysis.antiSpam.outcome,
+    naiveSpamSteps: studioAnalysis.antiSpam.steps,
+    density: studioAnalysis.boardMetrics.density,
+    uniqueColors: studioAnalysis.boardMetrics.uniqueColors,
+    maxLayerDepth: studioAnalysis.directionalGeometry.maxLayerDepth,
     warnings: studioAnalysis.warnings.map((w) => `${w.severity}:${w.code}`),
   };
 }

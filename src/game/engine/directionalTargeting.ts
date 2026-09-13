@@ -13,7 +13,7 @@ import {
   type RoundedPerimeterBounds,
   type RoundedPerimeterGeometry,
 } from '@/game/geometry/roundedPerimeter';
-import { firstOccupiedOnRay } from './gridRay';
+import { firstOccupiedOnRay, occupiedCellsOnRay } from './gridRay';
 import { isLinkedPrimed } from './linked';
 import type { GameState, OrbColor, Pixel } from './types';
 
@@ -183,4 +183,40 @@ export function pickDirectionalEncounter(
     return { pixelId: pixel.id, progress: bin.passProgress, binId: bin.id };
   }
   return null;
+}
+
+/**
+ * Perimeter-side / directional-line family of an attack-bin id (`t`, `r`, `b`,
+ * `l`, or a corner `tr`/`br`/`bl`/`tl`).
+ */
+export function attackBinFamily(binId: string): string {
+  const colon = binId.indexOf(':');
+  return colon >= 0 ? binId.slice(0, colon) : binId;
+}
+
+/**
+ * Uncleared pixels along one Core V2 attack bin, front-to-back (first-visible
+ * first). Reuses the same origin, inward normal, and DDA as targeting.
+ */
+export function occupiedPixelsAlongBin(state: GameState, bin: AttackBin): Pixel[] {
+  const occupier = occupancyAt(state);
+  const geom = targetingPerimeter(state.width, state.height);
+  const geometryProgress = normalizePerimeterProgress(
+    ROUNDED_PERIMETER_BOTTOM_CENTER_PROGRESS + bin.passProgress,
+  );
+  const origin = geom.pointAt(geometryProgress);
+  const dir = geom.inwardNormalAt(geometryProgress);
+  const cells = occupiedCellsOnRay(
+    origin,
+    dir,
+    state.width,
+    state.height,
+    (x, y) => occupier(x, y) !== undefined,
+  );
+  const pixels: Pixel[] = [];
+  for (const cell of cells) {
+    const pixel = occupier(cell.x, cell.y);
+    if (pixel) pixels.push(pixel);
+  }
+  return pixels;
 }

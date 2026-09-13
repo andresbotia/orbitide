@@ -3,7 +3,7 @@ import { createGame } from '../createGame';
 import { listAttackBins, pickDirectionalEncounter } from '../directionalTargeting';
 import { simulateEpoch } from '../epoch';
 import { iceLayers, shieldLayers } from '../frozen';
-import { firstOccupiedOnRay } from '../gridRay';
+import { firstOccupiedOnRay, occupiedCellsOnRay } from '../gridRay';
 import { isLinkedPrimed } from '../linked';
 import { resolvePass } from '../pass';
 import { resolveAction } from '../resolveLaunch';
@@ -59,6 +59,14 @@ describe('grid DDA', () => {
 
   test('returns null when the ray exits without a hit', () => {
     expect(firstOccupiedOnRay({ x: 1.5, y: 3 }, { x: 0, y: -1 }, 3, 3, occ([0, 0]))).toBeNull();
+  });
+
+  test('occupiedCellsOnRay lists every occupied cell front-to-back', () => {
+    const cells = occupiedCellsOnRay(
+      { x: 1.5, y: 5 }, { x: 0, y: -1 }, 3, 5, occ([1, 3], [1, 1]),
+    );
+    expect(cells).toEqual([{ x: 1, y: 3 }, { x: 1, y: 1 }]);
+    expect(occupiedCellsOnRay({ x: 1.5, y: 3 }, { x: 0, y: -1 }, 3, 3, occ([0, 0]))).toEqual([]);
   });
 
   test('corner tie steps X first (horizontal neighbour, then diagonal; not the vertical neighbour)', () => {

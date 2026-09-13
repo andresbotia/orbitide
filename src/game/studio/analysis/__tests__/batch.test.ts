@@ -22,6 +22,11 @@ test('a batch produces one row per level with the expected shape', async () => {
   expect(row.warningCount).toBe(row.warnings.length);
 
   expect(result.rows[1]!.solvable).toBe(false);
+  expect(result.paletteComparisons).toHaveLength(1);
+  expect(result.paletteComparisons[0]!.fromLevelId).toBe(OBVIOUS_EASY.id);
+  expect(result.paletteComparisons[0]!.toLevelId).toBe(UNSOLVABLE.id);
+  expect(result.rows[0]!.antiSpamOutcome).toBeDefined();
+  expect(result.rows[0]!.density).toBeGreaterThan(0);
 }, 120_000);
 
 test('toBatchRow is a faithful slice of the full analysis', async () => {

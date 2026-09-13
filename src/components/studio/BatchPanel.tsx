@@ -8,7 +8,7 @@ import type { LevelAnalysisController } from '@/hooks/useLevelAnalysis';
 import { StudioButton } from './StudioButton';
 import { studioSpace, studioTheme } from './theme';
 
-type SortKey = keyof Pick<BatchRow, 'levelId' | 'score' | 'shortestWin' | 'viableFirstMoves' | 'peakHolding' | 'maxActive' | 'heldRelaunches' | 'nodes' | 'warningCount'>;
+type SortKey = keyof Pick<BatchRow, 'levelId' | 'score' | 'shortestWin' | 'viableFirstMoves' | 'peakHolding' | 'maxActive' | 'heldRelaunches' | 'nodes' | 'warningCount' | 'density' | 'uniqueColors' | 'maxLayerDepth'>;
 type RowFilter = 'all' | 'mismatch' | 'unsolvable' | 'warnings';
 
 const COLS: { key: SortKey; label: string; get: (r: BatchRow) => number | string; width: number }[] = [
@@ -19,6 +19,9 @@ const COLS: { key: SortKey; label: string; get: (r: BatchRow) => number | string
   { key: 'peakHolding', label: 'peak', get: (r) => r.peakHolding, width: 46 },
   { key: 'maxActive', label: 'maxA', get: (r) => r.maxActive, width: 48 },
   { key: 'heldRelaunches', label: 'held', get: (r) => r.heldRelaunches, width: 44 },
+  { key: 'density', label: 'dens', get: (r) => r.density.toFixed(2), width: 48 },
+  { key: 'uniqueColors', label: 'clr', get: (r) => r.uniqueColors, width: 36 },
+  { key: 'maxLayerDepth', label: 'depth', get: (r) => r.maxLayerDepth, width: 48 },
   { key: 'nodes', label: 'nodes', get: (r) => r.nodes, width: 74 },
   { key: 'warningCount', label: 'warn', get: (r) => r.warningCount, width: 44 },
 ];
@@ -79,6 +82,7 @@ export function BatchPanel({ ctrl }: { ctrl: LevelAnalysisController }) {
               <View style={[styles.tr, styles.head]}>
                 <Text style={[styles.th, { width: 96 }]}>title</Text>
                 <Text style={[styles.th, { width: 88 }]}>auth→sug</Text>
+                <Text style={[styles.th, { width: 52 }]}>spam</Text>
                 {COLS.map((c) => (
                   <Pressable key={c.key} onPress={() => toggleSort(c.key)} style={{ width: c.width }}>
                     <Text style={styles.th}>{c.label}{sort.key === c.key ? (sort.dir === 1 ? ' ▲' : ' ▼') : ''}</Text>
@@ -91,6 +95,9 @@ export function BatchPanel({ ctrl }: { ctrl: LevelAnalysisController }) {
                     <Text style={[styles.td, { width: 96 }]} numberOfLines={1}>{r.title}</Text>
                     <Text style={[styles.td, { width: 88 }, r.authoredDifficulty !== r.suggestedDifficulty && styles.mismatch]}>
                       {r.authoredDifficulty.slice(0, 4)}→{r.suggestedDifficulty.slice(0, 4)}
+                    </Text>
+                    <Text style={[styles.td, { width: 52 }, r.antiSpamOutcome === 'won' && styles.mismatch]}>
+                      {r.antiSpamOutcome ?? '—'}
                     </Text>
                     {COLS.map((c) => (
                       <Text key={c.key} style={[styles.td, { width: c.width }, c.key === 'warningCount' && r.warningCount > 0 && styles.mismatch]}>

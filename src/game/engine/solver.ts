@@ -18,8 +18,13 @@ import { resolveAction } from './resolveLaunch';
 import type { GameState, LevelDefinition } from './types';
 
 export function stateKey(s: GameState): string {
+  // Tunnel colour is part of the key so two queues with identical ids/capacities
+  // but different colours cannot collide. Holding already included colour.
+  // Open-epoch residue (baseline board + launches) is enough for Core V2: a
+  // join re-simulates the pass, so consumedBins / one-pass residue are derived
+  // from the launch list rather than stored separately.
   const committed = boardFingerprint(s.pixels) + '/' +
-    s.tunnels.map((t) => t.queue.map((c) => `${c.id}:${c.capacity}`).join(',')).join('|') + '/' +
+    s.tunnels.map((t) => t.queue.map((c) => `${c.id}:${c.color}:${c.capacity}`).join(',')).join('|') + '/' +
     s.holding.map((c) => `${c.id}:${c.color}:${c.capacity}`).join(',');
   // An open epoch changes how the next launch arbitrates, so equivalent boards
   // with different epoch residue must not memoize together.
@@ -67,6 +72,16 @@ export interface FirstMoveStat {
   maxActiveOnLine: number;
 }
 
+/** One settled player-decision state along a winning witness (memoized lookups). */
+export interface DecisionStat {
+  /** Legal accepted actions from this state (`enumerateActions` / `legalActions`). */
+  legalCount: number;
+  /** How many of those actions have a winning continuation. */
+  winningCount: number;
+  /** How many lead to an unsolvable / loss subtree. */
+  losingCount: number;
+}
+
 export interface SolveResult {
   solved: boolean;
   /** `false` only when the search was truncated by `nodeCap`. */
@@ -85,6 +100,11 @@ export interface SolveResult {
   /** Peak charges sharing the rail anywhere in the explored graph. */
   maxActive: number;
   firstMoves: FirstMoveStat[];
+  /**
+   * Per-decision-state branching along the winning witness, filled from the
+   * already-visited memo. Empty when unsolved or truncated.
+   */
+  decisionStats: DecisionStat[];
 }
 interface Node { win: GameAction[] | null; fail: GameAction[] | null; minPeak: number; loss: number }
 
@@ -158,9 +178,18 @@ export function solve(level: LevelDefinition, opts: SolveOptions = {}): SolveRes
       // The runtime keeps this state alive via a join into the open epoch — a
       // move `sequential-compat` deliberately ignores. That is a dead end for
       // sequential play, not a runtime deadlock bug.
-      if (mode === 'sequential-compat') return { win: null, fail: [], minPeak: Infinity, loss: 1 };
+      if (mode === 'sequential-compat') {
+        const dead: Node = { win: null, fail: [], minPeak: Infinity, loss: 1 };
+        memo.set(key, dead);
+        return dead;
+      }
       throw new Error('Runtime failed to mark a deadlock');
     }
+    // Core V2 can cycle (a miss-relaunch from Holding returns to the same
+    // committed + epoch-residue key). Record an unsolved placeholder so a
+    // re-entrant visit is a loss, not infinite recursion.
+    const inProgress: Node = { win: null, fail: [], minPeak: Infinity, loss: 1 };
+    memo.set(key, inProgress);
     branchSum += actions.length;
     let win: GameAction[] | null = null;
     let fail: GameAction[] | null = null;
@@ -218,6 +247,27 @@ export function solve(level: LevelDefinition, opts: SolveOptions = {}): SolveRes
 
   const witnessReplay = root.win ? replayLine(initial, root.win) : { peakHolding: 0, heldRelaunches: 0, maxActive: 0 };
 
+  // Replay the winning line and classify each decision from the already-filled
+  // memo — no extra search. Truncated runs leave this empty (incomplete).
+  const decisionStats: DecisionStat[] = [];
+  if (root.win && !nodeCapHit) {
+    let state = initial;
+    for (const action of root.win) {
+      if (state.status === 'playing') {
+        const actions = enumerateActions(state, mode);
+        let winningCount = 0;
+        let losingCount = 0;
+        for (const a of actions) {
+          const child = visit(resolveAction(state, a).state);
+          if (child.win !== null) winningCount += 1;
+          else losingCount += 1;
+        }
+        decisionStats.push({ legalCount: actions.length, winningCount, losingCount });
+      }
+      state = resolveAction(state, action).state;
+    }
+  }
+
   return {
     solved: root.win !== null,
     complete: !nodeCapHit,
@@ -237,6 +287,7 @@ export function solve(level: LevelDefinition, opts: SolveOptions = {}): SolveRes
     maxActiveOnWitness: witnessReplay.maxActive,
     maxActive,
     firstMoves,
+    decisionStats,
   };
 }
 export const audit = solve;
@@ -276,6 +327,7 @@ export function findFirstWinningWitness(
   }
 
   const memo = new Map<string, GameAction[] | null>();
+  const visiting = new Set<string>();
   let nodes = 0;
   let nodeCapHit = false;
   let timeCapHit = false;
@@ -288,6 +340,7 @@ export function findFirstWinningWitness(
 
     const key = stateKey(state);
     if (memo.has(key)) return memo.get(key)!;
+    if (visiting.has(key)) return null;
 
     if (++nodes > nodeCap) {
       nodeCapHit = true;
@@ -298,6 +351,7 @@ export function findFirstWinningWitness(
       return null;
     }
 
+    visiting.add(key);
     const actions = legalActions(state, { includeJoin: false });
     for (const action of actions) {
       const outcome = resolveAction(state, action);
@@ -305,12 +359,17 @@ export function findFirstWinningWitness(
       const childWin = visit(outcome.state);
       if (childWin !== null) {
         const win = [action, ...childWin];
+        visiting.delete(key);
         memo.set(key, win);
         return win;
       }
-      if (nodeCapHit || timeCapHit) return null;
+      if (nodeCapHit || timeCapHit) {
+        visiting.delete(key);
+        return null;
+      }
     }
 
+    visiting.delete(key);
     memo.set(key, null);
     return null;
   }

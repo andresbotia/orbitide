@@ -17,9 +17,10 @@ test('a no-Holding level reports zero pressure', () => {
 }, 60_000);
 
 test('a Holding-using line records occupancy, entries and duration', () => {
-  // The World-1 Hard finale needs held relaunches on its winning line.
+  // Sequential play of the World-1 Hard finale needs held relaunches.
+  // The concurrent shortest line can park leftover without relaunching.
   const def = LEVEL_DEFINITIONS.find((l) => l.title === 'Ring Nebula')!;
-  const trace = traceActions(def, solve(def).moves);
+  const trace = traceActions(def, solve(def, { mode: 'sequential-compat' }).moves);
   const p = holdingPressure(trace, def.holdingCapacity);
   expect(p.holdingCapacity).toBe(3);
   expect(p.maxHolding).toBeGreaterThanOrEqual(1);

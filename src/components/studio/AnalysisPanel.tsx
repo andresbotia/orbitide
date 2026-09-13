@@ -88,6 +88,51 @@ function Report({ a }: { a: LevelAnalysis }) {
         <Kv k="longest held (steps)" v={String(a.holdingPressure.longestHeldDurationSteps)} />
       </Section>
 
+      <Section title="Board">
+        <Kv k="grid" v={`${a.boardMetrics.cols}×${a.boardMetrics.rows}`} />
+        <Kv k="occupied" v={`${a.boardMetrics.occupiedCells}/${a.boardMetrics.totalCells}`} />
+        <Kv k="density" v={a.boardMetrics.density.toFixed(2)} />
+        <Kv k="colours" v={`${a.boardMetrics.uniqueColors} unique · dominant ${a.boardMetrics.dominantColors.join(', ') || '—'}`} />
+      </Section>
+
+      <Section title="Queues">
+        <Kv k="tunnels" v={String(a.queueMetrics.tunnelCount)} />
+        <Kv k="charges" v={String(a.queueMetrics.totalCharges)} />
+        <Kv k="depths" v={a.queueMetrics.perTunnelDepth.join(' / ') || '—'} />
+        <Kv k="min–max depth" v={`${a.queueMetrics.minTunnelDepth}–${a.queueMetrics.maxTunnelDepth}`} />
+      </Section>
+
+      <Section title={`Geometry (${a.directionalGeometry.mode})`}>
+        <Kv k="initially exposed" v={String(a.directionalGeometry.initiallyExposed)} />
+        <Kv k="buried" v={String(a.directionalGeometry.buried)} />
+        <Kv k="layer depth" v={`max ${a.directionalGeometry.maxLayerDepth} · avg ${a.directionalGeometry.averageLayerDepth.toFixed(2)}`} />
+        <Kv k="single / multi-side" v={`${a.directionalGeometry.singleSideExposed} / ${a.directionalGeometry.multiSideExposed}`} />
+      </Section>
+
+      <Section title="Choices (winning line)">
+        <Kv k="decision states" v={String(a.choiceMetrics.totalDecisionStates)} />
+        <Kv k="forced" v={String(a.choiceMetrics.forcedStates)} />
+        <Kv k="multi-option" v={String(a.choiceMetrics.multiOptionStates)} />
+        <Kv k="multi-winning" v={String(a.choiceMetrics.statesWithMultipleWinningOptions)} />
+        <Kv k="trap states" v={String(a.choiceMetrics.statesWithTrapOptions)} />
+      </Section>
+
+      <Section title="Resource pressure">
+        <Kv k="Holding util" v={`${(a.resourcePressure.holdingUtilization * 100).toFixed(0)}%  (${a.resourcePressure.maxHolding}/${a.resourcePressure.holdingCapacity})`} />
+        <Kv k="Active util" v={`${(a.resourcePressure.activeUtilization * 100).toFixed(0)}%  (${a.resourcePressure.maxActive}/${a.resourcePressure.activeCapacity})`} />
+        <Kv k="manual relaunches" v={String(a.resourcePressure.manualRelaunches)} />
+        <Kv k="into Holding" v={String(a.resourcePressure.chargesEnteringHolding)} />
+      </Section>
+
+      <Section title="Anti-spam (round-robin)">
+        <Kv k="outcome" v={a.antiSpam.outcome.toUpperCase()} strong={a.antiSpam.outcome === 'won' ? 'warn' : 'ok'} />
+        <Kv k="steps" v={String(a.antiSpam.steps)} />
+        <Kv k="peak Holding" v={String(a.antiSpam.peakHolding)} />
+        <Kv k="max Active" v={String(a.antiSpam.maxActive)} />
+        <Kv k="Holding entries" v={String(a.antiSpam.holdingEntries)} />
+        <Kv k="manual relaunches" v={String(a.antiSpam.manualRelaunches)} />
+      </Section>
+
       <Section title={`Warnings (${a.warnings.length})`}>
         {a.warnings.length === 0 ? <Text style={styles.note}>none</Text> : null}
         {a.warnings.map((w, i) => (
