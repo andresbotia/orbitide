@@ -1,10 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { arcade } from '@/theme/arcade';
-import { radius, spacing } from '@/theme/spacing';
+import { material } from '@/theme/material';
+import { radius, spacing, typography } from '@/theme/spacing';
 
 interface ToolBarProps {
-  /** Presentation-only for M2A. Booster logic arrives in a later M2 pass. */
+  /** Presentation-only — booster gameplay/economy is separate roadmap work, not this redesign. */
   onUndo?: () => void;
   onHint?: () => void;
   onExtraSlot?: () => void;
@@ -17,12 +17,17 @@ const TOOLS = [
 ] as const;
 
 /**
- * Secondary tools: Undo, Scanner/Hint, Extra Slot. Presentation-only in M2A —
- * no booster logic, no economy. Rendered as dormant hardware — a recessed
- * socket housing present but unlit — rather than a row of floating low-
- * opacity glyphs, so an intentionally-unshipped feature still reads as a
- * designed "not yet" (DESIGN.md §15), the same "structure without the light"
- * idea as `LogoMark`'s `unlit` variant.
+ * Secondary tools: Undo, Scanner/Hint, Extra Slot (UI-R8 — Pixel Arcadia
+ * materials; still presentation-only). No booster logic exists yet anywhere
+ * in the app — `onUndo`/`onHint`/`onExtraSlot` are never actually supplied
+ * by `GameScreen` today — so this stays Path B from the UI-R8 brief:
+ * an intentionally-unavailable "coming later" state, not hidden and not a
+ * fabricated working control. Rendered as dormant arcade-power-up sockets —
+ * the same recessed/bevel hardware language as Tunnels/Holding/the icon
+ * buttons, dimmed rather than lit — with a small reserved (empty) corner
+ * ring for a future quantity badge, so adding real counts later doesn't
+ * require a layout change. Do not wire real booster behavior here; that is
+ * separate roadmap work with its own economy/gameplay design.
  */
 export function ToolBar({ onUndo, onHint, onExtraSlot }: ToolBarProps) {
   const handlers: Record<string, (() => void) | undefined> = {
@@ -33,40 +38,68 @@ export function ToolBar({ onUndo, onHint, onExtraSlot }: ToolBarProps) {
 
   return (
     <View style={styles.row}>
-      {TOOLS.map((tool) => (
-        <Pressable
-          key={tool.key}
-          disabled={!handlers[tool.key]}
-          onPress={handlers[tool.key]}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !handlers[tool.key] }}
-          accessibilityLabel={`${tool.label} (coming soon)`}
-          style={styles.tool}
-        >
-          <View style={styles.housing}>
-            <Text style={styles.glyph}>{tool.glyph}</Text>
-          </View>
-          <Text style={styles.label}>{tool.label}</Text>
-        </Pressable>
-      ))}
+      {TOOLS.map((tool) => {
+        const active = !!handlers[tool.key];
+        return (
+          <Pressable
+            key={tool.key}
+            disabled={!active}
+            onPress={handlers[tool.key]}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !active }}
+            accessibilityLabel={active ? tool.label : `${tool.label} (coming soon)`}
+            style={styles.tool}
+          >
+            <View style={[styles.housing, !active && styles.housingDormant]}>
+              <Text style={[styles.glyph, !active && styles.glyphDormant]}>{tool.glyph}</Text>
+              {/* Reserved, empty — a future quantity badge lands here without a layout change. */}
+              <View style={styles.badgeSlot} />
+            </View>
+            <Text style={[styles.label, !active && styles.labelDormant]}>{tool.label}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
+
+const SIZE = 40;
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'center', gap: spacing.lg },
   tool: { alignItems: 'center', gap: 4 },
   housing: {
-    width: 40,
-    height: 40,
+    width: SIZE,
+    height: SIZE,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: arcade.metalLo,
-    backgroundColor: arcade.socket,
+    borderTopColor: material.bevelHighlight,
+    borderLeftColor: material.bevelHighlight,
+    borderRightColor: material.bevelShadow,
+    borderBottomColor: material.bevelShadow,
+    backgroundColor: material.structuralSurface,
     alignItems: 'center',
     justifyContent: 'center',
-    opacity: 0.6,
   },
-  glyph: { color: arcade.metalEdge, fontSize: 16, opacity: 0.7 },
-  label: { color: arcade.metalEdge, fontSize: 9, letterSpacing: 2, fontWeight: '600', opacity: 0.7 },
+  housingDormant: {
+    backgroundColor: material.recessedSurface,
+    borderTopColor: material.outline,
+    borderLeftColor: material.outline,
+  },
+  glyph: { color: material.textSecondary, fontSize: 16 },
+  glyphDormant: { color: material.disabled },
+  badgeSlot: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: material.outline,
+    borderStyle: 'dashed',
+    opacity: 0.5,
+  },
+  label: { ...typography.metadata, color: material.textSecondary, letterSpacing: 2 },
+  labelDormant: { color: material.disabled },
 });

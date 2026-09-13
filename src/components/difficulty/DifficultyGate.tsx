@@ -15,11 +15,18 @@ import {
   gateGeometry,
   gateIntroTimeline,
   gatePrimitives,
+  type GateAccent,
 } from '@/game/levels/difficulty';
-import { accentColor, arcade } from '@/theme/arcade';
-import { palette } from '@/theme/colors';
+import { material } from '@/theme/material';
 
 export type GateVariant = 'hud' | 'badge' | 'intro';
+
+/** UI-R8 — migrated off `theme/arcade.ts`'s `accentColor`; same three tiers. */
+const GATE_ACCENT: Record<GateAccent, string> = {
+  accent: material.accentCyan,
+  warn: material.warning,
+  danger: material.danger,
+};
 
 interface DifficultyGateProps {
   difficulty: LevelDifficulty;
@@ -48,7 +55,7 @@ export const DifficultyGate = memo(function DifficultyGate({
   const g = gateGeometry(difficulty);
   const size = ICON[variant];
   const prim = useMemo(() => gatePrimitives(difficulty, size), [difficulty, size]);
-  const color = accentColor[g.accent];
+  const color = GATE_ACCENT[g.accent];
 
   const settle = useSharedValue(animateIn ? 0 : 1);
   useEffect(() => {
@@ -82,20 +89,20 @@ export const DifficultyGate = memo(function DifficultyGate({
           </Group>
 
           {prim.outerGuard ? (
-            <Path path={prim.outerGuard.path} style="stroke" strokeWidth={prim.strokeWidth * 0.7} color={arcade.metalEdge} opacity={0.85} />
+            <Path path={prim.outerGuard.path} style="stroke" strokeWidth={prim.strokeWidth * 0.7} color={material.textSecondary} opacity={0.85} />
           ) : null}
 
-          {/* Machined frame: metal body + a thin energy inlay. */}
-          <Path path={prim.frame.path} style="stroke" strokeWidth={prim.strokeWidth} color={arcade.metalHi} />
+          {/* Machined frame: structural body + a thin energy inlay. */}
+          <Path path={prim.frame.path} style="stroke" strokeWidth={prim.strokeWidth} color={material.bevelHighlight} />
           <Path path={prim.frame.path} style="stroke" strokeWidth={Math.max(0.75, prim.strokeWidth * 0.4)} color={color} opacity={0.9} />
 
           {prim.segmentTicks.map((tick, i) => (
-            <Path key={i} path={tick} style="stroke" strokeWidth={prim.strokeWidth * 0.8} color={arcade.metalLo} strokeCap="round" />
+            <Path key={i} path={tick} style="stroke" strokeWidth={prim.strokeWidth * 0.8} color={material.bevelShadow} strokeCap="round" />
           ))}
 
           {prim.blocks.map((b, i) => (
             <Group key={i} origin={vec(b.x, b.y)} transform={[{ rotate: b.rot }]}>
-              <RoundedRect x={b.x - b.w / 2} y={b.y - b.h / 2} width={b.w} height={b.h} r={1.5} color={arcade.metalRaised} />
+              <RoundedRect x={b.x - b.w / 2} y={b.y - b.h / 2} width={b.w} height={b.h} r={1.5} color={material.raisedSurface} />
               <RoundedRect x={b.x - b.w / 2} y={b.y - b.h / 2} width={b.w} height={Math.max(1, b.h * 0.32)} r={1} color={color} opacity={0.85} />
             </Group>
           ))}
@@ -121,5 +128,5 @@ export const DifficultyGate = memo(function DifficultyGate({
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   badgeCol: { alignItems: 'center', gap: 3 },
-  label: { letterSpacing: 2, fontWeight: '800', color: palette.textSecondary },
+  label: { letterSpacing: 2, fontWeight: '800', color: material.textSecondary },
 });
