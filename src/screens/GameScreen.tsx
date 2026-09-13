@@ -29,6 +29,7 @@ import type { LevelDefinition } from '@/game/engine/types';
 import { useAmbientActive } from '@/hooks/useAmbientActive';
 import { useColorAssist } from '@/hooks/useColorAssist';
 import { useGameSession } from '@/hooks/useGameSession';
+import { useTutorialCompletion } from '@/hooks/useTutorialCompletion';
 import { material } from '@/theme/material';
 import { spacing } from '@/theme/spacing';
 import { worldSkin } from '@/theme/worldSkins';
@@ -99,7 +100,13 @@ export function GameScreen({
     onWin(levelId);
   }, [levelId, onWin]);
 
-  const session = useGameSession(levelId, { onWin: handleWin, level: levelOverride });
+  const tutorials = useTutorialCompletion();
+  const session = useGameSession(levelId, {
+    onWin: handleWin,
+    level: levelOverride,
+    completedTutorials: tutorials.ready ? tutorials.completed : null,
+    onTutorialComplete: tutorials.markComplete,
+  });
   const { state } = session;
   const won = state.status === 'won';
 

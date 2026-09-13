@@ -11,6 +11,17 @@ import { cancelHits, registerHit } from '@/game/hapticArbiter';
 import { requireLevel } from '@/game/levels/levels';
 import { buildLaunchScript } from '@/game/presentation/buildScript';
 import type { FlightPass, Point } from '@/game/presentation/events';
+import {
+  applyTutorialEvent,
+  catchUpTutorial,
+  createTutorial,
+  isTutorialActionAllowed,
+  syncTutorialCompletion,
+  toTutorialView,
+  type TutorialEvent,
+  type TutorialState,
+  type TutorialView,
+} from '@/game/tutorial';
 
 interface Options {
   onWin?: () => void;
@@ -21,6 +32,13 @@ interface Options {
    * in-memory level through the real session/engine. Pass a stable reference.
    */
   level?: LevelDefinition;
+  /**
+   * Completed tutorial ids from persistence. `null`/`undefined` means “not
+   * loaded yet” — the core tutorial stays inactive so it cannot flash on for a
+   * returning player. Pass an empty iterable to run it in tests.
+   */
+  completedTutorials?: Iterable<string> | null;
+  onTutorialComplete?: (id: string) => void;
 }
 
 interface ActiveFlight { pass: FlightPass; outcome: LaunchOutcome; cursor: number }
@@ -38,6 +56,8 @@ export interface GameSession {
   /** Engine concurrent-pass capacity (for ACTIVE X/Y). */
   activeCapacity: number;
   message: string;
+  /** M5.4B UI contract. Presentation-only consumers must not drive engine truth. */
+  tutorial: TutorialView;
   launch: (tunnelId: string, from?: Point, holdingTarget?: Point) => void;
   launchHeld: (chargeId: string, from?: Point, holdingTarget?: Point) => void;
   presentThrough: (passId: number, eventCount: number) => void;
@@ -59,7 +79,33 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
   const active = useRef(new Map<number, ActiveFlight>());
   const optionsRef = useRef(options);
   const reported = useRef(false);
+  const [tutorial, setTutorial] = useState<TutorialState>(() =>
+    createTutorial(level, options.completedTutorials));
+  const tutorialRef = useRef(tutorial);
+  tutorialRef.current = tutorial;
   useEffect(() => { optionsRef.current = options; });
+
+  const commitTutorial = useCallback((next: TutorialState) => {
+    const prev = tutorialRef.current;
+    if (prev === next) return;
+    tutorialRef.current = next;
+    setTutorial(next);
+    if (!prev.completed && next.completed) {
+      optionsRef.current.onTutorialComplete?.(next.id);
+    }
+  }, []);
+
+  const advanceTutorial = useCallback((event: TutorialEvent) => {
+    commitTutorial(applyTutorialEvent(tutorialRef.current, event));
+  }, [commitTutorial]);
+
+  useEffect(() => {
+    commitTutorial(syncTutorialCompletion(
+      tutorialRef.current,
+      options.completedTutorials,
+      level,
+    ));
+  }, [options.completedTutorials, commitTutorial, level]);
 
   const publishFlights = useCallback(() => {
     setFlights([...active.current.values()].map((f) => f.pass));
@@ -78,8 +124,9 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     setFlights([]);
     view.current = truth.current;
     setState(truth.current);
+    commitTutorial(catchUpTutorial(tutorialRef.current, truth.current));
     reportResult();
-  }, [reportResult]);
+  }, [reportResult, commitTutorial]);
 
   useEffect(() => {
     const flights = active.current;
@@ -91,6 +138,10 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
 
   const perform = useCallback((action: GameAction, from?: Point, holdingTarget?: Point) => {
     if (truth.current.status !== 'playing') return;
+    if (!isTutorialActionAllowed(tutorialRef.current, action)) {
+      feedback.emit('denied');
+      return;
+    }
     const cap = truth.current.activeCapacity || DEFAULT_ACTIVE_CAPACITY;
     // Visible flights occupy Active slots until they land. Deny with no mutation.
     if (active.current.size >= cap) {
@@ -116,6 +167,14 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     setMessage('');
     feedback.emit('launch', { haptic: false });
     truth.current = outcome.state;
+    if (outcome.launchedCharge) {
+      advanceTutorial({
+        type: 'launchAccepted',
+        action: { kind: action.kind, id: action.id },
+        chargeId: outcome.launchedCharge.id,
+        capacity: outcome.launchedCharge.capacity,
+      });
+    }
     setEngineState(outcome.state);
     const pass = buildLaunchScript(outcome, before, ++serial.current, from, holdingTarget).pass;
     active.current.set(pass.passId, { pass, outcome, cursor: 0 });
@@ -130,7 +189,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     };
     setState(view.current);
     publishFlights();
-  }, [publishFlights]);
+  }, [publishFlights, advanceTutorial]);
 
   const presentThrough = useCallback((passId: number, count: number) => {
     const flight = active.current.get(passId);
@@ -141,6 +200,13 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
       if (event.kind === 'pixelClear') {
         view.current = { ...view.current, pixels: view.current.pixels.map((p) =>
           p.id === event.pixelId ? { ...p, cleared: true } : p) };
+        if (typeof event.remaining === 'number') {
+          advanceTutorial({
+            type: 'hitResolved',
+            chargeId: flight.pass.charge.id,
+            remaining: event.remaining,
+          });
+        }
       } else if (event.kind === 'linkGroupClear') {
         const cleared = new Set(event.pixelIds ?? []);
         view.current = { ...view.current, pixels: view.current.pixels.map((p) =>
@@ -161,8 +227,10 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
       } else if (event.kind === 'holdingLanded') {
         view.current = { ...view.current, holding: truth.current.holding };
         if (truth.current.status === 'playing') setMessage('Tap a held charge to launch it again.');
+        advanceTutorial({ type: 'holdingEntered', chargeId: flight.pass.charge.id });
       } else if (event.kind === 'win' || event.kind === 'fail') {
         view.current = truth.current;
+        if (event.kind === 'win') advanceTutorial({ type: 'levelWon' });
         reportResult();
       } else if (event.kind === 'complete') {
         active.current.delete(passId);
@@ -195,7 +263,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
       }
     }
     setState(view.current);
-  }, [reportResult, settleAll, publishFlights]);
+  }, [reportResult, settleAll, publishFlights, advanceTutorial]);
 
   const restart = useCallback(() => {
     active.current.clear();
@@ -204,7 +272,12 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     const fresh = createGame(level);
     truth.current = fresh; view.current = fresh; reported.current = false;
     setState(fresh); setEngineState(fresh); setFlights([]); setMessage('');
-  }, [level]);
+    commitTutorial(
+      tutorialRef.current.completed
+        ? tutorialRef.current
+        : createTutorial(level, optionsRef.current.completedTutorials),
+    );
+  }, [level, commitTutorial]);
 
   const cap = engineState.activeCapacity || DEFAULT_ACTIVE_CAPACITY;
   return {
@@ -214,6 +287,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     activeCount: flights.length,
     activeCapacity: cap,
     message,
+    tutorial: toTutorialView(tutorial),
     launch: (id, from, target) => perform({ kind: 'tunnel', id }, from, target),
     launchHeld: (id, from, target) => perform({ kind: 'holding', id }, from, target),
     presentThrough, restart,
