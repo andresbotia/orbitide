@@ -8,6 +8,7 @@ import { IconButton } from '@/components/IconButton';
 import { WorldCard } from '@/components/campaign/WorldCard';
 import type { WorldSummary } from '@/game/levels/campaignProgress';
 import { feedback } from '@/game/feedback';
+import { useAmbientActive } from '@/hooks/useAmbientActive';
 import { material } from '@/theme/material';
 import { spacing, typography } from '@/theme/spacing';
 
@@ -27,6 +28,7 @@ interface WorldSelectScreenProps {
  */
 export function WorldSelectScreen({ summaries, loading, onSelectWorld, onBack }: WorldSelectScreenProps) {
   const reducedMotion = useReducedMotion();
+  const active = useAmbientActive();
 
   if (loading) {
     return (
@@ -58,6 +60,7 @@ export function WorldSelectScreen({ summaries, loading, onSelectWorld, onBack }:
             >
               <WorldCard
                 summary={item}
+                active={active}
                 onPress={() => {
                   feedback.emit('select');
                   onSelectWorld(item.world.id);

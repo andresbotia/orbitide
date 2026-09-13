@@ -19,6 +19,8 @@ import { WorldMotif } from './WorldMotif';
 interface WorldCardProps {
   summary: WorldSummary;
   onPress: () => void;
+  /** Paused when the World Select screen isn't focused/foregrounded. */
+  active?: boolean;
 }
 
 /**
@@ -28,7 +30,7 @@ interface WorldCardProps {
  * accent, while housing materials, typography, and bevel language stay
  * global Pixel Arcadia chrome — worlds differ in identity, not in system.
  */
-export function WorldCard({ summary, onPress }: WorldCardProps) {
+export function WorldCard({ summary, onPress, active = true }: WorldCardProps) {
   const { world, displayIndex, completedCount, totalCount, state } = summary;
   const skin = worldSkin(world.themeId);
   const accent = world.display?.accent ?? skin.accent;
@@ -47,6 +49,18 @@ export function WorldCard({ summary, onPress }: WorldCardProps) {
     return () => cancelAnimation(breathe);
   }, [current, reducedMotion, breathe]);
   const edgeStyle = useAnimatedStyle(() => ({ opacity: current ? 0.35 + breathe.value * 0.4 : 0 }));
+
+  // UI-R7 — the "very lightweight variation" allowed for destination cards:
+  // one shared breathing value on the whole motif (not per-shape), so ten
+  // simultaneous cards cost ten shared values, not ten particle systems.
+  const motifBreathe = useSharedValue(0.85);
+  useEffect(() => {
+    cancelAnimation(motifBreathe);
+    if (locked || !active || reducedMotion) { motifBreathe.set(0.85); return; }
+    motifBreathe.set(withRepeat(withTiming(1, { duration: 4200, easing: Easing.inOut(Easing.sin) }), -1, true));
+    return () => cancelAnimation(motifBreathe);
+  }, [locked, active, reducedMotion, motifBreathe]);
+  const motifStyle = useAnimatedStyle(() => ({ opacity: motifBreathe.value }));
 
   const a11yLabel = locked
     ? `World ${displayIndex}, ${world.title}, locked`
@@ -72,7 +86,9 @@ export function WorldCard({ summary, onPress }: WorldCardProps) {
       <Animated.View pointerEvents="none" style={[styles.edge, { borderColor: accent }, edgeStyle]} />
 
       <View style={styles.motifStrip}>
-        <WorldMotif ambientId={skin.ambientId} accent={accent} secondaryAccent={skin.secondaryAccent} muted={locked} style={StyleSheet.absoluteFill} />
+        <Animated.View style={[StyleSheet.absoluteFill, motifStyle]}>
+          <WorldMotif ambientId={skin.ambientId} accent={accent} secondaryAccent={skin.secondaryAccent} muted={locked} style={StyleSheet.absoluteFill} />
+        </Animated.View>
         {isFinale && !locked ? <View pointerEvents="none" style={styles.finaleWash} /> : null}
       </View>
 

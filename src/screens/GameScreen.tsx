@@ -77,7 +77,8 @@ export function GameScreen({
   );
   const reducedMotion = useReducedMotion();
   const active = useAmbientActive();
-  const worldAccent = worldSkin(level.themeId).accent;
+  const skin = worldSkin(level.themeId);
+  const worldAccent = skin.accent;
   const { enabled: colorAssist } = useColorAssist();
 
   // UI-R6 celebration tier — derived from the same campaign manifest World
@@ -164,6 +165,16 @@ export function GameScreen({
   }, [lost, reducedMotion, failPulse]);
   const failPulseStyle = useAnimatedStyle(() => ({ opacity: failPulse.value * 0.7 }));
 
+  // Gameplay -> Results (UI-R7): controls used to hard-cut opacity 1 -> 0 the
+  // instant `won` flipped. A quick cross-fade instead — short enough not to
+  // delay `DiscoveryOverlay`'s own entrance (which is already timed off the
+  // reveal progress, not this).
+  const controlsFade = useSharedValue(1);
+  useEffect(() => {
+    controlsFade.set(withTiming(won ? 0 : 1, { duration: reducedMotion ? 90 : 180 }));
+  }, [won, reducedMotion, controlsFade]);
+  const controlsFadeStyle = useAnimatedStyle(() => ({ opacity: controlsFade.value }));
+
   const onBoardArea = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
     const size = Math.max(0, Math.min(width, height) - spacing.md);
@@ -183,7 +194,13 @@ export function GameScreen({
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <GameplayEnvironment worldAccent={worldAccent} active={active} reducedMotion={reducedMotion} />
+      <GameplayEnvironment
+        worldAccent={worldAccent}
+        worldSecondaryAccent={skin.secondaryAccent}
+        ambientId={skin.ambientId}
+        active={active}
+        reducedMotion={reducedMotion}
+      />
 
       <View style={styles.hud}>
         <Hud state={state} title={level.title} difficulty={level.difficulty} onRestart={session.restart} />
@@ -229,7 +246,7 @@ export function GameScreen({
         ) : null}
       </View>
 
-      <View style={[styles.controls, won && styles.controlsWon]} pointerEvents={won ? 'none' : 'auto'}>
+      <Animated.View style={[styles.controls, controlsFadeStyle]} pointerEvents={won ? 'none' : 'auto'}>
         <HoldingTray
           layoutVersion={boardSize}
           holding={state.holding}
@@ -254,7 +271,7 @@ export function GameScreen({
         />
 
         <ToolBar />
-      </View>
+      </Animated.View>
 
       {won ? (
         <DiscoveryOverlay
@@ -302,9 +319,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
     gap: spacing.md,
     alignItems: 'center',
-  },
-  controlsWon: {
-    opacity: 0,
   },
   failRing: {
     position: 'absolute',

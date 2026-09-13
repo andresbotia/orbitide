@@ -24,17 +24,31 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <StatusBar style="light" />
+        {/*
+          UI-R7 transition language. `slide_from_right` on Home → Worlds →
+          World Levels resolves to the platform default push on iOS (per
+          react-native-screens — it's an Android-only override; iOS already
+          uses its own fast native push) and is left without an explicit
+          `animationDuration`, since that option only customises
+          `fade`/`fade_from_bottom`/`slide_from_bottom`/`simple_push`. Back
+          navigation automatically reverses whichever animation a screen
+          pushed with — no separate "back" language to maintain.
+          `game` gets its own `fade_from_bottom` ("entering the stage") at a
+          deliberately short 280ms — the previous unconfigured `fade` default
+          was iOS's own 500ms, over this milestone's target ceiling.
+        */}
         <Stack
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: brandColor.background },
             animation: 'fade',
+            animationDuration: 220,
           }}
         >
           <Stack.Screen name="index" />
           <Stack.Screen name="worlds" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="world/[id]" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="game" />
+          <Stack.Screen name="game" options={{ animation: 'fade_from_bottom', animationDuration: 280 }} />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>

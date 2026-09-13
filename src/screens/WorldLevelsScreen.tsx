@@ -7,10 +7,12 @@ import { BrandLoader } from '@/components/brand';
 import { CampaignBackdrop } from '@/components/campaign/CampaignBackdrop';
 import { IconButton } from '@/components/IconButton';
 import { LevelNode } from '@/components/campaign/LevelNode';
+import { AmbientLayer } from '@/components/world/AmbientLayer';
 import type { CampaignWorld } from '@/game/studio/campaign/types';
 import { levelSlotState } from '@/game/levels/campaignProgress';
 import type { Progress } from '@/storage/progress';
 import { feedback } from '@/game/feedback';
+import { useAmbientActive } from '@/hooks/useAmbientActive';
 import { material } from '@/theme/material';
 import { spacing, typography } from '@/theme/spacing';
 import { worldSkin } from '@/theme/worldSkins';
@@ -47,6 +49,7 @@ export function WorldLevelsScreen({
 }: WorldLevelsScreenProps) {
   const { width } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
+  const active = useAmbientActive();
   const skin = worldSkin(world.themeId);
   const accent = world.display?.accent ?? skin.accent;
   const subtitle = world.display?.subtitle ?? 'Explore the sector';
@@ -96,6 +99,14 @@ export function WorldLevelsScreen({
   return (
     <View style={styles.root}>
       <CampaignBackdrop worldAccent={accent} />
+      <AmbientLayer
+        ambientId={skin.ambientId}
+        accent={accent}
+        secondaryAccent={skin.secondaryAccent}
+        intensity="high"
+        active={active}
+        reducedMotion={reducedMotion}
+      />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <IconButton glyph="←" onPress={onBack} accessibilityLabel="Back to Worlds" />
