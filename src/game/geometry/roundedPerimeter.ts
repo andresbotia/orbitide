@@ -53,11 +53,13 @@ const HALF_PI = Math.PI / 2;
 const TWO_PI = Math.PI * 2;
 
 function nonNegative(n: number): number {
+  'worklet';
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
 /** Wrap any real progress onto `[0, 1)`. `1` and integers map to `0`. */
 export function normalizePerimeterProgress(progress: number): number {
+  'worklet';
   if (!Number.isFinite(progress)) return 0;
   let wrapped = progress % 1;
   if (wrapped < 0) wrapped += 1;
@@ -70,9 +72,188 @@ export function normalizePerimeterProgress(progress: number): number {
  * Invalid (non-positive) dimensions yield 0.
  */
 export function clampCornerRadius(width: number, height: number, radius: number): number {
+  'worklet';
   const max = Math.min(nonNegative(width), nonNegative(height)) / 2;
   if (!Number.isFinite(radius) || radius <= 0 || max <= 0) return 0;
   return radius < max ? radius : max;
+}
+
+interface PerimeterMetrics {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  radius: number;
+  straightH: number;
+  straightV: number;
+  arc: number;
+  halfH: number;
+  length: number;
+  cxTR: number;
+  cyTR: number;
+  cxBR: number;
+  cyBR: number;
+  cxBL: number;
+  cyBL: number;
+  cxTL: number;
+  cyTL: number;
+}
+
+interface LocatedSegment {
+  index: number;
+  t: number;
+}
+
+/** Plain numeric layout. Worklet-safe; no function objects. */
+function measurePerimeter(bounds: RoundedPerimeterBounds): PerimeterMetrics {
+  'worklet';
+  const x = Number.isFinite(bounds.x) ? bounds.x : 0;
+  const y = Number.isFinite(bounds.y) ? bounds.y : 0;
+  const width = nonNegative(bounds.width);
+  const height = nonNegative(bounds.height);
+  const radius = clampCornerRadius(width, height, bounds.radius);
+  const straightH = Math.max(0, width - 2 * radius);
+  const straightV = Math.max(0, height - 2 * radius);
+  const arc = radius > 0 ? HALF_PI * radius : 0;
+  const halfH = straightH / 2;
+  return {
+    x,
+    y,
+    width,
+    height,
+    radius,
+    straightH,
+    straightV,
+    arc,
+    halfH,
+    length: 2 * straightH + 2 * straightV + TWO_PI * radius,
+    cxTR: x + width - radius,
+    cyTR: y + radius,
+    cxBR: x + width - radius,
+    cyBR: y + height - radius,
+    cxBL: x + radius,
+    cyBL: y + height - radius,
+    cxTL: x + radius,
+    cyTL: y + radius,
+  };
+}
+
+function partLength(m: PerimeterMetrics, index: number): number {
+  'worklet';
+  if (index === 0 || index === 8) return m.halfH;
+  if (index === 2 || index === 6) return m.straightV;
+  if (index === 4) return m.straightH;
+  return m.arc;
+}
+
+function locateOnPerimeter(m: PerimeterMetrics, progress: number): LocatedSegment {
+  'worklet';
+  const dist = m.length > 0 ? normalizePerimeterProgress(progress) * m.length : 0;
+  let remaining = dist;
+  const last = 8;
+  for (let i = 0; i <= last; i += 1) {
+    const length = partLength(m, i);
+    if (i === last || remaining <= length) {
+      const t = length > 0 ? Math.min(1, Math.max(0, remaining / length)) : 0;
+      return { index: i, t };
+    }
+    remaining -= length;
+  }
+  return { index: 0, t: 0 };
+}
+
+function pointOnPerimeter(m: PerimeterMetrics, index: number, t: number): Point {
+  'worklet';
+  switch (index) {
+    case 0: // top, center → right end
+      return { x: m.x + m.width / 2 + t * m.halfH, y: m.y };
+    case 1: { // topRight −π/2 → 0
+      const theta = -HALF_PI + t * HALF_PI;
+      return { x: m.cxTR + m.radius * Math.cos(theta), y: m.cyTR + m.radius * Math.sin(theta) };
+    }
+    case 2: // right, top → bottom
+      return { x: m.x + m.width, y: m.y + m.radius + t * m.straightV };
+    case 3: { // bottomRight 0 → π/2
+      const theta = t * HALF_PI;
+      return { x: m.cxBR + m.radius * Math.cos(theta), y: m.cyBR + m.radius * Math.sin(theta) };
+    }
+    case 4: // bottom, right → left
+      return { x: m.x + m.width - m.radius - t * m.straightH, y: m.y + m.height };
+    case 5: { // bottomLeft π/2 → π
+      const theta = HALF_PI + t * HALF_PI;
+      return { x: m.cxBL + m.radius * Math.cos(theta), y: m.cyBL + m.radius * Math.sin(theta) };
+    }
+    case 6: // left, bottom → top
+      return { x: m.x, y: m.y + m.height - m.radius - t * m.straightV };
+    case 7: { // topLeft π → 3π/2
+      const theta = Math.PI + t * HALF_PI;
+      return { x: m.cxTL + m.radius * Math.cos(theta), y: m.cyTL + m.radius * Math.sin(theta) };
+    }
+    default: // top, left end → center
+      return { x: m.x + m.radius + t * m.halfH, y: m.y };
+  }
+}
+
+function inwardOnPerimeter(m: PerimeterMetrics, index: number, t: number): Point {
+  'worklet';
+  switch (index) {
+    case 0:
+    case 8:
+      return { x: 0, y: 1 };
+    case 2:
+      return { x: -1, y: 0 };
+    case 4:
+      return { x: 0, y: -1 };
+    case 6:
+      return { x: 1, y: 0 };
+    case 1: {
+      const theta = -HALF_PI + t * HALF_PI;
+      return { x: -Math.cos(theta), y: -Math.sin(theta) };
+    }
+    case 3: {
+      const theta = t * HALF_PI;
+      return { x: -Math.cos(theta), y: -Math.sin(theta) };
+    }
+    case 5: {
+      const theta = HALF_PI + t * HALF_PI;
+      return { x: -Math.cos(theta), y: -Math.sin(theta) };
+    }
+    default: {
+      const theta = Math.PI + t * HALF_PI;
+      return { x: -Math.cos(theta), y: -Math.sin(theta) };
+    }
+  }
+}
+
+function tangentOnPerimeter(m: PerimeterMetrics, index: number, t: number): Point {
+  'worklet';
+  switch (index) {
+    case 0:
+    case 8:
+      return { x: 1, y: 0 };
+    case 2:
+      return { x: 0, y: 1 };
+    case 4:
+      return { x: -1, y: 0 };
+    case 6:
+      return { x: 0, y: -1 };
+    case 1: {
+      const theta = -HALF_PI + t * HALF_PI;
+      return { x: -Math.sin(theta), y: Math.cos(theta) };
+    }
+    case 3: {
+      const theta = t * HALF_PI;
+      return { x: -Math.sin(theta), y: Math.cos(theta) };
+    }
+    case 5: {
+      const theta = HALF_PI + t * HALF_PI;
+      return { x: -Math.sin(theta), y: Math.cos(theta) };
+    }
+    default: {
+      const theta = Math.PI + t * HALF_PI;
+      return { x: -Math.sin(theta), y: Math.cos(theta) };
+    }
+  }
 }
 
 export function roundedPerimeterLength(bounds: RoundedPerimeterBounds): number {
@@ -83,21 +264,33 @@ export function pointAtRoundedPerimeterProgress(
   bounds: RoundedPerimeterBounds,
   progress: number,
 ): Point {
-  return createRoundedPerimeterGeometry(bounds).pointAt(progress);
+  'worklet';
+  const m = measurePerimeter(bounds);
+  if (m.length <= 0) return { x: m.x, y: m.y };
+  const loc = locateOnPerimeter(m, progress);
+  return pointOnPerimeter(m, loc.index, loc.t);
 }
 
 export function inwardNormalAtRoundedPerimeterProgress(
   bounds: RoundedPerimeterBounds,
   progress: number,
 ): Point {
-  return createRoundedPerimeterGeometry(bounds).inwardNormalAt(progress);
+  'worklet';
+  const m = measurePerimeter(bounds);
+  if (m.length <= 0) return { x: 0, y: 1 };
+  const loc = locateOnPerimeter(m, progress);
+  return inwardOnPerimeter(m, loc.index, loc.t);
 }
 
 export function tangentAtRoundedPerimeterProgress(
   bounds: RoundedPerimeterBounds,
   progress: number,
 ): Point {
-  return createRoundedPerimeterGeometry(bounds).tangentAt(progress);
+  'worklet';
+  const m = measurePerimeter(bounds);
+  if (m.length <= 0) return { x: 1, y: 0 };
+  const loc = locateOnPerimeter(m, progress);
+  return tangentOnPerimeter(m, loc.index, loc.t);
 }
 
 export function segmentAtRoundedPerimeterProgress(
@@ -131,170 +324,42 @@ export interface RoundedPerimeterGeometry {
 export function createRoundedPerimeterGeometry(
   bounds: RoundedPerimeterBounds,
 ): RoundedPerimeterGeometry {
-  const x = Number.isFinite(bounds.x) ? bounds.x : 0;
-  const y = Number.isFinite(bounds.y) ? bounds.y : 0;
-  const width = nonNegative(bounds.width);
-  const height = nonNegative(bounds.height);
-  const radius = clampCornerRadius(width, height, bounds.radius);
-
-  const straightH = Math.max(0, width - 2 * radius);
-  const straightV = Math.max(0, height - 2 * radius);
-  const arc = radius > 0 ? HALF_PI * radius : 0;
-  const halfH = straightH / 2;
-  const length = 2 * straightH + 2 * straightV + TWO_PI * radius;
-
-  const cxTR = x + width - radius;
-  const cyTR = y + radius;
-  const cxBR = x + width - radius;
-  const cyBR = y + height - radius;
-  const cxBL = x + radius;
-  const cyBL = y + height - radius;
-  const cxTL = x + radius;
-  const cyTL = y + radius;
-
-  // Progress 0 = top-center. The top edge is split across the wrap.
+  const m = measurePerimeter(bounds);
+  const { x, y, width, height, radius, length } = m;
   const parts: readonly Part[] = [
-    { id: 'top', length: halfH },
-    { id: 'topRight', length: arc },
-    { id: 'right', length: straightV },
-    { id: 'bottomRight', length: arc },
-    { id: 'bottom', length: straightH },
-    { id: 'bottomLeft', length: arc },
-    { id: 'left', length: straightV },
-    { id: 'topLeft', length: arc },
-    { id: 'top', length: halfH },
+    { id: 'top', length: m.halfH },
+    { id: 'topRight', length: m.arc },
+    { id: 'right', length: m.straightV },
+    { id: 'bottomRight', length: m.arc },
+    { id: 'bottom', length: m.straightH },
+    { id: 'bottomLeft', length: m.arc },
+    { id: 'left', length: m.straightV },
+    { id: 'topLeft', length: m.arc },
+    { id: 'top', length: m.halfH },
   ];
-
   const normalized: RoundedPerimeterBounds = { x, y, width, height, radius };
-
-  const locate = (progress: number): { part: Part; index: number; t: number } => {
-    const dist = length > 0 ? normalizePerimeterProgress(progress) * length : 0;
-    let remaining = dist;
-    const last = parts.length - 1;
-    for (let i = 0; i <= last; i += 1) {
-      const part = parts[i]!;
-      if (i === last || remaining <= part.length) {
-        const t = part.length > 0 ? Math.min(1, Math.max(0, remaining / part.length)) : 0;
-        return { part, index: i, t };
-      }
-      remaining -= part.length;
-    }
-    return { part: parts[0]!, index: 0, t: 0 };
-  };
-
-  const pointOn = (index: number, t: number): Point => {
-    switch (index) {
-      case 0: // top, center → right end
-        return { x: x + width / 2 + t * halfH, y };
-      case 1: { // topRight −π/2 → 0
-        const theta = -HALF_PI + t * HALF_PI;
-        return { x: cxTR + radius * Math.cos(theta), y: cyTR + radius * Math.sin(theta) };
-      }
-      case 2: // right, top → bottom
-        return { x: x + width, y: y + radius + t * straightV };
-      case 3: { // bottomRight 0 → π/2
-        const theta = t * HALF_PI;
-        return { x: cxBR + radius * Math.cos(theta), y: cyBR + radius * Math.sin(theta) };
-      }
-      case 4: // bottom, right → left
-        return { x: x + width - radius - t * straightH, y: y + height };
-      case 5: { // bottomLeft π/2 → π
-        const theta = HALF_PI + t * HALF_PI;
-        return { x: cxBL + radius * Math.cos(theta), y: cyBL + radius * Math.sin(theta) };
-      }
-      case 6: // left, bottom → top
-        return { x, y: y + height - radius - t * straightV };
-      case 7: { // topLeft π → 3π/2
-        const theta = Math.PI + t * HALF_PI;
-        return { x: cxTL + radius * Math.cos(theta), y: cyTL + radius * Math.sin(theta) };
-      }
-      default: // top, left end → center
-        return { x: x + radius + t * halfH, y };
-    }
-  };
-
-  const inwardOn = (index: number, t: number): Point => {
-    switch (index) {
-      case 0:
-      case 8:
-        return { x: 0, y: 1 };
-      case 2:
-        return { x: -1, y: 0 };
-      case 4:
-        return { x: 0, y: -1 };
-      case 6:
-        return { x: 1, y: 0 };
-      case 1: {
-        const theta = -HALF_PI + t * HALF_PI;
-        return { x: -Math.cos(theta), y: -Math.sin(theta) };
-      }
-      case 3: {
-        const theta = t * HALF_PI;
-        return { x: -Math.cos(theta), y: -Math.sin(theta) };
-      }
-      case 5: {
-        const theta = HALF_PI + t * HALF_PI;
-        return { x: -Math.cos(theta), y: -Math.sin(theta) };
-      }
-      default: {
-        const theta = Math.PI + t * HALF_PI;
-        return { x: -Math.cos(theta), y: -Math.sin(theta) };
-      }
-    }
-  };
-
-  const tangentOn = (index: number, t: number): Point => {
-    switch (index) {
-      case 0:
-      case 8:
-        return { x: 1, y: 0 };
-      case 2:
-        return { x: 0, y: 1 };
-      case 4:
-        return { x: -1, y: 0 };
-      case 6:
-        return { x: 0, y: -1 };
-      case 1: {
-        const theta = -HALF_PI + t * HALF_PI;
-        return { x: -Math.sin(theta), y: Math.cos(theta) };
-      }
-      case 3: {
-        const theta = t * HALF_PI;
-        return { x: -Math.sin(theta), y: Math.cos(theta) };
-      }
-      case 5: {
-        const theta = HALF_PI + t * HALF_PI;
-        return { x: -Math.sin(theta), y: Math.cos(theta) };
-      }
-      default: {
-        const theta = Math.PI + t * HALF_PI;
-        return { x: -Math.sin(theta), y: Math.cos(theta) };
-      }
-    }
-  };
-
   return {
     bounds: normalized,
     length,
     bottomCenterProgress: ROUNDED_PERIMETER_BOTTOM_CENTER_PROGRESS,
     pointAt(progress: number): Point {
       if (length <= 0) return { x, y };
-      const { index, t } = locate(progress);
-      return pointOn(index, t);
+      const loc = locateOnPerimeter(m, progress);
+      return pointOnPerimeter(m, loc.index, loc.t);
     },
     inwardNormalAt(progress: number): Point {
       if (length <= 0) return { x: 0, y: 1 };
-      const { index, t } = locate(progress);
-      return inwardOn(index, t);
+      const loc = locateOnPerimeter(m, progress);
+      return inwardOnPerimeter(m, loc.index, loc.t);
     },
     tangentAt(progress: number): Point {
       if (length <= 0) return { x: 1, y: 0 };
-      const { index, t } = locate(progress);
-      return tangentOn(index, t);
+      const loc = locateOnPerimeter(m, progress);
+      return tangentOnPerimeter(m, loc.index, loc.t);
     },
     segmentAt(progress: number): RoundedPerimeterSegment {
       if (length <= 0) return 'top';
-      return locate(progress).part.id;
+      return parts[locateOnPerimeter(m, progress).index]!.id;
     },
   };
 }
