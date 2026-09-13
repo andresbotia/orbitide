@@ -1,5 +1,14 @@
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { brandColor, brandInk } from '@/theme/brand';
 import { BrandGradientView } from './BrandGradientView';
@@ -15,6 +24,14 @@ interface PrimaryCtaProps {
   fullWidth?: boolean;
   style?: ViewStyle;
   accessibilityHint?: string;
+  /**
+   * Opt-in slow glow-breathing idle state (UI-R2 — Home's PLAY/CONTINUE only).
+   * Defaults to `false` so every existing consumer (Try Again, NEXT, Worlds,
+   * etc.) renders exactly as before. iOS-only effect (animates `shadowOpacity`/
+   * `shadowRadius`, never Android `elevation` — animating elevation re-renders
+   * the shadow every frame). Reduced motion holds at the midpoint.
+   */
+  idleGlow?: boolean;
 }
 
 /**
@@ -36,9 +53,25 @@ export const PrimaryCta = memo(function PrimaryCta({
   fullWidth = false,
   style,
   accessibilityHint,
+  idleGlow = false,
 }: PrimaryCtaProps) {
   const text = label.toUpperCase();
   const isPrimary = variant === 'primary';
+  const reducedMotion = useReducedMotion();
+  const breathe = useSharedValue(0.5);
+
+  useEffect(() => {
+    cancelAnimation(breathe);
+    if (!idleGlow) { breathe.set(0.5); return; }
+    if (reducedMotion) { breathe.set(0.5); return; }
+    breathe.set(withRepeat(withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.sin) }), -1, true));
+    return () => cancelAnimation(breathe);
+  }, [idleGlow, reducedMotion, breathe]);
+
+  const breatheStyle = useAnimatedStyle(() => {
+    if (!idleGlow || Platform.OS !== 'ios') return {};
+    return { shadowOpacity: 0.28 + breathe.value * 0.16, shadowRadius: 16 + breathe.value * 10 };
+  });
 
   return (
     <Pressable
@@ -53,12 +86,13 @@ export const PrimaryCta = memo(function PrimaryCta({
       style={[fullWidth && styles.fullWidth, style]}
     >
       {({ pressed }) => (
-        <View
+        <Animated.View
           style={[
             styles.shell,
             fullWidth && styles.fullWidth,
             isPrimary && !disabled && styles.glow,
             isPrimary && pressed && styles.glowPressed,
+            isPrimary && !disabled && !pressed ? breatheStyle : null,
             pressed && !disabled && styles.pressed,
           ]}
         >
@@ -86,7 +120,7 @@ export const PrimaryCta = memo(function PrimaryCta({
           >
             {text}
           </Text>
-        </View>
+        </Animated.View>
       )}
     </Pressable>
   );

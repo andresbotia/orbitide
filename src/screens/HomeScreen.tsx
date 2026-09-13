@@ -1,23 +1,25 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { runOnJS, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, runOnJS, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useFocusEffect } from 'expo-router';
 
 import { PlayButton } from '@/components/PlayButton';
 import { PixelArcadiaWordmark, PrimaryCta } from '@/components/brand';
 import { FloatingFragments } from '@/components/home/FloatingFragments';
 import { HomeCenterpiece } from '@/components/home/HomeCenterpiece';
+import { HomeEnvironment } from '@/components/home/HomeEnvironment';
 import { LevelBadge } from '@/components/home/LevelBadge';
-import { StarfieldBackdrop } from '@/components/home/StarfieldBackdrop';
 import { TopUtility } from '@/components/home/TopUtility';
+import { CAMPAIGN_MANIFEST } from '@/game/levels/campaign';
+import { summarizeWorlds } from '@/game/levels/campaignProgress';
 import { FIRST_LEVEL, getLevel, requireLevel, TOTAL_LEVELS } from '@/game/levels/levels';
 import { ambientChargeSpecs, computeHomeLayout, homeLevelPreview } from '@/game/rendering/homeGeometry';
 import { useAmbientActive } from '@/hooks/useAmbientActive';
 import { feedback } from '@/game/feedback';
-import { arcade } from '@/theme/arcade';
-import { brandColor } from '@/theme/brand';
+import { material } from '@/theme/material';
 import { spacing } from '@/theme/spacing';
+import { worldSkin } from '@/theme/worldSkins';
 
 interface HomeScreenProps {
   highestUnlockedLevel: number;
@@ -29,6 +31,12 @@ interface HomeScreenProps {
   onSecretReset?: () => void;
 }
 
+/**
+ * PIXEL ARCADIA HOME — the arcade hub (UI-R2). Presentation only: progression,
+ * navigation, and storage are unchanged from the previous milestone. See
+ * `docs/DESIGN.md` for the material/motion/world-skin foundations this screen
+ * consumes (`theme/material.ts`, `theme/worldSkins.ts`).
+ */
 export function HomeScreen({ highestUnlockedLevel, loading, onPlay, onWorlds, onSecretReset }: HomeScreenProps) {
   const window = useWindowDimensions();
   const reducedMotion = useReducedMotion();
@@ -50,6 +58,17 @@ export function HomeScreen({ highestUnlockedLevel, loading, onPlay, onWorlds, on
     () => ambientChargeSpecs(level, layout.ambientChargeCount),
     [level, layout.ambientChargeCount],
   );
+
+  // Current world identity — real campaign data, no hardcoded example values.
+  const worldSummaries = useMemo(
+    () => summarizeWorlds(CAMPAIGN_MANIFEST, { highestUnlockedLevel }),
+    [highestUnlockedLevel],
+  );
+  const currentWorld = useMemo(
+    () => worldSummaries.find((s) => s.world.levelIds.includes(level.id)),
+    [worldSummaries, level.id],
+  );
+  const worldAccent = worldSkin(currentWorld?.world.themeId).accent;
 
   const activation = useSharedValue(0);
   const navigating = useRef(false);
@@ -78,13 +97,15 @@ export function HomeScreen({ highestUnlockedLevel, loading, onPlay, onWorlds, on
   }, [activation, onPlay]);
 
   const cleared = Math.max(0, Math.min(TOTAL_LEVELS, highestUnlockedLevel - 1));
+  const enter = !reducedMotion;
 
   return (
     <View style={styles.root}>
-      <StarfieldBackdrop
+      <HomeEnvironment
         width={window.width}
         height={window.height}
         layout={layout}
+        worldAccent={worldAccent}
         active={active}
         reducedMotion={reducedMotion}
       />
@@ -93,24 +114,27 @@ export function HomeScreen({ highestUnlockedLevel, loading, onPlay, onWorlds, on
         <TopUtility />
 
         <View style={styles.hero} onLayout={onBandLayout}>
-          <PixelArcadiaWordmark
-            size={26}
-            layout="stacked"
-            align="center"
-            style={styles.wordmark}
-            onLongPress={__DEV__ ? onSecretReset : undefined}
-          />
+          <Animated.View entering={enter ? FadeIn.duration(360) : undefined}>
+            <PixelArcadiaWordmark
+              size={26}
+              layout="stacked"
+              align="center"
+              style={styles.wordmark}
+              onLongPress={__DEV__ ? onSecretReset : undefined}
+            />
+          </Animated.View>
 
           {band.width > 0 ? (
-            <>
-              <View pointerEvents="none" style={styles.coreWash}>
-                <View style={styles.coreWashOuter} />
-                <View style={styles.coreWashInner} />
-              </View>
+            <Animated.View
+              entering={enter ? FadeIn.duration(420).delay(70) : undefined}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            >
               <HomeCenterpiece
                 layout={layout}
                 preview={preview}
                 specs={specs}
+                worldAccent={worldAccent}
                 active={active}
                 reducedMotion={reducedMotion}
                 activation={activation}
@@ -118,17 +142,27 @@ export function HomeScreen({ highestUnlockedLevel, loading, onPlay, onWorlds, on
               {layout.showForeground ? (
                 <FloatingFragments layout={layout} active={active} reducedMotion={reducedMotion} />
               ) : null}
-            </>
+            </Animated.View>
           ) : null}
         </View>
 
-        <View style={styles.controls}>
-          <LevelBadge levelId={level.id} difficulty={level.difficulty} />
+        <Animated.View
+          entering={enter ? FadeInDown.duration(360).delay(160) : undefined}
+          style={styles.controls}
+        >
+          <LevelBadge
+            levelId={level.id}
+            difficulty={level.difficulty}
+            worldDisplayIndex={currentWorld?.displayIndex}
+            worldTitle={currentWorld?.world.title}
+            worldAccent={worldAccent}
+          />
           <PlayButton
             label={highestUnlockedLevel > FIRST_LEVEL ? 'Continue' : 'Play'}
             onPress={handlePlay}
             onPressIn={handlePressIn}
             disabled={loading}
+            idleGlow={!loading}
           />
           <PrimaryCta
             label="Worlds"
@@ -141,14 +175,14 @@ export function HomeScreen({ highestUnlockedLevel, loading, onPlay, onWorlds, on
           <View style={styles.reward}>
             <Text style={styles.rewardText}>PICTURES RESTORED {cleared}/{TOTAL_LEVELS}</Text>
           </View>
-        </View>
+        </Animated.View>
       </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: arcade.envBottom },
+  root: { flex: 1, backgroundColor: material.background },
   safe: { flex: 1 },
   hero: {
     flex: 1,
@@ -159,32 +193,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: spacing.md,
     alignSelf: 'center',
-  },
-  // One warm radial borrowed from the icon's core light, ≤18% — the whole of
-  // Home's arch-motif budget. No portal geometry behind the level preview.
-  coreWash: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  coreWashOuter: {
-    position: 'absolute',
-    width: 460,
-    height: 460,
-    borderRadius: 230,
-    backgroundColor: brandColor.glow,
-    opacity: 0.06,
-  },
-  coreWashInner: {
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: brandColor.glow,
-    opacity: 0.1,
   },
   controls: {
     alignItems: 'center',
@@ -198,7 +206,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   rewardText: {
-    color: arcade.metalEdge,
+    color: material.textSecondary,
     fontSize: 10,
     letterSpacing: 2,
     fontWeight: '600',

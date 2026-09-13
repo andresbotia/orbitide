@@ -10,7 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import type { HomeLayout } from '@/game/rendering/homeGeometry';
-import { arcade } from '@/theme/arcade';
+import { material } from '@/theme/material';
 
 interface FloatingFragmentsProps {
   layout: HomeLayout;
@@ -19,8 +19,10 @@ interface FloatingFragmentsProps {
 }
 
 /**
- * FOREGROUND depth layer: a few suspended machine / glass fragments with very
- * limited float. First layer dropped on small phones or reduced motion.
+ * FOREGROUND depth layer (UI-R2): a few suspended dimensional block
+ * fragments with very limited float — small pieces of the same structural
+ * material as the centerpiece housing, not the old Cosmic Arcade energy
+ * glass. First layer dropped on small phones or reduced motion.
  */
 export const FloatingFragments = memo(function FloatingFragments({ layout, active, reducedMotion }: FloatingFragmentsProps) {
   const { center, machineRadius: R } = layout;
@@ -74,12 +76,12 @@ function Fragment({ piece, active, reducedMotion }: {
 const styles = StyleSheet.create({
   shard: {
     position: 'absolute',
-    backgroundColor: arcade.glassFill,
+    backgroundColor: material.raisedSurface,
     borderWidth: 1,
-    borderTopColor: arcade.glassEdge,
-    borderLeftColor: arcade.glassEdge,
-    borderRightColor: arcade.metalLo,
-    borderBottomColor: arcade.metalLo,
+    borderTopColor: material.bevelHighlight,
+    borderLeftColor: material.bevelHighlight,
+    borderRightColor: material.bevelShadow,
+    borderBottomColor: material.bevelShadow,
     opacity: 0.7,
   },
 });

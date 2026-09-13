@@ -1,8 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { IconButton } from '@/components/IconButton';
-import { arcade } from '@/theme/arcade';
-import { palette } from '@/theme/colors';
+import { material } from '@/theme/material';
 
 interface TopUtilityProps {
   /** Presentation-only balance. No economy in M2A.2. */
@@ -41,10 +40,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 10,
-    backgroundColor: arcade.metal,
+    backgroundColor: material.structuralSurface,
     borderWidth: 1,
-    borderColor: arcade.metalLo,
+    borderColor: material.outline,
   },
-  coinIcon: { color: arcade.warn, fontSize: 11, opacity: 0.85 },
-  coinValue: { color: palette.textSecondary, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+  coinIcon: { color: material.energyWarm, fontSize: 11, opacity: 0.85 },
+  coinValue: { color: material.textSecondary, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
 });

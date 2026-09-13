@@ -6,6 +6,8 @@ interface PlayButtonProps {
   /** Fired on touch-down for immediate feedback (haptic / activation). */
   onPressIn?: () => void;
   disabled?: boolean;
+  /** Passthrough to `PrimaryCta`'s opt-in idle-breathing glow (default off). */
+  idleGlow?: boolean;
 }
 
 /**
@@ -14,13 +16,14 @@ interface PlayButtonProps {
  * so PLAY, NEXT, RETRY and CONTINUE all read as the same control. Position and
  * props are unchanged.
  */
-export function PlayButton({ label = 'PLAY', onPress, onPressIn, disabled }: PlayButtonProps) {
+export function PlayButton({ label = 'PLAY', onPress, onPressIn, disabled, idleGlow }: PlayButtonProps) {
   return (
     <PrimaryCta
       label={label}
       onPress={onPress}
       onPressIn={onPressIn}
       disabled={disabled}
+      idleGlow={idleGlow}
       style={{ width: 236 }}
     />
   );

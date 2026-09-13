@@ -3,9 +3,15 @@ import type { LevelDefinition, OrbColor } from '@/game/engine/types';
 import { CAMPAIGN_COLORS } from '@/game/levels/levels';
 
 /**
- * Pure geometry + data helpers for the production Home screen ("living orbital
- * arcade machine"). No React / RN / Skia — unit-testable, shared by the
- * centerpiece, the level preview and the ambient-charge system.
+ * Pure geometry + data helpers for the production Home screen (the "arcade
+ * portal" centerpiece, UI-R2). No React / RN / Skia — unit-testable, shared
+ * by the centerpiece, the level preview and the ambient-mote system.
+ *
+ * Field names below (`machineRadius`, `orbitRadius`) predate UI-R2's move away
+ * from a circular orbital-machine housing to a dimensional portal-window
+ * housing; the sizing math itself is unchanged and still correct for the new
+ * shape — `machineRadius` is read as "housing half-extent" and `orbitRadius`
+ * as "ambient-mote placement radius" now, not a drawn rail.
  */
 
 export interface Point {
@@ -24,11 +30,11 @@ export interface HomeInput {
 export interface HomeLayout {
   width: number;
   height: number;
-  /** Centre of the orbital machine. */
+  /** Centre of the portal housing. */
   center: Point;
-  /** Outer reach of the machine (rail + a little structural margin). */
+  /** Outer half-extent of the housing (+ a little structural margin). */
   machineRadius: number;
-  /** The physical orbit rail radius — ambient charges ride this. */
+  /** Placement radius for ambient motes — NOT a drawn rail/orbit track. */
   orbitRadius: number;
   /** Square bounding box of the level-preview artwork, in screen coords. */
   preview: { x: number; y: number; size: number };

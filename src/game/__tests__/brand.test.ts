@@ -93,8 +93,15 @@ describe('Home wordmark integration', () => {
   });
 
   it('uses a rationed warm brand wash, not the portal arch motif, behind the preview', () => {
-    expect(home).toMatch(/brandColor\.glow/);
+    // UI-R2: the warm wash now lives in the environment/centerpiece layers
+    // (`material.energyGlow`, which IS `brandColor.glow` — see `material.ts`),
+    // not inlined in HomeScreen.tsx itself.
+    const environment = read('src/components/home/HomeEnvironment.tsx');
+    const centerpiece = read('src/components/home/HomeCenterpiece.tsx');
+    expect(environment + centerpiece).toMatch(/energyGlow/);
     expect(home).not.toMatch(/LogoMark|portal arch|ArchMotif/);
+    expect(environment).not.toMatch(/LogoMark|portal arch|ArchMotif/);
+    expect(centerpiece).not.toMatch(/LogoMark|portal arch|ArchMotif/);
   });
 });
 

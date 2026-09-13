@@ -1,8 +1,7 @@
 import {
   Canvas,
-  Circle,
   Group,
-  Path,
+  LinearGradient,
   RadialGradient,
   RoundedRect,
   vec,
@@ -22,13 +21,16 @@ import {
 import type { AmbientChargeSpec, HomeLayout, LevelPreview } from '@/game/rendering/homeGeometry';
 import { previewGrid } from '@/game/rendering/homeGeometry';
 import { orbColors } from '@/theme/colors';
-import { arcade, pixelMaterial } from '@/theme/arcade';
-import { AmbientCharge } from './AmbientCharge';
+import { pixelMaterial } from '@/theme/arcade';
+import { material } from '@/theme/material';
+import { PortalMotes } from './PortalMotes';
 
 interface HomeCenterpieceProps {
   layout: HomeLayout;
   preview: LevelPreview;
   specs: AmbientChargeSpec[];
+  /** Faint environmental hint only — never recolors the housing/window materials. */
+  worldAccent: string;
   active: boolean;
   reducedMotion: boolean;
   /** 0 idle, ramps to 1 on PLAY press for the activation response. */
@@ -36,95 +38,108 @@ interface HomeCenterpieceProps {
 }
 
 /**
- * MIDGROUND depth layer: the orbital machine that "contains the next puzzle".
- * Physical rail, recessed housing, the actual current-level preview inside it,
- * a slow energy sweep and 1–3 ambient charges. Not decorative — it is the hero.
+ * PIXEL ARCADIA HOME CENTERPIECE (UI-R2) — the arcade-portal window the
+ * player is about to enter. Replaces the old orbital-machine housing (rail
+ * groove, sweep arc, "LaunchHub" circle motif) with a dimensional block
+ * housing around a recessed level-preview window: material-token bevel
+ * lighting (upper-left highlight, lower-right shadow), a warm inner glow, a
+ * cyan accent boundary ring, and a faint world-accent aura on the outer edge
+ * only. Not a literal recreation of the app icon — a UI language derived
+ * from it. The live board-preview data pipeline (`homeLevelPreview`/
+ * `previewGrid`, real authored pixel art) is unchanged from the previous
+ * milestone — that "real puzzle behind glass" idea was already the right
+ * one, only the housing around it changes.
  */
 export const HomeCenterpiece = memo(function HomeCenterpiece({
-  layout, preview, specs, active, reducedMotion, activation,
+  layout, preview, specs, worldAccent, active, reducedMotion, activation,
 }: HomeCenterpieceProps) {
-  const { machineRadius: R, orbitRadius } = layout;
-  const band = Math.max(3, R * 0.055);
+  const { center, machineRadius: R, orbitRadius } = layout;
+  const side = R * 2;
+  const cornerR = R * 0.26;
+  const windowCornerR = Math.max(6, cornerR * 0.6);
 
-  const sweep = useSharedValue(0);
   const breath = useSharedValue(0.5);
 
   useEffect(() => {
-    cancelAnimation(sweep);
     cancelAnimation(breath);
     if (!active) return;
-    if (!reducedMotion) {
-      sweep.set(withRepeat(withTiming(1, { duration: 7200, easing: Easing.linear }), -1, false));
-    }
-    // Preview "breathing" stays even under reduced motion — the essential life.
     breath.set(withRepeat(
-      withTiming(1, { duration: reducedMotion ? 9000 : 4700, easing: Easing.inOut(Easing.sin) }),
+      withTiming(1, { duration: reducedMotion ? 5200 : 2600, easing: Easing.inOut(Easing.sin) }),
       -1,
       true,
     ));
-    return () => { cancelAnimation(sweep); cancelAnimation(breath); };
-  }, [active, reducedMotion, sweep, breath]);
+    return () => cancelAnimation(breath);
+  }, [active, reducedMotion, breath]);
 
   const grid = useMemo(() => previewGrid(preview, { size: layout.preview.size }), [preview, layout.preview.size]);
 
-  const sweepTransform = useDerivedValue(() => [{ rotate: sweep.value * Math.PI * 2 }]);
-  const sweepOpacity = useDerivedValue(() => 0.25 + activation.value * 0.5);
+  // Window box, local to the housing's own (0,0)-(side,side) canvas frame.
+  const win = {
+    x: R - layout.preview.size / 2,
+    y: R - layout.preview.size / 2,
+    size: layout.preview.size,
+  };
 
+  const glowOpacity = useDerivedValue(() => 0.35 + breath.value * 0.25 + activation.value * 0.4);
+  const ringOpacity = useDerivedValue(() => 0.45 + breath.value * 0.15 + activation.value * 0.4);
   const previewTransform = useDerivedValue(() => {
-    const s = 1 + (breath.value - 0.5) * 0.024 + activation.value * 0.05;
+    const s = 1 + (breath.value - 0.5) * 0.018 + activation.value * 0.045;
     return [{ scale: s }];
   });
-  const ringGlow = useDerivedValue(() => 0.4 + activation.value * 0.55);
-
-  // A short highlight arc for the energy sweep (~55° of the rail), in the
-  // canvas-local frame where the machine centre is (R, R).
-  const sweepArc = useMemo(() => {
-    const a0 = -Math.PI / 2 - 0.5;
-    const a1 = -Math.PI / 2 + 0.5;
-    const p = (a: number) => `${(R + Math.cos(a) * orbitRadius).toFixed(2)} ${(R + Math.sin(a) * orbitRadius).toFixed(2)}`;
-    return `M ${p(a0)} A ${orbitRadius} ${orbitRadius} 0 0 1 ${p(a1)}`;
-  }, [R, orbitRadius]);
 
   return (
     <View
       pointerEvents="none"
-      style={[styles.wrap, { left: layout.center.x - R, top: layout.center.y - R, width: R * 2, height: R * 2 }]}
+      style={[styles.wrap, { left: center.x - R, top: center.y - R, width: side, height: side }]}
     >
       <Canvas style={StyleSheet.absoluteFill}>
-        {/* Recessed housing. */}
-        <Circle cx={R} cy={R} r={R}>
-          <RadialGradient c={vec(R * 0.8, R * 0.72)} r={R * 1.3} colors={[arcade.metalRaised, arcade.metalLo]} />
-        </Circle>
-        <Circle cx={R} cy={R} r={R - 1} color={arcade.metalSeam} style="stroke" strokeWidth={2} opacity={0.6} />
-
-        {/* Orbit rail (same language as the gameplay rail). */}
-        <Circle cx={R} cy={R} r={orbitRadius + band * 0.5} color={arcade.railShadow} style="stroke" strokeWidth={band * 1.4} opacity={0.5} />
-        <Circle cx={R} cy={R} r={orbitRadius} color={arcade.railBase} style="stroke" strokeWidth={band} />
-        <Circle cx={R} cy={R} r={orbitRadius} color={arcade.railGroove} style="stroke" strokeWidth={Math.max(1, band * 0.32)} opacity={0.9} />
-        <Circle cx={R} cy={R} r={orbitRadius - band * 0.5} color={arcade.metalEdge} style="stroke" strokeWidth={1} opacity={0.5} />
-
-        {/* Energy sweep. */}
-        <Group origin={vec(R, R)} transform={sweepTransform} opacity={sweepOpacity}>
-          <Path
-            path={sweepArc}
-            color={arcade.accent}
-            style="stroke"
-            strokeWidth={Math.max(2, band * 0.6)}
-            strokeCap="round"
+        {/* Outer housing — dimensional block, corner-to-corner directional lighting. */}
+        <RoundedRect x={1} y={1} width={side - 2} height={side - 2} r={cornerR}>
+          <LinearGradient
+            start={vec(0, 0)}
+            end={vec(side, side)}
+            colors={[material.raisedSurface, material.structuralSurface, material.recessedSurface]}
           />
+        </RoundedRect>
+        {/* Bevel edge: upper-left highlight, lower-right shadow, in one diagonal stroke. */}
+        <RoundedRect x={1} y={1} width={side - 2} height={side - 2} r={cornerR} style="stroke" strokeWidth={2}>
+          <LinearGradient
+            start={vec(0, 0)}
+            end={vec(side, side)}
+            colors={[material.bevelHighlight, material.outline, material.bevelShadow]}
+          />
+        </RoundedRect>
+
+        {/* Faint world-accent aura on the OUTER edge only — environment hint, not a recolor. */}
+        <RoundedRect x={-3} y={-3} width={side + 6} height={side + 6} r={cornerR + 3} style="stroke" strokeWidth={3} color={worldAccent} opacity={0.16} />
+
+        {/* Recessed window. */}
+        <RoundedRect x={win.x} y={win.y} width={win.size} height={win.size} r={windowCornerR} color={material.recessedSurface} />
+
+        {/* Warm inner glow behind the artwork, breathing + press-activated. */}
+        <Group opacity={glowOpacity}>
+          <RoundedRect
+            x={win.x - win.size * 0.08}
+            y={win.y - win.size * 0.08}
+            width={win.size * 1.16}
+            height={win.size * 1.16}
+            r={windowCornerR}
+          >
+            <RadialGradient
+              c={vec(R, R)}
+              r={win.size * 0.7}
+              colors={[material.energyGlow, 'rgba(255,178,77,0)']}
+            />
+          </RoundedRect>
         </Group>
 
-        {/* Hub seat behind the preview. */}
-        <Circle cx={R} cy={R} r={orbitRadius * 0.12} color={arcade.socket} style="stroke" strokeWidth={2} opacity={0.7} />
-        <Circle cx={R} cy={R} r={orbitRadius + band} color={arcade.accent} style="stroke" strokeWidth={1} opacity={ringGlow} />
-
-        {/* Current-level preview — from real board data, inside the machine. */}
+        {/* Current-level preview — real authored board data, inside the window. */}
         <Group origin={vec(R, R)} transform={previewTransform}>
           {preview.cells.map((c) => {
             const m = pixelMaterial(c.color);
             const size = Math.max(2, grid.cell - (preview.simplify ? 0.6 : 1.4));
-            const x = (R - layout.preview.size / 2) + grid.originX + c.x * grid.cell;
-            const y = (R - layout.preview.size / 2) + grid.originY + c.y * grid.cell;
+            const x = win.x + grid.originX + c.x * grid.cell;
+            const y = win.y + grid.originY + c.y * grid.cell;
             const rad = preview.simplify ? 1 : Math.max(1.5, grid.cell * 0.22);
             return (
               <Group key={`${c.x},${c.y}`}>
@@ -136,19 +151,14 @@ export const HomeCenterpiece = memo(function HomeCenterpiece({
             );
           })}
         </Group>
+
+        {/* Cyan accent boundary — the portal's "informational" edge. */}
+        <Group opacity={ringOpacity}>
+          <RoundedRect x={win.x} y={win.y} width={win.size} height={win.size} r={windowCornerR} style="stroke" strokeWidth={1.5} color={material.accentCyan} />
+        </Group>
       </Canvas>
 
-      {specs.map((spec, i) => (
-        <AmbientCharge
-          key={i}
-          spec={spec}
-          center={{ x: R, y: R }}
-          radius={orbitRadius}
-          size={Math.max(12, orbitRadius * 0.14)}
-          active={active}
-          reducedMotion={reducedMotion}
-        />
-      ))}
+      <PortalMotes specs={specs} center={{ x: R, y: R }} restRadius={orbitRadius} active={active} reducedMotion={reducedMotion} />
     </View>
   );
 });
