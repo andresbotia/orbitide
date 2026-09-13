@@ -1,3 +1,4 @@
+import { defaultHoldingCapacity, emptyTunnelQueues } from '@/game/engine/ruleset';
 import type { LevelDefinition } from '@/game/engine/types';
 import type { AuthoredLevel } from './types';
 
@@ -12,7 +13,10 @@ export function normalizeAuthoredLevel(
   defaultReplacesLegacy?: boolean,
 ): LevelDefinition {
   const themeId = authored.themeId ?? authored.theme ?? defaultThemeId ?? 'first-light';
-  const holdingCapacity = authored.holdingCapacity ?? authored.holding ?? 3;
+  const ruleset = authored.ruleset === 'coreV2' || authored.ruleset === 'legacyV1'
+    ? authored.ruleset
+    : undefined;
+  const holdingCapacity = authored.holdingCapacity ?? authored.holding ?? defaultHoldingCapacity(ruleset);
   const pixelArt = authored.pixelArt ?? authored.grid ?? [];
 
   const def: LevelDefinition = {
@@ -22,7 +26,7 @@ export function normalizeAuthoredLevel(
     difficulty: authored.difficulty,
     holdingCapacity,
     pixelArt,
-    tunnels: authored.tunnels ?? [[], [], []],
+    tunnels: authored.tunnels ?? emptyTunnelQueues(ruleset),
   };
 
   const replacesLegacy = authored.replacesLegacy ?? defaultReplacesLegacy;
@@ -44,6 +48,14 @@ export function normalizeAuthoredLevel(
 
   if (authored.tutorial) {
     def.tutorial = authored.tutorial;
+  }
+
+  if (ruleset) {
+    def.ruleset = ruleset;
+  }
+
+  if (typeof authored.activeCapacity === 'number' && Number.isInteger(authored.activeCapacity) && authored.activeCapacity > 0) {
+    def.activeCapacity = authored.activeCapacity;
   }
 
   return def;

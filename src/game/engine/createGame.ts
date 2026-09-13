@@ -1,7 +1,10 @@
 import { attachModifiers, DEFAULT_ART_LEGEND, parsePixelArt } from './art';
+import { DEFAULT_ACTIVE_CAPACITY } from './concurrency';
+import { expectedTunnelCount, LEGACY_TUNNEL_COUNT, resolveRuleset } from './ruleset';
 import type { Charge, GameState, LevelDefinition, TunnelState } from './types';
 
-export const TUNNEL_COUNT = 3;
+/** Legacy V1 tunnel count. Prefer {@link expectedTunnelCount} for ruleset-aware code. */
+export const TUNNEL_COUNT = LEGACY_TUNNEL_COUNT;
 
 /**
  * Build a fresh {@link GameState} from a {@link LevelDefinition}.
@@ -18,9 +21,10 @@ export function createGame(level: LevelDefinition): GameState {
   // no gameplay rule reads `pixel.modifier`.
   const pixels = attachModifiers(parsed.pixels, level.modifiers);
 
-  if (level.tunnels.length !== TUNNEL_COUNT) {
+  const tunnelCount = expectedTunnelCount(level.ruleset);
+  if (level.tunnels.length !== tunnelCount) {
     throw new Error(
-      `Level ${level.id}: expected exactly ${TUNNEL_COUNT} tunnels, got ${level.tunnels.length}`,
+      `Level ${level.id}: expected exactly ${tunnelCount} tunnels, got ${level.tunnels.length}`,
     );
   }
 
@@ -45,7 +49,14 @@ export function createGame(level: LevelDefinition): GameState {
     movesApplied: 0,
     activeCharges: [],
     epoch: null,
+    ruleset: resolveRuleset(level.ruleset),
+    activeCapacity: resolveActiveCapacity(level.activeCapacity),
   };
+}
+
+function resolveActiveCapacity(value: number | undefined): number {
+  if (typeof value === 'number' && Number.isInteger(value) && value > 0) return value;
+  return DEFAULT_ACTIVE_CAPACITY;
 }
 
 /**

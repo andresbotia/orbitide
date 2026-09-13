@@ -34,6 +34,13 @@ export interface FlightPass {
   charge: Charge;
   shots: Shot[];
   liftMs: number;
+  /**
+   * Wall-clock duration of one full perimeter pass for this specific charge —
+   * `FEEL.ORBIT_DURATION` (1800ms) for Legacy V1, `CORE_V2_ORBIT_DURATION_MS`
+   * (8000ms) for Core V2. Resolved once in `buildLaunchScript` from the
+   * charge's ruleset so worklets (`motion.ts`) never need ruleset lookups.
+   */
+  orbitDurationMs: number;
   orbitEndAt: number;
   endProgress: number;
   landingAt: number;

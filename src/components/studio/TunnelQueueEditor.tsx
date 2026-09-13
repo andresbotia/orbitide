@@ -17,9 +17,9 @@ interface TunnelQueueEditorProps {
   onDuplicate: (tunnel: number, index: number) => void;
 }
 
-const TUNNEL_LABEL = ['A', 'B', 'C'];
+const TUNNEL_LABEL = ['A', 'B', 'C', 'D'];
 
-/** Editor for all three deterministic launch-tunnel queues. */
+/** Editor for the authored launch-tunnel queues (3 or 4). */
 export function TunnelQueueEditor({ level, onAdd, onRemove, onUpdate, onMove, onDuplicate }: TunnelQueueEditorProps) {
   const [picking, setPicking] = useState<{ t: number; i: number } | null>(null);
 

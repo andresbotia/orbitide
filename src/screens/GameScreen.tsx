@@ -18,11 +18,13 @@ import { HoldingTray } from '@/components/HoldingTray';
 import { Hud } from '@/components/Hud';
 import { ResultOverlay } from '@/components/ResultOverlay';
 import { TunnelBar } from '@/components/TunnelBar';
+import { CoreV2Board } from '@/game/rendering/CoreV2Board';
 import { DiscoveryReveal } from '@/game/rendering/DiscoveryReveal';
 import { OrbitBoard } from '@/game/rendering/OrbitBoard';
 import { resolveReveal, revealTimeline, type CelebrationTier } from '@/game/rendering/revealGeometry';
 import { CAMPAIGN_MANIFEST } from '@/game/levels/campaign';
 import { nextLevelId, requireLevel } from '@/game/levels/levels';
+import { isCoreV2 } from '@/game/engine/ruleset';
 import type { LevelDefinition } from '@/game/engine/types';
 import { useAmbientActive } from '@/hooks/useAmbientActive';
 import { useColorAssist } from '@/hooks/useColorAssist';
@@ -202,7 +204,15 @@ export function GameScreen({
       />
 
       <View style={styles.hud}>
-        <Hud state={state} title={level.title} difficulty={level.difficulty} onRestart={session.restart} />
+        <Hud
+          state={state}
+          title={level.title}
+          difficulty={level.difficulty}
+          onRestart={session.restart}
+          showActiveStatus={isCoreV2(state.ruleset)}
+          activeCount={session.activeCount}
+          activeCapacity={session.activeCapacity}
+        />
       </View>
 
       <View ref={area} collapsable={false} style={styles.boardArea} onLayout={onBoardArea}>
@@ -215,14 +225,25 @@ export function GameScreen({
               reducedMotion={reducedMotion}
               celebrate={celebrate}
             />
-            <OrbitBoard
-              size={boardSize}
-              state={state}
-              flights={session.flights}
-              presentThrough={session.presentThrough}
-              colorAssist={colorAssist}
-              reducedMotion={reducedMotion}
-            />
+            {isCoreV2(state.ruleset) ? (
+              <CoreV2Board
+                size={boardSize}
+                state={state}
+                flights={session.flights}
+                presentThrough={session.presentThrough}
+                colorAssist={colorAssist}
+                reducedMotion={reducedMotion}
+              />
+            ) : (
+              <OrbitBoard
+                size={boardSize}
+                state={state}
+                flights={session.flights}
+                presentThrough={session.presentThrough}
+                colorAssist={colorAssist}
+                reducedMotion={reducedMotion}
+              />
+            )}
             {won ? (
               <View style={StyleSheet.absoluteFill} pointerEvents="none">
                 <DiscoveryReveal
@@ -254,6 +275,7 @@ export function GameScreen({
           disabled={controlsLocked}
           usefulIds={usefulIds}
           colorAssist={colorAssist}
+          pixelPal={isCoreV2(state.ruleset)}
           onSourceLayout={onSourceLayout}
           onLaunch={(id) => session.launchHeld(id, boardPoint(`holding-${state.holding.findIndex((c) => c.id === id)}`),
             boardPoint(`holding-${state.holding.length - 1}`))}

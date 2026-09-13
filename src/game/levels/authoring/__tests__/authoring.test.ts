@@ -47,6 +47,27 @@ describe('Level Authoring Pipeline — Stage A (Structural Validation & Compiler
     expect(lvl.holdingCapacity).toBe(3);
     expect(lvl.pixelArt).toHaveLength(4);
     expect(lvl.tunnels).toHaveLength(3);
+    expect(lvl.ruleset).toBeUndefined();
+    expect(lvl.activeCapacity).toBeUndefined();
+  });
+
+  it('preserves Core V2 ruleset and activeCapacity through normalize', () => {
+    const { levels, errors } = parseAuthoredJSON(JSON.stringify({
+      id: 994,
+      title: 'V2 Sample',
+      difficulty: 'easy',
+      holding: 3,
+      ruleset: 'coreV2',
+      activeCapacity: 6,
+      grid: ['R'],
+      tunnels: [[{ color: 'red', capacity: 1 }], [], [], []],
+    }));
+    expect(errors).toHaveLength(0);
+    expect(levels[0]!.ruleset).toBe('coreV2');
+    expect(levels[0]!.activeCapacity).toBe(6);
+    const state = createGame(levels[0]!);
+    expect(state.ruleset).toBe('coreV2');
+    expect(state.activeCapacity).toBe(6);
   });
 
   it('validates structural correctness without invoking the solver', () => {

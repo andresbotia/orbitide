@@ -16,6 +16,14 @@ export const LAUNCH_HUB = {
   TO_INSERTION: 140,
 } as const;
 
+/**
+ * M5.3 — Core V2's slower, readable perimeter pass. Legacy V1 keeps
+ * `FEEL.ORBIT_DURATION` (1800ms) exactly as before; this only applies to
+ * `coreV2` passes (selected in `buildScript.ts`, never scattered as a magic
+ * `8000` elsewhere). Spec-acceptable tuning range: 7500-9000ms.
+ */
+export const CORE_V2_ORBIT_DURATION_MS = 8000;
+
 export const FEEL = {
   ORBIT_DURATION: 1800,
   LAUNCH_DURATION: LAUNCH_HUB.APPROACH + LAUNCH_HUB.SEAT + LAUNCH_HUB.TO_INSERTION,

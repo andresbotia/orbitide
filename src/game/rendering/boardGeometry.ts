@@ -1,5 +1,10 @@
 import type { GameState } from '@/game/engine/types';
 import { ORBIT_ENTRY_FRACTION } from '@/game/engine/orbit';
+import {
+  ROUNDED_PERIMETER_BOTTOM_CENTER_PROGRESS,
+  pointAtRoundedPerimeterProgress,
+  type RoundedPerimeterBounds,
+} from '@/game/geometry/roundedPerimeter';
 
 /**
  * Reusable responsive board geometry for the production Cosmic Arcade gameplay
@@ -113,6 +118,14 @@ export interface BoardGeometry {
   /** Radius of the rendered traveling-charge token. */
   chargeRadius: number;
 
+  /**
+   * M5.3 Core V2 — rounded-rectangle perimeter bounds, present only when this
+   * geometry was computed with `{ roundedRect: true }`. When set, presentation
+   * code (rounded rail, Pixel Pal flight, Core V2 launcher) traces this shape
+   * instead of the circular `orbit` above. Legacy V1 geometry never sets this.
+   */
+  perimeter?: RoundedPerimeterBounds;
+
   /** Board-relative hint for where the Holding row sits (below the rail). */
   holdingAnchor: Point;
   /** Board-relative hint for the tunnel region (further below Holding). */
@@ -128,11 +141,21 @@ export interface BoardGeometry {
 const FOOTPRINT = 0.56;
 const MIN_CELL = 3;
 
+export interface BoardGeometryOptions {
+  /**
+   * M5.3 — trace a rounded-rectangle perimeter (Core V2) instead of the
+   * circular orbit rail (Legacy V1). Purely a presentation choice; the pixel
+   * grid/artwork layout below is identical either way.
+   */
+  roundedRect?: boolean;
+}
+
 /** Geometry for a square board rendering a `cols x rows` picture. */
 export function computeBoardGeometry(
   size: number,
   cols: number,
   rows: number,
+  options?: BoardGeometryOptions,
 ): BoardGeometry {
   const center: Point = { x: size / 2, y: size / 2 };
   const density = Math.max(1, Math.max(cols, rows));
@@ -175,7 +198,7 @@ export function computeBoardGeometry(
 
   // The hub is the central launch seat. Kept at the exact centre for M2A; a
   // small vertical bias is available here if design wants the seat lower.
-  const launchHub: Point = { x: center.x, y: center.y };
+  const circularLaunchHub: Point = { x: center.x, y: center.y };
 
   const holdingAnchor: Point = { x: center.x, y: size + chargeRadius * 2 };
   const tunnelRegion: Rect = {
@@ -184,6 +207,30 @@ export function computeBoardGeometry(
     width: size,
     height: chargeRadius * 6,
   };
+
+  let perimeter: RoundedPerimeterBounds | undefined;
+  let launchHub = circularLaunchHub;
+  let insertionPoint = orbitInsertion;
+  if (options?.roundedRect) {
+    // Clearance so the Pixel Pal creature travels outside the artwork without
+    // covering it, matching the circular rail's own outer-radius margin.
+    const inset = Math.max(chargeRadius + 4, size * 0.06);
+    const boundsWidth = Math.max(0, size - inset * 2);
+    const boundsHeight = Math.max(0, size - inset * 2);
+    perimeter = {
+      x: inset,
+      y: inset,
+      width: boundsWidth,
+      height: boundsHeight,
+      radius: Math.min(boundsWidth, boundsHeight) * 0.22,
+    };
+    insertionPoint = pointAtRoundedPerimeterProgress(perimeter, ROUNDED_PERIMETER_BOTTOM_CENTER_PROGRESS);
+    // Core V2 spec §7 — no center-hub launch. Collapsing the hub onto the
+    // shared bottom-center entry means `flightPosition`'s existing
+    // source -> hub -> (hold) -> insertion choreography degenerates to
+    // source -> insertion directly, with no detour through the board center.
+    launchHub = insertionPoint;
+  }
 
   return {
     size,
@@ -201,12 +248,13 @@ export function computeBoardGeometry(
     innerGuideRadius: innerGuide,
     orbit,
     launchHub,
-    orbitInsertion,
-    insertion: orbitInsertion,
+    orbitInsertion: insertionPoint,
+    insertion: insertionPoint,
     chargeRadius,
     holdingAnchor,
     tunnelRegion,
     adaptive: pixelAdaptive(density),
+    ...(perimeter ? { perimeter } : {}),
   };
 }
 

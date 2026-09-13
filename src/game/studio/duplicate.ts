@@ -48,6 +48,8 @@ function baseCopy(level: StudioLevel, id: number, provenance: LevelProvenance, o
     );
   }
   if (keepReveal && level.reveal) out.reveal = cloneReveal(level.reveal);
+  if (level.ruleset) out.ruleset = level.ruleset;
+  if (level.activeCapacity !== undefined) out.activeCapacity = level.activeCapacity;
   return out;
 }
 

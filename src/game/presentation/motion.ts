@@ -9,7 +9,7 @@ export function progressAt(pass: FlightPass, time: number): number {
     if (time <= shot.clearAt) return shot.progress;
     paused += FEEL.PIXEL_CLEAR_INTERVAL;
   }
-  return Math.max(0, Math.min(pass.endProgress, (time - pass.liftMs - paused) / FEEL.ORBIT_DURATION));
+  return Math.max(0, Math.min(pass.endProgress, (time - pass.liftMs - paused) / pass.orbitDurationMs));
 }
 export function capacityAt(pass: FlightPass, time: number): number {
   'worklet';

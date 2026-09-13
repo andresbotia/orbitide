@@ -11,6 +11,7 @@
  */
 import type {
   ChargeSpec,
+  GameRuleset,
   LevelDifficulty,
   LevelReveal,
   ModifierKind,
@@ -69,7 +70,7 @@ export interface StudioLevel {
   modifiers?: Record<string, StudioModifier>;
   /** Studio-only authoring provenance. Stripped on export to a `LevelDefinition`. */
   source?: LevelProvenance;
-  /** Exactly three authored tunnel queues; index 0 of each is the front charge. */
+  /** Authored tunnel queues (Legacy V1: 3, Core V2: 4); index 0 of each is the front. */
   tunnels: ChargeSpec[][];
   /**
    * Authored Win / Discovery constellation. Preserved verbatim across a
@@ -78,6 +79,10 @@ export interface StudioLevel {
   reveal?: LevelReveal;
   /** One-line non-modal teaching cue (carried verbatim; not edited in the M3 UI). */
   tutorial?: string;
+  /** Targeting ruleset. Absent on campaign V1 documents. */
+  ruleset?: GameRuleset;
+  /** Concurrent active-pass capacity. Absent means the engine default (5). */
+  activeCapacity?: number;
   /**
    * Explicit art-character → colour overrides carried on the source level.
    * Preserved for a faithful round-trip; the serializer also synthesises entries

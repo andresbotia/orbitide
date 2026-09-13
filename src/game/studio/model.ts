@@ -5,6 +5,7 @@
  */
 import type { ChargeSpec, LevelDifficulty, OrbColor } from '@/game/engine/types';
 import { LEVEL_DEFINITIONS } from '@/game/levels/levelDefinitions';
+import { defaultHoldingCapacity, emptyTunnelQueues } from '@/game/engine/ruleset';
 import { DEFAULT_GRID_SIZE, DEFAULT_HOLDING_CAPACITY, nextFreeLevelId } from './constants';
 import { cellKey, parseCellKey } from './grid';
 import { fromLevelDefinition } from './serialize';
@@ -27,18 +28,22 @@ function syncModifiers(level: StudioLevel, keep: (key: string) => boolean): Stud
   return { ...level, modifiers: next };
 }
 
-/** A blank level: empty board, three empty tunnels, next free campaign id. */
-export function createBlankLevel(opts: Partial<Pick<StudioLevel, 'id' | 'width' | 'height' | 'title' | 'themeId' | 'difficulty'>> = {}): StudioLevel {
+/** A blank level: empty board, ruleset-shaped empty tunnels, next free campaign id. */
+export function createBlankLevel(
+  opts: Partial<Pick<StudioLevel, 'id' | 'width' | 'height' | 'title' | 'themeId' | 'difficulty' | 'ruleset' | 'holdingCapacity'>> = {},
+): StudioLevel {
+  const ruleset = opts.ruleset;
   return {
     id: opts.id ?? nextFreeLevelId(LEVEL_DEFINITIONS.map((l) => l.id)),
     title: opts.title ?? 'Untitled',
     themeId: opts.themeId ?? 'first-light',
     difficulty: opts.difficulty ?? 'easy',
-    holdingCapacity: DEFAULT_HOLDING_CAPACITY,
+    holdingCapacity: opts.holdingCapacity ?? (ruleset ? defaultHoldingCapacity(ruleset) : DEFAULT_HOLDING_CAPACITY),
     width: opts.width ?? DEFAULT_GRID_SIZE,
     height: opts.height ?? DEFAULT_GRID_SIZE,
     cells: {},
-    tunnels: [[], [], []],
+    tunnels: emptyTunnelQueues(ruleset),
+    ...(ruleset ? { ruleset } : {}),
   };
 }
 

@@ -4,6 +4,7 @@ import { useGameSession, type GameSession } from '@/hooks/useGameSession';
 import { feedback } from '@/game/feedback';
 import { registerHit } from '@/game/hapticArbiter';
 import { eventCountAt } from '../motion';
+import type { LevelDefinition } from '@/game/engine/types';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const renderer = require('react-test-renderer') as { create: (element: ReactElement) => { unmount: () => void } };
 jest.mock('react-native', () => ({ AppState: { addEventListener: jest.fn() } }));
@@ -13,8 +14,8 @@ let session: GameSession;
 let background: (state: string) => void;
 let remove: jest.Mock;
 const won = jest.fn();
-function Probe({ id }: { id: number }) {
-  const current = useGameSession(id, { onWin: won });
+function Probe({ id, level }: { id: number; level?: LevelDefinition }) {
+  const current = useGameSession(id, { onWin: won, level });
   useEffect(() => { session = current; });
   return null;
 }
@@ -25,9 +26,9 @@ beforeEach(() => {
   (AppState.addEventListener as jest.Mock).mockImplementation((_kind, callback) => { background = callback; return { remove }; });
 });
 afterEach(() => { jest.useRealTimers(); });
-function mount(id = 1) {
+function mount(id = 1, level?: LevelDefinition) {
   let root!: ReturnType<typeof renderer.create>;
-  act(() => { root = renderer.create(createElement(Probe, { id })); });
+  act(() => { root = renderer.create(createElement(Probe, { id, level })); });
   return root;
 }
 function finish(passId = session.flights[session.flights.length - 1]!.passId) {
@@ -52,24 +53,55 @@ test('a second launch while the first orbits joins as a concurrent flight', () =
   act(() => { session.launch('tunnel-1'); });
   expect(session.flights).toHaveLength(2);
   expect(session.activeCount).toBe(2);
+  expect(session.activeCapacity).toBe(5);
   expect(session.engineState.epoch!.launches).toHaveLength(2);
   expect(session.engineState.movesApplied).toBe(2);
   act(() => root.unmount());
 });
 
+const slotLevel = (): LevelDefinition => ({
+  id: 8400, title: 'Slots', themeId: 'test', difficulty: 'easy', holdingCapacity: 8,
+  pixelArt: ['WWW', 'WWW', 'WWW'],
+  tunnels: [
+    [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
+    [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
+    [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
+  ],
+});
+
 test('the rail caps at five flights; a sixth launch is denied cleanly', () => {
-  const root = mount(10); // tunnel-0 has three queued charges
+  const root = mount(8400, slotLevel());
   for (const t of ['tunnel-0', 'tunnel-0', 'tunnel-0', 'tunnel-1', 'tunnel-2']) {
     act(() => { session.launch(t); });
   }
   expect(session.flights).toHaveLength(5);
+  expect(session.activeCount).toBe(5);
+  expect(session.activeCapacity).toBe(5);
   expect(session.canLaunch).toBe(false);
+  expect(session.engineState.status).toBe('playing');
   const applied = session.engineState.movesApplied;
-  act(() => { session.launch('tunnel-0'); });
+  act(() => { session.launch('tunnel-1'); });
   expect(session.engineState.movesApplied).toBe(applied); // no queue / state mutation
   expect(session.flights).toHaveLength(5);
   expect(feedback.emit).toHaveBeenCalledWith('denied');
   expect(session.message).toContain('Rail is full');
+  act(() => root.unmount());
+});
+
+test('after one of five flights lands, a slot opens and a launch is accepted', () => {
+  const root = mount(8400, slotLevel());
+  for (const t of ['tunnel-0', 'tunnel-0', 'tunnel-0', 'tunnel-1', 'tunnel-2']) {
+    act(() => { session.launch(t); });
+  }
+  expect(session.activeCount).toBe(5);
+  const first = session.flights[0]!;
+  act(() => { session.presentThrough(first.passId, first.events.length); });
+  expect(session.activeCount).toBe(4);
+  expect(session.canLaunch).toBe(true);
+  const applied = session.engineState.movesApplied;
+  act(() => { session.launch('tunnel-1'); });
+  expect(session.engineState.movesApplied).toBeGreaterThan(applied);
+  expect(session.activeCount).toBe(5);
   act(() => root.unmount());
 });
 

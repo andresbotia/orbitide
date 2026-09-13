@@ -1,5 +1,6 @@
 import type {
   ChargeSpec,
+  GameRuleset,
   LevelDefinition,
   LevelDifficulty,
   LevelReveal,
@@ -28,6 +29,8 @@ export interface AuthoredLevel {
   reveal?: LevelReveal;
   tutorial?: string;
   replacesLegacy?: boolean;
+  ruleset?: GameRuleset;
+  activeCapacity?: number;
 }
 
 /**

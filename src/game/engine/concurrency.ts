@@ -7,8 +7,11 @@
  * engine never reads wall-clock time.
  */
 
-/** Hard ceiling on charges that may share the rail at once. */
-export const MAX_ACTIVE_CHARGES = 5;
+/** Default concurrent-pass capacity. Call sites should read `GameState.activeCapacity`. */
+export const DEFAULT_ACTIVE_CAPACITY = 5;
+
+/** Back-compat alias of {@link DEFAULT_ACTIVE_CAPACITY}. Prefer `state.activeCapacity`. */
+export const MAX_ACTIVE_CHARGES = DEFAULT_ACTIVE_CAPACITY;
 
 /**
  * Logical laps between the insertion points of two consecutive launches in the

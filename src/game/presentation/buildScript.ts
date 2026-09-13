@@ -1,16 +1,21 @@
+import { isCoreV2 } from '@/game/engine/ruleset';
 import type { LaunchOutcome } from '@/game/engine/resolveLaunch';
+import { holdingWarnAt } from '@/game/engine/selectors';
 import type { GameState } from '@/game/engine/types';
-import { FEEL } from './constants';
+import { CORE_V2_ORBIT_DURATION_MS, FEEL } from './constants';
 import type { FlightPass, Point, PresentationScript, PlaybackEvent } from './events';
 
 export function buildLaunchScript(outcome: LaunchOutcome, prevState: GameState,
   passId = 1, from?: Point, holdingTarget?: Point): PresentationScript {
   if (!outcome.accepted || !outcome.pass || !outcome.launchedCharge) throw new Error('Cannot present a rejected action');
   const chargePass = outcome.pass;
+  // M5.3 §6 — Core V2 gets the slower, readable perimeter pass; Legacy V1's
+  // pacing is untouched. Resolved once here so nothing downstream re-derives it.
+  const orbitMs = isCoreV2(prevState.ruleset) ? CORE_V2_ORBIT_DURATION_MS : FEEL.ORBIT_DURATION;
   const shots = chargePass.encounters.map((encounter, i) => {
     const target = prevState.pixels.find((p) => p.id === encounter.pixelId);
     if (!target) throw new Error(`Unknown target ${encounter.pixelId}`);
-    const anticipateAt = FEEL.LAUNCH_DURATION + encounter.progress * FEEL.ORBIT_DURATION + i * FEEL.PIXEL_CLEAR_INTERVAL;
+    const anticipateAt = FEEL.LAUNCH_DURATION + encounter.progress * orbitMs + i * FEEL.PIXEL_CLEAR_INTERVAL;
     const fireAt = anticipateAt + FEEL.ANTICIPATION_DURATION;
     const impactAt = fireAt + FEEL.ENERGY_TRAVEL_DURATION;
     const linkedClearTargets = encounter.linkedClearedPixelIds?.map((pixelId) => {
@@ -28,7 +33,7 @@ export function buildLaunchScript(outcome: LaunchOutcome, prevState: GameState,
   });
   const orbitEndAt = chargePass.charge.capacity === 0 && shots.length > 0
     ? shots[shots.length - 1]!.clearAt
-    : FEEL.LAUNCH_DURATION + chargePass.progress * FEEL.ORBIT_DURATION + shots.length * FEEL.PIXEL_CLEAR_INTERVAL;
+    : FEEL.LAUNCH_DURATION + chargePass.progress * orbitMs + shots.length * FEEL.PIXEL_CLEAR_INTERVAL;
   const landingAt = orbitEndAt + (outcome.heldCharge ? FEEL.HOLDING_TRAVEL_DURATION : FEEL.BURST_DURATION);
   const won = outcome.state.status === 'won';
   const lastShot = shots[shots.length - 1];
@@ -55,8 +60,10 @@ export function buildLaunchScript(outcome: LaunchOutcome, prevState: GameState,
     const before = prevState.holding.length - (outcome.action.kind === 'holding' ? 1 : 0);
     const after = outcome.state.holding.length;
     // Returning to the same occupancy is not a new pressure warning.
-    if (after > prevState.holding.length && after === 2 && before < 2) events.push({ kind: 'holdingCritical', at: landingAt });
-    if (after > prevState.holding.length && after === 3 && outcome.state.status !== 'lost') events.push({ kind: 'holdingFull', at: landingAt });
+    const cap = outcome.state.holdingCapacity;
+    const warnAt = holdingWarnAt(cap);
+    if (after > prevState.holding.length && after === warnAt && before < warnAt) events.push({ kind: 'holdingCritical', at: landingAt });
+    if (after > prevState.holding.length && after === cap && outcome.state.status !== 'lost') events.push({ kind: 'holdingFull', at: landingAt });
   }
   const resultAt = landingAt + (won ? FEEL.WIN_DELAY : FEEL.FAIL_DELAY);
   if (outcome.state.status !== 'playing') events.push({ kind: outcome.state.status === 'won' ? 'win' : 'fail', at: resultAt });
@@ -65,7 +72,7 @@ export function buildLaunchScript(outcome: LaunchOutcome, prevState: GameState,
   events.sort((a, b) => a.at - b.at);
   const pass: FlightPass = { passId, origin: outcome.action.kind, sourceIndex: outcome.sourceIndex,
     from, holdingTarget, charge: outcome.launchedCharge, shots, liftMs: FEEL.LAUNCH_DURATION,
-    orbitEndAt, endProgress: chargePass.progress, landingAt, totalMs,
+    orbitDurationMs: orbitMs, orbitEndAt, endProgress: chargePass.progress, landingAt, totalMs,
     endKind: outcome.heldCharge ? 'toHolding' : 'burst', events, finalClearPixelId };
   return { pass, totalMs };
 }

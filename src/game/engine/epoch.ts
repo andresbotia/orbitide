@@ -1,8 +1,7 @@
-import { ENCOUNTER_EPSILON, LAUNCH_SPACING, MAX_ACTIVE_CHARGES } from './concurrency';
+import { DEFAULT_ACTIVE_CAPACITY, ENCOUNTER_EPSILON, LAUNCH_SPACING } from './concurrency';
 import { boardFingerprint } from './frozen';
 import { resolveBoardHit } from './linked';
 import { pickEncounter } from './pass';
-import { reachablePixels } from './pixels';
 import type {
   ActiveCharge,
   Charge,
@@ -44,8 +43,10 @@ interface Cursor {
   encounters: ActiveCharge['encounters'];
   phase: ActiveCharge['phase'];
   finishTime: number;
-  /** Pixel ids this cursor has already met this lap (Frozen re-hit guard). */
+  /** Pixel ids this cursor has already met this lap (Frozen re-hit guard, legacy V1). */
   hitPixelIds: Set<string>;
+  /** Core V2 attack-line bins this cursor has already resolved this pass. */
+  consumedBins: Set<string>;
 }
 
 /**
@@ -63,7 +64,7 @@ function simKey(baseline: GameState, launches: EpochLaunch[]): string {
   const launchList = launches
     .map((l) => `${l.source[0]}${l.originId}:${l.color}:${l.capacity}`)
     .join(',');
-  return `${baseline.levelId}:${cleared}//${launchList}`;
+  return `${baseline.levelId}:${baseline.ruleset}:${baseline.activeCapacity}:${cleared}//${launchList}`;
 }
 
 export function simulateEpoch(baseline: GameState, launches: EpochLaunch[]): EpochResolution {
@@ -104,7 +105,6 @@ export function simulateEpoch(baseline: GameState, launches: EpochLaunch[]): Epo
 function simulateEpochUncached(baseline: GameState, launches: EpochLaunch[]): EpochResolution {
   // Structural sharing: only the pixels that clear are replaced.
   let pixels = baseline.pixels;
-  const size = { width: baseline.width, height: baseline.height };
   const boardView = (): GameState => ({ ...baseline, pixels });
 
   const cursors: Cursor[] = launches.map((launch) => ({
@@ -116,6 +116,7 @@ function simulateEpochUncached(baseline: GameState, launches: EpochLaunch[]): Ep
     phase: 'orbiting',
     finishTime: launch.insertionTime + 1,
     hitPixelIds: new Set<string>(),
+    consumedBins: new Set<string>(),
   }));
 
   // Logical time reached so far. While the sim advances, every still-orbiting
@@ -132,8 +133,16 @@ function simulateEpochUncached(baseline: GameState, launches: EpochLaunch[]): Ep
   }, 0);
   const maxSteps = pixels.length + modifierHits + cursors.length * 2 + 4;
   for (let step = 0; step < maxSteps; step += 1) {
-    const reachable = reachablePixels(boardView());
-    let best: { cursor: Cursor; pixelId: string; time: number; progress: number } | null = null;
+    const board = boardView();
+    type Candidate = {
+      cursor: Cursor;
+      pixelId: string;
+      time: number;
+      progress: number;
+      binId?: string;
+    };
+    let best: Candidate | null = null;
+    const picks: Candidate[] = [];
 
     for (const c of cursors) {
       if (c.phase === 'finished' || c.remaining <= 0) continue;
@@ -148,16 +157,20 @@ function simulateEpochUncached(baseline: GameState, launches: EpochLaunch[]): Ep
       }
       // No reachable target ahead *right now* is not the end of the lap — another
       // charge's clear may expose one before this charge comes around. Keep flying.
-      const hit = pickEncounter(size, reachable, c.launch.color, fromProgress, c.hitPixelIds);
+      const hit = pickEncounter(board, c.launch.color, fromProgress, c.hitPixelIds, c.consumedBins);
       if (!hit) continue;
       const time = c.launch.insertionTime + hit.progress;
+      const cand: Candidate = {
+        cursor: c, pixelId: hit.pixelId, time, progress: hit.progress, binId: hit.binId,
+      };
+      picks.push(cand);
       const better = best === null
         || time < best.time - ENCOUNTER_EPSILON
         || (Math.abs(time - best.time) <= ENCOUNTER_EPSILON && (
           c.launch.launchSequence < best.cursor.launch.launchSequence
           || (c.launch.launchSequence === best.cursor.launch.launchSequence && hit.pixelId < best.pixelId)
         ));
-      if (better) best = { cursor: c, pixelId: hit.pixelId, time, progress: hit.progress };
+      if (better) best = cand;
     }
 
     if (!best) {
@@ -180,6 +193,14 @@ function simulateEpochUncached(baseline: GameState, launches: EpochLaunch[]): Ep
     c.cursorTime = best.time;
     c.progress = best.progress;
     c.hitPixelIds.add(best.pixelId);
+    // Core V2: every charge that nominated this attack-line bin this step has
+    // used its one shot opportunity on that line — losers do not chain into
+    // the newly exposed rear pixel.
+    if (best.binId) {
+      for (const pick of picks) {
+        if (pick.binId === best.binId) pick.cursor.consumedBins.add(best.binId);
+      }
+    }
     c.encounters.push({ pixelId: best.pixelId, time: best.time, progress: best.progress, remaining: c.remaining,
       ...(resolved.frozenBreak ? { frozenBreak: true } : {}),
       ...(resolved.shieldBreak ? { shieldBreak: true } : {}),
@@ -227,19 +248,28 @@ export function committedBaseline(state: GameState): GameState {
  * Whether a launch of `chargeId` is even *able* to join the open epoch. Whether
  * it actually does is the player's coarse timing choice, carried on the action
  * as `join: true` (the session sets it while flights are still on the rail).
- * The epoch holds at most {@link MAX_ACTIVE_CHARGES} launches, and the same
+ * The epoch holds at most `state.activeCapacity` launches, and the same
  * charge never appears twice in one epoch.
  */
 export function canJoinEpoch(state: GameState, chargeId: string): boolean {
   const epoch = state.epoch;
   if (!epoch) return false;
-  if (epoch.launches.length >= MAX_ACTIVE_CHARGES) return false;
+  if (epoch.launches.length >= activeCapacityOf(state)) return false;
   return !epoch.launches.some((l) => l.chargeId === chargeId);
 }
 
 /** Active-slot occupancy the next launch would see (0 when the epoch is idle). */
 export function activeSlotCount(state: GameState): number {
   return state.epoch?.launches.length ?? 0;
+}
+
+export function activeCapacityOf(state: Pick<GameState, 'activeCapacity'>): number {
+  return state.activeCapacity > 0 ? state.activeCapacity : DEFAULT_ACTIVE_CAPACITY;
+}
+
+/** Whether another concurrent pass can still join the open epoch. */
+export function epochHasCapacity(state: GameState): boolean {
+  return activeSlotCount(state) < activeCapacityOf(state);
 }
 
 export interface EpochPlan {

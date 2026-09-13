@@ -13,3 +13,6 @@ export * from './pass';
 export * from './actions';
 export * from './solver';
 export * from './trace';
+export * from './ruleset';
+export * from './gridRay';
+export * from './directionalTargeting';

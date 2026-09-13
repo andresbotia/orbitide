@@ -9,7 +9,8 @@
  * Where a check needs real engine semantics it calls the real engine
  * (`toLevelDefinition` → `createGame`), never a private copy of the rules.
  */
-import { createGame, TUNNEL_COUNT } from '@/game/engine/createGame';
+import { createGame } from '@/game/engine/createGame';
+import { defaultHoldingCapacity, expectedTunnelCount } from '@/game/engine/ruleset';
 import type { OrbColor } from '@/game/engine/types';
 import { LEVEL_DIFFICULTIES } from './constants';
 import { GRID_RANGE, TUNED_GRID_SIZES, cellKey, parseCellKey } from './grid';
@@ -37,8 +38,13 @@ export function validateStudioLevel(level: StudioLevel): ValidationReport {
   if (!LEVEL_DIFFICULTIES.includes(level.difficulty)) {
     err({ code: 'meta/difficulty', message: `Difficulty "${level.difficulty}" is not one of ${LEVEL_DIFFICULTIES.join(', ')}.`, where: { kind: 'metadata', field: 'difficulty' } });
   }
-  if (level.holdingCapacity !== 3) {
-    warn({ code: 'meta/holding', message: `Holding capacity is ${level.holdingCapacity}; every shipped level uses 3.`, where: { kind: 'metadata', field: 'holdingCapacity' } });
+  const expectedHolding = defaultHoldingCapacity(level.ruleset);
+  if (level.holdingCapacity !== expectedHolding) {
+    warn({
+      code: 'meta/holding',
+      message: `Holding capacity is ${level.holdingCapacity}; ${level.ruleset === 'coreV2' ? 'Core V2' : 'shipped'} levels use ${expectedHolding}.`,
+      where: { kind: 'metadata', field: 'holdingCapacity' },
+    });
   }
   for (const [field, value] of [['width', level.width], ['height', level.height]] as const) {
     if (!Number.isInteger(value) || value < GRID_RANGE.min || value > GRID_RANGE.max) {
@@ -67,8 +73,9 @@ export function validateStudioLevel(level: StudioLevel): ValidationReport {
   }
 
   // ── tunnels ───────────────────────────────────────────────────────────────
-  if (level.tunnels.length !== TUNNEL_COUNT) {
-    err({ code: 'tunnels/count', message: `A level needs exactly ${TUNNEL_COUNT} tunnels; this has ${level.tunnels.length}.` });
+  const expectedTunnels = expectedTunnelCount(level.ruleset);
+  if (level.tunnels.length !== expectedTunnels) {
+    err({ code: 'tunnels/count', message: `A level needs exactly ${expectedTunnels} tunnels; this has ${level.tunnels.length}.` });
   }
   level.tunnels.forEach((queue, t) => {
     if (queue.length === 0) {

@@ -11,8 +11,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { holdingWarnAt } from '@/game/engine/selectors';
 import type { Charge } from '@/game/engine/types';
 import type { Point } from '@/game/rendering/boardGeometry';
+import { PixelPalFace } from '@/game/rendering/pixelPal/PixelPalFace';
 import { ColorAssistMark } from '@/components/ColorAssistMark';
 import { markContrast } from '@/theme/colorAssist';
 import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
@@ -32,23 +34,19 @@ interface HoldingTrayProps {
   layoutVersion: number;
   /** Future Extra Slot booster — draws the inert [+] affordance when true. */
   boosterSlot?: boolean;
+  /** M5.3 — Core V2 renders the shared Pixel Pal body; Legacy V1 keeps its plain orb. */
+  pixelPal?: boolean;
 }
 
 /**
- * Holding — three permanent recessed sockets (UI-R4, presentation only: slot
- * count, pressure rules, and relaunch legality are unchanged). Occupied slots
- * read as dimensional Pixel Arcadia hardware; a slot plays a small local
- * arrival pop the moment its charge's id first appears in `holding` — no new
- * session/engine hook, just watching the same prop every other consumer of
- * `state.holding` already reads. The existing haptic hierarchy
- * (`holdingLand`/`holdingCritical`/`holdingFull`, fired by `useGameSession`
- * off real engine-event timing) is untouched and unduplicated here.
+ * Holding tray — slot count comes from `capacity` (Legacy V1: 3, Core V2: 4).
+ * Pressure uses `capacity - 1` / `capacity`, not hardcoded 2/3.
  */
 export function HoldingTray({
-  holding, capacity, overflow, disabled, usefulIds, colorAssist, onLaunch, onSourceLayout, message, layoutVersion, boosterSlot,
+  holding, capacity, overflow, disabled, usefulIds, colorAssist, onLaunch, onSourceLayout, message, layoutVersion, boosterSlot, pixelPal,
 }: HoldingTrayProps) {
   const reducedMotion = useReducedMotion();
-  const pressure = holding.length >= 2 && !overflow;
+  const pressure = holding.length >= holdingWarnAt(capacity) && !overflow;
 
   // "Just arrived" detection: an id in `holding` that wasn't there last time
   // this prop changed. Diffed by identity, not by slot index, so a charge
@@ -90,6 +88,7 @@ export function HoldingTray({
               colorAssist={colorAssist}
               justArrived={!!charge && arrivedIds.has(charge.id)}
               reducedMotion={reducedMotion}
+              pixelPal={!!pixelPal}
               onLaunch={onLaunch}
               onSourceLayout={onSourceLayout}
               layoutVersion={layoutVersion}
@@ -114,7 +113,7 @@ export function HoldingTray({
 const SOCKET = 56;
 
 const Slot = memo(function Slot({
-  index, charge, useful, disabled, colorAssist, justArrived, reducedMotion, onLaunch, onSourceLayout, layoutVersion,
+  index, charge, useful, disabled, colorAssist, justArrived, reducedMotion, pixelPal, onLaunch, onSourceLayout, layoutVersion,
 }: {
   index: number;
   charge: Charge | undefined;
@@ -123,6 +122,7 @@ const Slot = memo(function Slot({
   colorAssist?: boolean;
   justArrived: boolean;
   reducedMotion: boolean;
+  pixelPal: boolean;
   onLaunch: (id: string) => void;
   onSourceLayout: (key: string, point: Point) => void;
   layoutVersion: number;
@@ -182,23 +182,31 @@ const Slot = memo(function Slot({
       {charge ? (
         <Animated.View style={[styles.orbWrap, arrivalStyle]}>
           <Animated.View pointerEvents="none" style={[styles.arrivalGlow, { backgroundColor: orbGlow[charge.color] }, arrivalGlow]} />
-          <View style={[styles.orb, { backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color], opacity: useful ? 1 : 0.7 }]}>
-            <View style={styles.orbGloss} />
-            <Text
-              style={[
-                styles.count,
-                { color: ink?.fill },
-                ink?.halo ? { textShadowColor: ink.halo, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } } : null,
-              ]}
-            >
-              {charge.capacity}
-            </Text>
-            {colorAssist ? (
-              <View style={styles.assist} pointerEvents="none">
-                <ColorAssistMark color={charge.color} size={16} etched />
-              </View>
-            ) : null}
-          </View>
+          {pixelPal ? (
+            <View style={{ opacity: useful ? 1 : 0.7 }}>
+              <PixelPalFace color={charge.color} size={SOCKET * 0.68} colorAssist={colorAssist}>
+                <Text style={styles.palCount}>{charge.capacity}</Text>
+              </PixelPalFace>
+            </View>
+          ) : (
+            <View style={[styles.orb, { backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color], opacity: useful ? 1 : 0.7 }]}>
+              <View style={styles.orbGloss} />
+              <Text
+                style={[
+                  styles.count,
+                  { color: ink?.fill },
+                  ink?.halo ? { textShadowColor: ink.halo, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } } : null,
+                ]}
+              >
+                {charge.capacity}
+              </Text>
+              {colorAssist ? (
+                <View style={styles.assist} pointerEvents="none">
+                  <ColorAssistMark color={charge.color} size={16} etched />
+                </View>
+              ) : null}
+            </View>
+          )}
         </Animated.View>
       ) : (
         <View style={styles.socketWell} />
@@ -235,6 +243,8 @@ const styles = StyleSheet.create({
   dot: { width: 4, height: 4, borderRadius: 2 },
   deck: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: spacing.md,
     padding: spacing.sm,
     borderRadius: 16,
@@ -306,5 +316,6 @@ const styles = StyleSheet.create({
   boosterSlot: { borderStyle: 'dashed', borderColor: material.outline, opacity: 0.5 },
   boosterMark: { color: material.textSecondary, fontSize: 22, fontWeight: '700' },
   count: { fontSize: 17, fontWeight: '800' },
+  palCount: { fontSize: SOCKET * 0.68 * 0.34, fontWeight: '900', color: '#F4F8FF' },
   help: { color: material.textSecondary, fontSize: 12, minHeight: 16, textAlign: 'center', paddingHorizontal: 12 },
 });

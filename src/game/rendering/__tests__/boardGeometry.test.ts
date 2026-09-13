@@ -4,12 +4,13 @@ import {
   SUPPORTED_DENSITIES,
   MAX_READY_DENSITY,
 } from '../boardGeometry';
-import { flightPosition, liftPhase } from '../flightGeometry';
-import { LAUNCH_HUB } from '../../presentation/constants';
+import { flightBankDegrees, flightHeading, flightPosition, liftPhase } from '../flightGeometry';
+import { LAUNCH_HUB, CORE_V2_ORBIT_DURATION_MS, FEEL } from '../../presentation/constants';
 import { LEVEL_DEFINITIONS } from '../../levels/levelDefinitions';
 import { createGame } from '../../engine/createGame';
 import { resolveLaunch } from '../../engine/resolveLaunch';
 import { buildLaunchScript } from '../../presentation/buildScript';
+import type { LevelDefinition } from '../../engine/types';
 
 const SIZES = [180, 240, 288, 320, 358, 398, 430];
 
@@ -92,4 +93,102 @@ test('the launch lift routes source -> hub -> insertion and hands off to the orb
     prev = phase;
   }
   expect(liftPhase(pass, pass.liftMs)).toBe(3);
+});
+
+// M5.3 — Core V2 rounded-rectangle perimeter geometry -----------------------
+
+const coreV2Level = (extra: Partial<LevelDefinition> = {}): LevelDefinition => ({
+  id: 9000,
+  title: 'M5.3 fixture',
+  themeId: 'test',
+  difficulty: 'easy',
+  holdingCapacity: 4,
+  pixelArt: ['WWWWW', 'WWWWW', 'WWWWW', 'WWWWW', 'WWWWW'],
+  tunnels: [[{ color: 'white', capacity: 25 }], [{ color: 'blue', capacity: 1 }], [], []],
+  ruleset: 'coreV2',
+  ...extra,
+});
+
+test('roundedRect geometry traces a real perimeter and collapses the launch hub onto its bottom-center entry', () => {
+  for (const size of SIZES) {
+    const geo = computeBoardGeometry(size, 7, 7, { roundedRect: true });
+    expect(geo.perimeter).toBeDefined();
+    const p = geo.perimeter!;
+    expect(p.width).toBeGreaterThan(0);
+    expect(p.height).toBeGreaterThan(0);
+    // Spec §7 — no center-hub detour: the hub IS the shared perimeter entry.
+    expect(geo.launchHub).toEqual(geo.orbitInsertion);
+    expect(geo.launchHub).not.toEqual(geo.center);
+    // The entry sits at the bottom-center of the rounded rect, inside the board.
+    expect(geo.orbitInsertion.x).toBeCloseTo(p.x + p.width / 2);
+    expect(geo.orbitInsertion.y).toBeCloseTo(p.y + p.height);
+  }
+});
+
+test('omitting roundedRect (or passing false) reproduces the exact circular geometry', () => {
+  const size = 358;
+  const legacyA = computeBoardGeometry(size, 7, 7);
+  const legacyB = computeBoardGeometry(size, 7, 7, { roundedRect: false });
+  expect(legacyA).toEqual(legacyB);
+  expect(legacyA.perimeter).toBeUndefined();
+});
+
+test('a coreV2 pass travels the rounded perimeter and reaches the four cardinal edges/corners', () => {
+  const state = createGame(coreV2Level());
+  const geo = computeBoardGeometry(358, state.width, state.height, { roundedRect: true });
+  const pass = buildLaunchScript(resolveLaunch(state, 'tunnel-1'), state).pass; // a miss: one full pass
+  const p = geo.perimeter!;
+
+  // At liftMs (progress 0) the charge is exactly at the shared bottom-center entry.
+  expect(flightPosition(pass, geo, pass.liftMs)).toEqual(geo.orbitInsertion);
+
+  // Somewhere over the full pass it must visit all four sides (bounding box
+  // reaches every edge of the perimeter bounds).
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (let t = pass.liftMs; t <= pass.orbitEndAt; t += 25) {
+    const pt = flightPosition(pass, geo, t);
+    minX = Math.min(minX, pt.x); maxX = Math.max(maxX, pt.x);
+    minY = Math.min(minY, pt.y); maxY = Math.max(maxY, pt.y);
+  }
+  expect(minX).toBeCloseTo(p.x, 0);
+  expect(maxX).toBeCloseTo(p.x + p.width, 0);
+  expect(minY).toBeCloseTo(p.y, 0);
+  expect(maxY).toBeCloseTo(p.y + p.height, 0);
+});
+
+test('Core V2 gets the slower 8s perimeter pass; Legacy V1 keeps its existing 1800ms pacing', () => {
+  const v2State = createGame(coreV2Level());
+  const v2Pass = buildLaunchScript(resolveLaunch(v2State, 'tunnel-1'), v2State).pass;
+  expect(v2Pass.orbitDurationMs).toBe(CORE_V2_ORBIT_DURATION_MS);
+  expect(v2Pass.orbitEndAt - v2Pass.liftMs).toBe(CORE_V2_ORBIT_DURATION_MS);
+
+  const legacyLevel: LevelDefinition = {
+    id: 9001, title: 'legacy', themeId: 'test', difficulty: 'easy', holdingCapacity: 3,
+    pixelArt: ['WWW', 'WWW', 'WWW'], tunnels: [[{ color: 'blue', capacity: 1 }], [], []],
+  };
+  const legacyState = createGame(legacyLevel);
+  const legacyPass = buildLaunchScript(resolveLaunch(legacyState, 'tunnel-0'), legacyState).pass;
+  expect(legacyPass.orbitDurationMs).toBe(FEEL.ORBIT_DURATION);
+});
+
+test('flightHeading/flightBankDegrees are inert (0) on circular Legacy V1 geometry', () => {
+  const state = createGame(LEVEL_DEFINITIONS[4]!);
+  const geo = computeBoardGeometry(358, state.width, state.height);
+  const pass = buildLaunchScript(resolveLaunch(state, 'tunnel-0'), state).pass;
+  for (let t = 0; t <= pass.totalMs; t += 50) {
+    expect(flightHeading(pass, geo, t)).toBe(0);
+    expect(flightBankDegrees(pass, geo, t)).toBe(0);
+  }
+});
+
+test('flightBankDegrees stays within its documented cap on a coreV2 rounded-rect pass', () => {
+  const state = createGame(coreV2Level());
+  const geo = computeBoardGeometry(358, state.width, state.height, { roundedRect: true });
+  const pass = buildLaunchScript(resolveLaunch(state, 'tunnel-1'), state).pass;
+  for (let t = pass.liftMs; t <= pass.orbitEndAt; t += 25) {
+    const bank = flightBankDegrees(pass, geo, t);
+    expect(Number.isFinite(bank)).toBe(true);
+    expect(Math.abs(bank)).toBeLessThanOrEqual(9 + 1e-9);
+    expect(Number.isFinite(flightHeading(pass, geo, t))).toBe(true);
+  }
 });

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import { MAX_ACTIVE_CHARGES } from '@/game/engine/concurrency';
+import { DEFAULT_ACTIVE_CAPACITY } from '@/game/engine/concurrency';
 import { createGame } from '@/game/engine/createGame';
+import { epochHasCapacity } from '@/game/engine/epoch';
 import { resolveAction, type LaunchOutcome } from '@/game/engine/resolveLaunch';
 import type { GameAction } from '@/game/engine/actions';
 import type { GameState, LevelDefinition } from '@/game/engine/types';
@@ -26,13 +27,16 @@ interface ActiveFlight { pass: FlightPass; outcome: LaunchOutcome; cursor: numbe
 
 export interface GameSession {
   state: GameState; engineState: GameState; locked: boolean;
-  /** Every charge currently on the rail (M2B: up to MAX_ACTIVE_CHARGES). */
+  /** Every charge currently on the rail. */
   flights: FlightPass[];
   /** Back-compat single-flight accessor — the most recent launch. */
   flightPass: FlightPass | null;
   /** Whether another launch would be accepted right now. */
   canLaunch: boolean;
+  /** Visible in-flight occupancy (for ACTIVE X/Y). */
   activeCount: number;
+  /** Engine concurrent-pass capacity (for ACTIVE X/Y). */
+  activeCapacity: number;
   message: string;
   launch: (tunnelId: string, from?: Point, holdingTarget?: Point) => void;
   launchHeld: (chargeId: string, from?: Point, holdingTarget?: Point) => void;
@@ -87,18 +91,24 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
 
   const perform = useCallback((action: GameAction, from?: Point, holdingTarget?: Point) => {
     if (truth.current.status !== 'playing') return;
-    // Five charges already on the rail — deny cleanly, no state or queue mutation (spec §19).
-    if (active.current.size >= MAX_ACTIVE_CHARGES) {
+    const cap = truth.current.activeCapacity || DEFAULT_ACTIVE_CAPACITY;
+    // Visible flights occupy Active slots until they land. Deny with no mutation.
+    if (active.current.size >= cap) {
       setMessage('Rail is full — wait for a charge to land.');
       feedback.emit('denied');
       return;
     }
-    const joining = active.current.size > 0;
+    const joining = active.current.size > 0 && epochHasCapacity(truth.current);
     // Acknowledge the touch before resolving the pure engine action.
     feedback.emit(action.kind === 'holding' ? 'heldRelaunch' : 'select');
     const before = truth.current;
     const outcome = resolveAction(before, { ...action, join: joining });
     if (!outcome.accepted) {
+      if (outcome.rejection === 'activeSlotsFull') {
+        setMessage('Rail is full — wait for a charge to land.');
+        feedback.emit('denied');
+        return;
+      }
       setMessage(outcome.rejection === 'noTargets' ? 'No exposed matching pixels yet.' :
         outcome.rejection === 'holdingFull' ? 'Free a Holding slot first.' : 'That charge is no longer available.');
       return;
@@ -196,11 +206,13 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     setState(fresh); setEngineState(fresh); setFlights([]); setMessage('');
   }, [level]);
 
+  const cap = engineState.activeCapacity || DEFAULT_ACTIVE_CAPACITY;
   return {
-    state, engineState, locked: flights.length >= MAX_ACTIVE_CHARGES,
+    state, engineState, locked: flights.length >= cap,
     flights, flightPass: flights[flights.length - 1] ?? null,
-    canLaunch: state.status === 'playing' && flights.length < MAX_ACTIVE_CHARGES,
+    canLaunch: state.status === 'playing' && flights.length < cap,
     activeCount: flights.length,
+    activeCapacity: cap,
     message,
     launch: (id, from, target) => perform({ kind: 'tunnel', id }, from, target),
     launchHeld: (id, from, target) => perform({ kind: 'holding', id }, from, target),

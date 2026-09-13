@@ -2,6 +2,12 @@ import { orbitFraction } from '@/game/engine/orbit';
 import { progressAt } from '@/game/presentation/motion';
 import { LAUNCH_HUB } from '@/game/presentation/constants';
 import type { FlightPass } from '@/game/presentation/events';
+import {
+  normalizePerimeterProgress,
+  pointAtRoundedPerimeterProgress,
+  inwardNormalAtRoundedPerimeterProgress,
+  tangentAtRoundedPerimeterProgress,
+} from '@/game/geometry/roundedPerimeter';
 import type { BoardGeometry, Point } from './boardGeometry';
 
 /**
@@ -43,11 +49,23 @@ export function flightPosition(
     return { x: hub.x + (insertion.x - hub.x) * e, y: hub.y + (insertion.y - hub.y) * e };
   }
 
-  const angle = orbitFraction(progressAt(pass, time)) * Math.PI * 2 - Math.PI / 2;
   // radialOffset is a presentation-only lane nudge so near-overlapping charges
   // stay readable; it never touches engine geometry (spec §12).
-  const point = { x: layout.center.x + Math.cos(angle) * (layout.orbit[0]!.rx + radialOffset),
-    y: layout.center.y + Math.sin(angle) * (layout.orbit[0]!.ry + radialOffset) };
+  let point: Point;
+  if (layout.perimeter) {
+    const t = normalizePerimeterProgress(orbitFraction(progressAt(pass, time)));
+    const base = pointAtRoundedPerimeterProgress(layout.perimeter, t);
+    if (radialOffset) {
+      const inward = inwardNormalAtRoundedPerimeterProgress(layout.perimeter, t);
+      point = { x: base.x - inward.x * radialOffset, y: base.y - inward.y * radialOffset };
+    } else {
+      point = base;
+    }
+  } else {
+    const angle = orbitFraction(progressAt(pass, time)) * Math.PI * 2 - Math.PI / 2;
+    point = { x: layout.center.x + Math.cos(angle) * (layout.orbit[0]!.rx + radialOffset),
+      y: layout.center.y + Math.sin(angle) * (layout.orbit[0]!.ry + radialOffset) };
+  }
   if (time > pass.orbitEndAt && pass.endKind === 'toHolding') {
     const to = pass.holdingTarget ?? { x: layout.center.x, y: layout.size + 100 };
     const p = Math.min(1, (time - pass.orbitEndAt) / (pass.landingAt - pass.orbitEndAt));
@@ -69,4 +87,42 @@ export function liftPhase(pass: FlightPass, time: number): number {
   if (time <= seatStart) return time / LAUNCH_HUB.APPROACH;
   if (time <= insertionStart) return 1 + (time - seatStart) / LAUNCH_HUB.SEAT;
   return 2 + (time - insertionStart) / LAUNCH_HUB.TO_INSERTION;
+}
+
+/**
+ * M5.3 — clockwise heading (radians) along the rounded perimeter at `time`,
+ * for a Pixel Pal's "orientation follows perimeter travel". `0` (facing
+ * +x, i.e. no rotation) for Legacy V1 geometry, which never orients its orb.
+ */
+export function flightHeading(pass: FlightPass, layout: BoardGeometry, time: number): number {
+  'worklet';
+  if (!layout.perimeter || time < pass.liftMs) return 0;
+  const t = normalizePerimeterProgress(orbitFraction(progressAt(pass, time)));
+  const tangent = tangentAtRoundedPerimeterProgress(layout.perimeter, t);
+  return Math.atan2(tangent.y, tangent.x);
+}
+
+/** TUNABLE — presentation-only corner-lean cap for {@link flightBankDegrees}. */
+const MAX_BANK_DEG = 9;
+/** Small forward/back progress step used to sense curvature (corner vs straight). */
+const BANK_SAMPLE_DELTA = 0.006;
+
+/**
+ * M5.3 — subtle bank/lean (degrees) through rounded corners: proportional to
+ * how fast the heading is turning, so straight edges read as ~0deg and corner
+ * arcs read as a gentle, capped lean. `0` for Legacy V1 geometry.
+ */
+export function flightBankDegrees(pass: FlightPass, layout: BoardGeometry, time: number): number {
+  'worklet';
+  if (!layout.perimeter || time < pass.liftMs) return 0;
+  const t = normalizePerimeterProgress(orbitFraction(progressAt(pass, time)));
+  const behind = normalizePerimeterProgress(t - BANK_SAMPLE_DELTA);
+  const ahead = normalizePerimeterProgress(t + BANK_SAMPLE_DELTA);
+  const a = tangentAtRoundedPerimeterProgress(layout.perimeter, behind);
+  const b = tangentAtRoundedPerimeterProgress(layout.perimeter, ahead);
+  let dTheta = Math.atan2(b.y, b.x) - Math.atan2(a.y, a.x);
+  if (dTheta > Math.PI) dTheta -= Math.PI * 2;
+  if (dTheta < -Math.PI) dTheta += Math.PI * 2;
+  const deg = (dTheta / (BANK_SAMPLE_DELTA * 2)) * (MAX_BANK_DEG / 90);
+  return Math.max(-MAX_BANK_DEG, Math.min(MAX_BANK_DEG, deg));
 }

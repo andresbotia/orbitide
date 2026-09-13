@@ -6,20 +6,20 @@ import { cancelAnimation, Easing, runOnJS, useAnimatedReaction, useSharedValue, 
 import type { GameState, ModifierInstance } from '@/game/engine/types';
 import type { FlightPass } from '@/game/presentation/events';
 import { eventCountAt } from '@/game/presentation/motion';
-import { material } from '@/theme/material';
+import { coreV2Board } from '@/theme/coreV2Board';
 import { BoardActors } from './BoardActors';
 import { EnergyShot } from './EnergyShot';
 import { cellCenter, computeBoardGeometry, type BoardGeometry } from './boardGeometry';
-import { OrbitingCharge } from './OrbitingCharge';
-import { OrbitRail, LaunchHubMarker } from './OrbitRail';
+import { RoundedLauncherGate, RoundedRail } from './RoundedRail';
 import { Pixel } from './Pixel';
+import { PixelPal } from './pixelPal/PixelPal';
 
-/** TUNABLE — presentation-only radial lane spacing so crowded charges stay legible. */
-const LANE_OFFSET_PX = 2;
-/** Calm the trails/halos once this many charges share the rail. */
+/** TUNABLE — presentation-only radial lane spacing so crowded Pixel Pals stay legible. */
+const LANE_OFFSET_PX = 3;
+/** Calm the halos once this many Pixel Pals share the rail. */
 const CALM_TRAILS_AT = 3;
 
-interface OrbitBoardProps {
+interface CoreV2BoardProps {
   size: number;
   state: GameState;
   /** Every charge currently on the rail. */
@@ -30,24 +30,24 @@ interface OrbitBoardProps {
   modifiers?: Record<string, ModifierInstance>;
 }
 
-/** Symmetric lane nudge by launch order: … −2, 0, +2, −2, 0 … */
+/** Symmetric lane nudge by launch order: … −3, 0, +3, −3, 0 … */
 function laneOffset(index: number): number {
   const step = Math.ceil(index / 2);
   return (index % 2 === 0 ? -step : step) * LANE_OFFSET_PX;
 }
 
 /**
- * The production Pixel Arcadia board (UI-R3 — Cosmic Arcade materials
- * removed from the default paint; concurrency architecture below is
- * unchanged). The Skia layer paints the static machinery; one static actor
- * layer paints the pixels / special shells / Color Assist marks; and each
- * in-flight charge gets its own {@link FlightActor} with its own UI-thread
- * clock, so up to five charges animate independently off one shared board
- * without a singleton anywhere.
+ * M5.3 — the Core V2 gameplay board: a rounded-rectangle perimeter carrying
+ * Pixel Pal creatures, replacing Legacy V1's circular `OrbitBoard` rail for
+ * `coreV2`-ruleset levels only (spec §1/§18). Structurally a sibling of
+ * `OrbitBoard`, not a rewrite of it — the pixel-art actor layer
+ * (`BoardActors`) and the projectile (`EnergyShot`) are shared verbatim,
+ * since neither depends on the rail's shape; only the rail paint and the
+ * traveling character are new.
  */
-export function OrbitBoard({ size, state, flights, presentThrough, colorAssist, reducedMotion, modifiers }: OrbitBoardProps) {
+export function CoreV2Board({ size, state, flights, presentThrough, colorAssist, reducedMotion, modifiers }: CoreV2BoardProps) {
   const geo = useMemo(
-    () => computeBoardGeometry(size, state.width, state.height),
+    () => computeBoardGeometry(size, state.width, state.height, { roundedRect: true }),
     [size, state.width, state.height],
   );
 
@@ -65,19 +65,18 @@ export function OrbitBoard({ size, state, flights, presentThrough, colorAssist, 
   return (
     <View style={{ width: size, height: size, overflow: 'visible' }}>
       <Canvas style={StyleSheet.absoluteFill}>
-        {/* Recessed gameplay plane — Pixel Arcadia material, not the old Cosmic
-            Arcade deep-space fill. No default starfield: that becomes Cosmic
-            Frontier's world-specific ambient later, not the global identity. */}
+        {/* Brighter navy/indigo field (spec §13) — a richer, more luminous
+            base than Legacy V1's darker circular-rail plane. */}
         <Rect x={0} y={0} width={size} height={size}>
           <RadialGradient
             c={vec(geo.center.x, geo.center.y)}
-            r={size * 0.66}
-            colors={[material.structuralSurface, material.recessedSurface]}
+            r={size * 0.7}
+            colors={[coreV2Board.fieldCenter, coreV2Board.fieldEdge]}
           />
         </Rect>
         <Group>
-          <OrbitRail geo={geo} />
-          <LaunchHubMarker geo={geo} />
+          <RoundedRail geo={geo} />
+          <RoundedLauncherGate geo={geo} />
         </Group>
       </Canvas>
 
@@ -91,7 +90,7 @@ export function OrbitBoard({ size, state, flights, presentThrough, colorAssist, 
       />
 
       {flights.map((pass, i) => (
-        <FlightActor
+        <CoreV2FlightActor
           key={pass.passId}
           pass={pass}
           geo={geo}
@@ -106,11 +105,13 @@ export function OrbitBoard({ size, state, flights, presentThrough, colorAssist, 
 }
 
 /**
- * One in-flight charge: its own linear UI-thread clock (0 → totalMs), the
- * animated-reaction bridge that commits engine events at their scheduled beats,
- * the pop of the pixels it clears, its projectile streak and its orbiting token.
+ * One in-flight Pixel Pal: its own linear UI-thread clock, the
+ * animated-reaction bridge that commits engine events at their scheduled
+ * beats, the pop of the pixels it clears, its projectile streak and its
+ * traveling creature. Structurally identical to `OrbitBoard`'s
+ * `FlightActor` — only the traveling-character component differs.
  */
-const FlightActor = memo(function FlightActor({ pass, geo, presentThrough, colorAssist, laneOffset: lane, calm }: {
+const CoreV2FlightActor = memo(function CoreV2FlightActor({ pass, geo, presentThrough, colorAssist, laneOffset: lane, calm }: {
   pass: FlightPass;
   geo: BoardGeometry;
   presentThrough: (passId: number, count: number) => void;
@@ -161,7 +162,7 @@ const FlightActor = memo(function FlightActor({ pass, geo, presentThrough, color
           }))}
       </View>
       <EnergyShot pass={pass} layout={geo} clock={clock} laneOffset={lane} calm={calm} />
-      <OrbitingCharge pass={pass} layout={geo} clock={clock} colorAssist={colorAssist} laneOffset={lane} dim={calm} />
+      <PixelPal layout={geo} pass={pass} clock={clock} colorAssist={colorAssist} laneOffset={lane} dim={calm} />
     </>
   );
 });

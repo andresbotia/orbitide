@@ -1,4 +1,6 @@
 import {
+  activeCapacityOf,
+  activeSlotCount,
   canJoinEpoch,
   committedBaseline,
   flushEpoch,
@@ -8,6 +10,7 @@ import {
 import { resolvePass } from './pass';
 import { reachablePixels } from './pixels';
 import { isLinkedPrimed } from './linked';
+import { isCoreV2 } from './ruleset';
 import type { EpochLaunch, GameState } from './types';
 
 /**
@@ -22,9 +25,8 @@ export type GameAction =
   | { kind: 'tunnel'; id: string; join?: boolean }
   | { kind: 'holding'; id: string; join?: boolean };
 /**
- * `activeSlotsFull` is never produced by {@link actionRejection} — the engine
- * always accepts a launch (a sixth just opens a fresh epoch). Presentation uses
- * the value to deny a launch while five flights are still visibly in the air.
+ * `activeSlotsFull` is produced by Core V2 when a join is requested at
+ * `activeCapacity`. Legacy V1 still opens a fresh epoch instead of rejecting.
  */
 export type Rejection = 'gameOver' | 'missingCharge' | 'noTargets' | 'holdingFull' | 'activeSlotsFull';
 
@@ -67,8 +69,25 @@ export function actionRejection(
   const charge = launchCandidate(state, action);
   if (!charge) return 'missingCharge';
 
+  // Core V2: a join at capacity is a hard deny — do not silently open a fresh
+  // epoch, pop a queue, or free a Holding slot.
+  if (
+    isCoreV2(state.ruleset)
+    && action.join === true
+    && activeSlotCount(state) >= activeCapacityOf(state)
+  ) {
+    return 'activeSlotsFull';
+  }
+
   if (action.kind === 'holding') {
-    if (!reachablePixels(state).some((p) => p.color === charge.color && !isLinkedPrimed(p))) return 'noTargets';
+    // Legacy V1 requires a currently exposed matching target. Core V2 does not:
+    // the player may spend an Active slot even when this pass might miss.
+    if (
+      !isCoreV2(state.ruleset)
+      && !reachablePixels(state).some((p) => p.color === charge.color && !isLinkedPrimed(p))
+    ) {
+      return 'noTargets';
+    }
     // Relaunching from Holding frees the slot it leaves, so it can never end the
     // pass over capacity (capacity only ever falls). Matches M1.
     return null;

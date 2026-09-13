@@ -54,6 +54,7 @@ function toChargePass(
       progress: charge.finishTime - charge.insertionTime,
       phase: 'finished',
       encounters,
+      consumedBins: new Set(encounters.map((e) => e.binId).filter((id): id is string => id !== undefined)),
     },
   };
 }

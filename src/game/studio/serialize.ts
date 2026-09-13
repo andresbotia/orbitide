@@ -140,6 +140,10 @@ export function toLevelDefinition(level: StudioLevel): LevelDefinition {
   if (modifiers) def.modifiers = modifiers;
   if (level.reveal && !isRevealEmpty(level.reveal)) def.reveal = cloneReveal(level.reveal);
   if (level.tutorial && level.tutorial.trim() !== '') def.tutorial = level.tutorial;
+  if (level.ruleset === 'coreV2' || level.ruleset === 'legacyV1') def.ruleset = level.ruleset;
+  if (typeof level.activeCapacity === 'number' && Number.isInteger(level.activeCapacity) && level.activeCapacity > 0) {
+    def.activeCapacity = level.activeCapacity;
+  }
   return def;
 }
 
@@ -167,6 +171,8 @@ export function fromLevelDefinition(def: LevelDefinition): StudioLevel {
     ...(Object.keys(modifiers).length > 0 ? { modifiers } : {}),
     ...(def.reveal ? { reveal: cloneReveal(def.reveal) } : {}),
     ...(def.tutorial ? { tutorial: def.tutorial } : {}),
+    ...(def.ruleset ? { ruleset: def.ruleset } : {}),
+    ...(def.activeCapacity !== undefined ? { activeCapacity: def.activeCapacity } : {}),
   };
 }
 
@@ -224,6 +230,12 @@ export function serializeToTS(level: StudioLevel): string {
   }
   if (def.tutorial) {
     lines.push(`  tutorial: ${q(def.tutorial)},`);
+  }
+  if (def.ruleset) {
+    lines.push(`  ruleset: ${q(def.ruleset)},`);
+  }
+  if (def.activeCapacity !== undefined) {
+    lines.push(`  activeCapacity: ${def.activeCapacity},`);
   }
   lines.push('}');
   return lines.join('\n') + '\n';

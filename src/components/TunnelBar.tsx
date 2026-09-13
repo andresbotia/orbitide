@@ -16,7 +16,9 @@ import Animated, {
 
 import type { Point } from '@/game/rendering/boardGeometry';
 import { ColorAssistMark } from '@/components/ColorAssistMark';
-import { visibleCharges } from '@/game/engine/selectors';
+import { PixelPalFace } from '@/game/rendering/pixelPal/PixelPalFace';
+import { upcomingPreviewCount, visibleCharges } from '@/game/engine/selectors';
+import { isCoreV2 } from '@/game/engine/ruleset';
 import type { Charge, GameState, TunnelState } from '@/game/engine/types';
 import { markContrast } from '@/theme/colorAssist';
 import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
@@ -33,19 +35,17 @@ interface TunnelBarProps {
 }
 
 /**
- * The three Launch Tunnels — presentation only, gameplay-untouched (UI-R4).
- * Each is an independent arcade energy magazine: a recessed port with the
- * loaded front charge, a magazine tray previewing the next 3 authored
- * charges, and its own small physical reactions (readiness breathe, launch
- * recoil, a scale-in when the next charge loads forward) driven entirely by
- * watching the SAME `state`/`charge` props every other surface already reads
- * — no new session/engine hooks, no changed queue contents/order/capacities.
+ * Launch tunnels — presentation only. Renders however many tunnels the state
+ * has (Legacy V1: 3, Core V2: 4). Each magazine shows the loaded front plus a
+ * bounded upcoming preview; the hidden queue tail stays in engine state.
  */
 export function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayout, layoutVersion }: TunnelBarProps) {
   const charges = visibleCharges(state);
+  const upcoming = upcomingPreviewCount(state.ruleset);
+  const pixelPal = isCoreV2(state.ruleset);
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, charges.length >= 4 && styles.rowCompact]}>
       {charges.map(({ tunnelId, charge }, index) => (
         <Tunnel
           key={tunnelId}
@@ -53,8 +53,10 @@ export function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayo
           tunnelId={tunnelId}
           charge={charge}
           tunnel={state.tunnels[index]}
+          upcoming={upcoming}
           disabled={disabled}
           colorAssist={colorAssist}
+          pixelPal={pixelPal}
           onLaunch={onLaunch}
           onSourceLayout={onSourceLayout}
           layoutVersion={layoutVersion}
@@ -65,14 +67,17 @@ export function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayo
 }
 
 const Tunnel = memo(function Tunnel({
-  index, tunnelId, charge, tunnel, disabled, colorAssist, onLaunch, onSourceLayout, layoutVersion,
+  index, tunnelId, charge, tunnel, upcoming, disabled, colorAssist, pixelPal, onLaunch, onSourceLayout, layoutVersion,
 }: {
   index: number;
   tunnelId: string;
   charge: Charge | null;
   tunnel: TunnelState | undefined;
+  upcoming: number;
   disabled: boolean;
   colorAssist?: boolean;
+  /** M5.3 — Core V2 renders the shared Pixel Pal body; Legacy V1 keeps its plain orb. */
+  pixelPal: boolean;
   onLaunch: (tunnelId: string) => void;
   onSourceLayout: (key: string, point: Point) => void;
   layoutVersion: number;
@@ -165,26 +170,30 @@ const Tunnel = memo(function Tunnel({
               ref={sourceRef}
               onLayout={measure}
               collapsable={false}
-              style={[
-                styles.charge,
-                { backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color] },
-              ]}
             >
-              <View style={styles.chargeGloss} />
-              <Text
-                style={[
-                  styles.capacity,
-                  { color: ink?.fill },
-                  ink?.halo ? { textShadowColor: ink.halo, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } } : null,
-                ]}
-              >
-                {charge.capacity}
-              </Text>
-              {colorAssist ? (
-                <View style={styles.assist} pointerEvents="none">
-                  <ColorAssistMark color={charge.color} size={15} etched />
+              {pixelPal ? (
+                <PixelPalFace color={charge.color} size={CHARGE} colorAssist={colorAssist}>
+                  <Text style={styles.palCapacity}>{charge.capacity}</Text>
+                </PixelPalFace>
+              ) : (
+                <View style={[styles.charge, { backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color] }]}>
+                  <View style={styles.chargeGloss} />
+                  <Text
+                    style={[
+                      styles.capacity,
+                      { color: ink?.fill },
+                      ink?.halo ? { textShadowColor: ink.halo, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } } : null,
+                    ]}
+                  >
+                    {charge.capacity}
+                  </Text>
+                  {colorAssist ? (
+                    <View style={styles.assist} pointerEvents="none">
+                      <ColorAssistMark color={charge.color} size={15} etched />
+                    </View>
+                  ) : null}
                 </View>
-              ) : null}
+              )}
             </Animated.View>
           ) : (
             <View style={[styles.charge, styles.chargeEmpty]}>
@@ -193,11 +202,18 @@ const Tunnel = memo(function Tunnel({
           )}
         </View>
 
-        {/* Look-ahead queue preview: next 2-3 charges in recessed magazine tray */}
+        {/* Look-ahead: NEXT and NEXT+1 (Core V2) or the legacy magazine depth. */}
         <View style={styles.queueTray}>
-          {Array.from({ length: MAX_PREVIEWS }).map((_, previewIdx) => {
+          {Array.from({ length: upcoming }).map((_, previewIdx) => {
             const nextCharge = tunnel?.queue[previewIdx + 1];
             if (nextCharge) {
+              if (pixelPal) {
+                return (
+                  <PixelPalFace key={nextCharge.id} color={nextCharge.color} size={PREVIEW_SIZE}>
+                    <Text style={styles.palPreviewCapacity}>{nextCharge.capacity}</Text>
+                  </PixelPalFace>
+                );
+              }
               const previewInk = markContrast(nextCharge.color);
               return (
                 <View
@@ -234,10 +250,10 @@ const Tunnel = memo(function Tunnel({
 
 const CHARGE = 46;
 const PREVIEW_SIZE = 18;
-const MAX_PREVIEWS = 3;
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'center', gap: spacing.md },
+  rowCompact: { gap: spacing.sm },
   tunnel: {
     borderRadius: 16,
     minWidth: 84,
@@ -310,6 +326,8 @@ const styles = StyleSheet.create({
   chargeEmpty: { backgroundColor: material.recessedSurface, borderColor: material.outline },
   assist: { position: 'absolute', bottom: 3, alignSelf: 'center' },
   capacity: { fontSize: 18, fontWeight: '800' },
+  palCapacity: { fontSize: CHARGE * 0.34, fontWeight: '900', color: '#F4F8FF' },
+  palPreviewCapacity: { fontSize: PREVIEW_SIZE * 0.42, fontWeight: '900', color: '#F4F8FF' },
   emptyMark: { color: material.textSecondary, fontSize: 16 },
   tunnelLabel: { marginBottom: 3, color: material.textSecondary, fontSize: 10, letterSpacing: 2, fontWeight: '700' },
   queueTray: {

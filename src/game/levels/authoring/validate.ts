@@ -1,5 +1,6 @@
 import { DEFAULT_ART_LEGEND } from '@/game/engine/art';
-import { createGame, TUNNEL_COUNT } from '@/game/engine/createGame';
+import { createGame } from '@/game/engine/createGame';
+import { defaultHoldingCapacity, expectedTunnelCount } from '@/game/engine/ruleset';
 import { resolveAction } from '@/game/engine/resolveLaunch';
 import { findFirstWinningWitness } from '@/game/engine/solver';
 import type { LevelDefinition, OrbColor } from '@/game/engine/types';
@@ -75,8 +76,15 @@ export function validateLevelStructure(
 
   if (!Number.isInteger(def.holdingCapacity) || def.holdingCapacity <= 0) {
     err('INVALID_HOLDING', `${levelTag} Holding capacity must be a positive integer, got ${def.holdingCapacity}`, 'holdingCapacity');
-  } else if (def.holdingCapacity !== 3) {
-    warn('NON_STANDARD_HOLDING', `${levelTag} Holding capacity is ${def.holdingCapacity} (standard campaign level uses 3)`, 'holdingCapacity');
+  } else {
+    const expectedHolding = defaultHoldingCapacity(def.ruleset);
+    if (def.holdingCapacity !== expectedHolding) {
+      warn(
+        'NON_STANDARD_HOLDING',
+        `${levelTag} Holding capacity is ${def.holdingCapacity} (standard ${def.ruleset ?? 'legacyV1'} level uses ${expectedHolding})`,
+        'holdingCapacity',
+      );
+    }
   }
 
   // ── 2. Grid Dimensions & Character Integrity ─────────────────────────────
@@ -159,8 +167,9 @@ export function validateLevelStructure(
   // ── 3. Tunnel Structure Integrity ─────────────────────────────────────────
   if (!Array.isArray(def.tunnels)) {
     err('INVALID_TUNNELS', `${levelTag} tunnels must be an array of ChargeSpec queues`, 'tunnels');
-  } else if (def.tunnels.length !== TUNNEL_COUNT) {
-    err('TUNNEL_COUNT_MISMATCH', `${levelTag} Exactly ${TUNNEL_COUNT} tunnels required, got ${def.tunnels.length}`, 'tunnels');
+  } else if (def.tunnels.length !== expectedTunnelCount(def.ruleset)) {
+    const expected = expectedTunnelCount(def.ruleset);
+    err('TUNNEL_COUNT_MISMATCH', `${levelTag} Exactly ${expected} tunnels required, got ${def.tunnels.length}`, 'tunnels');
   } else {
     let totalCharges = 0;
     def.tunnels.forEach((queue, tIndex) => {

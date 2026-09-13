@@ -184,6 +184,13 @@ export interface EpochState {
 export type LevelDifficulty = 'easy' | 'medium' | 'hard' | 'super-hard' | 'extreme';
 
 /**
+ * Targeting ruleset. Omitted on authored campaign levels (= `legacyV1`) so the
+ * existing 100-level campaign keeps global-exposure / immediate-target behavior.
+ * Core V2 tests opt in explicitly.
+ */
+export type GameRuleset = 'legacyV1' | 'coreV2';
+
+/**
  * Optional authored metadata for the Win / Discovery reveal. Purely
  * presentational — the engine never reads this. Node coordinates are in
  * pixel-grid cell units (may be fractional) so the constellation stays
@@ -225,7 +232,10 @@ export interface LevelDefinition {
    * never reads them for a rule.
    */
   modifiers?: PixelModifierMap;
-  /** Exactly three authored tunnel queues; index 0 of each is the front charge. */
+  /**
+   * Authored tunnel queues; index 0 of each is the front charge.
+   * Legacy V1: exactly 3. Core V2: exactly 4.
+   */
   tunnels: ChargeSpec[][];
   /** Optional authored Win / Discovery constellation. */
   reveal?: LevelReveal;
@@ -237,6 +247,16 @@ export interface LevelDefinition {
   tutorial?: string;
   /** When true, explicitly declares that this authored level replaces an existing legacy level ID. */
   replacesLegacy?: boolean;
+  /**
+   * Targeting rules. Absent means {@link GameRuleset} `legacyV1` — required so
+   * existing campaign JSON is unchanged and still plays under current rules.
+   */
+  ruleset?: GameRuleset;
+  /**
+   * Concurrent active-pass capacity. Absent means {@link DEFAULT_ACTIVE_CAPACITY}
+   * (5). Future items may set 6; campaign JSON does not set this yet.
+   */
+  activeCapacity?: number;
 }
 
 export type GameStatus = 'playing' | 'won' | 'lost';
@@ -260,7 +280,7 @@ export interface GameState {
   height: number;
   /** Every pixel of the picture, cleared ones kept with `cleared: true`. */
   pixels: Pixel[];
-  /** Exactly three tunnels. */
+  /** Legacy V1: 3 tunnels. Core V2: 4 tunnels. */
   tunnels: TunnelState[];
   /** Charges parked with leftover capacity. */
   holding: Charge[];
@@ -270,9 +290,13 @@ export interface GameState {
   /**
    * Charges launched into the current epoch, each with its independent resolved
    * state. Empty when no launch has happened or the previous epoch has flushed.
-   * Counts toward {@link MAX_ACTIVE_CHARGES} while the epoch is open.
+   * Counts toward {@link GameState.activeCapacity} while the epoch is open.
    */
   activeCharges: ActiveCharge[];
   /** The open concurrent-launch epoch, or `null` when the rail is idle. */
   epoch: EpochState | null;
+  /** Copied from the level definition; defaults to `legacyV1`. */
+  ruleset: GameRuleset;
+  /** Concurrent pass slots. Default 5; may be 6 without architecture changes. */
+  activeCapacity: number;
 }
