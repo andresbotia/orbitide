@@ -7,10 +7,9 @@ import { reachablePixels } from '@/game/engine/pixels';
 import type { GameState, ModifierInstance } from '@/game/engine/types';
 import type { FlightPass } from '@/game/presentation/events';
 import { eventCountAt } from '@/game/presentation/motion';
-import { arcade } from '@/theme/arcade';
+import { material } from '@/theme/material';
 import { ColorAssistLayer } from './ColorAssistLayer';
 import { EnergyShot } from './EnergyShot';
-import { Starfield } from './effects/Starfield';
 import { cellCenter, computeBoardGeometry, type BoardGeometry } from './boardGeometry';
 import { OrbitingCharge } from './OrbitingCharge';
 import { OrbitRail, LaunchHubMarker } from './OrbitRail';
@@ -41,11 +40,13 @@ function laneOffset(index: number): number {
 }
 
 /**
- * The production Cosmic Arcade board. The Skia layer paints the static
- * machinery; one static actor layer paints the pixels / special shells / Color
- * Assist marks; and each in-flight charge gets its own {@link FlightActor} with
- * its own UI-thread clock, so up to five charges animate independently off one
- * shared board without a singleton anywhere.
+ * The production Pixel Arcadia board (UI-R3 — Cosmic Arcade materials
+ * removed from the default paint; concurrency architecture below is
+ * unchanged). The Skia layer paints the static machinery; one static actor
+ * layer paints the pixels / special shells / Color Assist marks; and each
+ * in-flight charge gets its own {@link FlightActor} with its own UI-thread
+ * clock, so up to five charges animate independently off one shared board
+ * without a singleton anywhere.
  */
 export function OrbitBoard({ size, state, flights, presentThrough, colorAssist, reducedMotion, modifiers }: OrbitBoardProps) {
   const geo = useMemo(
@@ -67,14 +68,16 @@ export function OrbitBoard({ size, state, flights, presentThrough, colorAssist, 
   return (
     <View style={{ width: size, height: size, overflow: 'visible' }}>
       <Canvas style={StyleSheet.absoluteFill}>
+        {/* Recessed gameplay plane — Pixel Arcadia material, not the old Cosmic
+            Arcade deep-space fill. No default starfield: that becomes Cosmic
+            Frontier's world-specific ambient later, not the global identity. */}
         <Rect x={0} y={0} width={size} height={size}>
           <RadialGradient
             c={vec(geo.center.x, geo.center.y)}
             r={size * 0.66}
-            colors={[arcade.envMid, arcade.envBottom]}
+            colors={[material.structuralSurface, material.recessedSurface]}
           />
         </Rect>
-        <Starfield size={size} />
         <Group>
           <OrbitRail geo={geo} />
           <LaunchHubMarker geo={geo} />

@@ -8,6 +8,8 @@ import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Easing, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
+import { BoardFrame } from '@/components/gameplay/BoardFrame';
+import { GameplayEnvironment } from '@/components/gameplay/GameplayEnvironment';
 import { DebugOverlay } from '@/components/DebugOverlay';
 import { DiscoveryOverlay } from '@/components/DiscoveryOverlay';
 import { HoldingTray } from '@/components/HoldingTray';
@@ -20,10 +22,12 @@ import { OrbitBoard } from '@/game/rendering/OrbitBoard';
 import { resolveReveal, revealTimeline } from '@/game/rendering/revealGeometry';
 import { nextLevelId, requireLevel } from '@/game/levels/levels';
 import type { LevelDefinition } from '@/game/engine/types';
+import { useAmbientActive } from '@/hooks/useAmbientActive';
 import { useColorAssist } from '@/hooks/useColorAssist';
 import { useGameSession } from '@/hooks/useGameSession';
-import { arcade } from '@/theme/arcade';
+import { material } from '@/theme/material';
 import { spacing } from '@/theme/spacing';
+import { worldSkin } from '@/theme/worldSkins';
 
 interface GameScreenProps {
   levelId: number;
@@ -39,8 +43,10 @@ interface GameScreenProps {
 }
 
 /**
- * Production Cosmic Arcade gameplay shell. Screen hierarchy, top to bottom:
- *   TOP HUD -> ORBIT / PIXEL-ART BOARD -> HOLDING -> LAUNCH TUNNELS -> TOOLS.
+ * Production Pixel Arcadia gameplay shell (UI-R3 — Cosmic Arcade materials
+ * removed; `OrbitBoard`'s concurrency architecture and all engine/session
+ * logic below are unchanged). Screen hierarchy, top to bottom:
+ *   TOP HUD -> ENERGY-TRACK / PIXEL-ART BOARD -> HOLDING -> LAUNCH TUNNELS -> TOOLS.
  * On a win the board transforms into the Discovery constellation reveal in
  * place; on a loss the minimal retry overlay is shown. Engine truth is
  * unchanged — the reveal is triggered by, never the trigger of, the win.
@@ -67,6 +73,8 @@ export function GameScreen({
     [levelOverride, levelId],
   );
   const reducedMotion = useReducedMotion();
+  const active = useAmbientActive();
+  const worldAccent = worldSkin(level.themeId).accent;
   const { enabled: colorAssist } = useColorAssist();
 
   const handleWin = useCallback(() => {
@@ -113,6 +121,15 @@ export function GameScreen({
     }));
   }, [won, reducedMotion, revealProgress]);
 
+  // A brief warm handoff pulse on the board frame right as the win happens —
+  // NOT the win celebration itself (that stays DiscoveryOverlay/DiscoveryReveal's
+  // job, untouched). Ramps up and holds; `useFocusEffect`-free since a level
+  // remount (restart/advance) naturally resets the shared value's owner.
+  const celebrate = useSharedValue(0);
+  useEffect(() => {
+    celebrate.set(withTiming(won ? 1 : 0, { duration: won ? 260 : 0, easing: Easing.out(Easing.cubic) }));
+  }, [won, celebrate]);
+
   const onBoardArea = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
     const size = Math.max(0, Math.min(width, height) - spacing.md);
@@ -132,7 +149,7 @@ export function GameScreen({
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <View style={styles.ambient} pointerEvents="none" />
+      <GameplayEnvironment worldAccent={worldAccent} active={active} reducedMotion={reducedMotion} />
 
       <View style={styles.hud}>
         <Hud state={state} title={level.title} difficulty={level.difficulty} onRestart={session.restart} />
@@ -140,7 +157,14 @@ export function GameScreen({
 
       <View ref={area} collapsable={false} style={styles.boardArea} onLayout={onBoardArea}>
         {boardSize > 0 ? (
-          <View style={{ width: boardSize, height: boardSize }}>
+          <View style={{ width: boardSize, height: boardSize, overflow: 'visible' }}>
+            <BoardFrame
+              size={boardSize}
+              worldAccent={worldAccent}
+              active={active}
+              reducedMotion={reducedMotion}
+              celebrate={celebrate}
+            />
             <OrbitBoard
               size={boardSize}
               state={state}
@@ -224,17 +248,7 @@ export function GameScreen({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: arcade.envBottom, overflow: 'hidden' },
-  ambient: {
-    position: 'absolute',
-    top: -120,
-    alignSelf: 'center',
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    backgroundColor: arcade.envTop,
-    opacity: 0.5,
-  },
+  safe: { flex: 1, backgroundColor: material.background, overflow: 'hidden' },
   hud: { paddingTop: spacing.sm, paddingBottom: spacing.sm },
   boardArea: {
     flex: 1,
@@ -261,12 +275,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 12,
-    backgroundColor: 'rgba(12,20,34,0.92)',
+    backgroundColor: material.overlay,
     borderWidth: 1,
-    borderColor: 'rgba(200,230,255,0.35)',
+    borderColor: 'rgba(77,225,255,0.35)',
   },
   tutorialText: {
-    color: '#DCEEFF',
+    color: material.textPrimary,
     fontSize: 10.5,
     fontWeight: '600',
     letterSpacing: -0.1,

@@ -4,8 +4,7 @@ import { remainingPixelCount } from '@/game/engine/pixels';
 import type { GameState, LevelDifficulty } from '@/game/engine/types';
 import { DifficultyGate } from '@/components/difficulty/DifficultyGate';
 import { IconButton } from '@/components/IconButton';
-import { arcade } from '@/theme/arcade';
-import { palette } from '@/theme/colors';
+import { material } from '@/theme/material';
 import { typography } from '@/theme/spacing';
 
 interface HudProps {
@@ -19,8 +18,11 @@ interface HudProps {
 
 /**
  * Top HUD: settings / level identity + Difficulty Gate + progress / restart.
- * Painted-metal chips, restrained; the Gate rides the existing progress line so
- * HUD height does not grow. Coin balance stays deferred to the economy pass.
+ * Pixel Arcadia product chrome (UI-R3), restrained; the Gate rides the
+ * existing progress line so HUD height does not grow. `IconButton`'s own
+ * migration off `arcade.*` is deferred — it's shared with Home/World Map,
+ * both out of this milestone's scope. Coin balance stays deferred to the
+ * economy pass.
  */
 export function Hud({ state, title, difficulty, onRestart, onSettings }: HudProps) {
   const remaining = remainingPixelCount(state);
@@ -59,15 +61,15 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   center: { flex: 1, alignItems: 'center', gap: 5 },
-  eyebrow: { ...typography.label, color: palette.textSecondary, fontSize: 11 },
+  eyebrow: { ...typography.label, color: material.textSecondary, fontSize: 11 },
   track: {
     width: '72%',
     height: 4,
     borderRadius: 2,
-    backgroundColor: arcade.socket,
+    backgroundColor: material.recessedSurface,
     overflow: 'hidden',
   },
-  fill: { height: 4, borderRadius: 2, backgroundColor: arcade.accent },
+  fill: { height: 4, borderRadius: 2, backgroundColor: material.accentCyan },
   subRow: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 18 },
-  sub: { fontSize: 10, color: arcade.metalEdge, letterSpacing: 1 },
+  sub: { fontSize: 10, color: material.textSecondary, letterSpacing: 1 },
 });
