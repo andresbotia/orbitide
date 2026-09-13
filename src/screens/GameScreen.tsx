@@ -17,7 +17,6 @@ import { DiscoveryOverlay } from '@/components/DiscoveryOverlay';
 import { HoldingTray } from '@/components/HoldingTray';
 import { Hud } from '@/components/Hud';
 import { ResultOverlay } from '@/components/ResultOverlay';
-import { ToolBar } from '@/components/ToolBar';
 import { TunnelBar } from '@/components/TunnelBar';
 import { DiscoveryReveal } from '@/game/rendering/DiscoveryReveal';
 import { OrbitBoard } from '@/game/rendering/OrbitBoard';
@@ -270,7 +269,14 @@ export function GameScreen({
           onLaunch={(id) => session.launch(id, boardPoint(id), boardPoint(`holding-${state.holding.length}`))}
         />
 
-        <ToolBar />
+        {/* UI-R9 functional-UI cleanup: `ToolBar` (Undo/Scan/Slot) stays fully
+            implemented but unrendered here — every one of its handlers is
+            still unwired (no booster gameplay/economy exists yet), so
+            showing it would be a dead affordance in a TestFlight build.
+            Re-add `<ToolBar onUndo={...} .../>` the moment that milestone
+            lands; no other change is required. Hiding it also lets
+            `boardArea`'s existing `flex: 1` reclaim the vertical space
+            automatically — `onBoardArea`'s measured-sizing logic is untouched. */}
       </Animated.View>
 
       {won ? (

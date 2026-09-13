@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
+import Animated, { interpolateColor, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
 import { FEEL } from '@/game/presentation/constants';
 import type { OrbColor } from '@/game/engine/types';
@@ -41,6 +41,11 @@ export const Pixel = memo(function Pixel({
   const rest = (reachable ? 1 : 0.62) * (1 - modifierDim * 0.55);
 
   const popOvershoot = adaptive.popOvershoot;
+  // UI-R9 — a very fast brightness peak on clear, folded into this SAME
+  // worklet/View rather than a second `useAnimatedStyle`/overlay layer: a
+  // board can carry 700+ `Pixel` instances, and only the ones actively
+  // clearing (this branch) ever pay the extra `interpolateColor` cost — the
+  // idle branch below is untouched and exactly as cheap as before.
   const animated = useAnimatedStyle(() => {
     if (clearAt === undefined) {
       return { opacity: rest, transform: [{ scale: 1 }] };
@@ -49,7 +54,12 @@ export const Pixel = memo(function Pixel({
     const overshoot = p < 0.35
       ? 1 + popOvershoot * (p / 0.35)
       : (1 + popOvershoot) * Math.max(0, 1 - (p - 0.35) / 0.65);
-    return { opacity: rest * (1 - p), transform: [{ scale: p === 0 ? 1 : overshoot }] };
+    const flash = p < 0.22 ? 1 - p / 0.22 : 0;
+    return {
+      opacity: rest * (1 - p),
+      backgroundColor: flash > 0 ? interpolateColor(flash, [0, 1], [material.base, '#FFFFFF']) : material.base,
+      transform: [{ scale: p === 0 ? 1 : overshoot }],
+    };
   });
 
   return (

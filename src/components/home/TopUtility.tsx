@@ -12,11 +12,22 @@ interface TopUtilityProps {
 /**
  * QUIET TOP UTILITY: settings + coin balance. Deliberately subdued — neither
  * element should ever compete with PLAY. No store promo, no economy panel.
+ *
+ * UI-R9 functional-UI cleanup: no screen has ever passed `onSettings` — there
+ * is no production settings screen to open. Rather than show a dead,
+ * decoration-only gear (a fake affordance), it's hidden entirely, leaving a
+ * same-size spacer so the coin pill doesn't jump position. The moment a real
+ * settings destination exists, passing `onSettings` brings the icon back
+ * with zero further changes here.
  */
 export function TopUtility({ coins = 0, onSettings }: TopUtilityProps) {
   return (
     <View style={styles.row}>
-      <IconButton glyph="⚙" onPress={onSettings} accessibilityLabel="Settings (coming soon)" />
+      {onSettings ? (
+        <IconButton glyph="⚙" onPress={onSettings} accessibilityLabel="Settings" />
+      ) : (
+        <View style={styles.spacer} />
+      )}
 
       <View style={styles.coins} accessibilityLabel={`${coins} coins`}>
         <Text style={styles.coinIcon}>◈</Text>
@@ -27,6 +38,7 @@ export function TopUtility({ coins = 0, onSettings }: TopUtilityProps) {
 }
 
 const styles = StyleSheet.create({
+  spacer: { width: 40, height: 40 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

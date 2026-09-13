@@ -1,4 +1,4 @@
-import { memo, useEffect } from 'react';
+import { memo, useCallback, useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -7,6 +7,7 @@ import Animated, {
   useReducedMotion,
   useSharedValue,
   withRepeat,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
@@ -73,10 +74,30 @@ export const PrimaryCta = memo(function PrimaryCta({
     return { shadowOpacity: 0.28 + breathe.value * 0.16, shadowRadius: 16 + breathe.value * 10 };
   });
 
+  // UI-R9 press/release polish — additive to the existing `translateY(2)`
+  // snap (kept, it's the instant "acknowledged" beat every consumer already
+  // has). This adds the missing physical half: a quick squash on press-in,
+  // a short spring settle on release, so PLAY/NEXT/RETRY/Worlds all get the
+  // same tactile family without changing what any of them DO on press.
+  const press = useSharedValue(0);
+  const handlePressIn = useCallback(() => {
+    press.set(withTiming(1, { duration: 70, easing: Easing.out(Easing.cubic) }));
+    onPressIn?.();
+  }, [press, onPressIn]);
+  const handlePressOut = useCallback(() => {
+    press.set(reducedMotion
+      ? withTiming(0, { duration: 90 })
+      : withSpring(0, { damping: 14, stiffness: 260 }));
+  }, [press, reducedMotion]);
+  const pressStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 - press.value * 0.03 }],
+  }));
+
   return (
     <Pressable
       onPress={onPress}
-      onPressIn={onPressIn}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={text}
@@ -94,6 +115,7 @@ export const PrimaryCta = memo(function PrimaryCta({
             isPrimary && pressed && styles.glowPressed,
             isPrimary && !disabled && !pressed ? breatheStyle : null,
             pressed && !disabled && styles.pressed,
+            !disabled && pressStyle,
           ]}
         >
           {disabled ? (

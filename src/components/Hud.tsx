@@ -18,11 +18,14 @@ interface HudProps {
 
 /**
  * Top HUD: settings / level identity + Difficulty Gate + progress / restart.
- * Pixel Arcadia product chrome (UI-R3), restrained; the Gate rides the
- * existing progress line so HUD height does not grow. `IconButton`'s own
- * migration off `arcade.*` is deferred — it's shared with Home/World Map,
- * both out of this milestone's scope. Coin balance stays deferred to the
- * economy pass.
+ * Pixel Arcadia product chrome, restrained; the Gate rides the existing
+ * progress line so HUD height does not grow.
+ *
+ * UI-R9 functional-UI cleanup: `onSettings` has never been supplied by
+ * `GameScreen` — there's no production settings screen behind this gear.
+ * Rather than show a dead, decoration-only control, it's hidden entirely
+ * (a same-size spacer keeps Restart from shifting and the level title
+ * centered). Passing `onSettings` in the future brings it back unchanged.
  */
 export function Hud({ state, title, difficulty, onRestart, onSettings }: HudProps) {
   const remaining = remainingPixelCount(state);
@@ -32,7 +35,11 @@ export function Hud({ state, title, difficulty, onRestart, onSettings }: HudProp
 
   return (
     <View style={styles.container}>
-      <IconButton glyph="⚙" onPress={onSettings} accessibilityLabel="Settings (coming soon)" />
+      {onSettings ? (
+        <IconButton glyph="⚙" onPress={onSettings} accessibilityLabel="Settings" />
+      ) : (
+        <View style={styles.spacer} />
+      )}
 
       <View style={styles.center}>
         <Text style={styles.eyebrow}>
@@ -53,6 +60,7 @@ export function Hud({ state, title, difficulty, onRestart, onSettings }: HudProp
 }
 
 const styles = StyleSheet.create({
+  spacer: { width: 40, height: 40 },
   container: {
     flexDirection: 'row',
     alignItems: 'center',

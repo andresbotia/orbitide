@@ -226,7 +226,7 @@ const FlightActor = memo(function FlightActor({ pass, geo, presentThrough, color
             );
           }))}
       </View>
-      <EnergyShot pass={pass} layout={geo} clock={clock} laneOffset={lane} />
+      <EnergyShot pass={pass} layout={geo} clock={clock} laneOffset={lane} calm={calm} />
       <OrbitingCharge pass={pass} layout={geo} clock={clock} colorAssist={colorAssist} laneOffset={lane} dim={calm} />
     </>
   );

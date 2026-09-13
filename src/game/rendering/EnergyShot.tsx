@@ -12,10 +12,17 @@ import { flightPosition } from './flightGeometry';
  * The active shot is selected entirely on the UI thread. The streak starts at
  * the charge's ACTUAL rendered position and ends at the exact engine-selected
  * target cell — the player can always see which pixel spent the capacity.
+ *
+ * UI-R9: `calm` (mirrors `OrbitingCharge`'s existing concurrency dimming —
+ * previously this component never dimmed at all, the one inconsistency in an
+ * otherwise-graceful degrade-under-load story) softens both the streak and
+ * the impact flash once several charges share the rail, so five simultaneous
+ * flights don't stack into visual noise.
  */
-export const EnergyShot = memo(function EnergyShot({ pass, layout, clock, laneOffset = 0 }: {
-  pass: FlightPass; layout: BoardGeometry; clock: SharedValue<number>; laneOffset?: number;
+export const EnergyShot = memo(function EnergyShot({ pass, layout, clock, laneOffset = 0, calm = false }: {
+  pass: FlightPass; layout: BoardGeometry; clock: SharedValue<number>; laneOffset?: number; calm?: boolean;
 }) {
+  const depth = calm ? 0.6 : 1;
   const active = useDerivedValue(() => {
     let current: Shot | null = null;
     for (const shot of pass.shots) {
@@ -40,7 +47,7 @@ export const EnergyShot = memo(function EnergyShot({ pass, layout, clock, laneOf
     const t = clock.value;
     const p = Math.max(0, Math.min(1, (t - shot.fireAt) / Math.max(1, shot.impactAt - shot.fireAt)));
     return {
-      opacity: t >= shot.fireAt && t < shot.impactAt ? 1 : 0,
+      opacity: (t >= shot.fireAt && t < shot.impactAt ? 1 : 0) * depth,
       transform: [
         { translateX: from.x + (target.x - from.x) * p - length / 2 },
         { translateY: from.y + (target.y - from.y) * p - 2 },
@@ -55,7 +62,7 @@ export const EnergyShot = memo(function EnergyShot({ pass, layout, clock, laneOf
     const t = clock.value;
     const pop = Math.max(0, Math.min(1, (t - shot.clearAt) / 120));
     return {
-      opacity: t < shot.impactAt ? 0 : (1 - pop) * 0.95,
+      opacity: t < shot.impactAt ? 0 : (1 - pop) * 0.95 * depth,
       transform: [
         { translateX: layout.gridOrigin.x + shot.target.x * layout.cell - layout.cell * 0.15 },
         { translateY: layout.gridOrigin.y + shot.target.y * layout.cell - layout.cell * 0.15 },
