@@ -1,12 +1,26 @@
-import { useEffect, useRef } from 'react';
+import { memo, useCallback, useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  FadeIn,
+  useAnimatedStyle,
+  useDerivedValue,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
 import type { Point } from '@/game/rendering/boardGeometry';
 import { ColorAssistMark } from '@/components/ColorAssistMark';
 import { visibleCharges } from '@/game/engine/selectors';
-import type { GameState } from '@/game/engine/types';
+import type { Charge, GameState, TunnelState } from '@/game/engine/types';
+import { markContrast } from '@/theme/colorAssist';
 import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
-import { arcade } from '@/theme/arcade';
+import { material } from '@/theme/material';
 import { spacing } from '@/theme/spacing';
 
 interface TunnelBarProps {
@@ -19,114 +33,204 @@ interface TunnelBarProps {
 }
 
 /**
- * The three Launch Tunnels as physical arcade hardware: dark matte housings, a
- * bright readable front charge with its capacity number, a large tap target and
- * a recessed magazine that *implies* a loaded queue without revealing the
- * authored future charges. Housings stay subordinate to the board.
+ * The three Launch Tunnels — presentation only, gameplay-untouched (UI-R4).
+ * Each is an independent arcade energy magazine: a recessed port with the
+ * loaded front charge, a magazine tray previewing the next 3 authored
+ * charges, and its own small physical reactions (readiness breathe, launch
+ * recoil, a scale-in when the next charge loads forward) driven entirely by
+ * watching the SAME `state`/`charge` props every other surface already reads
+ * — no new session/engine hooks, no changed queue contents/order/capacities.
  */
 export function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayout, layoutVersion }: TunnelBarProps) {
   const charges = visibleCharges(state);
-  const sources = useRef<(View | null)[]>([]);
-
-  useEffect(() => {
-    sources.current.forEach((node, index) => node?.measureInWindow((x, y, width, height) =>
-      onSourceLayout(`tunnel-${index}`, { x: x + width / 2, y: y + height / 2 })));
-  }, [layoutVersion, onSourceLayout]);
 
   return (
     <View style={styles.row}>
-      {charges.map(({ tunnelId, charge }, index) => {
-        const tunnel = state.tunnels[index];
-        const empty = !charge;
-
-        return (
-          <Pressable
-            key={tunnelId}
-            disabled={disabled || empty}
-            onPressIn={() => onLaunch(tunnelId)}
-            accessibilityState={{ disabled: disabled || empty }}
-            accessibilityRole="button"
-            accessibilityLabel={
-              charge
-                ? `Launch tunnel ${index + 1}, ${orbLabel[charge.color]} charge ${charge.capacity}`
-                : `Tunnel ${index + 1} empty`
-            }
-            hitSlop={6}
-            style={({ pressed }) => [
-              styles.tunnel,
-              empty && styles.tunnelEmpty,
-              pressed && !empty && styles.tunnelPressed,
-            ]}
-          >
-            <Text style={styles.tunnelLabel}>T{index + 1}</Text>
-
-            <View style={styles.port}>
-              {charge ? (
-                <View
-                  ref={(node: View | null) => { sources.current[index] = node; }}
-                  onLayout={() => sources.current[index]?.measureInWindow((x, y, width, height) =>
-                    onSourceLayout(tunnelId, { x: x + width / 2, y: y + height / 2 }))}
-                  collapsable={false}
-                  key={charge.id}
-                  style={[
-                    styles.charge,
-                    { backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color] },
-                  ]}
-                >
-                  <View style={styles.chargeGloss} />
-                  <Text style={styles.capacity}>{charge.capacity}</Text>
-                  {colorAssist ? (
-                    <View style={styles.assist} pointerEvents="none">
-                      <ColorAssistMark color={charge.color} size={15} etched />
-                    </View>
-                  ) : null}
-                </View>
-              ) : (
-                <View style={[styles.charge, styles.chargeEmpty]}>
-                  <Text style={styles.emptyMark}>—</Text>
-                </View>
-              )}
-            </View>
-
-            {/* Look-ahead queue preview: next 2-3 charges in recessed magazine tray */}
-            <View style={styles.queueTray}>
-              {Array.from({ length: MAX_PREVIEWS }).map((_, previewIdx) => {
-                const nextCharge = tunnel?.queue[previewIdx + 1];
-                if (nextCharge) {
-                  return (
-                    <View
-                      key={nextCharge.id}
-                      style={[
-                        styles.previewChip,
-                        {
-                          backgroundColor: orbColors[nextCharge.color],
-                          borderColor: orbGlow[nextCharge.color],
-                        },
-                      ]}
-                    >
-                      <View style={styles.previewGloss} />
-                      <Text style={styles.previewCapacity}>{nextCharge.capacity}</Text>
-                      {colorAssist ? (
-                        <View style={styles.previewAssist} pointerEvents="none">
-                          <ColorAssistMark color={nextCharge.color} size={7} etched />
-                        </View>
-                      ) : null}
-                    </View>
-                  );
-                }
-                return (
-                  <View key={`empty-${previewIdx}`} style={[styles.previewChip, styles.previewEmpty]}>
-                    <View style={styles.previewDot} />
-                  </View>
-                );
-              })}
-            </View>
-          </Pressable>
-        );
-      })}
+      {charges.map(({ tunnelId, charge }, index) => (
+        <Tunnel
+          key={tunnelId}
+          index={index}
+          tunnelId={tunnelId}
+          charge={charge}
+          tunnel={state.tunnels[index]}
+          disabled={disabled}
+          colorAssist={colorAssist}
+          onLaunch={onLaunch}
+          onSourceLayout={onSourceLayout}
+          layoutVersion={layoutVersion}
+        />
+      ))}
     </View>
   );
 }
+
+const Tunnel = memo(function Tunnel({
+  index, tunnelId, charge, tunnel, disabled, colorAssist, onLaunch, onSourceLayout, layoutVersion,
+}: {
+  index: number;
+  tunnelId: string;
+  charge: Charge | null;
+  tunnel: TunnelState | undefined;
+  disabled: boolean;
+  colorAssist?: boolean;
+  onLaunch: (tunnelId: string) => void;
+  onSourceLayout: (key: string, point: Point) => void;
+  layoutVersion: number;
+}) {
+  const empty = !charge;
+  const reducedMotion = useReducedMotion();
+  const ready = !empty && !disabled;
+  const sourceRef = useRef<View | null>(null);
+  const mounted = useRef(false);
+
+  const measure = useCallback(() => {
+    sourceRef.current?.measureInWindow((x, y, width, height) =>
+      onSourceLayout(tunnelId, { x: x + width / 2, y: y + height / 2 }));
+  }, [onSourceLayout, tunnelId]);
+  useEffect(() => { measure(); }, [layoutVersion, measure]);
+
+  // Launch recoil — the housing kicks back then springs to rest the instant
+  // the loaded charge changes (i.e. a launch actually happened; the queue is
+  // the single source of truth, nothing is timed locally). Skipped on mount.
+  const recoil = useSharedValue(0);
+  useEffect(() => {
+    if (!mounted.current) { mounted.current = true; return; }
+    cancelAnimation(recoil);
+    if (reducedMotion) {
+      // No travel under reduced motion — a brief flash communicates the same state change.
+      recoil.set(withSequence(withTiming(1, { duration: 60 }), withTiming(0, { duration: 160 })));
+    } else {
+      recoil.set(withSequence(
+        withTiming(1, { duration: 70, easing: Easing.out(Easing.cubic) }),
+        withSpring(0, { damping: 14, stiffness: 260 }),
+      ));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [charge?.id]);
+
+  // Idle readiness breathe — only while a real, launchable charge is loaded.
+  const breathe = useSharedValue(0.5);
+  useEffect(() => {
+    cancelAnimation(breathe);
+    if (!ready || reducedMotion) { breathe.set(0.5); return; }
+    breathe.set(withRepeat(withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.sin) }), -1, true));
+    return () => cancelAnimation(breathe);
+  }, [ready, reducedMotion, breathe]);
+
+  const housingStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: reducedMotion ? 0 : -recoil.value * 2.5 },
+      { scale: 1 - recoil.value * 0.03 },
+    ],
+  }));
+  const readinessGlow = useDerivedValue(() => (ready ? 0.18 + breathe.value * 0.14 : 0) + recoil.value * 0.5);
+  const glowStyle = useAnimatedStyle(() => ({ opacity: readinessGlow.value }));
+  const flashStyle = useAnimatedStyle(() => (reducedMotion ? { opacity: recoil.value * 0.6 } : { opacity: 0 }));
+
+  const ink = charge ? markContrast(charge.color) : null;
+
+  return (
+    <Animated.View
+      style={[
+        styles.tunnel,
+        empty && styles.tunnelEmpty,
+        !empty && disabled && styles.tunnelBlocked,
+        housingStyle,
+      ]}
+    >
+      <Pressable
+        disabled={disabled || empty}
+        onPressIn={() => onLaunch(tunnelId)}
+        accessibilityState={{ disabled: disabled || empty }}
+        accessibilityRole="button"
+        accessibilityLabel={
+          charge
+            ? `Launch tunnel ${index + 1}, ${orbLabel[charge.color]} charge ${charge.capacity}`
+            : `Tunnel ${index + 1} empty`
+        }
+        hitSlop={6}
+        style={({ pressed }) => [styles.pressable, pressed && !empty && styles.tunnelPressed]}
+      >
+        <Text style={styles.tunnelLabel}>T{index + 1}</Text>
+
+        <View style={styles.port}>
+          {/* Readiness/recoil glow ring — behind the charge, never recolors it. */}
+          <Animated.View pointerEvents="none" style={[styles.readiness, glowStyle]} />
+          <Animated.View pointerEvents="none" style={[styles.flash, flashStyle]} />
+
+          {charge ? (
+            <Animated.View
+              key={charge.id}
+              entering={reducedMotion ? FadeIn.duration(90) : FadeIn.duration(130).springify().damping(16)}
+              ref={sourceRef}
+              onLayout={measure}
+              collapsable={false}
+              style={[
+                styles.charge,
+                { backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color] },
+              ]}
+            >
+              <View style={styles.chargeGloss} />
+              <Text
+                style={[
+                  styles.capacity,
+                  { color: ink?.fill },
+                  ink?.halo ? { textShadowColor: ink.halo, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } } : null,
+                ]}
+              >
+                {charge.capacity}
+              </Text>
+              {colorAssist ? (
+                <View style={styles.assist} pointerEvents="none">
+                  <ColorAssistMark color={charge.color} size={15} etched />
+                </View>
+              ) : null}
+            </Animated.View>
+          ) : (
+            <View style={[styles.charge, styles.chargeEmpty]}>
+              <Text style={styles.emptyMark}>—</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Look-ahead queue preview: next 2-3 charges in recessed magazine tray */}
+        <View style={styles.queueTray}>
+          {Array.from({ length: MAX_PREVIEWS }).map((_, previewIdx) => {
+            const nextCharge = tunnel?.queue[previewIdx + 1];
+            if (nextCharge) {
+              const previewInk = markContrast(nextCharge.color);
+              return (
+                <View
+                  key={nextCharge.id}
+                  style={[
+                    styles.previewChip,
+                    {
+                      backgroundColor: orbColors[nextCharge.color],
+                      borderColor: orbGlow[nextCharge.color],
+                    },
+                  ]}
+                >
+                  <View style={styles.previewGloss} />
+                  <Text style={[styles.previewCapacity, { color: previewInk.fill }]}>{nextCharge.capacity}</Text>
+                  {colorAssist ? (
+                    <View style={styles.previewAssist} pointerEvents="none">
+                      <ColorAssistMark color={nextCharge.color} size={7} etched />
+                    </View>
+                  ) : null}
+                </View>
+              );
+            }
+            return (
+              <View key={`empty-${previewIdx}`} style={[styles.previewChip, styles.previewEmpty]}>
+                <View style={styles.previewDot} />
+              </View>
+            );
+          })}
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+});
 
 const CHARGE = 46;
 const PREVIEW_SIZE = 18;
@@ -135,35 +239,54 @@ const MAX_PREVIEWS = 3;
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'center', gap: spacing.md },
   tunnel: {
+    borderRadius: 16,
+    minWidth: 84,
+  },
+  pressable: {
     alignItems: 'center',
     paddingTop: spacing.xs,
     paddingBottom: spacing.xs,
     paddingHorizontal: spacing.sm,
     borderRadius: 16,
     borderWidth: 1,
-    borderTopColor: arcade.metalHi,
-    borderLeftColor: arcade.metalHi,
-    borderRightColor: arcade.metalLo,
-    borderBottomColor: arcade.metalLo,
-    backgroundColor: arcade.metal,
+    borderTopColor: material.bevelHighlight,
+    borderLeftColor: material.bevelHighlight,
+    borderRightColor: material.bevelShadow,
+    borderBottomColor: material.bevelShadow,
+    backgroundColor: material.structuralSurface,
     minWidth: 84,
   },
-  tunnelEmpty: { opacity: 0.35 },
-  tunnelPressed: { transform: [{ translateY: 1 }, { scale: 0.97 }], backgroundColor: arcade.metalLo },
+  tunnelEmpty: { opacity: 0.4 },
+  // Rail-full or otherwise blocked, but this tunnel still has a loaded charge —
+  // dimmer than active, but distinguishable from a truly-empty tunnel.
+  tunnelBlocked: { opacity: 0.72 },
+  tunnelPressed: { transform: [{ translateY: 1 }, { scale: 0.97 }], backgroundColor: material.recessedSurface },
   port: {
     width: CHARGE + 12,
     height: CHARGE + 12,
     borderRadius: (CHARGE + 12) / 2,
-    backgroundColor: arcade.socket,
+    backgroundColor: material.recessedSurface,
     borderWidth: 1,
-    // Recessed-well shading (dark top-left, rim bottom-right) — same concave
-    // language as HoldingTray's socket, so both hardware read as one family.
-    borderTopColor: arcade.metalLo,
-    borderLeftColor: arcade.metalLo,
-    borderRightColor: arcade.socketRim,
-    borderBottomColor: arcade.socketRim,
+    borderTopColor: material.bevelShadow,
+    borderLeftColor: material.bevelShadow,
+    borderRightColor: material.outline,
+    borderBottomColor: material.outline,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  readiness: {
+    position: 'absolute',
+    width: CHARGE + 20,
+    height: CHARGE + 20,
+    borderRadius: (CHARGE + 20) / 2,
+    backgroundColor: material.accentCyan,
+  },
+  flash: {
+    position: 'absolute',
+    width: CHARGE + 20,
+    height: CHARGE + 20,
+    borderRadius: (CHARGE + 20) / 2,
+    backgroundColor: material.energyWarm,
   },
   charge: {
     width: CHARGE,
@@ -181,14 +304,14 @@ const styles = StyleSheet.create({
     width: CHARGE * 0.5,
     height: CHARGE * 0.36,
     borderRadius: CHARGE * 0.3,
-    backgroundColor: arcade.glassHi,
-    opacity: 0.5,
+    backgroundColor: '#FFFFFF',
+    opacity: 0.4,
   },
-  chargeEmpty: { backgroundColor: arcade.metalLo, borderColor: arcade.socketRim },
+  chargeEmpty: { backgroundColor: material.recessedSurface, borderColor: material.outline },
   assist: { position: 'absolute', bottom: 3, alignSelf: 'center' },
-  capacity: { color: '#05060A', fontSize: 18, fontWeight: '800' },
-  emptyMark: { color: arcade.metalEdge, fontSize: 16 },
-  tunnelLabel: { marginBottom: 3, color: arcade.metalEdge, fontSize: 10, letterSpacing: 2, fontWeight: '700' },
+  capacity: { fontSize: 18, fontWeight: '800' },
+  emptyMark: { color: material.textSecondary, fontSize: 16 },
+  tunnelLabel: { marginBottom: 3, color: material.textSecondary, fontSize: 10, letterSpacing: 2, fontWeight: '700' },
   queueTray: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -198,12 +321,12 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     paddingHorizontal: 4,
     borderRadius: 11,
-    backgroundColor: arcade.socket,
+    backgroundColor: material.recessedSurface,
     borderWidth: 1,
-    borderTopColor: arcade.metalLo,
-    borderLeftColor: arcade.metalLo,
-    borderRightColor: arcade.socketRim,
-    borderBottomColor: arcade.socketRim,
+    borderTopColor: material.bevelShadow,
+    borderLeftColor: material.bevelShadow,
+    borderRightColor: material.outline,
+    borderBottomColor: material.outline,
   },
   previewChip: {
     width: PREVIEW_SIZE,
@@ -221,11 +344,10 @@ const styles = StyleSheet.create({
     width: PREVIEW_SIZE * 0.5,
     height: PREVIEW_SIZE * 0.35,
     borderRadius: PREVIEW_SIZE * 0.25,
-    backgroundColor: arcade.glassHi,
-    opacity: 0.5,
+    backgroundColor: '#FFFFFF',
+    opacity: 0.4,
   },
   previewCapacity: {
-    color: '#05060A',
     fontSize: 9,
     fontWeight: '800',
     lineHeight: 11,
@@ -236,14 +358,14 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   previewEmpty: {
-    backgroundColor: arcade.metalLo,
-    borderColor: arcade.socketRim,
+    backgroundColor: material.recessedSurface,
+    borderColor: material.outline,
     opacity: 0.35,
   },
   previewDot: {
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: arcade.metalEdge,
+    backgroundColor: material.textSecondary,
   },
 });
