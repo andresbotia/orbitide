@@ -1,14 +1,14 @@
 import { FlatList, StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 
 import { BrandLoader } from '@/components/brand';
+import { CampaignBackdrop } from '@/components/campaign/CampaignBackdrop';
 import { IconButton } from '@/components/IconButton';
 import { WorldCard } from '@/components/campaign/WorldCard';
 import type { WorldSummary } from '@/game/levels/campaignProgress';
 import { feedback } from '@/game/feedback';
-import { arcade } from '@/theme/arcade';
+import { material } from '@/theme/material';
 import { spacing, typography } from '@/theme/spacing';
 
 interface WorldSelectScreenProps {
@@ -19,8 +19,11 @@ interface WorldSelectScreenProps {
 }
 
 /**
- * Campaign map: one row per world (never 100 giant level cards). Home → here
- * → a selected world's level grid → the level itself (M4C.11.3).
+ * PIXEL ARCADIA campaign map (UI-R5) — ten destination cards, not a plain
+ * list of rows. Home → here → a selected world's level path → the level
+ * itself. `IconButton` (back button) keeps its current shared style — see
+ * `docs/DESIGN.md` for the deferred global icon-system migration this and
+ * Home/Gameplay all share.
  */
 export function WorldSelectScreen({ summaries, loading, onSelectWorld, onBack }: WorldSelectScreenProps) {
   const reducedMotion = useReducedMotion();
@@ -35,10 +38,7 @@ export function WorldSelectScreen({ summaries, loading, onSelectWorld, onBack }:
 
   return (
     <View style={styles.root}>
-      <LinearGradient
-        colors={[arcade.envTop, arcade.envMid, arcade.envBottom]}
-        style={StyleSheet.absoluteFill}
-      />
+      <CampaignBackdrop />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <IconButton glyph="←" onPress={onBack} accessibilityLabel="Back to Home" />
@@ -53,7 +53,7 @@ export function WorldSelectScreen({ summaries, loading, onSelectWorld, onBack }:
           renderItem={({ item, index }) => (
             <Animated.View
               entering={
-                reducedMotion ? undefined : FadeInDown.duration(220).delay(Math.min(index, 6) * 30)
+                reducedMotion ? undefined : FadeInDown.duration(240).delay(Math.min(index, 6) * 40)
               }
             >
               <WorldCard
@@ -72,7 +72,7 @@ export function WorldSelectScreen({ summaries, loading, onSelectWorld, onBack }:
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: arcade.envBottom },
+  root: { flex: 1, backgroundColor: material.background },
   safe: { flex: 1 },
   header: {
     flexDirection: 'row',
@@ -81,6 +81,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.sm,
   },
-  headerTitle: { ...typography.label, color: arcade.metalEdge, fontSize: 13, letterSpacing: 4 },
-  list: { paddingHorizontal: spacing.md, paddingBottom: spacing.xxl, gap: spacing.sm },
+  headerTitle: { ...typography.label, color: material.textSecondary, fontSize: 13, letterSpacing: 4 },
+  list: { paddingHorizontal: spacing.md, paddingBottom: spacing.xxl, gap: spacing.md },
 });
