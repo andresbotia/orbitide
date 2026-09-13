@@ -20,6 +20,8 @@ import { PixelPalFace } from '@/game/rendering/pixelPal/PixelPalFace';
 import { upcomingPreviewCount, visibleCharges } from '@/game/engine/selectors';
 import { isCoreV2 } from '@/game/engine/ruleset';
 import type { Charge, GameState, TunnelState } from '@/game/engine/types';
+import { isTunnelHighlighted, isTunnelSubdued } from '@/game/presentation/tutorialCoach';
+import type { TutorialView } from '@/game/tutorial';
 import { markContrast } from '@/theme/colorAssist';
 import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
 import { material } from '@/theme/material';
@@ -32,6 +34,8 @@ interface TunnelBarProps {
   colorAssist?: boolean;
   onLaunch: (tunnelId: string) => void;
   onSourceLayout: (key: string, point: Point) => void;
+  /** M5.4C — Core V2 Level 1 tutorial spotlight/dim. Omitted (or inactive) outside that tutorial. */
+  tutorial?: TutorialView;
 }
 
 /**
@@ -39,7 +43,7 @@ interface TunnelBarProps {
  * has (Legacy V1: 3, Core V2: 4). Each magazine shows the loaded front plus a
  * bounded upcoming preview; the hidden queue tail stays in engine state.
  */
-export function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayout, layoutVersion }: TunnelBarProps) {
+export function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayout, layoutVersion, tutorial }: TunnelBarProps) {
   const charges = visibleCharges(state);
   const upcoming = upcomingPreviewCount(state.ruleset);
   const pixelPal = isCoreV2(state.ruleset);
@@ -60,6 +64,8 @@ export function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayo
           onLaunch={onLaunch}
           onSourceLayout={onSourceLayout}
           layoutVersion={layoutVersion}
+          highlighted={tutorial ? isTunnelHighlighted(tutorial, tunnelId) : false}
+          subdued={tutorial ? isTunnelSubdued(tutorial, tunnelId) : false}
         />
       ))}
     </View>
@@ -68,6 +74,7 @@ export function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayo
 
 const Tunnel = memo(function Tunnel({
   index, tunnelId, charge, tunnel, upcoming, disabled, colorAssist, pixelPal, onLaunch, onSourceLayout, layoutVersion,
+  highlighted, subdued,
 }: {
   index: number;
   tunnelId: string;
@@ -81,12 +88,32 @@ const Tunnel = memo(function Tunnel({
   onLaunch: (tunnelId: string) => void;
   onSourceLayout: (key: string, point: Point) => void;
   layoutVersion: number;
+  /** M5.4C — this is the tutorial's intended tunnel; spotlight it. */
+  highlighted: boolean;
+  /** M5.4C — the tutorial is steering the player elsewhere; read as inviting-but-quiet. */
+  subdued: boolean;
 }) {
   const empty = !charge;
   const reducedMotion = useReducedMotion();
   const ready = !empty && !disabled;
   const sourceRef = useRef<View | null>(null);
   const mounted = useRef(false);
+
+  // Tutorial spotlight — a slow pulse on the intended tunnel only. Skipped
+  // entirely outside the tutorial (shared value stays at rest) and reduced to
+  // a steady glow (no motion) under reduced-motion.
+  const spotlight = useSharedValue(0);
+  useEffect(() => {
+    cancelAnimation(spotlight);
+    if (!highlighted) { spotlight.set(withTiming(0, { duration: 160 })); return; }
+    if (reducedMotion) { spotlight.set(withTiming(1, { duration: 160 })); return; }
+    spotlight.set(withRepeat(withTiming(1, { duration: 900, easing: Easing.inOut(Easing.sin) }), -1, true));
+    return () => cancelAnimation(spotlight);
+  }, [highlighted, reducedMotion, spotlight]);
+  const spotlightStyle = useAnimatedStyle(() => ({
+    opacity: 0.35 + spotlight.value * 0.65,
+    transform: [{ scale: 1 + spotlight.value * 0.08 }],
+  }));
 
   const measure = useCallback(() => {
     sourceRef.current?.measureInWindow((x, y, width, height) =>
@@ -140,8 +167,10 @@ const Tunnel = memo(function Tunnel({
         styles.tunnel,
         empty && styles.tunnelEmpty,
         !empty && disabled && styles.tunnelBlocked,
+        subdued && styles.tunnelSubdued,
         housingStyle,
       ]}
+      accessibilityLabel={highlighted ? 'Tutorial: launch this tunnel' : undefined}
     >
       <Pressable
         disabled={disabled || empty}
@@ -159,6 +188,11 @@ const Tunnel = memo(function Tunnel({
         <Text style={styles.tunnelLabel}>T{index + 1}</Text>
 
         <View style={styles.port}>
+          {/* Tutorial spotlight ring — the M5.4C intended-tunnel highlight.
+              Semantic (driven by `highlighted`), never a hardcoded position. */}
+          {highlighted ? (
+            <Animated.View pointerEvents="none" style={[styles.spotlightRing, spotlightStyle]} />
+          ) : null}
           {/* Readiness/recoil glow ring — behind the charge, never recolors it. */}
           <Animated.View pointerEvents="none" style={[styles.readiness, glowStyle]} />
           <Animated.View pointerEvents="none" style={[styles.flash, flashStyle]} />
@@ -276,6 +310,9 @@ const styles = StyleSheet.create({
   // Rail-full or otherwise blocked, but this tunnel still has a loaded charge —
   // dimmer than active, but distinguishable from a truly-empty tunnel.
   tunnelBlocked: { opacity: 0.72 },
+  // M5.4C — tutorial is steering the player to a different tunnel. Gentle,
+  // not the heavy `tunnelBlocked` dim (this tunnel isn't actually broken).
+  tunnelSubdued: { opacity: 0.55 },
   tunnelPressed: { transform: [{ translateY: 1 }, { scale: 0.97 }], backgroundColor: material.recessedSurface },
   port: {
     width: CHARGE + 12,
@@ -296,6 +333,17 @@ const styles = StyleSheet.create({
     height: CHARGE + 20,
     borderRadius: (CHARGE + 20) / 2,
     backgroundColor: material.accentCyan,
+  },
+  // M5.4C — tutorial spotlight ring, larger and brighter than `readiness` so
+  // the intended tunnel reads as obvious at a glance without darkening the rest.
+  spotlightRing: {
+    position: 'absolute',
+    width: CHARGE + 32,
+    height: CHARGE + 32,
+    borderRadius: (CHARGE + 32) / 2,
+    borderWidth: 2.5,
+    borderColor: material.accentCyan,
+    backgroundColor: 'transparent',
   },
   flash: {
     position: 'absolute',

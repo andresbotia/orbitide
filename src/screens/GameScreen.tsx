@@ -18,6 +18,7 @@ import { HoldingTray } from '@/components/HoldingTray';
 import { Hud } from '@/components/Hud';
 import { ResultOverlay } from '@/components/ResultOverlay';
 import { TunnelBar } from '@/components/TunnelBar';
+import { TutorialCoach } from '@/components/TutorialCoach';
 import { CoreV2Board } from '@/game/rendering/CoreV2Board';
 import { DiscoveryReveal } from '@/game/rendering/DiscoveryReveal';
 import { OrbitBoard } from '@/game/rendering/OrbitBoard';
@@ -271,6 +272,7 @@ export function GameScreen({
             <Text style={styles.tutorialText}>{tutorialIcon}  {level.tutorial}</Text>
           </View>
         ) : null}
+        <TutorialCoach tutorial={session.tutorial} />
       </View>
 
       <Animated.View style={[styles.controls, controlsFadeStyle]} pointerEvents={won ? 'none' : 'auto'}>
@@ -287,6 +289,7 @@ export function GameScreen({
           onLaunch={(id) => session.launchHeld(id, boardPoint(`holding-${state.holding.findIndex((c) => c.id === id)}`),
             boardPoint(`holding-${state.holding.length - 1}`))}
           message={session.message}
+          tutorial={session.tutorial}
         />
 
         <TunnelBar
@@ -296,6 +299,7 @@ export function GameScreen({
           colorAssist={colorAssist}
           onSourceLayout={onSourceLayout}
           onLaunch={(id) => session.launch(id, boardPoint(id), boardPoint(`holding-${state.holding.length}`))}
+          tutorial={session.tutorial}
         />
 
         {/* UI-R9 functional-UI cleanup: `ToolBar` (Undo/Scan/Slot) stays fully

@@ -6,6 +6,7 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withRepeat,
   withSequence,
   withSpring,
   withTiming,
@@ -16,6 +17,8 @@ import type { Charge } from '@/game/engine/types';
 import type { Point } from '@/game/rendering/boardGeometry';
 import { PixelPalFace } from '@/game/rendering/pixelPal/PixelPalFace';
 import { ColorAssistMark } from '@/components/ColorAssistMark';
+import { isHeldChargeHighlighted, isHeldChargeSubdued } from '@/game/presentation/tutorialCoach';
+import type { TutorialView } from '@/game/tutorial';
 import { markContrast } from '@/theme/colorAssist';
 import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
 import { material } from '@/theme/material';
@@ -36,6 +39,8 @@ interface HoldingTrayProps {
   boosterSlot?: boolean;
   /** M5.3 — Core V2 renders the shared Pixel Pal body; Legacy V1 keeps its plain orb. */
   pixelPal?: boolean;
+  /** M5.4C — Core V2 Level 1 tutorial spotlight/dim. Omitted (or inactive) outside that tutorial. */
+  tutorial?: TutorialView;
 }
 
 /**
@@ -44,6 +49,7 @@ interface HoldingTrayProps {
  */
 export function HoldingTray({
   holding, capacity, overflow, disabled, usefulIds, colorAssist, onLaunch, onSourceLayout, message, layoutVersion, boosterSlot, pixelPal,
+  tutorial,
 }: HoldingTrayProps) {
   const reducedMotion = useReducedMotion();
   const pressure = holding.length >= holdingWarnAt(capacity) && !overflow;
@@ -92,6 +98,8 @@ export function HoldingTray({
               onLaunch={onLaunch}
               onSourceLayout={onSourceLayout}
               layoutVersion={layoutVersion}
+              highlighted={!!charge && !!tutorial && isHeldChargeHighlighted(tutorial, charge.id)}
+              subdued={!!charge && !!tutorial && isHeldChargeSubdued(tutorial, charge.id)}
             />
           );
         })}
@@ -114,6 +122,7 @@ const SOCKET = 56;
 
 const Slot = memo(function Slot({
   index, charge, useful, disabled, colorAssist, justArrived, reducedMotion, pixelPal, onLaunch, onSourceLayout, layoutVersion,
+  highlighted, subdued,
 }: {
   index: number;
   charge: Charge | undefined;
@@ -126,6 +135,10 @@ const Slot = memo(function Slot({
   onLaunch: (id: string) => void;
   onSourceLayout: (key: string, point: Point) => void;
   layoutVersion: number;
+  /** M5.4C — this held Pal is the tutorial's relaunch target; spotlight it. */
+  highlighted: boolean;
+  /** M5.4C — the tutorial is steering the player elsewhere; read as quiet, not broken. */
+  subdued: boolean;
 }) {
   const slotRef = useRef<View | null>(null);
   const key = `holding-${index}`;
@@ -158,6 +171,28 @@ const Slot = memo(function Slot({
   }));
   const arrivalGlow = useAnimatedStyle(() => ({ opacity: arrival.value * 0.8 }));
 
+  // Tutorial spotlight — perks up the instant this held Pal becomes the
+  // relaunch target, then settles into a slow steady pulse. Mirrors the
+  // Tunnel spotlight ring so both teaching moments feel like one system.
+  const spotlight = useSharedValue(0);
+  const wasHighlighted = useRef(false);
+  useEffect(() => {
+    cancelAnimation(spotlight);
+    if (!highlighted) { spotlight.set(withTiming(0, { duration: 160 })); wasHighlighted.current = false; return; }
+    const justBecameTarget = !wasHighlighted.current;
+    wasHighlighted.current = true;
+    if (reducedMotion) { spotlight.set(withTiming(1, { duration: 160 })); return; }
+    const pulse = withRepeat(withTiming(1, { duration: 900, easing: Easing.inOut(Easing.sin) }), -1, true);
+    spotlight.set(justBecameTarget
+      ? withSequence(withTiming(1, { duration: 140, easing: Easing.out(Easing.cubic) }), pulse)
+      : pulse);
+    return () => cancelAnimation(spotlight);
+  }, [highlighted, reducedMotion, spotlight]);
+  const spotlightStyle = useAnimatedStyle(() => ({
+    opacity: 0.35 + spotlight.value * 0.65,
+    transform: [{ scale: 1 + spotlight.value * 0.1 }],
+  }));
+
   const ink = charge ? markContrast(charge.color) : null;
 
   return (
@@ -176,9 +211,13 @@ const Slot = memo(function Slot({
       style={({ pressed }) => [
         styles.socket,
         useful && styles.socketReady,
+        subdued && styles.socketSubdued,
         pressed && charge && styles.socketPressed,
       ]}
     >
+      {highlighted ? (
+        <Animated.View pointerEvents="none" style={[styles.spotlightRing, spotlightStyle]} />
+      ) : null}
       {charge ? (
         <Animated.View style={[styles.orbWrap, arrivalStyle]}>
           <Animated.View pointerEvents="none" style={[styles.arrivalGlow, { backgroundColor: orbGlow[charge.color] }, arrivalGlow]} />
@@ -286,6 +325,19 @@ const styles = StyleSheet.create({
     borderBottomColor: material.accentCyan,
   },
   socketPressed: { transform: [{ scale: 0.94 }], backgroundColor: material.bevelShadow },
+  // M5.4C — tutorial is steering the player to a different held Pal. Gentle,
+  // not a broken/disabled look — this slot is still perfectly usable later.
+  socketSubdued: { opacity: 0.55 },
+  // M5.4C — tutorial spotlight ring, mirrors TunnelBar's so both reads as one system.
+  spotlightRing: {
+    position: 'absolute',
+    width: SOCKET + 16,
+    height: SOCKET + 16,
+    borderRadius: (SOCKET + 16) / 2,
+    borderWidth: 2.5,
+    borderColor: material.accentCyan,
+    backgroundColor: 'transparent',
+  },
   orbWrap: { alignItems: 'center', justifyContent: 'center' },
   arrivalGlow: {
     position: 'absolute',
