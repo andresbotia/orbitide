@@ -10,14 +10,16 @@ import Animated, {
 
 import { PlayButton } from '@/components/PlayButton';
 import { feedback } from '@/game/feedback';
-import { revealTimeline, type RevealSource } from '@/game/rendering/revealGeometry';
-import { arcade } from '@/theme/arcade';
-import { palette } from '@/theme/colors';
+import { revealTimeline, type CelebrationTier, type RevealSource } from '@/game/rendering/revealGeometry';
+import { material } from '@/theme/material';
 import { typography } from '@/theme/spacing';
 
 interface DiscoveryOverlayProps {
   name: string;
   source: RevealSource;
+  levelId: number;
+  worldTitle: string;
+  tier: CelebrationTier;
   hasNext: boolean;
   progress: SharedValue<number>;
   reducedMotion: boolean;
@@ -26,20 +28,26 @@ interface DiscoveryOverlayProps {
 }
 
 /**
- * The lower third of the Win / Discovery screen: the discovery name resolves in,
- * then NEXT — same tactile family as Home PLAY. NEXT is pressable well before the
- * decorative constellation tail finishes and never blocked by animation. No card.
+ * The lower third of the Win / Discovery screen (UI-R6 — Pixel Arcadia
+ * "restoration" language, Cosmic Arcade's "star chart" removed). The
+ * discovery name resolves in, a real world/level line replaces the old fake
+ * "REWARD PENDING" placeholder, then NEXT — same tactile family as Home
+ * PLAY, with the idle-glow treatment reserved for capstones/finale. NEXT is
+ * pressable well before the decorative tail finishes and never blocked by
+ * animation, at any tier. No card.
  */
 export function DiscoveryOverlay({
-  name, source, hasNext, progress, reducedMotion, onNext, onHome,
+  name, source, levelId, worldTitle, tier, hasNext, progress, reducedMotion, onNext, onHome,
 }: DiscoveryOverlayProps) {
-  const tl = revealTimeline(reducedMotion);
+  const tl = revealTimeline(reducedMotion, tier);
   const [nextReady, setNextReady] = useState(false);
 
   const markResolved = useCallback(() => {
-    feedback.emit('discoveryResolve');
+    // Capstone/finale reuse the existing heavier bloom (`capstoneWin`, reserved
+    // for exactly this in UI-R1) rather than a new haptic event.
+    feedback.emit(tier === 'normal' ? 'discoveryResolve' : 'capstoneWin');
     feedback.emit('reward');
-  }, []);
+  }, [tier]);
 
   useAnimatedReaction(
     () => progress.value * tl.tailMs,
@@ -51,7 +59,7 @@ export function DiscoveryOverlay({
         runOnJS(markResolved)();
       }
     },
-    [tl.nextInteractiveMs, tl.titleEndMs],
+    [tl.nextInteractiveMs, tl.titleEndMs, markResolved],
   );
 
   const titleStyle = useAnimatedStyle(() => {
@@ -65,9 +73,9 @@ export function DiscoveryOverlay({
     return { opacity: interpolate(e, [tl.nextVisibleMs, tl.nextVisibleMs + 200], [0, 1], 'clamp') };
   });
 
-  const rewardStyle = useAnimatedStyle(() => {
+  const infoStyle = useAnimatedStyle(() => {
     const e = progress.value * tl.tailMs;
-    return { opacity: interpolate(e, [tl.titleEndMs, tl.titleEndMs + 240], [0, 0.7], 'clamp') };
+    return { opacity: interpolate(e, [tl.titleEndMs, tl.titleEndMs + 240], [0, 0.85], 'clamp') };
   });
 
   const handleNext = useCallback(() => {
@@ -75,17 +83,22 @@ export function DiscoveryOverlay({
     onNext();
   }, [onNext]);
 
+  const kicker = tier === 'finale' ? 'CAMPAIGN FINALE'
+    : tier === 'capstone' ? 'WORLD COMPLETE'
+      : source === 'authored' ? 'DISCOVERY' : 'RESTORED';
+
   return (
     <View style={styles.root} pointerEvents="box-none">
       <View style={styles.scrim} pointerEvents="none" />
 
       <Animated.View style={[styles.titleWrap, titleStyle]} pointerEvents="none">
-        <Text style={styles.kicker}>{source === 'authored' ? 'DISCOVERY' : 'STAR CHART'}</Text>
+        <Text style={[styles.kicker, tier === 'finale' && styles.kickerFinale]}>{kicker}</Text>
         <Text style={styles.name}>{name}</Text>
       </Animated.View>
 
-      <Animated.View style={[styles.rewardChip, rewardStyle]} pointerEvents="none">
-        <Text style={styles.rewardText}>◈ REWARD PENDING</Text>
+      {/* Real completion info — never a fake reward. */}
+      <Animated.View style={[styles.infoChip, infoStyle]} pointerEvents="none">
+        <Text style={styles.infoText}>{worldTitle.toUpperCase()} · LEVEL {levelId}</Text>
       </Animated.View>
 
       <Animated.View style={nextStyle}>
@@ -94,6 +107,7 @@ export function DiscoveryOverlay({
           onPress={hasNext ? handleNext : onHome}
           onPressIn={() => feedback.emit('select')}
           disabled={!nextReady}
+          idleGlow={nextReady && tier !== 'normal'}
         />
       </Animated.View>
 
@@ -121,26 +135,27 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(4,6,14,0.82)',
+    backgroundColor: material.overlay,
   },
   titleWrap: { alignItems: 'center', gap: 4 },
-  kicker: { ...typography.label, color: arcade.accent, fontSize: 10, letterSpacing: 4 },
+  kicker: { ...typography.label, color: material.accentCyan, fontSize: 10, letterSpacing: 4 },
+  kickerFinale: { color: material.energyWarm },
   name: {
     ...typography.title,
-    color: palette.textPrimary,
+    color: material.textPrimary,
     fontSize: 22,
     letterSpacing: 3,
     textAlign: 'center',
     paddingHorizontal: 24,
   },
-  rewardChip: {
+  infoChip: {
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderWidth: 1,
-    borderColor: arcade.metalLo,
-    backgroundColor: arcade.metal,
+    borderColor: material.outline,
+    backgroundColor: material.structuralSurface,
   },
-  rewardText: { color: arcade.metalEdge, fontSize: 10, letterSpacing: 2, fontWeight: '700' },
-  home: { color: arcade.metalEdge, fontSize: 13, letterSpacing: 1, paddingTop: 2 },
+  infoText: { color: material.textSecondary, fontSize: 10, letterSpacing: 1.5, fontWeight: '700' },
+  home: { color: material.textSecondary, fontSize: 13, letterSpacing: 1, paddingTop: 2 },
 });

@@ -163,6 +163,30 @@ const REDUCED: RevealTimeline = {
   tailMs: 900,
 };
 
-export function revealTimeline(reducedMotion: boolean): RevealTimeline {
-  return reducedMotion ? REDUCED : FULL;
+/**
+ * UI-R6 — the three win-presentation tiers. One reusable system, not ten
+ * bespoke celebrations: every world capstone (10/20/.../90) is `capstone`,
+ * Level 100 specifically is `finale`, everything else is `normal`.
+ */
+export type CelebrationTier = 'normal' | 'capstone' | 'finale';
+
+const TAIL_SCALE: Record<CelebrationTier, number> = { normal: 1, capstone: 1.12, finale: 1.22 };
+
+/**
+ * `tier` only ever lengthens the DECORATIVE tail (`titleEndMs`, `tailMs`) —
+ * `nextVisibleMs`/`nextInteractiveMs` are untouched by tier, so a capstone or
+ * the campaign finale never makes the player wait longer to press NEXT; the
+ * decorative beats simply keep breathing a little longer behind it. Reduced
+ * motion ignores tier entirely (scale 1) — Level 100 earns its weight from
+ * stronger static framing/lighting there, not from extra duration.
+ */
+export function revealTimeline(reducedMotion: boolean, tier: CelebrationTier = 'normal'): RevealTimeline {
+  const base = reducedMotion ? REDUCED : FULL;
+  if (tier === 'normal' || reducedMotion) return base;
+  const scale = TAIL_SCALE[tier];
+  return {
+    ...base,
+    titleEndMs: Math.round(base.titleEndMs * scale),
+    tailMs: Math.round(base.tailMs * scale),
+  };
 }

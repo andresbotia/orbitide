@@ -4,9 +4,9 @@ import { StyleSheet } from 'react-native';
 import { interpolate, useDerivedValue, type SharedValue } from 'react-native-reanimated';
 
 import type { GameState, LevelDefinition } from '@/game/engine/types';
-import { resolveReveal, revealTimeline, type ResolvedReveal } from '@/game/rendering/revealGeometry';
+import { resolveReveal, revealTimeline, type CelebrationTier, type ResolvedReveal } from '@/game/rendering/revealGeometry';
 import { orbColors } from '@/theme/colors';
-import { arcade } from '@/theme/arcade';
+import { material } from '@/theme/material';
 import { cellCenter, computeBoardGeometry } from './boardGeometry';
 
 interface DiscoveryRevealProps {
@@ -17,22 +17,28 @@ interface DiscoveryRevealProps {
   /** Master reveal progress, 0..1 over `revealTimeline().tailMs`. */
   progress: SharedValue<number>;
   reducedMotion: boolean;
+  tier: CelebrationTier;
 }
 
 const CLAMP = 'clamp' as const;
+/** Bounded particle budget per tier — "largest count, still bounded" for the finale. */
+const PARTICLE_COUNT: Record<CelebrationTier, number> = { normal: 8, capstone: 14, finale: 20 };
 
 /**
- * The Skia constellation layer. The solved picture fades to a holographic ghost;
- * authored (or deterministic-fallback) nodes brighten and rise; the lines draw
- * between them. One master progress value; per-node derived values only. No JS
- * per-frame work, no particle spam.
+ * The Skia "restoration trace" layer (UI-R6 — Pixel Arcadia language; was a
+ * cosmic constellation/star-chart). The solved picture fades to a holographic
+ * ghost; authored (or deterministic-fallback) nodes brighten and rise; the
+ * lines draw between them exactly as before — the sequencing that worked is
+ * unchanged, only its palette and (bounded, tier-scaled) particle count moved
+ * from cosmic blue/starlight to Pixel Arcadia cyan/warm energy. One master
+ * progress value; per-node derived values only. No JS per-frame work.
  */
 export const DiscoveryReveal = memo(function DiscoveryReveal({
-  size, level, state, progress, reducedMotion,
+  size, level, state, progress, reducedMotion, tier,
 }: DiscoveryRevealProps) {
   const geo = useMemo(() => computeBoardGeometry(size, state.width, state.height), [size, state.width, state.height]);
   const reveal = useMemo<ResolvedReveal>(() => resolveReveal(level), [level]);
-  const tl = useMemo(() => revealTimeline(reducedMotion), [reducedMotion]);
+  const tl = useMemo(() => revealTimeline(reducedMotion, tier), [reducedMotion, tier]);
 
   const nodePts = useMemo(
     () => reveal.nodes.map((n) => cellCenter(geo, n.x, n.y)),
@@ -59,7 +65,7 @@ export const DiscoveryReveal = memo(function DiscoveryReveal({
       t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
-    return Array.from({ length: 8 }, (_, i) => {
+    return Array.from({ length: PARTICLE_COUNT[tier] }, (_, i) => {
       const anchor = nodePts[i % Math.max(1, nodePts.length)] ?? geo.center;
       const angle = rnd() * Math.PI * 2;
       return {
@@ -70,7 +76,7 @@ export const DiscoveryReveal = memo(function DiscoveryReveal({
         delay: rnd() * 0.4,
       };
     });
-  }, [reducedMotion, level.id, nodePts, geo]);
+  }, [reducedMotion, level.id, tier, nodePts, geo]);
 
   const elapsed = useDerivedValue(() => progress.value * tl.tailMs);
 
@@ -112,7 +118,8 @@ export const DiscoveryReveal = memo(function DiscoveryReveal({
         })}
       </Group>
 
-      {/* Constellation lines drawing between the nodes. */}
+      {/* Restoration trace — the same node/line sequencing as before, now a
+          cyan energy trace rather than a cosmic constellation. */}
       <Group opacity={lineOpacity}>
         <Blur blur={0.7} />
         <Path
@@ -121,7 +128,7 @@ export const DiscoveryReveal = memo(function DiscoveryReveal({
           strokeWidth={Math.max(1.4, geo.cell * 0.12)}
           strokeCap="round"
           strokeJoin="round"
-          color={arcade.accent}
+          color={material.accentCyan}
           start={0}
           end={lineEnd}
         />
@@ -166,10 +173,10 @@ function RevealNodeMark({ pt, radius, rise, accent, startMs, durMs, elapsed }: {
     <Group opacity={opacity}>
       <Group opacity={0.35}>
         <Blur blur={2} />
-        <Circle cx={pt.x} cy={cy} r={haloR} color={accent ? arcade.warn : arcade.accent} />
+        <Circle cx={pt.x} cy={cy} r={haloR} color={accent ? material.energyWarm : material.accentCyan} />
       </Group>
-      <Circle cx={pt.x} cy={cy} r={radius} color={accent ? '#FFFFFF' : arcade.accent} />
-      <Circle cx={pt.x} cy={cy} r={radius} color={accent ? arcade.warn : '#FFFFFF'} style="stroke" strokeWidth={1} opacity={0.7} />
+      <Circle cx={pt.x} cy={cy} r={radius} color={accent ? '#FFFFFF' : material.accentCyan} />
+      <Circle cx={pt.x} cy={cy} r={radius} color={accent ? material.energyWarm : '#FFFFFF'} style="stroke" strokeWidth={1} opacity={0.7} />
     </Group>
   );
 }
@@ -182,5 +189,9 @@ function RevealParticle({ p, progress }: {
   const cx = useDerivedValue(() => p.x + p.dx * local.value);
   const cy = useDerivedValue(() => p.y + p.dy * local.value);
   const opacity = useDerivedValue(() => (1 - local.value) * 0.4);
-  return <Circle cx={cx} cy={cy} r={1.4} color={arcade.starNear} opacity={opacity} />;
+  const x = useDerivedValue(() => cx.value - 1.4);
+  const y = useDerivedValue(() => cy.value - 1.4);
+  // A tiny pixel-block fragment, not a starlight spark — matches the Pixel
+  // Arcadia "restoration spark" language rather than the old night-sky motif.
+  return <RoundedRect x={x} y={y} width={2.8} height={2.8} r={0.6} color={material.energyWarm} opacity={opacity} />;
 }

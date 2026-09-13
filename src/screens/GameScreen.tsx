@@ -6,7 +6,9 @@ import type { Point } from '@/game/rendering/boardGeometry';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Easing, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, {
+  Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming,
+} from 'react-native-reanimated';
 
 import { BoardFrame } from '@/components/gameplay/BoardFrame';
 import { GameplayEnvironment } from '@/components/gameplay/GameplayEnvironment';
@@ -19,7 +21,8 @@ import { ToolBar } from '@/components/ToolBar';
 import { TunnelBar } from '@/components/TunnelBar';
 import { DiscoveryReveal } from '@/game/rendering/DiscoveryReveal';
 import { OrbitBoard } from '@/game/rendering/OrbitBoard';
-import { resolveReveal, revealTimeline } from '@/game/rendering/revealGeometry';
+import { resolveReveal, revealTimeline, type CelebrationTier } from '@/game/rendering/revealGeometry';
+import { CAMPAIGN_MANIFEST } from '@/game/levels/campaign';
 import { nextLevelId, requireLevel } from '@/game/levels/levels';
 import type { LevelDefinition } from '@/game/engine/types';
 import { useAmbientActive } from '@/hooks/useAmbientActive';
@@ -77,6 +80,19 @@ export function GameScreen({
   const worldAccent = worldSkin(level.themeId).accent;
   const { enabled: colorAssist } = useColorAssist();
 
+  // UI-R6 celebration tier — derived from the same campaign manifest World
+  // Select/World Levels already use, not a new progression rule: a capstone
+  // is simply the last level in its world's `levelIds`; the finale is World
+  // 10's capstone. Presentation-only, computed fresh from `level.id`.
+  const { worldTitle, tier } = useMemo<{ worldTitle: string; tier: CelebrationTier }>(() => {
+    const order = CAMPAIGN_MANIFEST.worlds.findIndex((w) => w.levelIds.includes(level.id));
+    const world = CAMPAIGN_MANIFEST.worlds[order];
+    if (!world) return { worldTitle: '', tier: 'normal' };
+    const isCapstone = world.levelIds[world.levelIds.length - 1] === level.id;
+    const isFinale = isCapstone && order === CAMPAIGN_MANIFEST.worlds.length - 1;
+    return { worldTitle: world.title, tier: isFinale ? 'finale' : isCapstone ? 'capstone' : 'normal' };
+  }, [level.id]);
+
   const handleWin = useCallback(() => {
     onWin(levelId);
   }, [levelId, onWin]);
@@ -116,19 +132,37 @@ export function GameScreen({
     if (!won) { revealProgress.set(0); return; }
     revealProgress.set(0);
     revealProgress.set(withTiming(1, {
-      duration: revealTimeline(reducedMotion).tailMs,
+      duration: revealTimeline(reducedMotion, tier).tailMs,
       easing: Easing.linear,
     }));
-  }, [won, reducedMotion, revealProgress]);
+  }, [won, reducedMotion, tier, revealProgress]);
 
   // A brief warm handoff pulse on the board frame right as the win happens —
   // NOT the win celebration itself (that stays DiscoveryOverlay/DiscoveryReveal's
   // job, untouched). Ramps up and holds; `useFocusEffect`-free since a level
   // remount (restart/advance) naturally resets the shared value's owner.
+  // Capstone/finale ramp a little higher — `BoardFrame`'s glow/aura formulas
+  // are unbounded-above by design, so this reads as a stronger (not clipped)
+  // pulse without touching `BoardFrame.tsx` itself.
+  const celebrateTarget = tier === 'finale' ? 1.4 : tier === 'capstone' ? 1.15 : 1;
   const celebrate = useSharedValue(0);
   useEffect(() => {
-    celebrate.set(withTiming(won ? 1 : 0, { duration: won ? 260 : 0, easing: Easing.out(Easing.cubic) }));
-  }, [won, celebrate]);
+    celebrate.set(withTiming(won ? celebrateTarget : 0, { duration: won ? 260 : 0, easing: Easing.out(Easing.cubic) }));
+  }, [won, celebrateTarget, celebrate]);
+
+  // A brief warning-edge pulse on failure — local to this screen, not a
+  // `BoardFrame` prop (that channel is reserved for the warm win handoff and
+  // would be the wrong color language for a danger state). One quick flash,
+  // not a shake and not a persistent dim — retry stays immediate.
+  const lost = state.status === 'lost';
+  const failPulse = useSharedValue(0);
+  useEffect(() => {
+    if (!lost) { failPulse.set(0); return; }
+    failPulse.set(reducedMotion
+      ? withTiming(0.5, { duration: 120 })
+      : withSequence(withTiming(1, { duration: 90 }), withTiming(0, { duration: 420 })));
+  }, [lost, reducedMotion, failPulse]);
+  const failPulseStyle = useAnimatedStyle(() => ({ opacity: failPulse.value * 0.7 }));
 
   const onBoardArea = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
@@ -181,9 +215,11 @@ export function GameScreen({
                   state={state}
                   progress={revealProgress}
                   reducedMotion={reducedMotion}
+                  tier={tier}
                 />
               </View>
             ) : null}
+            <Animated.View pointerEvents="none" style={[styles.failRing, failPulseStyle]} />
           </View>
         ) : null}
         {showTutorial ? (
@@ -224,6 +260,9 @@ export function GameScreen({
         <DiscoveryOverlay
           name={reveal.name}
           source={reveal.source}
+          levelId={levelId}
+          worldTitle={worldTitle}
+          tier={tier}
           hasNext={next !== undefined}
           progress={revealProgress}
           reducedMotion={reducedMotion}
@@ -233,7 +272,8 @@ export function GameScreen({
       ) : null}
 
       <ResultOverlay
-        visible={state.status === 'lost'}
+        visible={lost}
+        reason={state.holding.length >= state.holdingCapacity ? 'holdingFull' : 'noMoves'}
         onRetry={session.restart}
         onHome={onExit}
       />
@@ -265,6 +305,13 @@ const styles = StyleSheet.create({
   },
   controlsWon: {
     opacity: 0,
+  },
+  failRing: {
+    position: 'absolute',
+    top: -6, left: -6, right: -6, bottom: -6,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: material.danger,
   },
   tutorial: {
     position: 'absolute',
