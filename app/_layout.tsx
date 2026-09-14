@@ -46,6 +46,9 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="index" />
+          <Stack.Screen name="shop" options={{ animation: 'fade', animationDuration: 220 }} />
+          <Stack.Screen name="leaderboard" options={{ animation: 'fade', animationDuration: 220 }} />
+          <Stack.Screen name="settings" options={{ animation: 'fade', animationDuration: 220 }} />
           <Stack.Screen name="worlds" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="world/[id]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="game" options={{ animation: 'fade_from_bottom', animationDuration: 280 }} />

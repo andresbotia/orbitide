@@ -88,23 +88,25 @@ describe('Pixel Arcadia brand token layer', () => {
 
 describe('Home wordmark integration', () => {
   const home = read('src/screens/HomeScreen.tsx');
+  const marquee = read('src/components/home/HomeMarquee.tsx');
+  const environment = read('src/components/home/HomeEnvironment.tsx');
 
   it('renders the live PixelArcadiaWordmark component, not a raw styled Text', () => {
-    expect(home).toMatch(/<PixelArcadiaWordmark/);
+    expect(marquee).toMatch(/<PixelArcadiaWordmark/);
     expect(home).not.toMatch(/\{PRODUCT_WORDMARK\}/);
     expect(home).not.toMatch(/color:\s*palette\.textSecondary/);
   });
 
-  it('uses a rationed warm brand wash, not the portal arch motif, behind the preview', () => {
-    // UI-R2: the warm wash now lives in the environment/centerpiece layers
-    // (`material.energyGlow`, which IS `brandColor.glow` — see `material.ts`),
-    // not inlined in HomeScreen.tsx itself.
-    const environment = read('src/components/home/HomeEnvironment.tsx');
-    const centerpiece = read('src/components/home/HomeCenterpiece.tsx');
-    expect(environment + centerpiece).toMatch(/energyGlow/);
+  it('uses a tiled looping background, not a plaza or board preview', () => {
+    expect(home).not.toMatch(/HomeCenterpiece/);
+    expect(home).not.toMatch(/HomeMotes/);
+    expect(home).not.toMatch(/PICTURES RESTORED/);
     expect(home).not.toMatch(/LogoMark|portal arch|ArchMotif/);
     expect(environment).not.toMatch(/LogoMark|portal arch|ArchMotif/);
-    expect(centerpiece).not.toMatch(/LogoMark|portal arch|ArchMotif/);
+    expect(environment).toMatch(/reanimateloop/);
+    expect(environment).toMatch(/resizeMode="repeat"/);
+    expect(marquee).not.toMatch(/spill/);
+    expect(read('src/theme/homeV2.ts')).toMatch(/#002662/);
   });
 });
 
