@@ -9,18 +9,20 @@
  * Holding, or any other screen's chrome.
  */
 export const coreV2Board = {
-  /** Board plane fill, center -> edge. */
-  fieldCenter: '#3F32AA',
-  fieldEdge: '#211A5E',
-  /** Rounded-rail structural band. */
-  railBand: '#5546D6',
+  /** Board plane fill, top -> bottom. Dark enough that Pals read without halos. */
+  fieldCenter: '#002662',
+  fieldEdge: '#001742',
+  /** Rounded-rail structural band — the only gameplay frame. */
+  railBand: '#5C44D7',
   /** Machined groove down the center of the band. */
   railGroove: '#7263F0',
-  /** Top-left catch-light on the rail. */
-  railHighlight: '#D2C6FF',
-  /** Inner informational guide line, near the artwork. */
+  /** 1pt upper edge-light on the rail. */
+  railHighlight: '#01D8FD',
+  /** Inner informational guide line, near the artwork. Kept for legacy callers. */
   railGlow: '#8FF0FF',
   /** Shared launcher gate at the bottom-center perimeter entry. */
   launcherGate: '#FFC94D',
   launcherGlow: '#FFE3A0',
+  /** Recessed lip just inside the rail — no stroke, no hairline. */
+  innerLip: '#000C28',
 } as const;

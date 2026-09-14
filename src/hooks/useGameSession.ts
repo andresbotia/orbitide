@@ -171,7 +171,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
       }
     }
     if (active.current.size >= cap) {
-      setMessage('Rail is full — wait for a charge to land.');
+      setMessage('Rail is full — wait for a Pal to land.');
       feedback.emit('denied');
       return;
     }
@@ -182,12 +182,12 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     const outcome = resolveAction(before, { ...action, join: joining });
     if (!outcome.accepted) {
       if (outcome.rejection === 'activeSlotsFull') {
-        setMessage('Rail is full — wait for a charge to land.');
+        setMessage('Rail is full — wait for a Pal to land.');
         feedback.emit('denied');
         return;
       }
       setMessage(outcome.rejection === 'noTargets' ? 'No exposed matching pixels yet.' :
-        outcome.rejection === 'holdingFull' ? 'Free a Holding slot first.' : 'That charge is no longer available.');
+        outcome.rejection === 'holdingFull' ? 'Free a Holding slot first.' : 'That Pal is no longer available.');
       return;
     }
     setMessage('');
@@ -292,7 +292,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
           ...view.current,
           holding: appendPresentedHolding(view.current.holding, flight.outcome.heldCharge),
         };
-        if (truth.current.status === 'playing') setMessage('Tap a held charge to launch it again.');
+        if (truth.current.status === 'playing') setMessage('Tap a held Pal to launch it again.');
         advanceTutorial({ type: 'holdingEntered', chargeId: flight.pass.charge.id });
       } else if (event.kind === 'win' || event.kind === 'fail') {
         view.current = { ...truth.current, holding: view.current.holding };

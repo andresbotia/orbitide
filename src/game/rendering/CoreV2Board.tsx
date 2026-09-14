@@ -1,4 +1,4 @@
-import { Canvas, Group, RadialGradient, Rect, vec } from '@shopify/react-native-skia';
+import { Canvas, Group, LinearGradient, Rect, vec } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 import { cancelAnimation, Easing, runOnJS, useAnimatedReaction, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -16,7 +16,7 @@ import { PixelPal } from './pixelPal/PixelPal';
 
 /** TUNABLE — presentation-only radial lane spacing so crowded Pixel Pals stay legible. */
 const LANE_OFFSET_PX = 3;
-/** Calm the halos once this many Pixel Pals share the rail. */
+/** Soften shot streaks once this many Pixel Pals share the rail. */
 const CALM_TRAILS_AT = 3;
 
 interface CoreV2BoardProps {
@@ -95,9 +95,9 @@ const CoreV2Field = memo(function CoreV2Field({ geo, size }: { geo: BoardGeometr
   return (
     <Canvas style={StyleSheet.absoluteFill}>
       <Rect x={0} y={0} width={size} height={size}>
-        <RadialGradient
-          c={vec(geo.center.x, geo.center.y)}
-          r={size * 0.7}
+        <LinearGradient
+          start={vec(0, 0)}
+          end={vec(0, size)}
           colors={[coreV2Board.fieldCenter, coreV2Board.fieldEdge]}
         />
       </Rect>

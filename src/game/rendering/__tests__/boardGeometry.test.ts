@@ -181,6 +181,30 @@ test('flightHeading/flightBankDegrees are inert (0) on circular Legacy V1 geomet
   }
 });
 
+test('Core V2 roundedRect packs the grid into the rail interior instead of 56% letterboxing', () => {
+  const size = 358;
+  for (const [cols, rows] of [[7, 7], [15, 15], [21, 21]] as const) {
+    const geo = computeBoardGeometry(size, cols, rows, { roundedRect: true });
+    const p = geo.perimeter!;
+    expect(geo.gridWidth / p.width).toBeGreaterThan(0.8);
+    expect(geo.gridHeight / p.height).toBeGreaterThan(0.8);
+    expect(geo.artwork.x).toBeGreaterThan(p.x);
+    expect(geo.artwork.y).toBeGreaterThan(p.y);
+    expect(geo.artwork.x + geo.artwork.width).toBeLessThan(p.x + p.width);
+    expect(geo.artwork.y + geo.artwork.height).toBeLessThan(p.y + p.height);
+  }
+});
+
+test('Core V2 roundedRect does not pan and does not change circular Legacy V1 geometry', () => {
+  const size = 358;
+  const legacy = computeBoardGeometry(size, 15, 15);
+  expect(legacy.gridWidth / size).toBeLessThanOrEqual(0.58);
+  expect(legacy.perimeter).toBeUndefined();
+  const packed = computeBoardGeometry(size, 28, 28, { roundedRect: true });
+  expect(packed.cell).toBeGreaterThanOrEqual(3);
+  expect(packed.cell).toBeLessThan(14);
+});
+
 test('flightBankDegrees stays within its documented cap on a coreV2 rounded-rect pass', () => {
   const state = createGame(coreV2Level());
   const geo = computeBoardGeometry(358, state.width, state.height, { roundedRect: true });

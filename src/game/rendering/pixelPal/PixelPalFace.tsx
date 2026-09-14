@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, type TextStyle, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -15,7 +15,7 @@ import Animated, {
 
 import { ColorAssistMark } from '@/components/ColorAssistMark';
 import type { OrbColor } from '@/game/engine/types';
-import { orbColors, orbGlow } from '@/theme/colors';
+import { orbColors } from '@/theme/colors';
 
 /** North-star character pass — a Pixel Pal's momentary expression. Kept to
  * three cheap states, never a full animation framework:
@@ -25,34 +25,39 @@ import { orbColors, orbGlow } from '@/theme/colors';
 export type PixelPalMood = 'calm' | 'focused' | 'happy';
 
 /**
- * M5.3 — the single Pixel Pal body used everywhere a Core V2 charge appears:
- * traveling the perimeter, loaded in a tunnel, parked in Holding, or shown as
- * an upcoming queue preview (spec §3: "the SAME character species/body is
- * used for all gameplay colors"). A rounded-square cabinet-like shell with
- * two small side pods, plus a glossy dark visor carrying two eyes and the
- * capacity readout.
- *
- * Split into two pure, unanimated pieces on purpose: `PixelPalShell` (the
- * colored body — everything that should visibly reorient with travel) and
- * `PixelPalVisor` (the eyes + number — spec §4 requires the count stay
- * readable "in all states", including mid-corner, so the traveling wrapper
- * keeps this layer upright while the shell banks/orients underneath it).
- * `PixelPalFace` composes both at zero rotation for static contexts (a
- * Tunnel port, a Holding slot, a queue preview chip).
+ * The single Pixel Pal body used everywhere a Core V2 charge appears.
+ * Visor is reserved for eyes and expression — remaining-count lives on
+ * {@link PixelPalBadge}, never inside the face.
  */
 
 /** Below this size (px), skip feet/blush — queue-preview chips stay clean, not noisy. */
 const DETAIL_FLOOR = 28;
+/** Full count plate at this size and above; numeral-only below; hidden at {@link BADGE_HIDE}. */
+const BADGE_PLATE = 34;
+const BADGE_HIDE = 22;
+const BADGE_FILL = 'rgba(0, 23, 66, 0.92)';
 
 export function PixelPalShell({ color, size, colorAssist }: { color: OrbColor; size: number; colorAssist?: boolean }) {
   const shell = orbColors[color];
-  const glow = orbGlow[color];
   const podSize = size * 0.26;
   const detailed = size >= DETAIL_FLOOR;
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      {/* Feet — small grounded nubs, standing presence. Behind the shell. */}
+      {/* Contact shadow — silhouette only, not a radial bloom. */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: size * 0.16,
+          right: size * 0.16,
+          bottom: -size * 0.06,
+          height: size * 0.14,
+          borderRadius: size,
+          backgroundColor: 'rgba(0,0,0,0.35)',
+        }}
+      />
+
       {detailed ? (
         <>
           <View
@@ -60,7 +65,7 @@ export function PixelPalShell({ color, size, colorAssist }: { color: OrbColor; s
             style={{
               position: 'absolute', left: size * 0.24, bottom: -size * 0.05,
               width: size * 0.2, height: size * 0.16, borderRadius: size * 0.08,
-              backgroundColor: glow,
+              backgroundColor: shell,
             }}
           />
           <View
@@ -68,20 +73,18 @@ export function PixelPalShell({ color, size, colorAssist }: { color: OrbColor; s
             style={{
               position: 'absolute', right: size * 0.24, bottom: -size * 0.05,
               width: size * 0.2, height: size * 0.16, borderRadius: size * 0.08,
-              backgroundColor: glow,
+              backgroundColor: shell,
             }}
           />
         </>
       ) : null}
 
-      {/* Side pods — small limb-like forms, clearly proud of the shell edge so the
-          silhouette reads as a creature (not a plain rounded square) even tiny. */}
       <View
         pointerEvents="none"
         style={{
           position: 'absolute', left: -podSize * 0.34, top: size * 0.32,
           width: podSize, height: podSize, borderRadius: podSize / 2,
-          backgroundColor: shell, borderWidth: Math.max(1, size * 0.032), borderColor: glow,
+          backgroundColor: shell,
         }}
       >
         <View
@@ -98,7 +101,7 @@ export function PixelPalShell({ color, size, colorAssist }: { color: OrbColor; s
         style={{
           position: 'absolute', right: -podSize * 0.34, top: size * 0.32,
           width: podSize, height: podSize, borderRadius: podSize / 2,
-          backgroundColor: shell, borderWidth: Math.max(1, size * 0.032), borderColor: glow,
+          backgroundColor: shell,
         }}
       >
         <View
@@ -111,15 +114,21 @@ export function PixelPalShell({ color, size, colorAssist }: { color: OrbColor; s
         />
       </View>
 
-      {/* Shell — rounded-square cabinet body. */}
       <View
         style={{
           width: size, height: size, borderRadius: size * 0.32,
-          backgroundColor: shell, borderWidth: Math.max(1.5, size * 0.05), borderColor: glow,
+          backgroundColor: shell,
           overflow: 'hidden',
         }}
       >
-        {/* Top-left specular sheen — the big soft highlight reads as glossy plastic. */}
+        {/* 1pt top-edge light. */}
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: Math.max(1, size * 0.04),
+            backgroundColor: '#FFFFFF', opacity: 0.4,
+          }}
+        />
         <View
           pointerEvents="none"
           style={{
@@ -128,7 +137,6 @@ export function PixelPalShell({ color, size, colorAssist }: { color: OrbColor; s
             backgroundColor: '#FFFFFF', opacity: 0.34,
           }}
         />
-        {/* A small bright bead near the sheen's edge — the "toy" catch-light. */}
         <View
           pointerEvents="none"
           style={{
@@ -137,7 +145,6 @@ export function PixelPalShell({ color, size, colorAssist }: { color: OrbColor; s
             backgroundColor: '#FFFFFF', opacity: 0.75,
           }}
         />
-        {/* Lower shadow. */}
         <View
           pointerEvents="none"
           style={{
@@ -152,9 +159,6 @@ export function PixelPalShell({ color, size, colorAssist }: { color: OrbColor; s
         ) : null}
       </View>
 
-      {/* Blush — sits just outside the visor's lower corners (the visor itself is a
-          separate layer rendered on top of this shell), a small "cute" accent that
-          reads as cheeks without touching the number's legibility. */}
       {detailed ? (
         <>
           <View
@@ -180,18 +184,9 @@ export function PixelPalShell({ color, size, colorAssist }: { color: OrbColor; s
 }
 
 /**
- * The glossy dark visor + eyes + capacity readout, sized to the same `size`
- * bounding box as `PixelPalShell` and centered so it overlays exactly on top
- * of it. Transparent everywhere else so the shell shows through.
- *
- * Eyes carry a self-contained, organic blink loop: each instance schedules
- * its own next blink at a random 2.2-4.8s interval (not a synchronized
- * `withRepeat`), so a row of Pals never blinks in unison — "occasionally
- * notice the Pal doing something charming," not a metronome. Skipped below
- * `DETAIL_FLOOR` (tiny preview chips) and resolves to open eyes under
- * reduced motion.
+ * Glossy dark visor + eyes + expression. The visor never carries a numeral.
  */
-export function PixelPalVisor({ size, mood = 'calm', children }: { size: number; mood?: PixelPalMood; children?: ReactNode }) {
+export function PixelPalVisor({ size, mood = 'calm' }: { size: number; mood?: PixelPalMood }) {
   const reducedMotion = useReducedMotion();
   const detailed = size >= DETAIL_FLOOR;
   const blink = useSharedValue(0);
@@ -219,13 +214,13 @@ export function PixelPalVisor({ size, mood = 'calm', children }: { size: number;
 
   const eyeStyle = useAnimatedStyle(() => ({ transform: [{ scaleY: 1 - blink.value * 0.86 }] }));
   const focused = mood === 'focused';
-  const eyeSize = focused ? size * 0.078 * 0.82 : size * 0.078;
+  const eyeSize = focused ? size * 0.14 : size * 0.16;
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
       <View
         style={{
-          width: size * 0.74, height: size * 0.6, borderRadius: size * 0.2,
+          width: size * 0.74, height: size * 0.56, borderRadius: size * 0.2,
           backgroundColor: 'rgba(6,8,20,0.76)',
           alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
         }}
@@ -237,38 +232,136 @@ export function PixelPalVisor({ size, mood = 'calm', children }: { size: number;
             backgroundColor: '#FFFFFF', opacity: 0.2,
           }}
         />
-        {/* Simple expressive eyes — slightly larger and rounder for more charm.
-            `focused` narrows them for a determined/ready look; both blink together. */}
-        <Animated.View style={[{ flexDirection: 'row', gap: size * (focused ? 0.13 : 0.15), marginBottom: size * 0.02 }, eyeStyle]}>
-          <View style={{ width: eyeSize, height: size * 0.078, borderRadius: size * 0.039, backgroundColor: '#EEF8FF' }} />
-          <View style={{ width: eyeSize, height: size * 0.078, borderRadius: size * 0.039, backgroundColor: '#EEF8FF' }} />
+        <Animated.View style={[{ flexDirection: 'row', gap: size * (focused ? 0.12 : 0.14) }, eyeStyle]}>
+          <View style={{ width: eyeSize, height: eyeSize, borderRadius: eyeSize / 2, backgroundColor: '#EEF8FF' }} />
+          <View style={{ width: eyeSize, height: eyeSize, borderRadius: eyeSize / 2, backgroundColor: '#EEF8FF' }} />
         </Animated.View>
         {mood === 'happy' && detailed ? (
           <View
             pointerEvents="none"
             style={{
-              width: size * 0.16, height: size * 0.08, marginTop: size * 0.02,
-              borderBottomLeftRadius: size * 0.08, borderBottomRightRadius: size * 0.08,
-              borderWidth: Math.max(1, size * 0.018), borderTopWidth: 0, borderColor: '#EEF8FF',
+              width: size * 0.18, height: size * 0.09, marginTop: size * 0.04,
+              borderBottomLeftRadius: size * 0.09, borderBottomRightRadius: size * 0.09,
+              borderWidth: Math.max(1, size * 0.02), borderTopWidth: 0, borderColor: '#EEF8FF',
             }}
           />
         ) : null}
-        {children}
       </View>
     </View>
   );
 }
 
+export function palBadgeNumeralStyle(palSize: number): TextStyle {
+  const plate = palSize > BADGE_PLATE;
+  const height = palSize * 0.34;
+  const fontSize = Math.max(8, height * 0.62);
+  return {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize,
+    lineHeight: fontSize + 1,
+    textAlign: 'center',
+    padding: 0,
+    fontVariant: ['tabular-nums'],
+    ...(plate ? {} : {
+      textShadowColor: '#001742',
+      textShadowRadius: 2,
+      textShadowOffset: { width: 0, height: 0 },
+    }),
+  };
+}
+
+interface PixelPalBadgeProps {
+  palSize: number;
+  color: OrbColor;
+  text?: string;
+  children?: ReactNode;
+}
+
+/**
+ * Remaining-count badge, mounted at the Pal's lower-right. Never drawn in the visor.
+ * ≤34pt: numeral only with a navy outline. ≤22pt: hidden (color carries identity).
+ */
+export const PixelPalBadge = memo(function PixelPalBadge({ palSize, color, text, children }: PixelPalBadgeProps) {
+  if (palSize <= BADGE_HIDE) return null;
+  const plate = palSize > BADGE_PLATE;
+  const height = palSize * 0.34;
+  const fontSize = Math.max(8, height * 0.62);
+  const digits = text?.length ?? 2;
+  const width = Math.max(height, fontSize * Math.max(1, digits) * 0.7 + (plate ? 8 : 0));
+  const overlap = width * 0.2;
+  const numeralStyle = palBadgeNumeralStyle(palSize);
+  const numeral = children ?? (text !== undefined ? <Text style={numeralStyle}>{text}</Text> : null);
+
+  if (!plate) {
+    return (
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          right: -overlap,
+          bottom: -height * 0.12,
+          minWidth: width,
+          alignItems: 'center',
+        }}
+      >
+        {numeral}
+      </View>
+    );
+  }
+
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        right: -overlap,
+        bottom: -height * 0.12,
+        minWidth: height,
+        height,
+        paddingHorizontal: 4,
+        borderRadius: Math.min(6, height * 0.28),
+        backgroundColor: BADGE_FILL,
+        borderWidth: 1.5,
+        borderColor: orbColors[color],
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {numeral}
+    </View>
+  );
+});
+
 /** Static composition (zero rotation) for a Tunnel port / Holding slot / preview chip. */
-export function PixelPalFace({ color, size, colorAssist, mood, children }: {
-  color: OrbColor; size: number; colorAssist?: boolean; mood?: PixelPalMood; children?: ReactNode;
+export function PixelPalFace({ color, size, colorAssist, mood, capacity, selected }: {
+  color: OrbColor; size: number; colorAssist?: boolean; mood?: PixelPalMood;
+  /** Remaining count. Rendered on the badge, never in the visor. */
+  capacity?: number;
+  /** Tight colored outline + 1.06 scale — selection, not a glow. */
+  selected?: boolean;
 }) {
   return (
-    <View style={{ width: size, height: size }}>
+    <View style={{ width: size, height: size, transform: selected ? [{ scale: 1.06 }] : undefined }}>
+      {selected ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: -2, left: -2, right: -2, bottom: -2,
+            borderRadius: size * 0.32 + 2,
+            borderWidth: 1.5,
+            borderColor: orbColors[color],
+          }}
+        />
+      ) : null}
       <PixelPalShell color={color} size={size} colorAssist={colorAssist} />
       <View style={StyleSheet.absoluteFill}>
-        <PixelPalVisor size={size} mood={mood}>{children}</PixelPalVisor>
+        <PixelPalVisor size={size} mood={mood} />
       </View>
+      {capacity !== undefined ? (
+        <PixelPalBadge palSize={size} color={color} text={String(capacity)} />
+      ) : null}
     </View>
   );
 }

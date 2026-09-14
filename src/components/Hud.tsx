@@ -1,34 +1,24 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { remainingPixelCount } from '@/game/engine/pixels';
 import type { GameState, LevelDifficulty } from '@/game/engine/types';
-import { DifficultyGate } from '@/components/difficulty/DifficultyGate';
-import { IconButton } from '@/components/IconButton';
-import { material } from '@/theme/material';
-import { typography } from '@/theme/spacing';
+import { homeAlpha, homeV2 } from '@/theme/homeV2';
 
 interface HudProps {
   state: GameState;
-  title: string;
-  difficulty: LevelDifficulty;
+  title?: string;
+  difficulty?: LevelDifficulty;
   onRestart: () => void;
   /** Placeholder for M2's settings screen — presentation-only in M2A. */
   onSettings?: () => void;
 }
 
 /**
- * Top HUD: settings / level identity + Difficulty Gate + progress / restart.
- * Pixel Arcadia product chrome, restrained; the Gate rides the existing
- * progress line so HUD height does not grow.
- *
- * UI-R9 functional-UI cleanup: `onSettings` has never been supplied by
- * `GameScreen` — there's no production settings screen behind this gear.
- * Rather than show a dead, decoration-only control, it's hidden entirely
- * (a same-size spacer keeps Restart from shifting and the level title
- * centered). Passing `onSettings` in the future brings it back unchanged.
+ * Compact gameplay header: level medallion, progress, restart.
+ * Level name and difficulty stay on Home — they are not repeated here.
  */
 export function Hud({
-  state, title, difficulty, onRestart, onSettings,
+  state, onRestart,
 }: HudProps) {
   const remaining = remainingPixelCount(state);
   const total = state.pixels.length;
@@ -37,49 +27,87 @@ export function Hud({
 
   return (
     <View style={styles.container}>
-      {onSettings ? (
-        <IconButton glyph="⚙" onPress={onSettings} accessibilityLabel="Settings" />
-      ) : (
-        <View style={styles.spacer} />
-      )}
+      <View
+        accessible
+        accessibilityRole="text"
+        accessibilityLabel={`Level ${state.levelId}`}
+        style={styles.medallion}
+      >
+        <Text style={styles.medallionNum}>{state.levelId}</Text>
+      </View>
 
-      <View style={styles.center}>
-        <Text style={styles.eyebrow}>
-          LEVEL {state.levelId} · {title.toUpperCase()}
-        </Text>
+      <View style={styles.progressBlock}>
         <View style={styles.track}>
           <View style={[styles.fill, { width: `${Math.round(progress * 100)}%` }]} />
         </View>
-        <View style={styles.subRow}>
-          <DifficultyGate difficulty={difficulty} variant="hud" showLabel />
-          <Text style={styles.sub}>· {cleared}/{total}</Text>
-        </View>
+        <Text style={styles.progressNum}>{cleared}/{total}</Text>
       </View>
 
-      <IconButton glyph="↺" onPress={onRestart} accessibilityLabel="Restart level" />
+      <Pressable
+        onPress={onRestart}
+        accessibilityRole="button"
+        accessibilityLabel="Restart level"
+        hitSlop={10}
+        style={({ pressed }) => [styles.restart, pressed && styles.restartPressed]}
+      >
+        <Text style={styles.restartGlyph}>↺</Text>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  spacer: { width: 40, height: 40 },
   container: {
+    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
     gap: 12,
   },
-  center: { flex: 1, alignItems: 'center', gap: 5 },
-  eyebrow: { ...typography.label, color: material.textSecondary, fontSize: 11 },
+  medallion: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: homeV2.navy,
+    borderWidth: 1.5,
+    borderColor: homeAlpha(homeV2.cyan, 0.55),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  medallionNum: {
+    color: homeV2.white,
+    fontSize: 15,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+  },
+  progressBlock: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   track: {
-    width: '72%',
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: material.recessedSurface,
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: homeV2.navy,
     overflow: 'hidden',
   },
-  fill: { height: 4, borderRadius: 2, backgroundColor: material.accentCyan },
-  subRow: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 18 },
-  sub: { fontSize: 10, color: material.textSecondary, letterSpacing: 1 },
+  fill: { height: 6, borderRadius: 3, backgroundColor: homeV2.cyan },
+  progressNum: {
+    color: homeAlpha(homeV2.white, 0.7),
+    fontSize: 12,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+    minWidth: 44,
+    textAlign: 'right',
+  },
+  restart: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  restartPressed: { opacity: 0.7, transform: [{ scale: 0.94 }] },
+  restartGlyph: { color: homeAlpha(homeV2.white, 0.55), fontSize: 20, fontWeight: '700' },
 });

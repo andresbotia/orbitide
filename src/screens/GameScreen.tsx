@@ -10,15 +10,13 @@ import Animated, {
   Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming,
 } from 'react-native-reanimated';
 
-import { ActiveStatus } from '@/components/ActiveStatus';
 import { BOARD_FRAME_MARGIN, BoardFrame } from '@/components/gameplay/BoardFrame';
+import { ControlDeck } from '@/components/gameplay/ControlDeck';
 import { GameplayEnvironment } from '@/components/gameplay/GameplayEnvironment';
 import { DebugOverlay } from '@/components/DebugOverlay';
 import { DiscoveryOverlay } from '@/components/DiscoveryOverlay';
-import { HoldingTray } from '@/components/HoldingTray';
 import { Hud } from '@/components/Hud';
 import { ResultOverlay } from '@/components/ResultOverlay';
-import { TunnelBar } from '@/components/TunnelBar';
 import { TutorialCoach } from '@/components/TutorialCoach';
 import { CoreV2Board } from '@/game/rendering/CoreV2Board';
 import { DiscoveryReveal } from '@/game/rendering/DiscoveryReveal';
@@ -33,8 +31,10 @@ import { useColorAssist } from '@/hooks/useColorAssist';
 import { useGameSession } from '@/hooks/useGameSession';
 import { useTutorialCompletion } from '@/hooks/useTutorialCompletion';
 import { material } from '@/theme/material';
-import { spacing } from '@/theme/spacing';
 import { worldSkin } from '@/theme/worldSkins';
+
+const BOARD_SIDE_PAD = 12;
+const BOARD_DECK_GAP = 24;
 
 interface GameScreenProps {
   levelId: number;
@@ -53,7 +53,7 @@ interface GameScreenProps {
  * Production Pixel Arcadia gameplay shell (UI-R3 — Cosmic Arcade materials
  * removed; `OrbitBoard`'s concurrency architecture and all engine/session
  * logic below are unchanged). Screen hierarchy, top to bottom:
- *   TOP HUD -> BOARD / RAIL -> ACTIVE X/Y (Core V2) -> HOLDING -> LAUNCH TUNNELS.
+ *   TOP HUD -> BOARD / RAIL -> CONTROL DECK (ACTIVE / HOLDING / TUNNELS).
  * On a win the board transforms into the Discovery constellation reveal in
  * place; on a loss the minimal retry overlay is shown. Engine truth is
  * unchanged — the reveal is triggered by, never the trigger of, the win.
@@ -67,7 +67,7 @@ export function GameScreen({
   level: levelOverride,
 }: GameScreenProps) {
   const [boardSize, setBoardSize] = useState(0);
-  const area = useRef<View>(null);
+  const boardWrap = useRef<View>(null);
   const boardOrigin = useRef<Point>({ x: 0, y: 0 });
   const sourcePoints = useRef(new Map<string, Point>());
   const onSourceLayout = useCallback((key: string, point: Point) => { sourcePoints.current.set(key, point); }, []);
@@ -201,13 +201,18 @@ export function GameScreen({
 
   const onBoardArea = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
-    // Reserve room for `BoardFrame`'s cabinet bezel, which draws OUTSIDE
-    // `boardSize` — otherwise its corners clip against the screen edge.
-    const size = Math.max(0, Math.min(width, height) - BOARD_FRAME_MARGIN * 2 - spacing.xs);
+    // Padding lives inside this layout box; size the square against the inner
+    // content area. Small extra inset keeps near-edge rail Pals on-screen.
+    const innerW = width - BOARD_SIDE_PAD * 2;
+    const innerH = height - BOARD_DECK_GAP;
+    const size = Math.max(0, Math.min(innerW, innerH) - BOARD_FRAME_MARGIN * 2);
     const rounded = Math.round(size);
     setBoardSize(rounded);
-    area.current?.measureInWindow((x, y) => {
-      boardOrigin.current = { x: x + (width - rounded) / 2, y: y + (height - rounded) / 2 };
+  }, []);
+
+  const onBoardLayout = useCallback(() => {
+    boardWrap.current?.measureInWindow((x, y) => {
+      boardOrigin.current = { x, y };
     });
   }, []);
 
@@ -232,18 +237,21 @@ export function GameScreen({
         reducedMotion={reducedMotion}
       />
 
-      <View style={styles.hud}>
-        <Hud
-          state={state}
-          title={level.title}
-          difficulty={level.difficulty}
-          onRestart={session.restart}
-        />
-      </View>
+      <Hud
+        state={state}
+        title={level.title}
+        difficulty={level.difficulty}
+        onRestart={session.restart}
+      />
 
-      <View ref={area} collapsable={false} style={styles.boardArea} onLayout={onBoardArea}>
+      <View collapsable={false} style={styles.boardArea} onLayout={onBoardArea}>
         {boardSize > 0 ? (
-          <View style={{ width: boardSize, height: boardSize, overflow: 'visible' }}>
+          <View
+            ref={boardWrap}
+            collapsable={false}
+            onLayout={onBoardLayout}
+            style={{ width: boardSize, height: boardSize, overflow: 'visible' }}
+          >
             <BoardFrame
               size={boardSize}
               worldAccent={worldAccent}
@@ -294,42 +302,21 @@ export function GameScreen({
       </View>
 
       <Animated.View style={[styles.controls, controlsFadeStyle]} pointerEvents={won ? 'none' : 'auto'}>
-        {isCoreV2(state.ruleset) ? (
-          <ActiveStatus count={session.activeCount} capacity={session.activeCapacity} />
-        ) : null}
-        <HoldingTray
+        <ControlDeck
+          state={state}
+          activeCount={session.activeCount}
+          activeCapacity={isCoreV2(state.ruleset) ? session.activeCapacity : 0}
           layoutVersion={boardSize}
-          holding={state.holding}
-          capacity={state.holdingCapacity}
-          overflow={state.status === 'lost'}
           disabled={controlsLocked}
           usefulIds={usefulIds}
           colorAssist={colorAssist}
           pixelPal={isCoreV2(state.ruleset)}
           onSourceLayout={onSourceLayout}
-          onLaunch={launchHeldPal}
+          onLaunchTunnel={launchTunnelPal}
+          onLaunchHeld={launchHeldPal}
           message={session.message}
           tutorial={session.tutorial}
         />
-
-        <TunnelBar
-          layoutVersion={boardSize}
-          state={state}
-          disabled={controlsLocked}
-          colorAssist={colorAssist}
-          onSourceLayout={onSourceLayout}
-          onLaunch={launchTunnelPal}
-          tutorial={session.tutorial}
-        />
-
-        {/* UI-R9 functional-UI cleanup: `ToolBar` (Undo/Scan/Slot) stays fully
-            implemented but unrendered here — every one of its handlers is
-            still unwired (no booster gameplay/economy exists yet), so
-            showing it would be a dead affordance in a TestFlight build.
-            Re-add `<ToolBar onUndo={...} .../>` the moment that milestone
-            lands; no other change is required. Hiding it also lets
-            `boardArea`'s existing `flex: 1` reclaim the vertical space
-            automatically — `onBoardArea`'s measured-sizing logic is untouched. */}
       </Animated.View>
 
       {won ? (
@@ -365,30 +352,28 @@ export function GameScreen({
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: material.background, overflow: 'hidden' },
-  hud: { paddingTop: spacing.sm, paddingBottom: spacing.sm },
   boardArea: {
     flex: 1,
     zIndex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
+    justifyContent: 'flex-end',
+    paddingHorizontal: BOARD_SIDE_PAD,
+    paddingBottom: BOARD_DECK_GAP,
   },
   controls: {
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
-    gap: spacing.md,
-    alignItems: 'center',
+    width: '100%',
+    alignItems: 'stretch',
   },
   failRing: {
     position: 'absolute',
-    top: -6, left: -6, right: -6, bottom: -6,
-    borderRadius: 20,
+    top: -2, left: -2, right: -2, bottom: -2,
+    borderRadius: 18,
     borderWidth: 2,
     borderColor: material.danger,
   },
   tutorial: {
     position: 'absolute',
-    top: spacing.sm,
+    top: 8,
     alignSelf: 'center',
     maxWidth: '96%',
     zIndex: 10,

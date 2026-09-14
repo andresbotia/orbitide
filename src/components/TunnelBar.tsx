@@ -1,11 +1,10 @@
 import { memo, useCallback, useEffect, useRef } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
   FadeIn,
   useAnimatedStyle,
-  useDerivedValue,
   useReducedMotion,
   useSharedValue,
   withRepeat,
@@ -15,7 +14,6 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import type { Point } from '@/game/rendering/boardGeometry';
-import { BrandGradientView } from '@/components/brand/BrandGradientView';
 import { ColorAssistMark } from '@/components/ColorAssistMark';
 import { PixelPalFace } from '@/game/rendering/pixelPal/PixelPalFace';
 import { upcomingPreviewCount, visibleCharges } from '@/game/engine/selectors';
@@ -25,8 +23,7 @@ import { isTunnelHighlighted, isTunnelSubdued } from '@/game/presentation/tutori
 import type { TutorialView } from '@/game/tutorial';
 import { markContrast } from '@/theme/colorAssist';
 import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
-import { material } from '@/theme/material';
-import { spacing } from '@/theme/spacing';
+import { homeAlpha, homeV2 } from '@/theme/homeV2';
 
 interface TunnelBarProps {
   state: GameState;
@@ -35,8 +32,9 @@ interface TunnelBarProps {
   colorAssist?: boolean;
   onLaunch: (tunnelId: string) => void;
   onSourceLayout: (key: string, point: Point) => void;
-  /** M5.4C — Core V2 Level 1 tutorial spotlight/dim. Omitted (or inactive) outside that tutorial. */
   tutorial?: TutorialView;
+  /** Recessed mouths in the control deck — no cards, T-labels, or ghost circles. */
+  embedded?: boolean;
 }
 
 /**
@@ -48,9 +46,15 @@ export const TunnelBar = memo(function TunnelBar({ state, disabled, colorAssist,
   const charges = visibleCharges(state);
   const upcoming = upcomingPreviewCount(state.ruleset);
   const pixelPal = isCoreV2(state.ruleset);
+  const { width } = useWindowDimensions();
+  const inner = Math.max(240, width - 40);
+  const gap = charges.length >= 4 ? 8 : 12;
+  const col = (inner - gap * Math.max(0, charges.length - 1)) / Math.max(1, charges.length);
+  const readySize = Math.min(64, Math.max(56, Math.floor(col - 12)));
+  const queueSize = Math.round(readySize * 0.75);
 
   return (
-    <View style={[styles.row, charges.length >= 4 && styles.rowCompact]}>
+    <View style={[styles.row, { gap }]}>
       {charges.map(({ tunnelId, charge }, index) => (
         <Tunnel
           key={tunnelId}
@@ -62,6 +66,8 @@ export const TunnelBar = memo(function TunnelBar({ state, disabled, colorAssist,
           disabled={disabled}
           colorAssist={colorAssist}
           pixelPal={pixelPal}
+          readySize={readySize}
+          queueSize={queueSize}
           onLaunch={onLaunch}
           onSourceLayout={onSourceLayout}
           layoutVersion={layoutVersion}
@@ -83,8 +89,8 @@ export const TunnelBar = memo(function TunnelBar({ state, disabled, colorAssist,
 ));
 
 const Tunnel = memo(function Tunnel({
-  index, tunnelId, charge, tunnel, upcoming, disabled, colorAssist, pixelPal, onLaunch, onSourceLayout, layoutVersion,
-  highlighted, subdued,
+  index, tunnelId, charge, tunnel, upcoming, disabled, colorAssist, pixelPal, readySize, queueSize,
+  onLaunch, onSourceLayout, layoutVersion, highlighted, subdued,
 }: {
   index: number;
   tunnelId: string;
@@ -93,14 +99,13 @@ const Tunnel = memo(function Tunnel({
   upcoming: number;
   disabled: boolean;
   colorAssist?: boolean;
-  /** M5.3 — Core V2 renders the shared Pixel Pal body; Legacy V1 keeps its plain orb. */
   pixelPal: boolean;
+  readySize: number;
+  queueSize: number;
   onLaunch: (tunnelId: string) => void;
   onSourceLayout: (key: string, point: Point) => void;
   layoutVersion: number;
-  /** M5.4C — this is the tutorial's intended tunnel; spotlight it. */
   highlighted: boolean;
-  /** M5.4C — the tutorial is steering the player elsewhere; read as inviting-but-quiet. */
   subdued: boolean;
 }) {
   const empty = !charge;
@@ -109,9 +114,6 @@ const Tunnel = memo(function Tunnel({
   const sourceRef = useRef<View | null>(null);
   const mounted = useRef(false);
 
-  // Tutorial spotlight — a slow pulse on the intended tunnel only. Skipped
-  // entirely outside the tutorial (shared value stays at rest) and reduced to
-  // a steady glow (no motion) under reduced-motion.
   const spotlight = useSharedValue(0);
   useEffect(() => {
     cancelAnimation(spotlight);
@@ -121,8 +123,8 @@ const Tunnel = memo(function Tunnel({
     return () => cancelAnimation(spotlight);
   }, [highlighted, reducedMotion, spotlight]);
   const spotlightStyle = useAnimatedStyle(() => ({
-    opacity: 0.35 + spotlight.value * 0.65,
-    transform: [{ scale: 1 + spotlight.value * 0.08 }],
+    opacity: 0.4 + spotlight.value * 0.6,
+    transform: [{ scale: 1 + spotlight.value * 0.05 }],
   }));
 
   const measure = useCallback(() => {
@@ -131,15 +133,11 @@ const Tunnel = memo(function Tunnel({
   }, [onSourceLayout, tunnelId]);
   useEffect(() => { measure(); }, [layoutVersion, measure]);
 
-  // Launch recoil — the housing kicks back then springs to rest the instant
-  // the loaded charge changes (i.e. a launch actually happened; the queue is
-  // the single source of truth, nothing is timed locally). Skipped on mount.
   const recoil = useSharedValue(0);
   useEffect(() => {
     if (!mounted.current) { mounted.current = true; return; }
     cancelAnimation(recoil);
     if (reducedMotion) {
-      // No travel under reduced motion — a brief flash communicates the same state change.
       recoil.set(withSequence(withTiming(1, { duration: 60 }), withTiming(0, { duration: 160 })));
     } else {
       recoil.set(withSequence(
@@ -150,36 +148,19 @@ const Tunnel = memo(function Tunnel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [charge?.id]);
 
-  // Idle readiness breathe — only while a real, launchable charge is loaded.
-  const breathe = useSharedValue(0.5);
-  useEffect(() => {
-    cancelAnimation(breathe);
-    if (!ready || reducedMotion) { breathe.set(0.5); return; }
-    breathe.set(withRepeat(withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.sin) }), -1, true));
-    return () => cancelAnimation(breathe);
-  }, [ready, reducedMotion, breathe]);
-
   const housingStyle = useAnimatedStyle(() => ({
     transform: [
       { translateY: reducedMotion ? 0 : -recoil.value * 2.5 },
       { scale: 1 - recoil.value * 0.03 },
     ],
   }));
-  const readinessGlow = useDerivedValue(() => (ready ? 0.24 + breathe.value * 0.18 : 0) + recoil.value * 0.5);
-  const glowStyle = useAnimatedStyle(() => ({ opacity: readinessGlow.value }));
-  const flashStyle = useAnimatedStyle(() => (reducedMotion ? { opacity: recoil.value * 0.6 } : { opacity: 0 }));
 
   const ink = charge ? markContrast(charge.color) : null;
+  const queue = Array.from({ length: upcoming }, (_, previewIdx) => tunnel?.queue[previewIdx + 1] ?? null);
 
   return (
     <Animated.View
-      style={[
-        styles.tunnel,
-        empty && styles.tunnelEmpty,
-        !empty && disabled && styles.tunnelBlocked,
-        subdued && styles.tunnelSubdued,
-        housingStyle,
-      ]}
+      style={[styles.tunnel, empty && styles.tunnelEmpty, !empty && disabled && styles.tunnelBlocked, subdued && styles.tunnelSubdued, housingStyle]}
       accessibilityLabel={highlighted ? 'Tutorial: launch this tunnel' : undefined}
     >
       <Pressable
@@ -189,30 +170,16 @@ const Tunnel = memo(function Tunnel({
         accessibilityRole="button"
         accessibilityLabel={
           charge
-            ? `Launch tunnel ${index + 1}, ${orbLabel[charge.color]} charge ${charge.capacity}`
+            ? `Launch tunnel ${index + 1}, ${orbLabel[charge.color]} Pal ${charge.capacity}`
             : `Tunnel ${index + 1} empty`
         }
         hitSlop={6}
         style={({ pressed }) => [styles.pressable, pressed && !empty && styles.tunnelPressed]}
       >
-        <BrandGradientView token="surface" style={StyleSheet.absoluteFill} pointerEvents="none" />
-        {/* Launch-direction chevron — a physical launcher points somewhere;
-            this is a launcher, not a card. Brightens with the same readiness
-            cue as the port ring below it. */}
-        <Animated.View pointerEvents="none" style={[styles.chevron, glowStyle]}>
-          <Text style={styles.chevronMark}>▲</Text>
-        </Animated.View>
-        <Text style={styles.tunnelLabel}>T{index + 1}</Text>
-
-        <View style={styles.port}>
-          {/* Tutorial spotlight ring — the M5.4C intended-tunnel highlight.
-              Semantic (driven by `highlighted`), never a hardcoded position. */}
+        <View style={styles.mouth}>
           {highlighted ? (
-            <Animated.View pointerEvents="none" style={[styles.spotlightRing, spotlightStyle]} />
+            <Animated.View pointerEvents="none" style={[styles.spotlightRing, { width: readySize + 16, height: readySize + 16, borderRadius: (readySize + 16) / 2 }, spotlightStyle]} />
           ) : null}
-          {/* Readiness/recoil glow ring — behind the charge, never recolors it. */}
-          <Animated.View pointerEvents="none" style={[styles.readiness, glowStyle]} />
-          <Animated.View pointerEvents="none" style={[styles.flash, flashStyle]} />
 
           {charge ? (
             <Animated.View
@@ -221,23 +188,13 @@ const Tunnel = memo(function Tunnel({
               ref={sourceRef}
               onLayout={measure}
               collapsable={false}
+              style={styles.readySeat}
             >
               {pixelPal ? (
-                <PixelPalFace color={charge.color} size={CHARGE} colorAssist={colorAssist} mood={ready ? 'focused' : 'calm'}>
-                  <Text style={styles.palCapacity}>{charge.capacity}</Text>
-                </PixelPalFace>
+                <PixelPalFace color={charge.color} size={readySize} colorAssist={colorAssist} mood={ready ? 'focused' : 'calm'} capacity={charge.capacity} />
               ) : (
-                <View style={[styles.charge, { backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color] }]}>
-                  <View style={styles.chargeGloss} />
-                  <Text
-                    style={[
-                      styles.capacity,
-                      { color: ink?.fill },
-                      ink?.halo ? { textShadowColor: ink.halo, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } } : null,
-                    ]}
-                  >
-                    {charge.capacity}
-                  </Text>
+                <View style={[styles.charge, { width: readySize, height: readySize, borderRadius: readySize / 2, backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color] }]}>
+                  <Text style={[styles.capacity, { color: ink?.fill, fontSize: readySize * 0.34 }]}>{charge.capacity}</Text>
                   {colorAssist ? (
                     <View style={styles.assist} pointerEvents="none">
                       <ColorAssistMark color={charge.color} size={15} etched />
@@ -247,236 +204,99 @@ const Tunnel = memo(function Tunnel({
               )}
             </Animated.View>
           ) : (
-            <View style={[styles.charge, styles.chargeEmpty]}>
-              <Text style={styles.emptyMark}>—</Text>
-            </View>
+            <View style={[styles.emptyMouth, { width: readySize, height: readySize, borderRadius: readySize * 0.32 }]} />
           )}
         </View>
 
-        {/* Look-ahead: NEXT and NEXT+1 (Core V2) or the legacy magazine depth.
-            Rendered as a RECEDING STACK (each entry smaller, dimmer, and
-            overlapped behind the one before it) — "physically queued behind
-            the current Pal," not a row of same-size chips floating in a tray. */}
-        <View style={styles.queueTray}>
-          {Array.from({ length: upcoming }).map((_, previewIdx) => {
-            const nextCharge = tunnel?.queue[previewIdx + 1];
-            const depthStyle = {
-              marginLeft: previewIdx > 0 ? -7 : 0,
-              zIndex: upcoming - previewIdx,
-              transform: [{ scale: 1 - previewIdx * 0.14 }],
-              opacity: 1 - previewIdx * 0.22,
-            };
-            if (nextCharge) {
-              if (pixelPal) {
-                return (
-                  <View key={nextCharge.id} style={depthStyle}>
-                    <PixelPalFace color={nextCharge.color} size={PREVIEW_SIZE}>
-                      <Text style={styles.palPreviewCapacity}>{nextCharge.capacity}</Text>
-                    </PixelPalFace>
-                  </View>
-                );
-              }
-              const previewInk = markContrast(nextCharge.color);
-              return (
-                <View key={nextCharge.id} style={depthStyle}>
+        <View style={styles.queue}>
+          {queue.map((nextCharge, previewIdx) => {
+            if (!nextCharge) return null;
+            return (
+              <View
+                key={nextCharge.id}
+                style={[
+                  styles.queued,
+                  {
+                    marginTop: -queueSize * 0.6,
+                    zIndex: upcoming - previewIdx,
+                    opacity: 0.55,
+                  },
+                ]}
+              >
+                {pixelPal ? (
+                  <PixelPalFace color={nextCharge.color} size={queueSize} capacity={nextCharge.capacity} />
+                ) : (
                   <View
                     style={[
-                      styles.previewChip,
+                      styles.charge,
                       {
+                        width: queueSize,
+                        height: queueSize,
+                        borderRadius: queueSize / 2,
                         backgroundColor: orbColors[nextCharge.color],
                         borderColor: orbGlow[nextCharge.color],
                       },
                     ]}
                   >
-                    <View style={styles.previewGloss} />
-                    <Text style={[styles.previewCapacity, { color: previewInk.fill }]}>{nextCharge.capacity}</Text>
-                    {colorAssist ? (
-                      <View style={styles.previewAssist} pointerEvents="none">
-                        <ColorAssistMark color={nextCharge.color} size={7} etched />
-                      </View>
-                    ) : null}
+                    <Text style={[styles.capacity, { color: markContrast(nextCharge.color).fill, fontSize: queueSize * 0.34 }]}>
+                      {nextCharge.capacity}
+                    </Text>
                   </View>
-                </View>
-              );
-            }
-            return (
-              <View key={`empty-${previewIdx}`} style={depthStyle}>
-                <View style={[styles.previewChip, styles.previewEmpty]}>
-                  <View style={styles.previewDot} />
-                </View>
+                )}
               </View>
             );
           })}
         </View>
-
-        {/* Base glow strip — colour-specific lighting so a loaded, ready
-            launcher visibly "belongs" to its charge's colour, not just the
-            generic cyan readiness ring. */}
-        <View
-          pointerEvents="none"
-          style={[
-            styles.baseStrip,
-            charge ? { backgroundColor: orbGlow[charge.color], opacity: ready ? 0.95 : 0.4 } : null,
-          ]}
-        />
       </Pressable>
     </Animated.View>
   );
 });
 
-const CHARGE = 46;
-const PREVIEW_SIZE = 18;
-
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', justifyContent: 'center', gap: spacing.md },
-  rowCompact: { gap: spacing.sm },
-  tunnel: {
-    borderRadius: 22,
-    minWidth: 84,
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    minHeight: 120,
   },
-  pressable: {
-    alignItems: 'center',
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderTopColor: material.bevelHighlight,
-    borderLeftColor: material.bevelHighlight,
-    borderRightColor: material.bevelShadow,
-    borderBottomColor: material.bevelShadow,
-    minWidth: 88,
-    overflow: 'hidden',
-  },
+  tunnel: { flex: 1, maxWidth: 88, alignItems: 'center' },
+  pressable: { alignItems: 'center', width: '100%' },
   tunnelEmpty: { opacity: 0.45 },
-  // Rail-full or otherwise blocked, but this tunnel still has a loaded charge —
-  // dimmer than active, but distinguishable from a truly-empty tunnel.
   tunnelBlocked: { opacity: 0.72 },
-  // M5.4C — tutorial is steering the player to a different tunnel. Gentle,
-  // not the heavy `tunnelBlocked` dim (this tunnel isn't actually broken).
   tunnelSubdued: { opacity: 0.55 },
   tunnelPressed: { transform: [{ translateY: 1 }, { scale: 0.97 }] },
-  chevron: { marginBottom: -2 },
-  chevronMark: { color: material.accentCyan, fontSize: 11, lineHeight: 11 },
-  port: {
-    width: CHARGE + 18,
-    height: CHARGE + 18,
-    borderRadius: (CHARGE + 18) / 2,
-    backgroundColor: material.recessedSurface,
-    borderWidth: 1,
-    borderColor: material.bevelShadow,
+  mouth: {
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    minHeight: 68,
   },
-  baseStrip: {
-    marginTop: spacing.xs,
-    width: '72%',
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: material.recessedSurface,
+  readySeat: {
+    zIndex: 4,
+    marginBottom: 4,
   },
-  readiness: {
-    position: 'absolute',
-    width: CHARGE + 26,
-    height: CHARGE + 26,
-    borderRadius: (CHARGE + 26) / 2,
-    backgroundColor: material.accentCyan,
+  emptyMouth: {
+    backgroundColor: homeAlpha('#000C28', 0.9),
   },
-  // M5.4C — tutorial spotlight ring, larger and brighter than `readiness` so
-  // the intended tunnel reads as obvious at a glance without darkening the rest.
   spotlightRing: {
     position: 'absolute',
-    width: CHARGE + 38,
-    height: CHARGE + 38,
-    borderRadius: (CHARGE + 38) / 2,
-    borderWidth: 2.5,
-    borderColor: material.accentCyan,
+    borderWidth: 1.5,
+    borderColor: homeV2.cyan,
     backgroundColor: 'transparent',
+    zIndex: 5,
   },
-  flash: {
-    position: 'absolute',
-    width: CHARGE + 26,
-    height: CHARGE + 26,
-    borderRadius: (CHARGE + 26) / 2,
-    backgroundColor: material.energyWarm,
+  queue: {
+    alignItems: 'center',
+    marginTop: -4,
+  },
+  queued: {
+    alignItems: 'center',
   },
   charge: {
-    width: CHARGE,
-    height: CHARGE,
-    borderRadius: CHARGE / 2,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  chargeGloss: {
-    position: 'absolute',
-    top: CHARGE * 0.16,
-    left: CHARGE * 0.2,
-    width: CHARGE * 0.5,
-    height: CHARGE * 0.36,
-    borderRadius: CHARGE * 0.3,
-    backgroundColor: '#FFFFFF',
-    opacity: 0.4,
-  },
-  chargeEmpty: { backgroundColor: material.recessedSurface, borderColor: material.outline },
   assist: { position: 'absolute', bottom: 3, alignSelf: 'center' },
-  capacity: { fontSize: 18, fontWeight: '800' },
-  palCapacity: { fontSize: CHARGE * 0.34, fontWeight: '900', color: '#F4F8FF' },
-  palPreviewCapacity: { fontSize: PREVIEW_SIZE * 0.42, fontWeight: '900', color: '#F4F8FF' },
-  emptyMark: { color: material.textSecondary, fontSize: 16 },
-  tunnelLabel: { marginBottom: 3, color: material.textSecondary, fontSize: 10, letterSpacing: 2, fontWeight: '700' },
-  // No border of its own — a continuous recessed channel feeding the port
-  // above it, part of ONE physical launcher housing rather than a second card.
-  queueTray: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: -4,
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-    borderRadius: 12,
-    backgroundColor: material.recessedSurface,
-  },
-  previewChip: {
-    width: PREVIEW_SIZE,
-    height: PREVIEW_SIZE,
-    borderRadius: PREVIEW_SIZE / 2,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  previewGloss: {
-    position: 'absolute',
-    top: 1.5,
-    left: 2.5,
-    width: PREVIEW_SIZE * 0.5,
-    height: PREVIEW_SIZE * 0.35,
-    borderRadius: PREVIEW_SIZE * 0.25,
-    backgroundColor: '#FFFFFF',
-    opacity: 0.4,
-  },
-  previewCapacity: {
-    fontSize: 9,
-    fontWeight: '800',
-    lineHeight: 11,
-  },
-  previewAssist: {
-    position: 'absolute',
-    bottom: 0.5,
-    alignSelf: 'center',
-  },
-  previewEmpty: {
-    backgroundColor: material.recessedSurface,
-    borderColor: material.outline,
-    opacity: 0.35,
-  },
-  previewDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: material.textSecondary,
-  },
+  capacity: { fontWeight: '800' },
 });

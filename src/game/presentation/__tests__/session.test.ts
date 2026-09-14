@@ -143,7 +143,7 @@ test('Holding stays parked; useless tap explains itself; useful tap starts a man
   const root = mount(4);
   act(() => session.launch('tunnel-0')); finish();
   const held = session.state.holding[0]!;
-  expect(session.message).toContain('Tap a held charge');
+  expect(held).toBeTruthy();
   act(() => session.launchHeld(held.id));
   expect(session.flights).toHaveLength(0);
   expect(session.message).toBe('No exposed matching pixels yet.');

@@ -13,7 +13,6 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { BrandGradientView } from '@/components/brand/BrandGradientView';
 import { holdingWarnAt } from '@/game/engine/selectors';
 import type { Charge } from '@/game/engine/types';
 import type { Point } from '@/game/rendering/boardGeometry';
@@ -23,8 +22,7 @@ import { isHeldChargeHighlighted, isHeldChargeSubdued } from '@/game/presentatio
 import type { TutorialView } from '@/game/tutorial';
 import { markContrast } from '@/theme/colorAssist';
 import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
-import { material } from '@/theme/material';
-import { spacing } from '@/theme/spacing';
+import { homeAlpha, homeV2 } from '@/theme/homeV2';
 
 interface HoldingTrayProps {
   holding: Charge[];
@@ -43,6 +41,8 @@ interface HoldingTrayProps {
   pixelPal?: boolean;
   /** M5.4C — Core V2 Level 1 tutorial spotlight/dim. Omitted (or inactive) outside that tutorial. */
   tutorial?: TutorialView;
+  /** Recessed wells in the control deck — no card chrome, no helper copy. */
+  embedded?: boolean;
 }
 
 /**
@@ -50,17 +50,12 @@ interface HoldingTrayProps {
  * Pressure uses `capacity - 1` / `capacity`, not hardcoded 2/3.
  */
 export const HoldingTray = memo(function HoldingTray({
-  holding, capacity, overflow, disabled, usefulIds, colorAssist, onLaunch, onSourceLayout, message, layoutVersion, boosterSlot, pixelPal,
+  holding, capacity, overflow, disabled, usefulIds, colorAssist, onLaunch, onSourceLayout, layoutVersion, boosterSlot, pixelPal,
   tutorial,
 }: HoldingTrayProps) {
   const reducedMotion = useReducedMotion();
   const pressure = holding.length >= holdingWarnAt(capacity) && !overflow;
 
-  // "Just arrived" detection: an id in `holding` that wasn't there last time
-  // this prop changed. Diffed by identity, not by slot index, so a charge
-  // shifting slots when a sibling is relaunched is never mistaken for an
-  // arrival. Refs are only ever read/written inside the effect (never during
-  // render) — the diff result lives in state instead.
   const prevIds = useRef<Set<string>>(new Set(holding.map((c) => c.id)));
   const [arrivedIds, setArrivedIds] = useState<Set<string>>(() => new Set());
   useEffect(() => {
@@ -74,47 +69,41 @@ export const HoldingTray = memo(function HoldingTray({
   const tier: 'normal' | 'warn' | 'danger' = overflow ? 'danger' : pressure ? 'warn' : 'normal';
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.deck, tier === 'warn' && styles.deckWarn, tier === 'danger' && styles.deckDanger]}>
-        <BrandGradientView token="surface" style={StyleSheet.absoluteFill} pointerEvents="none" />
-        {Array.from({ length: capacity }, (_, index) => {
-          const charge = holding[index];
-          const useful = !!charge && usefulIds.has(charge.id);
-          return (
-            <Slot
-              key={index}
-              index={index}
-              charge={charge}
-              useful={useful}
-              disabled={disabled}
-              colorAssist={colorAssist}
-              justArrived={!!charge && arrivedIds.has(charge.id)}
-              reducedMotion={reducedMotion}
-              pixelPal={!!pixelPal}
-              onLaunch={onLaunch}
-              onSourceLayout={onSourceLayout}
-              layoutVersion={layoutVersion}
-              highlighted={!!charge && !!tutorial && isHeldChargeHighlighted(tutorial, charge.id)}
-              subdued={!!charge && !!tutorial && isHeldChargeSubdued(tutorial, charge.id)}
-            />
-          );
-        })}
+    <View style={[styles.row, tier === 'warn' && styles.rowWarn, tier === 'danger' && styles.rowDanger]}>
+      {Array.from({ length: capacity }, (_, index) => {
+        const charge = holding[index];
+        const useful = !!charge && usefulIds.has(charge.id);
+        return (
+          <Slot
+            key={index}
+            index={index}
+            charge={charge}
+            useful={useful}
+            disabled={disabled}
+            colorAssist={colorAssist}
+            justArrived={!!charge && arrivedIds.has(charge.id)}
+            reducedMotion={reducedMotion}
+            pixelPal={!!pixelPal}
+            onLaunch={onLaunch}
+            onSourceLayout={onSourceLayout}
+            layoutVersion={layoutVersion}
+            highlighted={!!charge && !!tutorial && isHeldChargeHighlighted(tutorial, charge.id)}
+            subdued={!!charge && !!tutorial && isHeldChargeSubdued(tutorial, charge.id)}
+          />
+        );
+      })}
 
-        {boosterSlot ? (
-          <View style={[styles.socket, styles.boosterSlot]}>
-            <Text style={styles.boosterMark}>+</Text>
-          </View>
-        ) : null}
-      </View>
-
-      <Text accessibilityLiveRegion="polite" style={styles.help}>
-        {message || (holding.length ? 'Tap a held charge to launch it again.' : ' ')}
-      </Text>
+      {boosterSlot ? (
+        <View style={[styles.socket, styles.boosterSlot]}>
+          <Text style={styles.boosterMark}>+</Text>
+        </View>
+      ) : null}
     </View>
   );
 });
 
-const SOCKET = 56;
+const SOCKET = 52;
+const PAL = 44;
 
 const Slot = memo(function Slot({
   index, charge, useful, disabled, colorAssist, justArrived, reducedMotion, pixelPal, onLaunch, onSourceLayout, layoutVersion,
@@ -131,9 +120,7 @@ const Slot = memo(function Slot({
   onLaunch: (id: string) => void;
   onSourceLayout: (key: string, point: Point) => void;
   layoutVersion: number;
-  /** M5.4C — this held Pal is the tutorial's relaunch target; spotlight it. */
   highlighted: boolean;
-  /** M5.4C — the tutorial is steering the player elsewhere; read as quiet, not broken. */
   subdued: boolean;
 }) {
   const slotRef = useRef<View | null>(null);
@@ -145,8 +132,6 @@ const Slot = memo(function Slot({
   }, [onSourceLayout, key]);
   useEffect(() => { measure(); }, [layoutVersion, measure]);
 
-  // Arrival pop — a brief scale overshoot + colour-glow flash the instant
-  // this slot's own charge identity is newly present (never on relaunch/empty).
   const arrival = useSharedValue(0);
   useEffect(() => {
     if (!justArrived) return;
@@ -163,13 +148,9 @@ const Slot = memo(function Slot({
   }, [justArrived]);
 
   const arrivalStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: reducedMotion ? 1 : 1 + arrival.value * 0.16 }],
+    transform: [{ scale: reducedMotion ? 1 : 1 + arrival.value * 0.12 }],
   }));
-  const arrivalGlow = useAnimatedStyle(() => ({ opacity: arrival.value * 0.8 }));
 
-  // Tutorial spotlight — perks up the instant this held Pal becomes the
-  // relaunch target, then settles into a slow steady pulse. Mirrors the
-  // Tunnel spotlight ring so both teaching moments feel like one system.
   const spotlight = useSharedValue(0);
   const wasHighlighted = useRef(false);
   useEffect(() => {
@@ -185,13 +166,10 @@ const Slot = memo(function Slot({
     return () => cancelAnimation(spotlight);
   }, [highlighted, reducedMotion, spotlight]);
   const spotlightStyle = useAnimatedStyle(() => ({
-    opacity: 0.35 + spotlight.value * 0.65,
-    transform: [{ scale: 1 + spotlight.value * 0.1 }],
+    opacity: 0.45 + spotlight.value * 0.55,
+    transform: [{ scale: 1 + spotlight.value * 0.04 }],
   }));
 
-  // Idle "resting" bob — a tiny, slow float so a parked Pal reads as alive,
-  // not a static icon. Staggered per slot (phase offset by index) so a full
-  // tray never bobs in unison; skipped under reduced motion.
   const bob = useSharedValue(0);
   const chargeId = charge?.id;
   useEffect(() => {
@@ -203,7 +181,7 @@ const Slot = memo(function Slot({
     ));
     return () => cancelAnimation(bob);
   }, [chargeId, reducedMotion, index, bob]);
-  const bobStyle = useAnimatedStyle(() => ({ transform: [{ translateY: -bob.value * 2.2 }] }));
+  const bobStyle = useAnimatedStyle(() => ({ transform: [{ translateY: -bob.value * 1.6 }] }));
 
   const ink = charge ? markContrast(charge.color) : null;
 
@@ -217,12 +195,11 @@ const Slot = memo(function Slot({
       accessibilityRole="button"
       accessibilityState={{ disabled: disabled || !charge }}
       accessibilityLabel={charge
-        ? `Relaunch ${orbLabel[charge.color]} charge, capacity ${charge.capacity}`
+        ? `Relaunch ${orbLabel[charge.color]} Pal, capacity ${charge.capacity}`
         : `Holding slot ${index + 1}, empty`}
       accessibilityHint={useful ? 'Tap to launch again' : 'No exposed matching pixels yet'}
       style={({ pressed }) => [
         styles.socket,
-        useful && styles.socketReady,
         subdued && styles.socketSubdued,
         pressed && charge && styles.socketPressed,
       ]}
@@ -232,35 +209,38 @@ const Slot = memo(function Slot({
       ) : null}
       {charge ? (
         <Animated.View style={bobStyle}>
-        <Animated.View style={[styles.orbWrap, arrivalStyle]}>
-          {useful ? <View pointerEvents="none" style={[styles.readyGlow, { backgroundColor: material.accentCyan }]} /> : null}
-          <Animated.View pointerEvents="none" style={[styles.arrivalGlow, { backgroundColor: orbGlow[charge.color] }, arrivalGlow]} />
-          {pixelPal ? (
-            <View style={{ opacity: useful ? 1 : 0.7 }}>
-              <PixelPalFace color={charge.color} size={SOCKET * 0.68} colorAssist={colorAssist} mood="calm">
-                <Text style={styles.palCount}>{charge.capacity}</Text>
-              </PixelPalFace>
-            </View>
-          ) : (
-            <View style={[styles.orb, { backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color], opacity: useful ? 1 : 0.7 }]}>
-              <View style={styles.orbGloss} />
-              <Text
-                style={[
-                  styles.count,
-                  { color: ink?.fill },
-                  ink?.halo ? { textShadowColor: ink.halo, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } } : null,
-                ]}
-              >
-                {charge.capacity}
-              </Text>
-              {colorAssist ? (
-                <View style={styles.assist} pointerEvents="none">
-                  <ColorAssistMark color={charge.color} size={16} etched />
-                </View>
-              ) : null}
-            </View>
-          )}
-        </Animated.View>
+          <Animated.View style={[styles.orbWrap, arrivalStyle]}>
+            {pixelPal ? (
+              <View style={{ opacity: useful ? 1 : 0.7 }}>
+                <PixelPalFace
+                  color={charge.color}
+                  size={PAL}
+                  colorAssist={colorAssist}
+                  mood="calm"
+                  capacity={charge.capacity}
+                  selected={useful}
+                />
+              </View>
+            ) : (
+              <View style={[styles.orb, { backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color], opacity: useful ? 1 : 0.7 }]}>
+                <View style={styles.orbGloss} />
+                <Text
+                  style={[
+                    styles.count,
+                    { color: ink?.fill },
+                    ink?.halo ? { textShadowColor: ink.halo, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } } : null,
+                  ]}
+                >
+                  {charge.capacity}
+                </Text>
+                {colorAssist ? (
+                  <View style={styles.assist} pointerEvents="none">
+                    <ColorAssistMark color={charge.color} size={16} etched />
+                  </View>
+                ) : null}
+              </View>
+            )}
+          </Animated.View>
         </Animated.View>
       ) : (
         <View style={styles.socketWell} />
@@ -270,80 +250,46 @@ const Slot = memo(function Slot({
 });
 
 const styles = StyleSheet.create({
-  container: { alignItems: 'center', gap: spacing.sm },
-  deck: {
+  row: {
+    height: 64,
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: spacing.md,
-    padding: spacing.sm + 2,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderTopColor: material.bevelHighlight,
-    borderLeftColor: material.bevelHighlight,
-    borderRightColor: material.bevelShadow,
-    borderBottomColor: material.bevelShadow,
-    overflow: 'hidden',
+    alignItems: 'center',
+    gap: 8,
   },
-  deckWarn: { borderTopColor: material.warning, borderLeftColor: material.warning },
-  deckDanger: { borderColor: material.danger, borderTopColor: material.danger, borderLeftColor: material.danger },
+  rowWarn: { borderColor: homeV2.yellow },
+  rowDanger: { borderColor: '#F24B5D' },
   socket: {
     width: SOCKET,
     height: SOCKET,
-    borderRadius: 16,
-    backgroundColor: material.recessedSurface,
-    borderWidth: 1,
-    borderColor: material.bevelShadow,
+    borderRadius: 14,
+    backgroundColor: homeAlpha('#000C28', 0.85),
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'visible',
   },
   socketWell: {
-    width: SOCKET * 0.5,
-    height: SOCKET * 0.5,
-    borderRadius: SOCKET * 0.25,
-    backgroundColor: material.bevelShadow,
-    opacity: 0.7,
+    width: SOCKET * 0.42,
+    height: SOCKET * 0.42,
+    borderRadius: SOCKET * 0.21,
+    backgroundColor: 'rgba(0,0,0,0.35)',
   },
-  socketReady: {
-    borderColor: material.accentCyan,
-    borderTopColor: material.accentCyan,
-    borderLeftColor: material.accentCyan,
-    borderRightColor: material.accentCyan,
-    borderBottomColor: material.accentCyan,
-  },
-  socketPressed: { transform: [{ scale: 0.94 }], backgroundColor: material.bevelShadow },
-  // M5.4C — tutorial is steering the player to a different held Pal. Gentle,
-  // not a broken/disabled look — this slot is still perfectly usable later.
+  socketPressed: { transform: [{ scale: 0.94 }] },
   socketSubdued: { opacity: 0.55 },
-  // M5.4C — tutorial spotlight ring, mirrors TunnelBar's so both reads as one system.
   spotlightRing: {
     position: 'absolute',
-    width: SOCKET + 16,
-    height: SOCKET + 16,
-    borderRadius: (SOCKET + 16) / 2,
-    borderWidth: 2.5,
-    borderColor: material.accentCyan,
+    width: SOCKET + 10,
+    height: SOCKET + 10,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: homeV2.cyan,
     backgroundColor: 'transparent',
   },
   orbWrap: { alignItems: 'center', justifyContent: 'center' },
-  readyGlow: {
-    position: 'absolute',
-    width: SOCKET * 0.86,
-    height: SOCKET * 0.86,
-    borderRadius: SOCKET * 0.43,
-    opacity: 0.22,
-  },
-  arrivalGlow: {
-    position: 'absolute',
-    width: SOCKET * 0.95,
-    height: SOCKET * 0.95,
-    borderRadius: SOCKET * 0.48,
-  },
   orb: {
-    width: SOCKET * 0.68,
-    height: SOCKET * 0.68,
-    borderRadius: SOCKET * 0.34,
+    width: PAL,
+    height: PAL,
+    borderRadius: PAL / 2,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -351,18 +297,16 @@ const styles = StyleSheet.create({
   },
   orbGloss: {
     position: 'absolute',
-    top: SOCKET * 0.1,
-    left: SOCKET * 0.14,
-    width: SOCKET * 0.32,
-    height: SOCKET * 0.22,
-    borderRadius: SOCKET * 0.2,
+    top: PAL * 0.1,
+    left: PAL * 0.14,
+    width: PAL * 0.32,
+    height: PAL * 0.22,
+    borderRadius: PAL * 0.2,
     backgroundColor: '#FFFFFF',
     opacity: 0.4,
   },
   assist: { position: 'absolute', bottom: 2, alignSelf: 'center' },
-  boosterSlot: { borderStyle: 'dashed', borderColor: material.outline, opacity: 0.5 },
-  boosterMark: { color: material.textSecondary, fontSize: 22, fontWeight: '700' },
+  boosterSlot: { borderWidth: 1, borderStyle: 'dashed', borderColor: homeAlpha(homeV2.white, 0.2), opacity: 0.5 },
+  boosterMark: { color: homeAlpha(homeV2.white, 0.45), fontSize: 22, fontWeight: '700' },
   count: { fontSize: 17, fontWeight: '800' },
-  palCount: { fontSize: SOCKET * 0.68 * 0.34, fontWeight: '900', color: '#F4F8FF' },
-  help: { color: material.textSecondary, fontSize: 12, minHeight: 16, textAlign: 'center', paddingHorizontal: 12 },
 });

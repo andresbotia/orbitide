@@ -144,6 +144,8 @@ export interface BoardGeometry {
 /**
  * Artwork target footprint as a fraction of board size. Held ~constant across
  * densities so the picture does not shrink just because the grid got finer.
+ * Legacy V1 (circular rail) keeps this contract; Core V2 packed layout is
+ * computed separately so the grid can fill the rail interior.
  */
 const FOOTPRINT = 0.56;
 const MIN_CELL = 3;
@@ -151,10 +153,53 @@ const MIN_CELL = 3;
 export interface BoardGeometryOptions {
   /**
    * M5.3 — trace a rounded-rectangle perimeter (Core V2) instead of the
-   * circular orbit rail (Legacy V1). Purely a presentation choice; the pixel
-   * grid/artwork layout below is identical either way.
+   * circular orbit rail (Legacy V1). Purely a presentation choice; engine
+   * targeting stays in cell space.
    */
   roundedRect?: boolean;
+}
+
+/**
+ * Pack a Core V2 grid inside a near-edge rounded rail.
+ *
+ * Presentation-only: does not change engine targeting, pass progress, or the
+ * circular Legacy V1 layout. No 14pt cell floor and no panning — oversized
+ * grids shrink cells down to {@link MIN_CELL} and should be reported, not
+ * given a new navigation model.
+ */
+function packRoundedRectBoard(size: number, cols: number, rows: number): {
+  cell: number;
+  chargeRadius: number;
+  perimeter: RoundedPerimeterBounds;
+} {
+  const safeCols = Math.max(1, cols);
+  const safeRows = Math.max(1, rows);
+  let chargeRadius = Math.min(size * 0.04, 16);
+  let cell = MIN_CELL;
+  let inset = 10;
+  for (let i = 0; i < 3; i++) {
+    inset = Math.max(chargeRadius + 3, 10);
+    const inner = Math.max(0, size - 2 * (inset + chargeRadius + 4));
+    cell = Math.max(
+      MIN_CELL,
+      Math.floor(Math.min(inner / safeCols, inner / safeRows)),
+    );
+    chargeRadius = Math.min(size * 0.04, Math.max(7, cell * 0.48));
+  }
+  inset = Math.max(chargeRadius + 3, 10);
+  const boundsWidth = Math.max(0, size - inset * 2);
+  const boundsHeight = Math.max(0, size - inset * 2);
+  return {
+    cell,
+    chargeRadius,
+    perimeter: {
+      x: inset,
+      y: inset,
+      width: boundsWidth,
+      height: boundsHeight,
+      radius: Math.min(boundsWidth, boundsHeight) * 0.22,
+    },
+  };
 }
 
 /** Geometry for a square board rendering a `cols x rows` picture. */
@@ -168,10 +213,19 @@ export function computeBoardGeometry(
   const density = Math.max(1, Math.max(cols, rows));
 
   const maxGrid = size * FOOTPRINT;
-  const cell = Math.max(
+  let cell = Math.max(
     MIN_CELL,
     Math.floor(Math.min(maxGrid / Math.max(1, cols), maxGrid / Math.max(1, rows))),
   );
+  let chargeRadius = Math.min(size * 0.045, Math.max(7, cell * 0.55));
+
+  let packed: ReturnType<typeof packRoundedRectBoard> | undefined;
+  if (options?.roundedRect) {
+    packed = packRoundedRectBoard(size, cols, rows);
+    cell = packed.cell;
+    chargeRadius = packed.chargeRadius;
+  }
+
   const gridWidth = cell * cols;
   const gridHeight = cell * rows;
   const gridOrigin: Point = {
@@ -180,10 +234,9 @@ export function computeBoardGeometry(
   };
   const artwork: Rect = { x: gridOrigin.x, y: gridOrigin.y, width: gridWidth, height: gridHeight };
 
-  const chargeRadius = Math.min(size * 0.045, Math.max(7, cell * 0.55));
-
   // Outer rail: as large as fits, but always outside the artwork corner with
-  // clearance for the token and its capacity label.
+  // clearance for the token and its capacity label. Unused by Core V2 flight
+  // (that traces `perimeter`) but kept so circular callers stay stable.
   const outer = Math.min(size * 0.45, size / 2 - chargeRadius - 2);
   const innerGuide = Math.min(
     outer - 2,
@@ -218,19 +271,8 @@ export function computeBoardGeometry(
   let perimeter: RoundedPerimeterBounds | undefined;
   let launchHub = circularLaunchHub;
   let insertionPoint = orbitInsertion;
-  if (options?.roundedRect) {
-    // Clearance so the Pixel Pal creature travels outside the artwork without
-    // covering it, matching the circular rail's own outer-radius margin.
-    const inset = Math.max(chargeRadius + 4, size * 0.06);
-    const boundsWidth = Math.max(0, size - inset * 2);
-    const boundsHeight = Math.max(0, size - inset * 2);
-    perimeter = {
-      x: inset,
-      y: inset,
-      width: boundsWidth,
-      height: boundsHeight,
-      radius: Math.min(boundsWidth, boundsHeight) * 0.22,
-    };
+  if (packed) {
+    perimeter = packed.perimeter;
     insertionPoint = pointAtRoundedPerimeterProgress(perimeter, ROUNDED_PERIMETER_BOTTOM_CENTER_PROGRESS);
     // Core V2 spec §7 — no center-hub launch. Collapsing the hub onto the
     // shared bottom-center entry means `flightPosition`'s existing

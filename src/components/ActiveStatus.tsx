@@ -1,67 +1,47 @@
 import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { BrandGradientView } from '@/components/brand/BrandGradientView';
-import { material } from '@/theme/material';
-import { radius, spacing } from '@/theme/spacing';
+import { homeAlpha, homeV2 } from '@/theme/homeV2';
 
 /**
- * Compact Core V2 active-occupancy readout. Sits under the board/rail and
- * above Holding — not in the top header. Capacity is passed in; never hardcoded.
- *
- * North-star pass — restyled as a small mounted "readout plaque" (the same
- * `BrandGradientView token="surface"` hardware body as the Tunnel/Holding
- * housings, plus a top connector tab) so it reads as part of the cabinet
- * rather than an unrelated floating pill, without changing its position in
- * the layout (still between the board and Holding, per the approved spec).
+ * Compact Core V2 active-occupancy readout. Capacity is passed in; never hardcoded.
+ * When `embedded`, this is an inline label on the control deck — no pill, no border.
  */
-export const ActiveStatus = memo(function ActiveStatus({ count, capacity }: { count: number; capacity: number }) {
+export const ActiveStatus = memo(function ActiveStatus({
+  count, capacity, embedded = false,
+}: {
+  count: number;
+  capacity: number;
+  embedded?: boolean;
+}) {
   if (capacity <= 0) return null;
   return (
-    <View style={styles.mount}>
-      <View pointerEvents="none" style={styles.tab} />
-      <View
-        accessible
-        accessibilityRole="text"
-        accessibilityLabel={`Active ${count} of ${capacity}`}
-        accessibilityLiveRegion="polite"
-        style={styles.wrap}
-      >
-        <BrandGradientView token="surface" style={StyleSheet.absoluteFill} pointerEvents="none" />
-        <Text style={styles.text}>ACTIVE {count}/{capacity}</Text>
-      </View>
+    <View
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={`Active ${count} of ${capacity}`}
+      accessibilityLiveRegion="polite"
+      style={embedded ? styles.inline : styles.wrap}
+    >
+      <Text style={styles.label}>ACTIVE </Text>
+      <Text style={styles.num}>{count}/{capacity}</Text>
     </View>
   );
 });
 
 const styles = StyleSheet.create({
-  mount: { alignItems: 'center' },
-  tab: {
-    width: 10,
-    height: 5,
-    borderTopLeftRadius: 3,
-    borderTopRightRadius: 3,
-    backgroundColor: material.accentCyan,
-    opacity: 0.6,
+  wrap: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'baseline' },
+  inline: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'baseline', height: 20 },
+  label: {
+    color: homeAlpha(homeV2.white, 0.75),
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.4,
   },
-  wrap: {
-    alignSelf: 'center',
-    paddingHorizontal: spacing.sm + 6,
-    paddingVertical: 5,
-    borderRadius: radius.pill,
-    borderWidth: 1.5,
-    borderColor: material.accentCyan,
-    shadowColor: material.accentCyan,
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 4,
-    overflow: 'hidden',
-  },
-  text: {
-    color: material.accentCyan,
-    fontSize: 12.5,
-    fontWeight: '800',
-    letterSpacing: 1.2,
+  num: {
+    color: homeV2.cyan,
+    fontSize: 13,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
   },
 });
