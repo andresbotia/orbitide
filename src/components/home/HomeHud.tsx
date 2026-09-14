@@ -1,7 +1,10 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { HOME_COINS_PLACEHOLDER, HOME_HEARTS_PLACEHOLDER, homeAlpha, homeV2 } from '@/theme/homeV2';
+import { HOME_COINS_PLACEHOLDER, HOME_HEARTS_PLACEHOLDER } from '@/theme/homeV2';
+import { NEON, neonAlpha } from '@/theme/neon';
+
+import { NeonPill } from './NeonPill';
 
 interface HomeHudProps {
   hearts?: number;
@@ -10,8 +13,9 @@ interface HomeHudProps {
 }
 
 /**
- * Top HUD: Hearts left, Coins + Settings right. Reserves a recharge-timer
- * slot under the heart count; the timer stays empty until a real system exists.
+ * Top HUD: Hearts left, Coins + Settings right. Hearts and coins sit in neon
+ * pills so they hold up against the busy scene; accessibility labels stay on
+ * the counters themselves, not the housings.
  */
 export const HomeHud = memo(function HomeHud({
   hearts = HOME_HEARTS_PLACEHOLDER,
@@ -20,19 +24,20 @@ export const HomeHud = memo(function HomeHud({
 }: HomeHudProps) {
   return (
     <View style={styles.row}>
-      <View style={styles.hearts} accessibilityLabel={`${hearts} hearts`}>
-        <View style={styles.heartsRow}>
+      <NeonPill tone="magenta">
+        <View style={styles.counter} accessibilityLabel={`${hearts} hearts`}>
           <Text style={styles.heartGlyph}>♥</Text>
-          <Text style={styles.heartCount}>{hearts}</Text>
+          <Text style={styles.count}>{hearts}</Text>
         </View>
-        <View style={styles.timerSlot} />
-      </View>
+      </NeonPill>
 
       <View style={styles.right}>
-        <View style={styles.coins} accessibilityLabel={`${coins} coins`}>
-          <OctagonCoin />
-          <Text style={styles.coinValue}>{coins}</Text>
-        </View>
+        <NeonPill tone="gold">
+          <View style={styles.counter} accessibilityLabel={`${coins} coins`}>
+            <OctagonCoin />
+            <Text style={styles.count}>{coins}</Text>
+          </View>
+        </NeonPill>
         <Pressable
           onPress={onSettings}
           disabled={!onSettings}
@@ -68,48 +73,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
   },
-  hearts: {
-    minWidth: 72,
-    justifyContent: 'center',
-  },
-  heartsRow: {
+  counter: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
   heartGlyph: {
-    color: homeV2.red,
+    color: NEON.magenta,
     fontSize: 18,
     lineHeight: 22,
   },
-  heartCount: {
-    color: homeV2.white,
+  count: {
+    color: NEON.cyanPale,
     fontSize: 18,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
     lineHeight: 22,
-  },
-  timerSlot: {
-    height: 12,
-    marginTop: 1,
   },
   right: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  coins: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  coinValue: {
-    color: homeV2.white,
-    fontSize: 16,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
   },
   coin: {
     width: 16,
@@ -121,7 +105,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 12,
     height: 12,
-    backgroundColor: homeV2.yellow,
+    backgroundColor: NEON.gold,
     transform: [{ rotate: '45deg' }],
     borderRadius: 1,
   },
@@ -129,9 +113,9 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 3,
-    backgroundColor: homeV2.yellow,
+    backgroundColor: NEON.gold,
     borderWidth: 1,
-    borderColor: homeV2.playSkirt,
+    borderColor: NEON.goldDeep,
   },
   coinGlint: {
     position: 'absolute',
@@ -140,7 +124,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 3,
     borderRadius: 1,
-    backgroundColor: homeV2.white,
+    backgroundColor: NEON.cyanPale,
     opacity: 0.7,
   },
   gearHit: {
@@ -151,7 +135,7 @@ const styles = StyleSheet.create({
   },
   gearPressed: { opacity: 0.7 },
   gear: {
-    color: homeAlpha(homeV2.white, 0.55),
+    color: neonAlpha(NEON.cyanPale, 0.7),
     fontSize: 18,
   },
 });
