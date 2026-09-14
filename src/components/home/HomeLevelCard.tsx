@@ -2,13 +2,12 @@ import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { LevelDifficulty } from '@/game/engine/types';
-import { homeAlpha, homeV2 } from '@/theme/homeV2';
+import { NEON, neonAlpha } from '@/theme/neon';
 
 interface HomeLevelCardProps {
   levelId: number;
   title: string;
   difficulty: LevelDifficulty;
-  worldAccent: string;
   medallionSize: number;
 }
 
@@ -20,51 +19,44 @@ const DIFFICULTY_LABEL: Record<LevelDifficulty, string> = {
   extreme: 'Extreme',
 };
 
+/**
+ * Difficulty dot. NEON has no purple, so the top three tiers share magenta and
+ * the label beside the dot carries the distinction (colour is never the only
+ * signal).
+ */
 const DIFFICULTY_DOT: Record<LevelDifficulty, string> = {
-  easy: homeV2.cyan,
-  medium: homeV2.yellow,
-  hard: homeV2.red,
-  'super-hard': homeV2.red,
-  extreme: homeV2.purple,
+  easy: NEON.cyan,
+  medium: NEON.gold,
+  hard: NEON.magenta,
+  'super-hard': NEON.magenta,
+  extreme: NEON.magenta,
 };
+
+/**
+ * Medallion fill, specified directly by the design: a lifted navy with no NEON
+ * token. Kept as one named constant rather than widening the palette.
+ */
+const MEDALLION_FILL = 'rgba(7,32,56,0.85)';
 
 /** Level medallion + title + compact difficulty. No board preview. */
 export const HomeLevelCard = memo(function HomeLevelCard({
   levelId,
   title,
   difficulty,
-  worldAccent,
   medallionSize,
 }: HomeLevelCardProps) {
-  const inner = medallionSize - 10;
   return (
     <View style={styles.wrap}>
       <View
         style={[
           styles.medallion,
-          {
-            width: medallionSize,
-            height: medallionSize,
-            borderRadius: medallionSize / 2,
-            borderColor: worldAccent,
-          },
+          { width: medallionSize, height: medallionSize, borderRadius: medallionSize / 2 },
         ]}
         accessibilityLabel={`Level ${levelId}`}
       >
-        <View
-          style={[
-            styles.medallionInner,
-            {
-              width: inner,
-              height: inner,
-              borderRadius: inner / 2,
-            },
-          ]}
-        >
-          <Text style={styles.number} numberOfLines={1}>
-            {levelId}
-          </Text>
-        </View>
+        <Text style={styles.number} numberOfLines={1}>
+          {levelId}
+        </Text>
       </View>
 
       <Text style={styles.title} numberOfLines={1}>
@@ -91,15 +83,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    backgroundColor: homeAlpha(homeV2.navy, 0.55),
-  },
-  medallionInner: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: homeV2.navy,
+    borderColor: NEON.cyan,
+    backgroundColor: MEDALLION_FILL,
   },
   number: {
-    color: homeV2.white,
+    color: NEON.cyanPale,
     fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 28,
     fontWeight: '700',
@@ -107,7 +95,7 @@ const styles = StyleSheet.create({
     lineHeight: 32,
   },
   title: {
-    color: homeV2.white,
+    color: NEON.cyanPale,
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: 0.2,
@@ -125,7 +113,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   diff: {
-    color: homeAlpha(homeV2.white, 0.7),
+    color: neonAlpha(NEON.cyanPale, 0.7),
     fontSize: 13,
     fontWeight: '500',
   },

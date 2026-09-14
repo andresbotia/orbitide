@@ -13,8 +13,8 @@ import { HomePixelPalHero } from '@/components/home/HomePixelPalHero';
 import { HomePlayButton } from '@/components/home/HomePlayButton';
 import { getLevel, requireLevel } from '@/game/levels/levels';
 import { useAmbientActive } from '@/hooks/useAmbientActive';
-import { HOME_COINS_PLACEHOLDER, HOME_HEARTS_PLACEHOLDER, homeV2 } from '@/theme/homeV2';
-import { worldSkin } from '@/theme/worldSkins';
+import { HOME_COINS_PLACEHOLDER, HOME_HEARTS_PLACEHOLDER } from '@/theme/homeV2';
+import { NEON } from '@/theme/neon';
 
 interface HomeScreenProps {
   highestUnlockedLevel: number;
@@ -50,7 +50,6 @@ export function HomeScreen({
   );
 
   const level = getLevel(highestUnlockedLevel) ?? requireLevel(1);
-  const worldAccent = worldSkin(level.themeId).accent;
 
   const handleHomeTab = useCallback(() => {
     // Already on Home.
@@ -90,7 +89,6 @@ export function HomeScreen({
             levelId={level.id}
             title={level.title}
             difficulty={level.difficulty}
-            worldAccent={worldAccent}
             medallionSize={layout.medallion}
           />
         </View>
@@ -112,7 +110,7 @@ export function HomeScreen({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: homeV2.deepNavy },
+  root: { flex: 1, backgroundColor: NEON.inkDeep },
   safe: { flex: 1 },
   hud: { flexShrink: 0 },
   marquee: { flexShrink: 1 },
