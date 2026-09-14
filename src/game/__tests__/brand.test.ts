@@ -102,14 +102,18 @@ describe('Home wordmark integration', () => {
     expect(home).not.toMatch(/color:\s*palette\.textSecondary/);
   });
 
-  it('uses a tiled looping background, not a plaza or board preview', () => {
+  it('uses the layered arcade-scene background, not a plaza or board preview', () => {
     expect(home).not.toMatch(/HomeCenterpiece/);
     expect(home).not.toMatch(/HomeMotes/);
     expect(home).not.toMatch(/PICTURES RESTORED/);
     expect(home).not.toMatch(/LogoMark|portal arch|ArchMotif/);
     expect(environment).not.toMatch(/LogoMark|portal arch|ArchMotif/);
-    expect(environment).toMatch(/reanimateloop/);
-    expect(environment).toMatch(/resizeMode="repeat"/);
+    // Four independently transformable layers replace the tiled PNG loop.
+    expect(environment).toMatch(/<SkyLayer/);
+    expect(environment).toMatch(/<CityLayer/);
+    expect(environment).toMatch(/<FloorLayer/);
+    expect(environment).toMatch(/<FxLayer/);
+    expect(environment).not.toMatch(/reanimateloop/);
     expect(marquee).not.toMatch(/spill/);
     expect(read('src/theme/homeV2.ts')).toMatch(/#002662/);
   });
