@@ -107,7 +107,7 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
     const t = clock.value;
     const orbiting = t > pass.liftMs && t < pass.orbitEndAt;
     return {
-      opacity: (t >= pass.landingAt ? 0 : orbiting ? 0.3 : 0.16) * haloDepth,
+      opacity: (t >= pass.landingAt ? 0 : orbiting ? 0.36 : 0.2) * haloDepth,
       transform: [{ translateX: m.x - size }, { translateY: m.y - size }],
     };
   });
@@ -132,7 +132,7 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
         accessibilityLabel={`Pixel Pal, ${pass.charge.color} charge, capacity ${pass.charge.capacity}`}
         style={[styles.wrap, { width: size, height: size }, visorStyle]}
       >
-        <PixelPalVisor size={size}>
+        <PixelPalVisor size={size} mood="focused">
           <Counter
             editable={false}
             caretHidden

@@ -32,15 +32,15 @@ export const material = {
   /** Default panel/card/hardware-housing body. */
   structuralSurface: brandColor.surface,
   /** A surface that reads as physically closer/raised — pressed-in-front chrome. */
-  raisedSurface: '#241F3D',
+  raisedSurface: '#2C3578',
   /** A surface that reads as recessed — sockets, wells, tunnel/holding ports. */
-  recessedSurface: '#120F22',
+  recessedSurface: '#141B48',
 
   // Bevel / edge lighting (upper-left highlight, lower-right shadow) ---
   /** Top-left edge highlight on a dimensional block. */
-  bevelHighlight: '#4A4380',
+  bevelHighlight: '#5C63C4',
   /** Bottom-right edge shadow on a dimensional block. */
-  bevelShadow: '#050410',
+  bevelShadow: '#080B24',
   /** Hairline/divider, non-bevel outline. */
   outline: brandColor.border,
 
@@ -63,11 +63,11 @@ export const material = {
   textPrimary: brandColor.textPrimary,
   textSecondary: brandColor.textSecondary,
   /** Muted, non-interactive ink — disabled labels/glyphs. */
-  disabled: '#454064',
+  disabled: '#5B5790',
 
   // Overlay ------------------------------------------------------------
   /** Full-screen scrim behind a modal/sheet. */
-  overlay: 'rgba(7,6,13,0.86)',
+  overlay: 'rgba(9,10,30,0.86)',
 } as const;
 
 export type MaterialToken = keyof typeof material;

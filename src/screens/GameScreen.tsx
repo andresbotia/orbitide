@@ -11,7 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ActiveStatus } from '@/components/ActiveStatus';
-import { BoardFrame } from '@/components/gameplay/BoardFrame';
+import { BOARD_FRAME_MARGIN, BoardFrame } from '@/components/gameplay/BoardFrame';
 import { GameplayEnvironment } from '@/components/gameplay/GameplayEnvironment';
 import { DebugOverlay } from '@/components/DebugOverlay';
 import { DiscoveryOverlay } from '@/components/DiscoveryOverlay';
@@ -201,7 +201,9 @@ export function GameScreen({
 
   const onBoardArea = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
-    const size = Math.max(0, Math.min(width, height) - spacing.md);
+    // Reserve room for `BoardFrame`'s cabinet bezel, which draws OUTSIDE
+    // `boardSize` — otherwise its corners clip against the screen edge.
+    const size = Math.max(0, Math.min(width, height) - BOARD_FRAME_MARGIN * 2 - spacing.xs);
     const rounded = Math.round(size);
     setBoardSize(rounded);
     area.current?.measureInWindow((x, y) => {

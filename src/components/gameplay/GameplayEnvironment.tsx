@@ -45,14 +45,14 @@ export const GameplayEnvironment = memo(function GameplayEnvironment({
     { x: width * 0.7, y: height * 0.7, w: width * 0.4, h: height * 0.26, r: 16 },
   ]), [width, height]);
 
-  const glowOpacity = useDerivedValue(() => 0.05 + breath.value * 0.03);
+  const glowOpacity = useDerivedValue(() => 0.07 + breath.value * 0.04);
 
   return (
     <Fragment>
       <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
         <Rect x={0} y={0} width={width} height={height} color={material.background} />
 
-        <Group opacity={0.4}>
+        <Group opacity={0.46}>
           {planes.map((p, i) => (
             <RoundedRect key={i} x={p.x} y={p.y} width={p.w} height={p.h} r={p.r} color={material.recessedSurface} />
           ))}
@@ -62,6 +62,24 @@ export const GameplayEnvironment = memo(function GameplayEnvironment({
         <Circle cx={width * 0.5} cy={height * 0.42} r={width * 0.7} opacity={glowOpacity}>
           <RadialGradient c={vec(width * 0.5, height * 0.42)} r={width * 0.7} colors={[worldAccent, 'rgba(0,0,0,0)']} />
         </Circle>
+
+        {/* Corner "arcade lamp" glows — the dead space around a portrait
+            board reads as cabinet lighting, not emptiness. Static shapes,
+            one shared breathing value, no extra React work per frame. */}
+        <Group opacity={glowOpacity}>
+          <Circle cx={0} cy={0} r={width * 0.42}>
+            <RadialGradient c={vec(0, 0)} r={width * 0.42} colors={[material.accentCyan, 'rgba(0,0,0,0)']} />
+          </Circle>
+          <Circle cx={width} cy={0} r={width * 0.42}>
+            <RadialGradient c={vec(width, 0)} r={width * 0.42} colors={[material.accentCyan, 'rgba(0,0,0,0)']} />
+          </Circle>
+          <Circle cx={0} cy={height} r={width * 0.36}>
+            <RadialGradient c={vec(0, height)} r={width * 0.36} colors={[worldSecondaryAccent, 'rgba(0,0,0,0)']} />
+          </Circle>
+          <Circle cx={width} cy={height} r={width * 0.36}>
+            <RadialGradient c={vec(width, height)} r={width * 0.36} colors={[worldSecondaryAccent, 'rgba(0,0,0,0)']} />
+          </Circle>
+        </Group>
       </Canvas>
       <AmbientLayer
         ambientId={ambientId}

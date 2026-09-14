@@ -21,11 +21,11 @@ export default function Root({ children }: PropsWithChildren) {
 
         <title>{PRODUCT_NAME}</title>
         <meta name="description" content="Pixel Arcadia — a one-thumb pixel-art puzzle game." />
-        <meta name="theme-color" content="#07060D" />
+        <meta name="theme-color" content="#0E1442" />
         <link rel="apple-touch-icon" href="/favicon.png" />
 
         <ScrollViewStyleReset />
-        <style>{`html,body{background-color:#07060D;}`}</style>
+        <style>{`html,body{background-color:#0E1442;}`}</style>
       </head>
       <body>{children}</body>
     </html>

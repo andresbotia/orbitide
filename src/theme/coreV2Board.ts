@@ -10,16 +10,16 @@
  */
 export const coreV2Board = {
   /** Board plane fill, center -> edge. */
-  fieldCenter: '#241B63',
-  fieldEdge: '#140F3C',
+  fieldCenter: '#3F32AA',
+  fieldEdge: '#211A5E',
   /** Rounded-rail structural band. */
-  railBand: '#3A2E8A',
+  railBand: '#5546D6',
   /** Machined groove down the center of the band. */
-  railGroove: '#4B3DB0',
+  railGroove: '#7263F0',
   /** Top-left catch-light on the rail. */
-  railHighlight: '#B8A9FF',
+  railHighlight: '#D2C6FF',
   /** Inner informational guide line, near the artwork. */
-  railGlow: '#7FE9FF',
+  railGlow: '#8FF0FF',
   /** Shared launcher gate at the bottom-center perimeter entry. */
   launcherGate: '#FFC94D',
   launcherGlow: '#FFE3A0',

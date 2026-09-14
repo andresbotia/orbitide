@@ -1,4 +1,7 @@
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import {
+  FlatList, StyleSheet, Text, View, useWindowDimensions, type ViewToken,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
 
@@ -11,6 +14,7 @@ import { feedback } from '@/game/feedback';
 import { useAmbientActive } from '@/hooks/useAmbientActive';
 import { material } from '@/theme/material';
 import { spacing, typography } from '@/theme/spacing';
+import { worldSkin } from '@/theme/worldSkins';
 
 interface WorldSelectScreenProps {
   summaries: WorldSummary[];
@@ -19,16 +23,33 @@ interface WorldSelectScreenProps {
   onBack: () => void;
 }
 
+const SIDE_GAP = spacing.md;
+
 /**
- * PIXEL ARCADIA campaign map (UI-R5) — ten destination cards, not a plain
- * list of rows. Home → here → a selected world's level path → the level
- * itself. `IconButton` (back button) keeps its current shared style — see
- * `docs/DESIGN.md` for the deferred global icon-system migration this and
- * Home/Gameplay all share.
+ * PIXEL ARCADIA campaign map (UI-R5, recomposed north-star phase 2) — a
+ * horizontal destination CAROUSEL, not a stacked vertical list of flat
+ * cards. Ten worlds became a browsing experience: one destination fills the
+ * screen at a time, its own environmental artwork gets the space to actually
+ * read (`WorldCard`'s `MOTIF_HEIGHT` grew accordingly), and the backdrop's
+ * accent wash live-updates to whichever world is centered — the "world
+ * accent color entering the next view" cue the north-star brief asked for,
+ * paid for with one cheap `onViewableItemsChanged` callback (not a
+ * per-frame scroll listener). Navigation contract (`onSelectWorld`/
+ * `onBack`) and `WorldSummary` data are unchanged.
  */
 export function WorldSelectScreen({ summaries, loading, onSelectWorld, onBack }: WorldSelectScreenProps) {
   const reducedMotion = useReducedMotion();
   const active = useAmbientActive();
+  const { width } = useWindowDimensions();
+  const cardWidth = Math.min(360, width - SIDE_GAP * 2 - 32);
+  const snapInterval = cardWidth + SIDE_GAP;
+
+  const [pageIndex, setPageIndex] = useState(0);
+  const viewabilityConfig = useMemo(() => ({ itemVisiblePercentThreshold: 60 }), []);
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    const first = viewableItems[0]?.index;
+    if (first != null) setPageIndex(first);
+  }, []);
 
   if (loading) {
     return (
@@ -38,9 +59,11 @@ export function WorldSelectScreen({ summaries, loading, onSelectWorld, onBack }:
     );
   }
 
+  const activeAccent = worldSkin(summaries[pageIndex]?.world.themeId).accent;
+
   return (
     <View style={styles.root}>
-      <CampaignBackdrop />
+      <CampaignBackdrop worldAccent={activeAccent} />
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <IconButton glyph="←" onPress={onBack} accessibilityLabel="Back to Home" />
@@ -51,11 +74,19 @@ export function WorldSelectScreen({ summaries, loading, onSelectWorld, onBack }:
         <FlatList
           data={summaries}
           keyExtractor={(s) => s.world.id}
-          contentContainerStyle={styles.list}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={snapInterval}
+          decelerationRate="fast"
+          contentContainerStyle={[styles.list, { paddingHorizontal: (width - cardWidth) / 2 }]}
+          ItemSeparatorComponent={() => <View style={{ width: SIDE_GAP }} />}
+          viewabilityConfig={viewabilityConfig}
+          onViewableItemsChanged={onViewableItemsChanged}
           renderItem={({ item, index }) => (
             <Animated.View
+              style={{ width: cardWidth }}
               entering={
-                reducedMotion ? undefined : FadeInDown.duration(240).delay(Math.min(index, 6) * 40)
+                reducedMotion ? undefined : FadeInDown.duration(260).delay(Math.min(index, 6) * 45)
               }
             >
               <WorldCard
@@ -69,6 +100,16 @@ export function WorldSelectScreen({ summaries, loading, onSelectWorld, onBack }:
             </Animated.View>
           )}
         />
+
+        {/* Page dots — the carousel's "which destination am I at" readout. */}
+        <View style={styles.dots} accessibilityElementsHidden>
+          {summaries.map((s, i) => (
+            <View
+              key={s.world.id}
+              style={[styles.dot, i === pageIndex && [styles.dotActive, { backgroundColor: activeAccent }]]}
+            />
+          ))}
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -84,6 +125,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.sm,
   },
-  headerTitle: { ...typography.label, color: material.textSecondary, fontSize: 13, letterSpacing: 4 },
-  list: { paddingHorizontal: spacing.md, paddingBottom: spacing.xxl, gap: spacing.md },
+  headerTitle: { ...typography.label, color: material.textSecondary, fontSize: 13, letterSpacing: 3 },
+  list: { alignItems: 'center', paddingVertical: spacing.sm },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 7, paddingVertical: spacing.md },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: material.outline },
+  dotActive: { width: 18 },
 });

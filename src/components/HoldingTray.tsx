@@ -6,12 +6,14 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withDelay,
   withRepeat,
   withSequence,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
+import { BrandGradientView } from '@/components/brand/BrandGradientView';
 import { holdingWarnAt } from '@/game/engine/selectors';
 import type { Charge } from '@/game/engine/types';
 import type { Point } from '@/game/rendering/boardGeometry';
@@ -74,6 +76,7 @@ export const HoldingTray = memo(function HoldingTray({
   return (
     <View style={styles.container}>
       <View style={[styles.deck, tier === 'warn' && styles.deckWarn, tier === 'danger' && styles.deckDanger]}>
+        <BrandGradientView token="surface" style={StyleSheet.absoluteFill} pointerEvents="none" />
         {Array.from({ length: capacity }, (_, index) => {
           const charge = holding[index];
           const useful = !!charge && usefulIds.has(charge.id);
@@ -186,6 +189,22 @@ const Slot = memo(function Slot({
     transform: [{ scale: 1 + spotlight.value * 0.1 }],
   }));
 
+  // Idle "resting" bob — a tiny, slow float so a parked Pal reads as alive,
+  // not a static icon. Staggered per slot (phase offset by index) so a full
+  // tray never bobs in unison; skipped under reduced motion.
+  const bob = useSharedValue(0);
+  const chargeId = charge?.id;
+  useEffect(() => {
+    cancelAnimation(bob);
+    if (!chargeId || reducedMotion) { bob.set(0); return; }
+    bob.set(withDelay(
+      (index * 420) % 1700,
+      withRepeat(withTiming(1, { duration: 1900, easing: Easing.inOut(Easing.sin) }), -1, true),
+    ));
+    return () => cancelAnimation(bob);
+  }, [chargeId, reducedMotion, index, bob]);
+  const bobStyle = useAnimatedStyle(() => ({ transform: [{ translateY: -bob.value * 2.2 }] }));
+
   const ink = charge ? markContrast(charge.color) : null;
 
   return (
@@ -212,11 +231,13 @@ const Slot = memo(function Slot({
         <Animated.View pointerEvents="none" style={[styles.spotlightRing, spotlightStyle]} />
       ) : null}
       {charge ? (
+        <Animated.View style={bobStyle}>
         <Animated.View style={[styles.orbWrap, arrivalStyle]}>
+          {useful ? <View pointerEvents="none" style={[styles.readyGlow, { backgroundColor: material.accentCyan }]} /> : null}
           <Animated.View pointerEvents="none" style={[styles.arrivalGlow, { backgroundColor: orbGlow[charge.color] }, arrivalGlow]} />
           {pixelPal ? (
             <View style={{ opacity: useful ? 1 : 0.7 }}>
-              <PixelPalFace color={charge.color} size={SOCKET * 0.68} colorAssist={colorAssist}>
+              <PixelPalFace color={charge.color} size={SOCKET * 0.68} colorAssist={colorAssist} mood="calm">
                 <Text style={styles.palCount}>{charge.capacity}</Text>
               </PixelPalFace>
             </View>
@@ -240,6 +261,7 @@ const Slot = memo(function Slot({
             </View>
           )}
         </Animated.View>
+        </Animated.View>
       ) : (
         <View style={styles.socketWell} />
       )}
@@ -254,27 +276,24 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
     gap: spacing.md,
-    padding: spacing.sm,
-    borderRadius: 16,
-    backgroundColor: material.structuralSurface,
-    borderWidth: 1,
+    padding: spacing.sm + 2,
+    borderRadius: 20,
+    borderWidth: 1.5,
     borderTopColor: material.bevelHighlight,
     borderLeftColor: material.bevelHighlight,
     borderRightColor: material.bevelShadow,
     borderBottomColor: material.bevelShadow,
+    overflow: 'hidden',
   },
   deckWarn: { borderTopColor: material.warning, borderLeftColor: material.warning },
   deckDanger: { borderColor: material.danger, borderTopColor: material.danger, borderLeftColor: material.danger },
   socket: {
     width: SOCKET,
     height: SOCKET,
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: material.recessedSurface,
     borderWidth: 1,
-    borderTopColor: material.bevelShadow,
-    borderLeftColor: material.bevelShadow,
-    borderRightColor: material.outline,
-    borderBottomColor: material.outline,
+    borderColor: material.bevelShadow,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'visible',
@@ -308,6 +327,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   orbWrap: { alignItems: 'center', justifyContent: 'center' },
+  readyGlow: {
+    position: 'absolute',
+    width: SOCKET * 0.86,
+    height: SOCKET * 0.86,
+    borderRadius: SOCKET * 0.43,
+    opacity: 0.22,
+  },
   arrivalGlow: {
     position: 'absolute',
     width: SOCKET * 0.95,

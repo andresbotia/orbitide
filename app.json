@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "scheme": "orbitide",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#07060D",
+    "backgroundColor": "#0E1442",
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -20,7 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#120E2A",
+        "backgroundColor": "#182055",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -30,8 +30,8 @@
     "web": {
       "name": "Pixel Arcadia",
       "favicon": "./assets/favicon.png",
-      "themeColor": "#07060D",
-      "backgroundColor": "#07060D",
+      "themeColor": "#0E1442",
+      "backgroundColor": "#0E1442",
       "bundler": "metro"
     },
     "plugins": [
@@ -42,7 +42,7 @@
         {
           "image": "./assets/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#07060D"
+          "backgroundColor": "#0E1442"
         }
       ]
     ],

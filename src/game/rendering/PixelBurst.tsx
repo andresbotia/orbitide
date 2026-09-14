@@ -24,8 +24,12 @@ const SPARKS = [
   { dx: 1, dy: -1 },
   { dx: -1, dy: 1 },
   { dx: 1, dy: 1 },
+  { dx: 0, dy: -1.3 },
+  { dx: 0, dy: 1.3 },
+  { dx: -1.3, dy: 0 },
+  { dx: 1.3, dy: 0 },
 ];
-const DURATION = 200;
+const DURATION = 220;
 
 /**
  * A single, cheap pixel-clear flourish: an expanding ring plus four spark dots.
@@ -40,8 +44,8 @@ function PixelBurstComponent({ point, color, cell }: Omit<BurstSpec, 'key'>) {
   }, [t]);
 
   const ring = useAnimatedStyle(() => ({
-    opacity: (1 - t.value) * 0.7,
-    transform: [{ scale: 0.4 + t.value * 1.9 }],
+    opacity: (1 - t.value) * 0.85,
+    transform: [{ scale: 0.4 + t.value * 2.1 }],
   }));
 
   const reach = cell * 0.9;

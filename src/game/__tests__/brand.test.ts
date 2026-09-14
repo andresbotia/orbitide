@@ -17,17 +17,20 @@ const read = (rel: string) => readFileSync(join(repoRoot, rel), 'utf8');
 
 describe('Pixel Arcadia brand token layer', () => {
   it('exposes exactly the 11 approved colour tokens with the approved hex values', () => {
+    // NORTH-STAR REBUILD — retinted from a near-black purple foundation to a
+    // brighter royal-blue/indigo one (`theme/brand.ts`); these are the new
+    // approved values, not a regression against the old ones.
     expect(brandColor).toEqual({
-      background: '#07060D',
-      backgroundAlt: '#120E2A',
-      indigo: '#4B47C9',
-      violet: '#9A7BFF',
+      background: '#0E1442',
+      backgroundAlt: '#182055',
+      indigo: '#5450D6',
+      violet: '#A98CFF',
       portalWarm: '#FFB24D',
-      cyanAccent: '#4DE1FF',
-      textPrimary: '#EDEAF6',
-      textSecondary: '#948FB0',
-      surface: '#1A1730',
-      border: '#2A2440',
+      cyanAccent: '#3FE4FF',
+      textPrimary: '#F1EFFB',
+      textSecondary: '#ABA7D0',
+      surface: '#212A6E',
+      border: '#3D49A8',
       glow: '#FFB24D',
     });
     expect(Object.keys(brandColor)).toHaveLength(11);
@@ -43,7 +46,7 @@ describe('Pixel Arcadia brand token layer', () => {
       '#FFC94D',
       '#F2662E',
     ]);
-    expect(brandGradient.surface.stops.map((s) => s.color)).toEqual(['#231E3A', '#141126']);
+    expect(brandGradient.surface.stops.map((s) => s.color)).toEqual(['#2C3578', '#1A2158']);
     expect(brandGradient.background.kind).toBe('radial');
   });
 
@@ -151,14 +154,14 @@ describe('app config — display name over untouched technical identifiers', () 
   });
 
   it('wires the approved icon / splash / adaptive-icon brand colours', () => {
-    expect(cfg.expo.backgroundColor).toBe('#07060D');
+    expect(cfg.expo.backgroundColor).toBe('#0E1442');
     expect(cfg.expo.icon).toBe('./assets/icon.png');
-    expect(cfg.expo.android.adaptiveIcon.backgroundColor).toBe('#120E2A');
+    expect(cfg.expo.android.adaptiveIcon.backgroundColor).toBe('#182055');
     const splash = cfg.expo.plugins.find(
       (p): p is [string, { backgroundColor: string }] =>
         Array.isArray(p) && p[0] === 'expo-splash-screen',
     );
-    expect(splash?.[1].backgroundColor).toBe('#07060D');
+    expect(splash?.[1].backgroundColor).toBe('#0E1442');
   });
 });
 
@@ -167,7 +170,7 @@ describe('web metadata + favicon', () => {
 
   it('titles the document "Pixel Arcadia"', () => {
     expect(html).toMatch(/<title>\{PRODUCT_NAME\}<\/title>/);
-    expect(html).toMatch(/name="theme-color" content="#07060D"/);
+    expect(html).toMatch(/name="theme-color" content="#0E1442"/);
     expect(html).toMatch(/apple-touch-icon/);
   });
 

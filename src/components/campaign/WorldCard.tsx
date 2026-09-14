@@ -11,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import type { WorldSummary } from '@/game/levels/campaignProgress';
+import { BrandGradientView } from '@/components/brand/BrandGradientView';
 import { material } from '@/theme/material';
 import { radius, spacing, typography } from '@/theme/spacing';
 import { worldSkin } from '@/theme/worldSkins';
@@ -82,6 +83,8 @@ export function WorldCard({ summary, onPress, active = true }: WorldCardProps) {
         isFinale && !locked && styles.cardFinale,
       ]}
     >
+      <BrandGradientView token="surface" style={StyleSheet.absoluteFill} pointerEvents="none" />
+
       {/* Current-world breathing accent edge — never on locked/complete. */}
       <Animated.View pointerEvents="none" style={[styles.edge, { borderColor: accent }, edgeStyle]} />
 
@@ -130,11 +133,15 @@ export function WorldCard({ summary, onPress, active = true }: WorldCardProps) {
 function StateGlyph({ locked, complete, current, accent }: { locked: boolean; complete: boolean; current: boolean; accent: string }) {
   if (locked) {
     // A plain geometric lock (two stacked rects), not an emoji — consistent
-    // with the app's existing Unicode-glyph icon language elsewhere.
+    // with the app's existing Unicode-glyph icon language elsewhere. Housed in
+    // its own small badge so "locked" reads as one more piece of hardware on
+    // the card, not a flatly-dimmed dead area.
     return (
-      <View style={styles.lockGlyph} accessibilityElementsHidden>
-        <View style={styles.lockShackle} />
-        <View style={styles.lockBody} />
+      <View style={styles.lockBadge} accessibilityElementsHidden>
+        <View style={styles.lockGlyph}>
+          <View style={styles.lockShackle} />
+          <View style={styles.lockBody} />
+        </View>
       </View>
     );
   }
@@ -151,20 +158,24 @@ function StateGlyph({ locked, complete, current, accent }: { locked: boolean; co
   return null;
 }
 
-const MOTIF_HEIGHT = 64;
+// NORTH-STAR PHASE 2 — World Select moved from a vertical stack (every card's
+// motif squeezed to a thin strip so more rows fit on screen) to a horizontal
+// destination carousel (`WorldSelectScreen.tsx`) where only one card is ever
+// fully visible at once — so its own environmental artwork can actually
+// dominate, matching "large destination cards... colorful preview."
+const MOTIF_HEIGHT = 148;
 
 const styles = StyleSheet.create({
   card: {
     borderRadius: radius.lg,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderTopColor: material.bevelHighlight,
     borderLeftColor: material.bevelHighlight,
     borderRightColor: material.bevelShadow,
     borderBottomColor: material.bevelShadow,
-    backgroundColor: material.structuralSurface,
     overflow: 'hidden',
   },
-  cardLocked: { opacity: 0.62 },
+  cardLocked: { opacity: 0.74 },
   cardPressed: { transform: [{ translateY: 1 }], backgroundColor: material.raisedSurface },
   cardFinale: {
     borderTopColor: material.energyGlow,
@@ -211,6 +222,16 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 12, color: material.textSecondary },
   textMuted: { opacity: 0.75 },
   glyph: { fontSize: 18, color: material.textSecondary },
+  lockBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: material.recessedSurface,
+    borderWidth: 1,
+    borderColor: material.outline,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   lockGlyph: { width: 16, height: 19, alignItems: 'center' },
   lockShackle: {
     width: 10,

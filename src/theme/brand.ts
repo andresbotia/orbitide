@@ -18,27 +18,39 @@
 /*  11 brand colour tokens                                                     */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * NORTH-STAR REBUILD — retinted from a near-black purple foundation to a
+ * genuinely bright royal-blue/indigo one (the "too dark/generic sci-fi"
+ * gap called out against the reference mockups). Every screen that reads
+ * `material.background/structuralSurface/recessedSurface/bevelHighlight` (Home,
+ * World, Gameplay, HUD) inherits this automatically — this file is the one
+ * lever behind the whole app's brightness lift. Exact contrast-ratio figures
+ * from the original M3.6B deliverable are no longer accurate against these
+ * values and have been removed rather than left stale; light text stays
+ * comfortably readable against every background role here, but a full
+ * WCAG re-audit is a legitimate follow-up, not done as part of this pass.
+ */
 export const brandColor = {
-  /** Primary background. App root, splash, store fields. 16.9:1 vs text.primary. */
-  background: '#07060D',
+  /** Primary background. App root, splash, store fields. */
+  background: '#0E1442',
   /** Secondary background. Sheets, modals, adaptive-icon bg, favicon plate. */
-  backgroundAlt: '#120E2A',
-  /** Portal block base — structure, secondary buttons. Large-text only (3.1:1). */
-  indigo: '#4B47C9',
-  /** Block highlight, focus ring, link-adjacent accent. 6.4:1 on background. */
-  violet: '#9A7BFF',
-  /** Warm portal accent — ARCADIA, primary CTA, core. 11.2:1. Ink #07060D on it. */
+  backgroundAlt: '#182055',
+  /** Portal block base — structure, secondary buttons. */
+  indigo: '#5450D6',
+  /** Block highlight, focus ring, link-adjacent accent. */
+  violet: '#A98CFF',
+  /** Warm portal accent — ARCADIA, primary CTA, core. Ink #2A1405 on it. */
   portalWarm: '#FFB24D',
   /** Cool accent — rim light, links, informational marks. Never a CTA fill. */
-  cyanAccent: '#4DE1FF',
-  /** Headings, PIXEL wordmark, body copy. 16.9:1 on background. */
-  textPrimary: '#EDEAF6',
-  /** Sub-labels, metadata. 6.0:1 — floor for body copy. */
-  textSecondary: '#948FB0',
+  cyanAccent: '#3FE4FF',
+  /** Headings, PIXEL wordmark, body copy. */
+  textPrimary: '#F1EFFB',
+  /** Sub-labels, metadata. */
+  textSecondary: '#ABA7D0',
   /** Cards, HUD pills, secondary button base. */
-  surface: '#1A1730',
+  surface: '#212A6E',
   /** Hairlines, dividers, card edges. 1px. */
-  border: '#2A2440',
+  border: '#3D49A8',
   /** Radial glow tint. Decorative only — never carries meaning or contrast. */
   glow: '#FFB24D',
 } as const;
@@ -69,16 +81,20 @@ export interface BrandGradient {
 }
 
 export const brandGradient = {
-  /** Full-screen brand background. Every full-bleed brand surface. */
+  /**
+   * Full-screen brand background. Every full-bleed brand surface. Stops match
+   * the app-icon's own `arcade_backdrop` radial (`scripts/generate-brand-assets.py`)
+   * so the icon and the in-app Home/Splash wash read as the same environment.
+   */
   background: {
     kind: 'radial',
-    center: [50, 34],
+    center: [50, 40],
     radius: 130,
     stops: [
-      { at: 0, color: '#211546' },
-      { at: 0.45, color: '#120E2A' },
-      { at: 0.76, color: '#0A0817' },
-      { at: 1, color: '#06050E' },
+      { at: 0, color: '#564FC4' },
+      { at: 0.35, color: '#2E2884' },
+      { at: 0.68, color: '#16134A' },
+      { at: 1, color: '#09081A' },
     ],
   },
   /** Warm pixel core. Icon core, loading pulse, logo mark only. */
@@ -108,8 +124,8 @@ export const brandGradient = {
     kind: 'linear',
     angle: 165,
     stops: [
-      { at: 0, color: '#231E3A' },
-      { at: 1, color: '#141126' },
+      { at: 0, color: '#2C3578' },
+      { at: 1, color: '#1A2158' },
     ],
   },
 } as const satisfies Record<string, BrandGradient>;

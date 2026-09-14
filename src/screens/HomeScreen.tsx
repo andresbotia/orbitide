@@ -9,6 +9,7 @@ import { PixelArcadiaWordmark, PrimaryCta } from '@/components/brand';
 import { FloatingFragments } from '@/components/home/FloatingFragments';
 import { HomeCenterpiece } from '@/components/home/HomeCenterpiece';
 import { HomeEnvironment } from '@/components/home/HomeEnvironment';
+import { HomePixelPalHero } from '@/components/home/HomePixelPalHero';
 import { LevelBadge } from '@/components/home/LevelBadge';
 import { TopUtility } from '@/components/home/TopUtility';
 import { CAMPAIGN_MANIFEST } from '@/game/levels/campaign';
@@ -139,6 +140,7 @@ export function HomeScreen({ highestUnlockedLevel, loading, onPlay, onWorlds, on
                 reducedMotion={reducedMotion}
                 activation={activation}
               />
+              <HomePixelPalHero layout={layout} active={active} reducedMotion={reducedMotion} activation={activation} />
               {layout.showForeground ? (
                 <FloatingFragments layout={layout} active={active} reducedMotion={reducedMotion} />
               ) : null}
