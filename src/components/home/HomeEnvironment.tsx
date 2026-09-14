@@ -18,7 +18,7 @@ import { useHomeTilt } from '@/hooks/useHomeTilt';
 import { NEON, neonAlpha } from '@/theme/neon';
 
 import { CityLayer, FloorLayer, FxLayer, SkyLayer } from './environment';
-import { GRID_RATIO, HORIZON_RATIO } from './environment/sceneGeometry';
+import { GRID_RATIO, sceneFrame } from './environment/sceneGeometry';
 
 interface HomeEnvironmentProps {
   width: number;
@@ -65,8 +65,9 @@ const LOG_GRID_RATIO = Math.log(GRID_RATIO);
  * PIXEL ARCADIA HOME SCENE — neon skyline at dusk over a perspective grid.
  *
  * Back to front: sky, city, two floor copies, fx, then the legibility scrim.
- * Each layer is a static Skia picture in its own Animated.View; every frame of
- * motion is a transform or opacity on the UI thread, so nothing redraws.
+ * Each layer is static (painted art or a Skia picture) in its own
+ * Animated.View; every frame of motion is a transform or opacity on the UI
+ * thread, so nothing redraws.
  *
  * - Parallax drift: per-layer amplitude and period, sine-eased.
  * - Floor: a perspective grid cannot scroll with translateY, because rows must
@@ -144,8 +145,11 @@ export const HomeEnvironment = memo(function HomeEnvironment({
     }),
     [layerW, layerH, width, height],
   );
-  /** Offset from the layer centre (the RN transform origin) to the vanishing point. */
-  const vanishDy = Math.round(layerH * HORIZON_RATIO) - layerH / 2;
+  // Offset from the layer centre (the RN transform origin) to the vanishing
+  // point, which sits on the painted sun rather than at centre.
+  const frame = sceneFrame(layerW, layerH);
+  const vanishDx = frame.vanishX - layerW / 2;
+  const vanishDy = frame.horizon - layerH / 2;
 
   const skyStyle = useAnimatedStyle(() => ({
     transform: [
@@ -170,8 +174,8 @@ export const HomeEnvironment = memo(function HomeEnvironment({
     ],
   }));
 
-  const floorA = useFloorCopyStyle(floorDrift, floorPhase, tilt, 0, vanishDy);
-  const floorB = useFloorCopyStyle(floorDrift, floorPhase, tilt, 0.5, vanishDy);
+  const floorA = useFloorCopyStyle(floorDrift, floorPhase, tilt, 0, vanishDx, vanishDy);
+  const floorB = useFloorCopyStyle(floorDrift, floorPhase, tilt, 0.5, vanishDx, vanishDy);
 
   return (
     <View pointerEvents="none" style={styles.clip}>
@@ -222,6 +226,7 @@ function useFloorCopyStyle(
   phase: SharedValue<number>,
   tilt: DeviceTilt,
   offset: number,
+  vanishDx: number,
   vanishDy: number,
 ) {
   return useAnimatedStyle(() => {
@@ -230,9 +235,10 @@ function useFloorCopyStyle(
     return {
       opacity: fade * fade,
       transform: [
-        { translateX: drift.get() * PARALLAX.floor.drift - tilt.x.get() * PARALLAX.floor.tilt },
+        { translateX: drift.get() * PARALLAX.floor.drift - tilt.x.get() * PARALLAX.floor.tilt + vanishDx },
         { translateY: -tilt.y.get() * PARALLAX.floor.tilt + vanishDy },
         { scale: Math.exp(q * LOG_GRID_RATIO) },
+        { translateX: -vanishDx },
         { translateY: -vanishDy },
       ],
     };

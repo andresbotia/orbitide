@@ -9,6 +9,16 @@
 export const HORIZON_RATIO = 0.52;
 
 /**
+ * Vanishing point x as a fraction of layer width: the sun's centre in
+ * assets/home-sky.png, so the floor grid converges on the painted sun. The art
+ * and the floor share one overscanned frame, so this holds on every width.
+ */
+export const VANISH_X_RATIO = 0.339;
+
+/** Intrinsic size of the registered Home art (home-sky.png, home-city-b.png). */
+export const HOME_ART = { width: 1254, height: 1570 } as const;
+
+/**
  * Ratio between adjacent grid-row distances from the horizon. Rows form a pure
  * geometric series, so scaling the floor by exactly this much about the
  * vanishing point lands row i on row i+1 — the loop reset is invisible.
@@ -41,10 +51,22 @@ export function sceneFrame(width: number, height: number): SceneFrame {
     width,
     height,
     horizon,
-    vanishX: width / 2,
+    vanishX: width * VANISH_X_RATIO,
     floorHeight: height - horizon,
     sunRadius: Math.round(width * 0.17),
   };
+}
+
+/**
+ * Box for the registered sky/city art: full layer width at the art's intrinsic
+ * aspect, bottom edge on the horizon. At that aspect resizeMode="cover" crops
+ * nothing, so the art's bottom row lands exactly on the grid's horizon and its
+ * sun on the vanishing point, on every device height. Anything above the art's
+ * top edge falls back to the screen's inkDeep ground.
+ */
+export function artBox(frame: SceneFrame): Rect {
+  const h = (frame.width * HOME_ART.height) / HOME_ART.width;
+  return { x: 0, y: frame.horizon - h, w: frame.width, h };
 }
 
 const n = (v: number) => v.toFixed(1);

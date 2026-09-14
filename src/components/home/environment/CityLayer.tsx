@@ -1,10 +1,14 @@
-import { Canvas, Group, Path, Rect, RoundedRect } from '@shopify/react-native-skia';
 import { memo, useMemo } from 'react';
-import { StyleSheet } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 
-import { NEON, neonAlpha } from '@/theme/neon';
+import { NEON } from '@/theme/neon';
 
-import { neonSigns, palms, sceneFrame, skyline } from './sceneGeometry';
+import { artBox, sceneFrame } from './sceneGeometry';
+
+const CITY_SOURCE = require('../../../../assets/home-city-b.png') as number;
+
+/** Dark strip below the skyline; see the footing note in the render. */
+const FOOTING_HEIGHT = 16;
 
 interface CityLayerProps {
   width: number;
@@ -12,74 +16,47 @@ interface CityLayerProps {
 }
 
 /**
- * CITY — skyline silhouettes, dim window grids, unlit sign housings, palms.
+ * CITY — painted skyline and palms (assets/home-city-b.png, transparent,
+ * 1254 x 1570).
  *
- * Everything here is ambient and stays dark: sign panels are drawn with only a
- * faint edge. Their lit tubes live in FxLayer so flicker can animate them
- * without touching the skyline.
+ * Registered with home-sky.png: same size, same origin, laid out by the same
+ * `artBox`, so at rest it composites directly over the sky at 0,0 with its
+ * bottom row on the horizon.
  *
- * ── PNG SWAP POINT ────────────────────────────────────────────────────────
- * To replace this layer with a pre-rendered raster, swap the whole <Canvas>
- * below for:
- *     <Image source={require('../../../../assets/home/city.png')}
- *            resizeMode="cover" style={StyleSheet.absoluteFill} />
- * The raster must be transparent above the skyline. HomeEnvironment owns the
- * transforms, so the animation code is untouched.
+ * ── SKIA SWAP POINT ───────────────────────────────────────────────────────
+ * To switch back to the procedural Skia city, replace the returned <View> with:
+ *     <CitySkiaLayer width={width} height={height} />
+ * imported from './CitySkiaLayer'. HomeEnvironment owns the transforms, so the
+ * animation code is untouched.
  * ──────────────────────────────────────────────────────────────────────────
  */
 export const CityLayer = memo(function CityLayer({ width, height }: CityLayerProps) {
-  const frame = useMemo(() => sceneFrame(width, height), [width, height]);
-  const buildings = useMemo(() => skyline(frame), [frame]);
-  const signs = useMemo(() => neonSigns(frame), [frame]);
-  const trees = useMemo(() => palms(frame), [frame]);
+  const box = useMemo(() => artBox(sceneFrame(width, height)), [width, height]);
 
   return (
-    <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Image
+        source={CITY_SOURCE}
+        resizeMode="cover"
+        style={[styles.art, { left: box.x, top: box.y, width: box.w, height: box.h }]}
+      />
       {/* Footing under the skyline. The city tilts further than the sky, so
           without this the buildings would lift off the horizon and show the
-          warm band beneath them. */}
-      <Rect x={0} y={frame.horizon} width={width} height={16} color={NEON.inkDeep} />
-
-      {buildings.map((b, i) => (
-        <Group key={`bld-${i}`}>
-          <Rect x={b.x} y={b.y} width={b.w} height={b.h} color={NEON.ink} />
-          {/* Rim light: one px of pale cyan along the roofline. */}
-          <Rect x={b.x} y={b.y} width={b.w} height={1} color={neonAlpha(NEON.cyanPale, 0.18)} />
-          {b.windows.map((w, j) => (
-            <Rect
-              key={`win-${i}-${j}`}
-              x={w.x}
-              y={w.y}
-              width={w.w}
-              height={w.h}
-              color={neonAlpha(j % 3 === 0 ? NEON.cyan : NEON.gold, 0.32)}
-            />
-          ))}
-        </Group>
-      ))}
-
-      {signs.map((s, i) => (
-        <Group key={`housing-${i}`}>
-          <RoundedRect x={s.x} y={s.y} width={s.w} height={s.h} r={4} color={NEON.inkDeep} />
-          <RoundedRect
-            x={s.x}
-            y={s.y}
-            width={s.w}
-            height={s.h}
-            r={4}
-            style="stroke"
-            strokeWidth={1}
-            color={neonAlpha(NEON[s.tone], 0.25)}
-          />
-        </Group>
-      ))}
-
-      {trees.map((p, i) => (
-        <Group key={`palm-${i}`}>
-          <Path path={p.trunk} style="stroke" strokeWidth={4} strokeCap="round" color={NEON.inkDeep} />
-          <Path path={p.fronds} style="stroke" strokeWidth={3} strokeCap="round" color={NEON.inkDeep} />
-        </Group>
-      ))}
-    </Canvas>
+          sky's bottom band beneath them. */}
+      <View style={[styles.footing, { top: box.y + box.h }]} />
+    </View>
   );
+});
+
+const styles = StyleSheet.create({
+  art: {
+    position: 'absolute',
+  },
+  footing: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: FOOTING_HEIGHT,
+    backgroundColor: NEON.inkDeep,
+  },
 });
