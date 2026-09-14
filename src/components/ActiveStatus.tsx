@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { material } from '@/theme/material';
@@ -7,7 +8,7 @@ import { radius, spacing } from '@/theme/spacing';
  * Compact Core V2 active-occupancy readout. Sits under the board/rail and
  * above Holding — not in the top header. Capacity is passed in; never hardcoded.
  */
-export function ActiveStatus({ count, capacity }: { count: number; capacity: number }) {
+export const ActiveStatus = memo(function ActiveStatus({ count, capacity }: { count: number; capacity: number }) {
   if (capacity <= 0) return null;
   return (
     <View
@@ -20,7 +21,7 @@ export function ActiveStatus({ count, capacity }: { count: number; capacity: num
       <Text style={styles.text}>ACTIVE {count}/{capacity}</Text>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrap: {

@@ -2,8 +2,10 @@ import type { GameState } from '@/game/engine/types';
 import { ORBIT_ENTRY_FRACTION } from '@/game/engine/orbit';
 import {
   ROUNDED_PERIMETER_BOTTOM_CENTER_PROGRESS,
+  measureRoundedPerimeter,
   pointAtRoundedPerimeterProgress,
   type RoundedPerimeterBounds,
+  type RoundedPerimeterMetrics,
 } from '@/game/geometry/roundedPerimeter';
 
 /**
@@ -125,6 +127,11 @@ export interface BoardGeometry {
    * instead of the circular `orbit` above. Legacy V1 geometry never sets this.
    */
   perimeter?: RoundedPerimeterBounds;
+  /**
+   * Precomputed path metrics for {@link perimeter}. Presentation worklets
+   * read this instead of re-measuring the bounds every frame.
+   */
+  perimeterMetrics?: RoundedPerimeterMetrics;
 
   /** Board-relative hint for where the Holding row sits (below the rail). */
   holdingAnchor: Point;
@@ -254,7 +261,7 @@ export function computeBoardGeometry(
     holdingAnchor,
     tunnelRegion,
     adaptive: pixelAdaptive(density),
-    ...(perimeter ? { perimeter } : {}),
+    ...(perimeter ? { perimeter, perimeterMetrics: measureRoundedPerimeter(perimeter) } : {}),
   };
 }
 

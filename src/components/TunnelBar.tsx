@@ -43,7 +43,7 @@ interface TunnelBarProps {
  * has (Legacy V1: 3, Core V2: 4). Each magazine shows the loaded front plus a
  * bounded upcoming preview; the hidden queue tail stays in engine state.
  */
-export function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayout, layoutVersion, tutorial }: TunnelBarProps) {
+export const TunnelBar = memo(function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayout, layoutVersion, tutorial }: TunnelBarProps) {
   const charges = visibleCharges(state);
   const upcoming = upcomingPreviewCount(state.ruleset);
   const pixelPal = isCoreV2(state.ruleset);
@@ -70,7 +70,16 @@ export function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayo
       ))}
     </View>
   );
-}
+}, (prev, next) => (
+  prev.state.tunnels === next.state.tunnels
+  && prev.state.ruleset === next.state.ruleset
+  && prev.disabled === next.disabled
+  && prev.layoutVersion === next.layoutVersion
+  && prev.colorAssist === next.colorAssist
+  && prev.onLaunch === next.onLaunch
+  && prev.onSourceLayout === next.onSourceLayout
+  && prev.tutorial === next.tutorial
+));
 
 const Tunnel = memo(function Tunnel({
   index, tunnelId, charge, tunnel, upcoming, disabled, colorAssist, pixelPal, onLaunch, onSourceLayout, layoutVersion,

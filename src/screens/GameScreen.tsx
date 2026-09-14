@@ -109,10 +109,22 @@ export function GameScreen({
     completedTutorials: tutorials.ready ? tutorials.completed : null,
     onTutorialComplete: tutorials.markComplete,
   });
-  const { state } = session;
+  const { state, launch, launchHeld } = session;
   const won = state.status === 'won';
-  const holdingSlotPoints = (): (Point | undefined)[] =>
-    Array.from({ length: state.holdingCapacity }, (_, index) => boardPoint(`holding-${index}`));
+  const holdingCapacity = state.holdingCapacity;
+  const holding = state.holding;
+  const launchTunnelPal = useCallback((id: string) => {
+    const slots = Array.from({ length: holdingCapacity }, (_, index) => boardPoint(`holding-${index}`));
+    launch(id, boardPoint(id), slots);
+  }, [launch, holdingCapacity]);
+  const launchHeldPal = useCallback((id: string) => {
+    const slots = Array.from({ length: holdingCapacity }, (_, index) => boardPoint(`holding-${index}`));
+    launchHeld(
+      id,
+      boardPoint(`holding-${holding.findIndex((c) => c.id === id)}`),
+      slots,
+    );
+  }, [launchHeld, holding, holdingCapacity]);
 
   // Lightweight, non-modal teaching cue (Level 21's Frozen intro). Shows while
   // the level still has all its ice and the player is in their first few moves;
@@ -197,8 +209,12 @@ export function GameScreen({
     });
   }, []);
 
-  const colors = new Set(reachablePixels(state).map((p) => p.color));
-  const usefulIds = new Set(state.holding.filter((c) => colors.has(c.color)).map((c) => c.id));
+  const usefulIds = useMemo(() => {
+    const colors = new Set(reachablePixels(state).map((p) => p.color));
+    return new Set(holding.filter((c) => colors.has(c.color)).map((c) => c.id));
+  // View state is a new object on every shot; pixels/holding are the inputs that matter.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.pixels, holding, state.width, state.height]);
   const next = nextLevelId(levelId);
   // M2B: launching is allowed while charges orbit — only the full rail or a
   // finished level closes the controls.
@@ -289,11 +305,7 @@ export function GameScreen({
           colorAssist={colorAssist}
           pixelPal={isCoreV2(state.ruleset)}
           onSourceLayout={onSourceLayout}
-          onLaunch={(id) => session.launchHeld(
-            id,
-            boardPoint(`holding-${state.holding.findIndex((c) => c.id === id)}`),
-            holdingSlotPoints(),
-          )}
+          onLaunch={launchHeldPal}
           message={session.message}
           tutorial={session.tutorial}
         />
@@ -304,7 +316,7 @@ export function GameScreen({
           disabled={controlsLocked}
           colorAssist={colorAssist}
           onSourceLayout={onSourceLayout}
-          onLaunch={(id) => session.launch(id, boardPoint(id), holdingSlotPoints())}
+          onLaunch={launchTunnelPal}
           tutorial={session.tutorial}
         />
 

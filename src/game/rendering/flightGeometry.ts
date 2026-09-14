@@ -4,11 +4,108 @@ import { LAUNCH_HUB } from '@/game/presentation/constants';
 import type { FlightPass } from '@/game/presentation/events';
 import {
   normalizePerimeterProgress,
-  pointAtRoundedPerimeterProgress,
-  inwardNormalAtRoundedPerimeterProgress,
-  tangentAtRoundedPerimeterProgress,
+  pointAtMeasuredPerimeterProgress,
+  inwardNormalAtMeasuredPerimeterProgress,
+  tangentAtMeasuredPerimeterProgress,
 } from '@/game/geometry/roundedPerimeter';
 import type { BoardGeometry, Point } from './boardGeometry';
+
+/** TUNABLE — presentation-only corner-lean cap for {@link flightBankDegrees}. */
+const MAX_BANK_DEG = 9;
+/** Small forward/back progress step used to sense curvature (corner vs straight). */
+const BANK_SAMPLE_DELTA = 0.006;
+
+export interface FlightPose {
+  x: number;
+  y: number;
+  heading: number;
+  bank: number;
+}
+
+/**
+ * Position + heading + bank from one progress sample and precomputed numeric
+ * perimeter metrics. This function is an exported worklet and must only call
+ * other imported worklets — Reanimated does not copy private same-file
+ * helpers onto the UI runtime.
+ */
+export function flightPose(
+  pass: FlightPass,
+  layout: BoardGeometry,
+  time: number,
+  radialOffset = 0,
+): FlightPose {
+  'worklet';
+  const hub = layout.launchHub;
+  const insertion = layout.insertion;
+
+  if (time < pass.liftMs) {
+    const from = pass.from ?? { x: layout.center.x + (pass.sourceIndex - 1) * 80, y: layout.size + 50 };
+    const seatStart = LAUNCH_HUB.APPROACH;
+    const insertionStart = LAUNCH_HUB.APPROACH + LAUNCH_HUB.SEAT;
+    if (time <= seatStart) {
+      const p = Math.max(0, time / LAUNCH_HUB.APPROACH);
+      const e = 1 - (1 - p) ** 2;
+      return { x: from.x + (hub.x - from.x) * e, y: from.y + (hub.y - from.y) * e, heading: 0, bank: 0 };
+    }
+    if (time <= insertionStart) {
+      return { x: hub.x, y: hub.y, heading: 0, bank: 0 };
+    }
+    const p = Math.max(0, Math.min(1, (time - insertionStart) / LAUNCH_HUB.TO_INSERTION));
+    const e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
+    return { x: hub.x + (insertion.x - hub.x) * e, y: hub.y + (insertion.y - hub.y) * e, heading: 0, bank: 0 };
+  }
+
+  const progress = progressAt(pass, time);
+  const metrics = layout.perimeterMetrics;
+  let x: number;
+  let y: number;
+  let heading = 0;
+  let bank = 0;
+
+  if (metrics) {
+    const t = normalizePerimeterProgress(orbitFraction(progress));
+    const base = pointAtMeasuredPerimeterProgress(metrics, t);
+    if (radialOffset) {
+      const inward = inwardNormalAtMeasuredPerimeterProgress(metrics, t);
+      x = base.x - inward.x * radialOffset;
+      y = base.y - inward.y * radialOffset;
+    } else {
+      x = base.x;
+      y = base.y;
+    }
+    const tangent = tangentAtMeasuredPerimeterProgress(metrics, t);
+    heading = Math.atan2(tangent.y, tangent.x);
+    const behind = normalizePerimeterProgress(t - BANK_SAMPLE_DELTA);
+    const ahead = normalizePerimeterProgress(t + BANK_SAMPLE_DELTA);
+    const a = tangentAtMeasuredPerimeterProgress(metrics, behind);
+    const b = tangentAtMeasuredPerimeterProgress(metrics, ahead);
+    let dTheta = Math.atan2(b.y, b.x) - Math.atan2(a.y, a.x);
+    if (dTheta > Math.PI) dTheta -= Math.PI * 2;
+    if (dTheta < -Math.PI) dTheta += Math.PI * 2;
+    const deg = (dTheta / (BANK_SAMPLE_DELTA * 2)) * (MAX_BANK_DEG / 90);
+    bank = Math.max(-MAX_BANK_DEG, Math.min(MAX_BANK_DEG, deg));
+  } else {
+    const angle = orbitFraction(progress) * Math.PI * 2 - Math.PI / 2;
+    x = layout.center.x + Math.cos(angle) * (layout.orbit[0]!.rx + radialOffset);
+    y = layout.center.y + Math.sin(angle) * (layout.orbit[0]!.ry + radialOffset);
+  }
+
+  if (time > pass.orbitEndAt && pass.endKind === 'toHolding') {
+    const to = pass.holdingTarget ?? { x: layout.center.x, y: layout.size + 100 };
+    if (metrics && progress < pass.endProgress - 1e-6) {
+      return { x, y, heading, bank };
+    }
+    const from = metrics ? insertion : { x, y };
+    const p = Math.min(1, (time - pass.orbitEndAt) / Math.max(1, pass.landingAt - pass.orbitEndAt));
+    return {
+      x: from.x + (to.x - from.x) * p,
+      y: from.y + (to.y - from.y) * p,
+      heading,
+      bank,
+    };
+  }
+  return { x, y, heading, bank };
+}
 
 /**
  * The single position function used by the rendered charge AND every projectile.
@@ -35,53 +132,49 @@ export function flightPosition(
     const from = pass.from ?? { x: layout.center.x + (pass.sourceIndex - 1) * 80, y: layout.size + 50 };
     const seatStart = LAUNCH_HUB.APPROACH;
     const insertionStart = LAUNCH_HUB.APPROACH + LAUNCH_HUB.SEAT;
-
     if (time <= seatStart) {
       const p = Math.max(0, time / LAUNCH_HUB.APPROACH);
-      const e = 1 - (1 - p) ** 2; // ease-out
+      const e = 1 - (1 - p) ** 2;
       return { x: from.x + (hub.x - from.x) * e, y: from.y + (hub.y - from.y) * e };
     }
     if (time <= insertionStart) {
       return { x: hub.x, y: hub.y };
     }
     const p = Math.max(0, Math.min(1, (time - insertionStart) / LAUNCH_HUB.TO_INSERTION));
-    const e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2; // ease-in-out
+    const e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
     return { x: hub.x + (insertion.x - hub.x) * e, y: hub.y + (insertion.y - hub.y) * e };
   }
 
-  // radialOffset is a presentation-only lane nudge so near-overlapping charges
-  // stay readable; it never touches engine geometry (spec §12).
-  let point: Point;
-  if (layout.perimeter) {
-    const t = normalizePerimeterProgress(orbitFraction(progressAt(pass, time)));
-    const base = pointAtRoundedPerimeterProgress(layout.perimeter, t);
+  const progress = progressAt(pass, time);
+  const metrics = layout.perimeterMetrics;
+  let x: number;
+  let y: number;
+
+  if (metrics) {
+    const t = normalizePerimeterProgress(orbitFraction(progress));
+    const base = pointAtMeasuredPerimeterProgress(metrics, t);
     if (radialOffset) {
-      const inward = inwardNormalAtRoundedPerimeterProgress(layout.perimeter, t);
-      point = { x: base.x - inward.x * radialOffset, y: base.y - inward.y * radialOffset };
+      const inward = inwardNormalAtMeasuredPerimeterProgress(metrics, t);
+      x = base.x - inward.x * radialOffset;
+      y = base.y - inward.y * radialOffset;
     } else {
-      point = base;
+      x = base.x;
+      y = base.y;
     }
   } else {
-    const angle = orbitFraction(progressAt(pass, time)) * Math.PI * 2 - Math.PI / 2;
-    point = { x: layout.center.x + Math.cos(angle) * (layout.orbit[0]!.rx + radialOffset),
-      y: layout.center.y + Math.sin(angle) * (layout.orbit[0]!.ry + radialOffset) };
+    const angle = orbitFraction(progress) * Math.PI * 2 - Math.PI / 2;
+    x = layout.center.x + Math.cos(angle) * (layout.orbit[0]!.rx + radialOffset);
+    y = layout.center.y + Math.sin(angle) * (layout.orbit[0]!.ry + radialOffset);
   }
+
   if (time > pass.orbitEndAt && pass.endKind === 'toHolding') {
     const to = pass.holdingTarget ?? { x: layout.center.x, y: layout.size + 100 };
-    // Core V2: never cut off the rail. Stay on the perimeter until presented
-    // progress has actually reached the bottom-center exit, then depart from
-    // that gate — not from whatever rail point we happen to occupy.
-    if (layout.perimeter) {
-      const progress = progressAt(pass, time);
-      if (progress < pass.endProgress - 1e-6) return point;
-      const from = layout.insertion;
-      const p = Math.min(1, (time - pass.orbitEndAt) / Math.max(1, pass.landingAt - pass.orbitEndAt));
-      return { x: from.x + (to.x - from.x) * p, y: from.y + (to.y - from.y) * p };
-    }
-    const p = Math.min(1, (time - pass.orbitEndAt) / (pass.landingAt - pass.orbitEndAt));
-    return { x: point.x + (to.x - point.x) * p, y: point.y + (to.y - point.y) * p };
+    if (metrics && progress < pass.endProgress - 1e-6) return { x, y };
+    const from = metrics ? insertion : { x, y };
+    const p = Math.min(1, (time - pass.orbitEndAt) / Math.max(1, pass.landingAt - pass.orbitEndAt));
+    return { x: from.x + (to.x - from.x) * p, y: from.y + (to.y - from.y) * p };
   }
-  return point;
+  return { x, y };
 }
 
 /**
@@ -106,16 +199,11 @@ export function liftPhase(pass: FlightPass, time: number): number {
  */
 export function flightHeading(pass: FlightPass, layout: BoardGeometry, time: number): number {
   'worklet';
-  if (!layout.perimeter || time < pass.liftMs) return 0;
+  if (!layout.perimeterMetrics || time < pass.liftMs) return 0;
   const t = normalizePerimeterProgress(orbitFraction(progressAt(pass, time)));
-  const tangent = tangentAtRoundedPerimeterProgress(layout.perimeter, t);
+  const tangent = tangentAtMeasuredPerimeterProgress(layout.perimeterMetrics, t);
   return Math.atan2(tangent.y, tangent.x);
 }
-
-/** TUNABLE — presentation-only corner-lean cap for {@link flightBankDegrees}. */
-const MAX_BANK_DEG = 9;
-/** Small forward/back progress step used to sense curvature (corner vs straight). */
-const BANK_SAMPLE_DELTA = 0.006;
 
 /**
  * M5.3 — subtle bank/lean (degrees) through rounded corners: proportional to
@@ -124,12 +212,12 @@ const BANK_SAMPLE_DELTA = 0.006;
  */
 export function flightBankDegrees(pass: FlightPass, layout: BoardGeometry, time: number): number {
   'worklet';
-  if (!layout.perimeter || time < pass.liftMs) return 0;
+  if (!layout.perimeterMetrics || time < pass.liftMs) return 0;
   const t = normalizePerimeterProgress(orbitFraction(progressAt(pass, time)));
   const behind = normalizePerimeterProgress(t - BANK_SAMPLE_DELTA);
   const ahead = normalizePerimeterProgress(t + BANK_SAMPLE_DELTA);
-  const a = tangentAtRoundedPerimeterProgress(layout.perimeter, behind);
-  const b = tangentAtRoundedPerimeterProgress(layout.perimeter, ahead);
+  const a = tangentAtMeasuredPerimeterProgress(layout.perimeterMetrics, behind);
+  const b = tangentAtMeasuredPerimeterProgress(layout.perimeterMetrics, ahead);
   let dTheta = Math.atan2(b.y, b.x) - Math.atan2(a.y, a.x);
   if (dTheta > Math.PI) dTheta -= Math.PI * 2;
   if (dTheta < -Math.PI) dTheta += Math.PI * 2;

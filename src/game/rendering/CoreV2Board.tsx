@@ -64,21 +64,7 @@ export function CoreV2Board({ size, state, flights, presentThrough, colorAssist,
 
   return (
     <View style={{ width: size, height: size, overflow: 'visible' }}>
-      <Canvas style={StyleSheet.absoluteFill}>
-        {/* Brighter navy/indigo field (spec §13) — a richer, more luminous
-            base than Legacy V1's darker circular-rail plane. */}
-        <Rect x={0} y={0} width={size} height={size}>
-          <RadialGradient
-            c={vec(geo.center.x, geo.center.y)}
-            r={size * 0.7}
-            colors={[coreV2Board.fieldCenter, coreV2Board.fieldEdge]}
-          />
-        </Rect>
-        <Group>
-          <RoundedRail geo={geo} />
-          <RoundedLauncherGate geo={geo} />
-        </Group>
-      </Canvas>
+      <CoreV2Field geo={geo} size={size} />
 
       <BoardActors
         state={state}
@@ -103,6 +89,25 @@ export function CoreV2Board({ size, state, flights, presentThrough, colorAssist,
     </View>
   );
 }
+
+/** Static Skia field + rail. Memoised so pixel-clear React updates don't redraw it. */
+const CoreV2Field = memo(function CoreV2Field({ geo, size }: { geo: BoardGeometry; size: number }) {
+  return (
+    <Canvas style={StyleSheet.absoluteFill}>
+      <Rect x={0} y={0} width={size} height={size}>
+        <RadialGradient
+          c={vec(geo.center.x, geo.center.y)}
+          r={size * 0.7}
+          colors={[coreV2Board.fieldCenter, coreV2Board.fieldEdge]}
+        />
+      </Rect>
+      <Group>
+        <RoundedRail geo={geo} />
+        <RoundedLauncherGate geo={geo} />
+      </Group>
+    </Canvas>
+  );
+});
 
 /**
  * One in-flight Pixel Pal: its own linear UI-thread clock, the

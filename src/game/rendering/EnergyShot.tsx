@@ -37,17 +37,17 @@ export const EnergyShot = memo(function EnergyShot({ pass, layout, clock, laneOf
 
   const streak = useAnimatedStyle(() => {
     const shot = active.value;
-    if (!shot) return { opacity: 0 };
+    const t = clock.value;
+    if (!shot || t < shot.fireAt || t >= shot.impactAt) return { opacity: 0 };
     const from = flightPosition(pass, layout, shot.fireAt, laneOffset);
     const target = {
       x: layout.gridOrigin.x + (shot.target.x + 0.5) * layout.cell,
       y: layout.gridOrigin.y + (shot.target.y + 0.5) * layout.cell,
     };
     const angle = Math.atan2(target.y - from.y, target.x - from.x);
-    const t = clock.value;
     const p = Math.max(0, Math.min(1, (t - shot.fireAt) / Math.max(1, shot.impactAt - shot.fireAt)));
     return {
-      opacity: (t >= shot.fireAt && t < shot.impactAt ? 1 : 0) * depth,
+      opacity: depth,
       transform: [
         { translateX: from.x + (target.x - from.x) * p - length / 2 },
         { translateY: from.y + (target.y - from.y) * p - 2 },
@@ -58,11 +58,11 @@ export const EnergyShot = memo(function EnergyShot({ pass, layout, clock, laneOf
 
   const flash = useAnimatedStyle(() => {
     const shot = active.value;
-    if (!shot) return { opacity: 0 };
     const t = clock.value;
+    if (!shot || t < shot.impactAt || t > shot.clearAt + 120) return { opacity: 0 };
     const pop = Math.max(0, Math.min(1, (t - shot.clearAt) / 120));
     return {
-      opacity: t < shot.impactAt ? 0 : (1 - pop) * 0.95 * depth,
+      opacity: (1 - pop) * 0.95 * depth,
       transform: [
         { translateX: layout.gridOrigin.x + shot.target.x * layout.cell - layout.cell * 0.15 },
         { translateY: layout.gridOrigin.y + shot.target.y * layout.cell - layout.cell * 0.15 },

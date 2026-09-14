@@ -345,6 +345,13 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     );
   }, [level, commitTutorial]);
 
+  const launch = useCallback((id: string, from?: Point, holdingSlots?: (Point | undefined)[]) => {
+    perform({ kind: 'tunnel', id }, from, holdingSlots);
+  }, [perform]);
+  const launchHeld = useCallback((id: string, from?: Point, holdingSlots?: (Point | undefined)[]) => {
+    perform({ kind: 'holding', id }, from, holdingSlots);
+  }, [perform]);
+
   const cap = engineState.activeCapacity || DEFAULT_ACTIVE_CAPACITY;
   return {
     state, engineState, locked: flights.length >= cap,
@@ -354,8 +361,8 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     activeCapacity: cap,
     message,
     tutorial: toTutorialView(tutorial),
-    launch: (id, from, target) => perform({ kind: 'tunnel', id }, from, target),
-    launchHeld: (id, from, target) => perform({ kind: 'holding', id }, from, target),
+    launch,
+    launchHeld,
     presentThrough, restart,
   };
 }

@@ -78,7 +78,8 @@ export function clampCornerRadius(width: number, height: number, radius: number)
   return radius < max ? radius : max;
 }
 
-interface PerimeterMetrics {
+/** Flattened path metrics. Safe to capture in worklets; no methods. */
+export interface RoundedPerimeterMetrics {
   x: number;
   y: number;
   width: number;
@@ -99,13 +100,15 @@ interface PerimeterMetrics {
   cyTL: number;
 }
 
+type PerimeterMetrics = RoundedPerimeterMetrics;
+
 interface LocatedSegment {
   index: number;
   t: number;
 }
 
 /** Plain numeric layout. Worklet-safe; no function objects. */
-function measurePerimeter(bounds: RoundedPerimeterBounds): PerimeterMetrics {
+export function measureRoundedPerimeter(bounds: RoundedPerimeterBounds): RoundedPerimeterMetrics {
   'worklet';
   const x = Number.isFinite(bounds.x) ? bounds.x : 0;
   const y = Number.isFinite(bounds.y) ? bounds.y : 0;
@@ -260,15 +263,42 @@ export function roundedPerimeterLength(bounds: RoundedPerimeterBounds): number {
   return createRoundedPerimeterGeometry(bounds).length;
 }
 
+export function pointAtMeasuredPerimeterProgress(
+  m: RoundedPerimeterMetrics,
+  progress: number,
+): Point {
+  'worklet';
+  if (m.length <= 0) return { x: m.x, y: m.y };
+  const loc = locateOnPerimeter(m, progress);
+  return pointOnPerimeter(m, loc.index, loc.t);
+}
+
+export function inwardNormalAtMeasuredPerimeterProgress(
+  m: RoundedPerimeterMetrics,
+  progress: number,
+): Point {
+  'worklet';
+  if (m.length <= 0) return { x: 0, y: 1 };
+  const loc = locateOnPerimeter(m, progress);
+  return inwardOnPerimeter(m, loc.index, loc.t);
+}
+
+export function tangentAtMeasuredPerimeterProgress(
+  m: RoundedPerimeterMetrics,
+  progress: number,
+): Point {
+  'worklet';
+  if (m.length <= 0) return { x: 1, y: 0 };
+  const loc = locateOnPerimeter(m, progress);
+  return tangentOnPerimeter(m, loc.index, loc.t);
+}
+
 export function pointAtRoundedPerimeterProgress(
   bounds: RoundedPerimeterBounds,
   progress: number,
 ): Point {
   'worklet';
-  const m = measurePerimeter(bounds);
-  if (m.length <= 0) return { x: m.x, y: m.y };
-  const loc = locateOnPerimeter(m, progress);
-  return pointOnPerimeter(m, loc.index, loc.t);
+  return pointAtMeasuredPerimeterProgress(measureRoundedPerimeter(bounds), progress);
 }
 
 export function inwardNormalAtRoundedPerimeterProgress(
@@ -276,10 +306,7 @@ export function inwardNormalAtRoundedPerimeterProgress(
   progress: number,
 ): Point {
   'worklet';
-  const m = measurePerimeter(bounds);
-  if (m.length <= 0) return { x: 0, y: 1 };
-  const loc = locateOnPerimeter(m, progress);
-  return inwardOnPerimeter(m, loc.index, loc.t);
+  return inwardNormalAtMeasuredPerimeterProgress(measureRoundedPerimeter(bounds), progress);
 }
 
 export function tangentAtRoundedPerimeterProgress(
@@ -287,10 +314,7 @@ export function tangentAtRoundedPerimeterProgress(
   progress: number,
 ): Point {
   'worklet';
-  const m = measurePerimeter(bounds);
-  if (m.length <= 0) return { x: 1, y: 0 };
-  const loc = locateOnPerimeter(m, progress);
-  return tangentOnPerimeter(m, loc.index, loc.t);
+  return tangentAtMeasuredPerimeterProgress(measureRoundedPerimeter(bounds), progress);
 }
 
 export function segmentAtRoundedPerimeterProgress(
@@ -324,7 +348,7 @@ export interface RoundedPerimeterGeometry {
 export function createRoundedPerimeterGeometry(
   bounds: RoundedPerimeterBounds,
 ): RoundedPerimeterGeometry {
-  const m = measurePerimeter(bounds);
+  const m = measureRoundedPerimeter(bounds);
   const { x, y, width, height, radius, length } = m;
   const parts: readonly Part[] = [
     { id: 'top', length: m.halfH },

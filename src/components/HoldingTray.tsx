@@ -47,7 +47,7 @@ interface HoldingTrayProps {
  * Holding tray — slot count comes from `capacity` (Legacy V1: 3, Core V2: 4).
  * Pressure uses `capacity - 1` / `capacity`, not hardcoded 2/3.
  */
-export function HoldingTray({
+export const HoldingTray = memo(function HoldingTray({
   holding, capacity, overflow, disabled, usefulIds, colorAssist, onLaunch, onSourceLayout, message, layoutVersion, boosterSlot, pixelPal,
   tutorial,
 }: HoldingTrayProps) {
@@ -109,7 +109,7 @@ export function HoldingTray({
       </Text>
     </View>
   );
-}
+});
 
 const SOCKET = 56;
 

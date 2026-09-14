@@ -8,7 +8,7 @@ import type { FlightPass } from '@/game/presentation/events';
 import { capacityAt } from '@/game/presentation/motion';
 import { orbGlow } from '@/theme/colors';
 import type { BoardGeometry } from '../boardGeometry';
-import { flightBankDegrees, flightHeading, flightPosition } from '../flightGeometry';
+import { flightPose } from '../flightGeometry';
 import { PixelPalShell, PixelPalVisor } from './PixelPalFace';
 
 const Counter = Animated.createAnimatedComponent(TextInput);
@@ -44,9 +44,9 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
 
   const motionState = useDerivedValue(() => {
     const t = clock.value;
-    const point = flightPosition(pass, layout, t, laneOffset);
-    const heading = flightHeading(pass, layout, t);
-    const bank = flightBankDegrees(pass, layout, t);
+    const pose = flightPose(pass, layout, t, laneOffset);
+    const heading = pose.heading;
+    const bank = pose.bank;
 
     // Launch anticipation — a brief wind-up squash right as the Pixel Pal
     // clears its tunnel/Holding source (spec §5 "Launch anticipation").
@@ -67,7 +67,7 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
     const popOpacity = pass.endKind === 'burst' ? 1 - tail : 1;
 
     return {
-      x: point.x, y: point.y, heading, bank,
+      x: pose.x, y: pose.y, heading, bank,
       scaleX: (1 - launchSquash - recoil) * popScale,
       scaleY: (1 + launchSquash + recoil * 0.6) * popScale,
       opacity: gone ? 0 : popOpacity,
