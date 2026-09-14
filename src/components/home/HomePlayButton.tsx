@@ -14,7 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { feedback } from '@/game/feedback';
-import { homeAlpha, homeV2 } from '@/theme/homeV2';
+import { NEON, neonAlpha } from '@/theme/neon';
 
 interface HomePlayButtonProps {
   onPress: () => void;
@@ -26,10 +26,20 @@ const CAP_WIDTH = 236;
 const PRESS_MS = 90;
 const SWEEP_MS = 700;
 const SWEEP_GAP_MS = 4500;
+/** How far the bezel shows below the cap at rest. */
+const BEZEL_DROP = 8;
+/** Cap travel on press: seats into the bezel, leaving a 2px lip. */
+const PRESS_TRAVEL = 6;
+/**
+ * Bezel colour, specified by the design. Darker than NEON.goldDeep so the cap
+ * reads as raised; local because NEON exports exactly its eight tokens.
+ */
+const BEZEL = '#B8860B';
 
 /**
- * Physical arcade PLAY button: yellow cap, dark skirt, 4pt press, specular
- * sweep. Never labelled CONTINUE. The only major glow on Home.
+ * Physical arcade PLAY button: gold cap over a darker bezel, 6pt press that
+ * seats the cap, specular sweep. Never labelled CONTINUE. The only major glow
+ * on Home.
  */
 export const HomePlayButton = memo(function HomePlayButton({
   onPress,
@@ -72,20 +82,15 @@ export const HomePlayButton = memo(function HomePlayButton({
   }, [press, reducedMotion]);
 
   const capStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: press.get() * 4 }],
-  }));
-
-  const skirtStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: press.get() * 2 },
-      { scaleY: 1 - press.get() * 0.22 },
-    ],
+    transform: [{ translateY: press.get() * PRESS_TRAVEL }],
   }));
 
   const sweepStyle = useAnimatedStyle(() => ({
     opacity: disabled ? 0 : 0.55,
     transform: [{ translateX: -CAP_WIDTH * 0.6 + sweep.get() * CAP_WIDTH * 1.4 }, { rotate: '18deg' }],
   }));
+
+  const radius = capHeight / 2;
 
   return (
     <Pressable
@@ -99,19 +104,29 @@ export const HomePlayButton = memo(function HomePlayButton({
       accessibilityLabel="Play"
       accessibilityState={{ disabled }}
     >
-      <View style={[styles.glow, disabled && styles.glowOff, { height: capHeight + 18 }]}>
-        <Animated.View style={[styles.skirt, { height: capHeight * 0.42 }, skirtStyle]} />
+      <View style={[styles.glow, disabled && styles.glowOff, { height: capHeight + BEZEL_DROP }]}>
+        <View
+          style={[
+            styles.bezel,
+            { top: BEZEL_DROP, height: capHeight, borderRadius: radius },
+            disabled && styles.bezelDisabled,
+          ]}
+        />
         <Animated.View
           style={[
             styles.cap,
-            { height: capHeight, borderRadius: capHeight / 2 },
+            { height: capHeight, borderRadius: radius },
             disabled && styles.capDisabled,
             capStyle,
           ]}
         >
           <View style={styles.capSheen} />
           {disabled ? null : <Animated.View pointerEvents="none" style={[styles.sweep, sweepStyle]} />}
-          <Text style={[styles.label, disabled && styles.labelDisabled]}>PLAY</Text>
+          <View style={styles.labelRow}>
+            <Text style={[styles.label, disabled && styles.labelDisabled]}>PLAY</Text>
+            {/* U+FE0E forces text presentation so iOS never swaps in the emoji. */}
+            <Text style={[styles.glyph, disabled && styles.labelDisabled]}>{'▶︎'}</Text>
+          </View>
         </Animated.View>
       </View>
     </Pressable>
@@ -121,36 +136,34 @@ export const HomePlayButton = memo(function HomePlayButton({
 const styles = StyleSheet.create({
   glow: {
     width: CAP_WIDTH,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    shadowColor: homeV2.yellow,
+    shadowColor: NEON.gold,
     shadowOpacity: 0.65,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
   },
   glowOff: {
     shadowOpacity: 0,
-    elevation: 0,
   },
-  skirt: {
+  bezel: {
     position: 'absolute',
-    bottom: 2,
-    width: CAP_WIDTH - 8,
-    borderRadius: 18,
-    backgroundColor: homeV2.playSkirt,
+    left: 0,
+    width: CAP_WIDTH,
+    backgroundColor: BEZEL,
+  },
+  bezelDisabled: {
+    opacity: 0.45,
   },
   cap: {
     width: CAP_WIDTH,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: homeV2.yellow,
+    backgroundColor: NEON.gold,
     overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: homeAlpha(homeV2.white, 0.35),
+    borderColor: neonAlpha(NEON.cyanPale, 0.35),
   },
   capDisabled: {
-    backgroundColor: homeAlpha(homeV2.yellow, 0.45),
+    backgroundColor: neonAlpha(NEON.gold, 0.45),
   },
   capSheen: {
     position: 'absolute',
@@ -158,22 +171,31 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '42%',
-    backgroundColor: homeAlpha(homeV2.white, 0.22),
+    backgroundColor: neonAlpha(NEON.cyanPale, 0.14),
   },
   sweep: {
     position: 'absolute',
     width: 46,
     height: '160%',
-    backgroundColor: homeAlpha(homeV2.white, 0.55),
+    backgroundColor: neonAlpha(NEON.cyanPale, 0.55),
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   label: {
-    color: homeV2.navy,
+    color: NEON.ink,
     fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 22,
     fontWeight: '700',
     letterSpacing: 3,
   },
+  glyph: {
+    color: NEON.ink,
+    fontSize: 18,
+  },
   labelDisabled: {
-    color: homeAlpha(homeV2.navy, 0.45),
+    color: neonAlpha(NEON.ink, 0.45),
   },
 });
