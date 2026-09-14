@@ -76,7 +76,7 @@ export function HomeScreen({
 
         <View style={styles.marquee}>
           <HomeMarquee
-            size={layout.marqueeSize}
+            width={layout.marqueeWidth}
             onSecretReset={__DEV__ ? onSecretReset : undefined}
           />
         </View>

@@ -1,26 +1,43 @@
 import { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet } from 'react-native';
 
-import { PixelArcadiaWordmark } from '@/components/brand';
-import { homeAlpha, homeV2 } from '@/theme/homeV2';
+import { WORDMARK_LABEL } from '@/theme/brand';
+
+/**
+ * Home title: the raster PIXEL ARCADIA lockup. Replaces the text wordmark on
+ * Home only — `PixelArcadiaWordmark` is still the live text lockup everywhere
+ * else. Because the title is no longer real text it carries the wordmark's
+ * screen-reader label and header role explicitly.
+ */
+
+const LOGO_SOURCE = require('../../../assets/pixel-arcadia-logo.png') as number;
+/** Intrinsic 506 x 268 (a matching @2x ships alongside it). */
+const LOGO_ASPECT = 506 / 268;
 
 interface HomeMarqueeProps {
-  size: number;
+  /** Rendered logo width in px; height follows the intrinsic aspect ratio. */
+  width: number;
   onSecretReset?: () => void;
 }
 
-/** Quiet PIXEL ARCADIA wordmark — thin cyan underline, no marquee bubble. */
-export const HomeMarquee = memo(function HomeMarquee({ size, onSecretReset }: HomeMarqueeProps) {
+export const HomeMarquee = memo(function HomeMarquee({ width, onSecretReset }: HomeMarqueeProps) {
   return (
-    <View style={styles.wrap}>
-      <PixelArcadiaWordmark
-        size={size}
-        layout="single"
-        align="center"
-        onLongPress={onSecretReset}
+    <Pressable
+      accessible
+      accessibilityRole="header"
+      accessibilityLabel={WORDMARK_LABEL}
+      onLongPress={onSecretReset}
+      disabled={!onSecretReset}
+      style={styles.wrap}
+    >
+      <Image
+        source={LOGO_SOURCE}
+        resizeMode="contain"
+        style={{ width, height: Math.round(width / LOGO_ASPECT) }}
+        accessibilityElementsHidden
+        importantForAccessibility="no"
       />
-      <View style={styles.rule} />
-    </View>
+    </Pressable>
   );
 });
 
@@ -29,12 +46,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 2,
-  },
-  rule: {
-    marginTop: 6,
-    width: 88,
-    height: 1.5,
-    borderRadius: 1,
-    backgroundColor: homeAlpha(homeV2.cyan, 0.45),
   },
 });

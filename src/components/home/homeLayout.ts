@@ -10,7 +10,7 @@ export interface HomeV2Layout {
   bezel: number;
   plinth: number;
   playCap: number;
-  marqueeSize: number;
+  marqueeWidth: number;
   gap: number;
   hudHeight: number;
   navHeight: number;
@@ -33,7 +33,7 @@ export function computeHomeV2Layout(width: number, height: number): HomeV2Layout
     bezel: compact ? 10 : 14,
     plinth: compact ? 66 : 76,
     playCap: Math.max(56, compact ? 56 : 64),
-    marqueeSize: compact ? 20 : 26,
+    marqueeWidth: compact ? Math.round(width * 0.66) : Math.min(320, Math.round(width * 0.72)),
     gap: compact ? 6 : 12,
     hudHeight: 48,
     navHeight: 80,

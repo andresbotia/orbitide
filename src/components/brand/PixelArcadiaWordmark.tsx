@@ -20,12 +20,15 @@ interface PixelArcadiaWordmarkProps {
 }
 
 /**
- * The live in-app wordmark. Accessible text — never an image — set in Space
- * Grotesk 700 to visually match the approved outlined brand asset. PIXEL is
+ * The live in-app wordmark. Accessible text set in Space Grotesk 700 to
+ * visually match the approved outlined brand asset. PIXEL is
  * off-white, ARCADIA is portal amber; equal weight, the distinction is colour +
  * a tighter-than-normal word gap only. Falls back to the system bold face until
  * the font loads. The outlined SVG (`assets/brand/wordmark-*.svg`) is reserved
- * for splash / marketing lockups where exact kerning must not drift.
+ * for splash / marketing lockups where exact kerning must not drift. Home is
+ * the one screen that does not use this component: its title is the raster
+ * lockup in `HomeMarquee`, which carries `WORDMARK_LABEL` as its accessible
+ * name.
  */
 export const PixelArcadiaWordmark = memo(function PixelArcadiaWordmark({
   size = 28,

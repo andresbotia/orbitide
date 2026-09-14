@@ -91,8 +91,13 @@ describe('Home wordmark integration', () => {
   const marquee = read('src/components/home/HomeMarquee.tsx');
   const environment = read('src/components/home/HomeEnvironment.tsx');
 
-  it('renders the live PixelArcadiaWordmark component, not a raw styled Text', () => {
-    expect(marquee).toMatch(/<PixelArcadiaWordmark/);
+  it('renders the raster PIXEL ARCADIA lockup on Home, not a raw styled Text', () => {
+    // Home's title is the 506x268 raster lockup; PixelArcadiaWordmark remains
+    // the live text lockup everywhere else. The image must still carry the
+    // wordmark's screen-reader name, since it is no longer real text.
+    expect(marquee).toMatch(/pixel-arcadia-logo\.png/);
+    expect(marquee).toMatch(/resizeMode="contain"/);
+    expect(marquee).toMatch(/accessibilityLabel=\{WORDMARK_LABEL\}/);
     expect(home).not.toMatch(/\{PRODUCT_WORDMARK\}/);
     expect(home).not.toMatch(/color:\s*palette\.textSecondary/);
   });
