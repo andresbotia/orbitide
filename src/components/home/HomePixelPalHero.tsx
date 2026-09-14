@@ -15,7 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { PixelPalShell } from '@/game/rendering/pixelPal/PixelPalFace';
-import { homeAlpha, homeV2 } from '@/theme/homeV2';
+import { NEON, neonAlpha } from '@/theme/neon';
 
 interface HomePixelPalHeroProps {
   size: number;
@@ -29,6 +29,11 @@ const HOVER_MS = 3400;
 const HOVER_AMP = 3;
 const BLINK_MS = 120;
 const PULSE_MS = 2300;
+/** Podium footprint. Fixed by design: the mascot scales, the stage does not. */
+const PODIUM_W = 200;
+const PODIUM_H = 56;
+/** Share of the podium's height the mascot sits down into. */
+const PODIUM_OVERLAP = 0.55;
 
 /**
  * White Pixel Pal hero idle: hover (±3pt / 3.4s), squash from hover, blink
@@ -188,11 +193,8 @@ export const HomePixelPalHero = memo(function HomePixelPalHero({
 
   const coreStyle = useAnimatedStyle(() => ({ opacity: pulse.get() }));
 
-  const platformW = size * 1.38;
-  const platformH = Math.max(16, size * 0.16);
-
   return (
-    <View style={{ width: Math.max(size, platformW), height: size + platformH * 0.7, alignItems: 'center' }}>
+    <View style={{ width: Math.max(size, PODIUM_W), height: size + PODIUM_H * (1 - PODIUM_OVERLAP), alignItems: 'center' }}>
       <Animated.View style={[styles.body, { width: size, height: size }, bodyStyle]}>
         <Animated.View
           pointerEvents="none"
@@ -214,15 +216,11 @@ export const HomePixelPalHero = memo(function HomePixelPalHero({
         </View>
       </Animated.View>
 
-      <View
-        pointerEvents="none"
-        style={[
-          styles.platform,
-          { width: platformW, height: platformH, marginTop: -platformH * 0.35 },
-        ]}
-      >
-        <View style={[styles.platformGlow, { width: platformW * 0.86, height: platformH * 0.7 }]} />
-        <View style={[styles.platformDisc, { width: platformW * 0.78, height: platformH * 0.42 }]} />
+      {/* Podium: two stacked ellipses behind the sprite. RN has no ellipse
+          primitive, so each is a fully rounded View. */}
+      <View pointerEvents="none" style={[styles.podium, { marginTop: -PODIUM_H * PODIUM_OVERLAP }]}>
+        <View style={styles.podiumBase} />
+        <View style={styles.podiumTop} />
       </View>
     </View>
   );
@@ -256,7 +254,7 @@ function HomePalVisor({
           width: size * 0.74,
           height: size * 0.6,
           borderRadius: size * 0.2,
-          backgroundColor: 'rgba(6,8,20,0.76)',
+          backgroundColor: neonAlpha(NEON.inkDeep, 0.76),
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
@@ -270,7 +268,7 @@ function HomePalVisor({
             width: size * 0.3,
             height: size * 0.1,
             borderRadius: size * 0.06,
-            backgroundColor: homeV2.white,
+            backgroundColor: NEON.cyanPale,
             opacity: 0.2,
           }}
         />
@@ -282,7 +280,7 @@ function HomePalVisor({
               width: eyeSize,
               height: size * 0.078,
               borderRadius: size * 0.039,
-              backgroundColor: '#EEF8FF',
+              backgroundColor: NEON.cyanPale,
             }}
           />
           <View
@@ -290,7 +288,7 @@ function HomePalVisor({
               width: eyeSize,
               height: size * 0.078,
               borderRadius: size * 0.039,
-              backgroundColor: '#EEF8FF',
+              backgroundColor: NEON.cyanPale,
             }}
           />
         </Animated.View>
@@ -304,7 +302,7 @@ function HomePalVisor({
               borderBottomRightRadius: size * 0.08,
               borderWidth: Math.max(1, size * 0.018),
               borderTopWidth: 0,
-              borderColor: '#EEF8FF',
+              borderColor: NEON.cyanPale,
             },
             smileStyle,
           ]}
@@ -322,22 +320,31 @@ const styles = StyleSheet.create({
   },
   core: {
     position: 'absolute',
-    backgroundColor: homeAlpha(homeV2.cyan, 0.45),
+    backgroundColor: neonAlpha(NEON.cyan, 0.45),
   },
-  platform: {
+  podium: {
+    width: PODIUM_W,
+    height: PODIUM_H,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 0,
   },
-  platformGlow: {
-    position: 'absolute',
-    borderRadius: 999,
-    backgroundColor: homeAlpha(homeV2.cyan, 0.28),
+  podiumBase: {
+    width: PODIUM_W,
+    height: PODIUM_H,
+    borderRadius: 100,
+    borderWidth: 2,
+    borderColor: NEON.cyan,
+    backgroundColor: neonAlpha(NEON.ink, 0.85),
   },
-  platformDisc: {
-    borderRadius: 999,
-    backgroundColor: homeAlpha(homeV2.white, 0.22),
-    borderWidth: 1,
-    borderColor: homeAlpha(homeV2.cyan, 0.45),
+  podiumTop: {
+    position: 'absolute',
+    width: 150,
+    height: 40,
+    borderRadius: 100,
+    borderWidth: 1.5,
+    borderColor: NEON.cyanPale,
+    backgroundColor: neonAlpha(NEON.cyan, 0.18),
+    transform: [{ translateY: -8 }],
   },
 });
