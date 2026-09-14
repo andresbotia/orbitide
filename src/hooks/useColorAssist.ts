@@ -18,7 +18,8 @@ function broadcast(v: boolean) {
 
 export async function setColorAssistEnabled(enabled: boolean): Promise<void> {
   broadcast(enabled);
-  await writeSettings({ colorAssist: enabled });
+  const current = await loadSettings();
+  await writeSettings({ ...current, colorAssist: enabled });
 }
 
 export interface ColorAssistApi {

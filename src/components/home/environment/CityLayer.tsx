@@ -35,6 +35,11 @@ export const CityLayer = memo(function CityLayer({ width, height }: CityLayerPro
 
   return (
     <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+      {/* Footing under the skyline. The city tilts further than the sky, so
+          without this the buildings would lift off the horizon and show the
+          warm band beneath them. */}
+      <Rect x={0} y={frame.horizon} width={width} height={16} color={NEON.inkDeep} />
+
       {buildings.map((b, i) => (
         <Group key={`bld-${i}`}>
           <Rect x={b.x} y={b.y} width={b.w} height={b.h} color={NEON.ink} />

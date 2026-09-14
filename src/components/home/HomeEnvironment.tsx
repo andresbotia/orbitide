@@ -1,17 +1,31 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { memo } from 'react';
+import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
+import Animated, {
+  Easing,
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
 
+import { useDeviceTilt, type DeviceTilt } from '@/hooks/useDeviceTilt';
+import { useHomeTilt } from '@/hooks/useHomeTilt';
 import { NEON, neonAlpha } from '@/theme/neon';
 
 import { CityLayer, FloorLayer, FxLayer, SkyLayer } from './environment';
+import { GRID_RATIO, HORIZON_RATIO } from './environment/sceneGeometry';
 
 interface HomeEnvironmentProps {
   width: number;
   height: number;
-  /** Consumed by the motion pass: screen focused and app foregrounded. */
+  /** Screen focused and app foregrounded. All motion pauses when false. */
   active: boolean;
-  /** Consumed by the motion pass: drop to a static scene when true. */
+  /** Drop to a fully static scene when true. */
   reducedMotion: boolean;
 }
 
@@ -27,38 +41,210 @@ const SCRIM_COLORS = [
 ] as const;
 const SCRIM_LOCATIONS = [0, 0.45, 1] as const;
 
+/** Layers render this much larger than the viewport so drift and tilt never expose an edge. */
+const OVERSCAN = 1.1;
+
+/**
+ * Motion only reads as depth when depths move at different rates. `drift` is px
+ * of sway either side over one full back-and-forth `periodMs`; `tilt` is px of
+ * travel at the ±0.3 rad sensor clamp.
+ */
+const PARALLAX = {
+  sky: { drift: 6, periodMs: 14000, tilt: 4 },
+  city: { drift: 14, periodMs: 11000, tilt: 12 },
+  floor: { drift: 26, periodMs: 9000, tilt: 24 },
+} as const;
+
+/** Time for the floor to advance one grid row, i.e. scale by GRID_RATIO. */
+const FLOOR_STEP_MS = 2400;
+/** Phase at which one floor copy is fully opaque and the other invisible. */
+const FLOOR_REST_PHASE = 0.5;
+const LOG_GRID_RATIO = Math.log(GRID_RATIO);
+
 /**
  * PIXEL ARCADIA HOME SCENE — neon skyline at dusk over a perspective grid.
  *
- * Four separately rendered layers, back to front: sky, city, floor, fx. Each
- * sits in its own full-bleed View so it can be transformed and faded on its
- * own; the layers themselves are static Skia pictures and never redraw for
- * motion. The legibility scrim sits above all four.
+ * Back to front: sky, city, two floor copies, fx, then the legibility scrim.
+ * Each layer is a static Skia picture in its own Animated.View; every frame of
+ * motion is a transform or opacity on the UI thread, so nothing redraws.
+ *
+ * - Parallax drift: per-layer amplitude and period, sine-eased.
+ * - Floor: a perspective grid cannot scroll with translateY, because rows must
+ *   accelerate toward the viewer. Each copy scales about the vanishing point
+ *   from 1 to GRID_RATIO and wraps; the copies run half a phase apart and
+ *   cross-fade with sin² weights that sum to exactly 1, so each copy is fully
+ *   transparent at its own reset and the loop point never shows.
+ * - Flicker: irregular opacity sequence on fx only, so it reads electrical.
+ * - Tilt: DeviceMotion feeds the same translates, gated by the Home tilt
+ *   setting and by sensor availability.
+ *
+ * Reduced motion or an inactive screen drops everything to a static rest pose.
+ * No blur radius or shadow is ever animated; the fx glow is pre-blurred.
  */
-export const HomeEnvironment = memo(function HomeEnvironment({ width, height }: HomeEnvironmentProps) {
+export const HomeEnvironment = memo(function HomeEnvironment({
+  width,
+  height,
+  active,
+  reducedMotion,
+}: HomeEnvironmentProps) {
+  const motionOn = active && !reducedMotion;
+  const tiltSetting = useHomeTilt();
+  const tilt = useDeviceTilt(motionOn && tiltSetting);
+
+  const skyDrift = useSharedValue(0);
+  const cityDrift = useSharedValue(0);
+  const floorDrift = useSharedValue(0);
+  const floorPhase = useSharedValue(FLOOR_REST_PHASE);
+  const flicker = useSharedValue(1);
+
+  useEffect(() => {
+    const values = [skyDrift, cityDrift, floorDrift, floorPhase, flicker];
+    values.forEach((v) => cancelAnimation(v));
+    skyDrift.set(0);
+    cityDrift.set(0);
+    floorDrift.set(0);
+    floorPhase.set(FLOOR_REST_PHASE);
+    flicker.set(1);
+    if (!motionOn) return;
+
+    sway(skyDrift, PARALLAX.sky.periodMs);
+    sway(cityDrift, PARALLAX.city.periodMs);
+    sway(floorDrift, PARALLAX.floor.periodMs);
+
+    floorPhase.set(0);
+    floorPhase.set(withRepeat(withTiming(1, { duration: FLOOR_STEP_MS, easing: Easing.linear }), -1, false));
+
+    flicker.set(
+      withRepeat(
+        withSequence(
+          withTiming(0.55, { duration: 90 }),
+          withTiming(1, { duration: 140 }),
+          withTiming(0.7, { duration: 60 }),
+          withTiming(1, { duration: 900 }),
+          withDelay(2400, withTiming(0.82, { duration: 60 })),
+          withTiming(1, { duration: 120 }),
+          withDelay(3100, withTiming(1, { duration: 0 })),
+        ),
+        -1,
+        false,
+      ),
+    );
+
+    return () => values.forEach((v) => cancelAnimation(v));
+  }, [motionOn, skyDrift, cityDrift, floorDrift, floorPhase, flicker]);
+
+  const layerW = Math.round(width * OVERSCAN);
+  const layerH = Math.round(height * OVERSCAN);
+  const frameStyle = useMemo(
+    () => ({
+      width: layerW,
+      height: layerH,
+      left: -(layerW - width) / 2,
+      top: -(layerH - height) / 2,
+    }),
+    [layerW, layerH, width, height],
+  );
+  /** Offset from the layer centre (the RN transform origin) to the vanishing point. */
+  const vanishDy = Math.round(layerH * HORIZON_RATIO) - layerH / 2;
+
+  const skyStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: skyDrift.get() * PARALLAX.sky.drift - tilt.x.get() * PARALLAX.sky.tilt },
+      { translateY: -tilt.y.get() * PARALLAX.sky.tilt },
+    ],
+  }));
+
+  const cityStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: cityDrift.get() * PARALLAX.city.drift - tilt.x.get() * PARALLAX.city.tilt },
+      { translateY: -tilt.y.get() * PARALLAX.city.tilt },
+    ],
+  }));
+
+  // Fx is the city's lit neon, so it rides the city's parallax exactly.
+  const fxStyle = useAnimatedStyle(() => ({
+    opacity: flicker.get(),
+    transform: [
+      { translateX: cityDrift.get() * PARALLAX.city.drift - tilt.x.get() * PARALLAX.city.tilt },
+      { translateY: -tilt.y.get() * PARALLAX.city.tilt },
+    ],
+  }));
+
+  const floorA = useFloorCopyStyle(floorDrift, floorPhase, tilt, 0, vanishDy);
+  const floorB = useFloorCopyStyle(floorDrift, floorPhase, tilt, 0.5, vanishDy);
+
   return (
     <View pointerEvents="none" style={styles.clip}>
-      <View style={StyleSheet.absoluteFill}>
-        <SkyLayer width={width} height={height} />
-      </View>
-      <View style={StyleSheet.absoluteFill}>
-        <CityLayer width={width} height={height} />
-      </View>
-      <View style={StyleSheet.absoluteFill}>
-        <FloorLayer width={width} height={height} />
-      </View>
-      <View style={StyleSheet.absoluteFill}>
-        <FxLayer width={width} height={height} />
-      </View>
+      <Animated.View style={[styles.layer, frameStyle, skyStyle]}>
+        <SkyLayer width={layerW} height={layerH} />
+      </Animated.View>
+      <Animated.View style={[styles.layer, frameStyle, cityStyle]}>
+        <CityLayer width={layerW} height={layerH} />
+      </Animated.View>
+      <Animated.View style={[styles.layer, frameStyle, floorA]}>
+        <FloorLayer width={layerW} height={layerH} />
+      </Animated.View>
+      <Animated.View style={[styles.layer, frameStyle, floorB]}>
+        <FloorLayer width={layerW} height={layerH} />
+      </Animated.View>
+      <Animated.View style={[styles.layer, frameStyle, fxStyle]}>
+        <FxLayer width={layerW} height={layerH} />
+      </Animated.View>
 
       <LinearGradient colors={SCRIM_COLORS} locations={SCRIM_LOCATIONS} style={StyleSheet.absoluteFill} />
     </View>
   );
 });
 
+/**
+ * Sine sway in [-1, 1]. Eases out from rest to +1 over a quarter period first,
+ * so the layer never jumps when motion starts, then reverses forever.
+ */
+function sway(value: SharedValue<number>, periodMs: number) {
+  value.set(
+    withSequence(
+      withTiming(1, { duration: periodMs / 4, easing: Easing.out(Easing.sin) }),
+      withRepeat(
+        withTiming(-1, { duration: periodMs / 2, easing: Easing.inOut(Easing.sin) }),
+        -1,
+        true,
+      ),
+    ),
+  );
+}
+
+/**
+ * One floor copy. `offset` is its phase lead (0 or 0.5). Scale runs
+ * GRID_RATIO^q for q in [0, 1) about the vanishing point; opacity is sin²(πq).
+ */
+function useFloorCopyStyle(
+  drift: SharedValue<number>,
+  phase: SharedValue<number>,
+  tilt: DeviceTilt,
+  offset: number,
+  vanishDy: number,
+) {
+  return useAnimatedStyle(() => {
+    const q = (phase.get() + offset) % 1;
+    const fade = Math.sin(Math.PI * q);
+    return {
+      opacity: fade * fade,
+      transform: [
+        { translateX: drift.get() * PARALLAX.floor.drift - tilt.x.get() * PARALLAX.floor.tilt },
+        { translateY: -tilt.y.get() * PARALLAX.floor.tilt + vanishDy },
+        { scale: Math.exp(q * LOG_GRID_RATIO) },
+        { translateY: -vanishDy },
+      ],
+    };
+  });
+}
+
 const styles = StyleSheet.create({
   clip: {
     ...StyleSheet.absoluteFill,
     overflow: 'hidden',
+  },
+  layer: {
+    position: 'absolute',
   },
 });
