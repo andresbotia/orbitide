@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PixelPalFace } from '@/game/rendering/pixelPal/PixelPalFace';
-import { homeAlpha, homeV2 } from '@/theme/homeV2';
+import { NEON, neonAlpha } from '@/theme/neon';
 
 export type HomeTab = 'shop' | 'home' | 'leaderboard';
 
@@ -15,7 +15,14 @@ interface HomeBottomNavProps {
   onLeaderboard: () => void;
 }
 
-/** 3-item control-deck nav. Center Home/Play sits on a raised plinth. */
+/** How far the centre Play tab rises above the panel row. */
+const PLAY_RAISE = 22;
+
+/**
+ * 3-item control-deck nav. Shop and Trophy are framed panels; the centre
+ * Home/Play tab is a round ring raised above the row. The deck reserves the
+ * raise as top margin so the ring never crowds the PLAY button above it.
+ */
 export const HomeBottomNav = memo(function HomeBottomNav({
   active,
   plinth,
@@ -24,48 +31,39 @@ export const HomeBottomNav = memo(function HomeBottomNav({
   onLeaderboard,
 }: HomeBottomNavProps) {
   const insets = useSafeAreaInsets();
-  const deck = 80;
+  const homeActive = active === 'home';
 
   return (
-    <View style={[styles.wrap, { paddingBottom: insets.bottom }]}>
-      <View style={[styles.deck, { height: deck }]}>
-        <NavItem
-          label="Shop"
-          active={active === 'shop'}
-          onPress={onShop}
-          icon={<BagIcon active={active === 'shop'} />}
-        />
-        <View style={{ width: plinth }} />
-        <NavItem
-          label="Trophy"
-          active={active === 'leaderboard'}
-          onPress={onLeaderboard}
-          icon={<TrophyIcon active={active === 'leaderboard'} />}
-        />
-      </View>
+    <View style={[styles.wrap, { paddingBottom: insets.bottom + 8 }]}>
+      <NavItem
+        label="Shop"
+        active={active === 'shop'}
+        onPress={onShop}
+        icon={<BagIcon active={active === 'shop'} />}
+      />
 
       <Pressable
         onPress={onHome}
         accessibilityRole="button"
         accessibilityLabel="Home"
-        accessibilityState={{ selected: active === 'home' }}
+        accessibilityState={{ selected: homeActive }}
         hitSlop={6}
         style={[
-          styles.plinth,
-          {
-            width: plinth,
-            height: plinth,
-            borderRadius: plinth / 2,
-            bottom: insets.bottom + 10,
-            marginLeft: -plinth / 2,
-          },
-          active === 'home' && styles.plinthActive,
+          styles.play,
+          { width: plinth, height: plinth },
+          homeActive ? styles.playActive : styles.playIdle,
         ]}
       >
-        <View style={styles.plinthRing} />
         <PixelPalFace color="white" size={Math.round(plinth * 0.52)} mood="happy" />
-        <Text style={styles.plinthLabel}>Play</Text>
+        <Text style={[styles.playLabel, homeActive && styles.labelActive]}>Play</Text>
       </Pressable>
+
+      <NavItem
+        label="Trophy"
+        active={active === 'leaderboard'}
+        onPress={onLeaderboard}
+        icon={<TrophyIcon active={active === 'leaderboard'} />}
+      />
     </View>
   );
 });
@@ -90,13 +88,15 @@ const NavItem = memo(function NavItem({
       style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
     >
       {icon}
-      <Text style={[styles.itemLabel, active && styles.itemLabelActive]}>{label}</Text>
+      <Text style={[styles.itemLabel, active && styles.labelActive]}>{label}</Text>
     </Pressable>
   );
 });
 
+const INACTIVE_ICON = neonAlpha(NEON.cyanPale, 0.7);
+
 const BagIcon = memo(function BagIcon({ active }: { active: boolean }) {
-  const color = active ? homeV2.cyan : homeAlpha(homeV2.white, 0.7);
+  const color = active ? NEON.cyan : INACTIVE_ICON;
   return (
     <View style={styles.iconBox}>
       <View style={[styles.bagBody, { borderColor: color }]} />
@@ -106,10 +106,11 @@ const BagIcon = memo(function BagIcon({ active }: { active: boolean }) {
 });
 
 const TrophyIcon = memo(function TrophyIcon({ active }: { active: boolean }) {
-  const color = active ? homeV2.yellow : homeAlpha(homeV2.white, 0.7);
+  const color = active ? NEON.gold : INACTIVE_ICON;
+  const fill = active ? neonAlpha(NEON.gold, 0.2) : neonAlpha(NEON.cyanPale, 0.14);
   return (
     <View style={styles.iconBox}>
-      <View style={[styles.cup, { borderColor: color, backgroundColor: homeAlpha(color, 0.2) }]} />
+      <View style={[styles.cup, { borderColor: color, backgroundColor: fill }]} />
       <View style={[styles.cupStem, { backgroundColor: color }]} />
       <View style={[styles.cupBase, { backgroundColor: color }]} />
     </View>
@@ -119,62 +120,56 @@ const TrophyIcon = memo(function TrophyIcon({ active }: { active: boolean }) {
 const styles = StyleSheet.create({
   wrap: {
     flexShrink: 0,
-    backgroundColor: homeV2.deepNavy,
-    borderTopWidth: 1,
-    borderTopColor: homeAlpha(homeV2.cyan, 0.22),
-  },
-  deck: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-around',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: PLAY_RAISE,
+    paddingTop: 10,
     paddingHorizontal: 12,
-    paddingBottom: 8,
+    backgroundColor: neonAlpha(NEON.ink, 0.9),
+    borderTopWidth: 1,
+    borderTopColor: neonAlpha(NEON.cyan, 0.35),
   },
   item: {
     flex: 1,
+    height: 64,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    minHeight: 44,
-    paddingBottom: 4,
+    borderWidth: 1,
+    borderColor: neonAlpha(NEON.cyan, 0.25),
+    borderRadius: 12,
   },
   itemPressed: { opacity: 0.7 },
   itemLabel: {
-    color: homeAlpha(homeV2.white, 0.62),
+    color: neonAlpha(NEON.cyanPale, 0.62),
     fontSize: 11,
     fontWeight: '600',
   },
-  itemLabelActive: { color: homeV2.cyan },
-  plinth: {
-    position: 'absolute',
-    left: '50%',
+  labelActive: { color: NEON.cyan },
+  play: {
+    marginTop: -PLAY_RAISE,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: homeV2.navy,
-    borderWidth: 2,
-    borderColor: homeV2.cyan,
-    shadowColor: homeV2.cyan,
+    gap: 1,
+    borderRadius: 999,
+    backgroundColor: NEON.ink,
+    // Static iOS bloom only; never animated. Android relies on the ring.
+    shadowColor: NEON.cyan,
     shadowOpacity: 0.35,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
-    gap: 1,
   },
-  plinthActive: {
-    borderColor: homeV2.yellow,
+  playActive: {
+    borderWidth: 2.5,
+    borderColor: NEON.cyan,
   },
-  plinthRing: {
-    position: 'absolute',
-    top: 6,
-    left: 6,
-    right: 6,
-    bottom: 18,
-    borderRadius: 999,
+  playIdle: {
     borderWidth: 1,
-    borderColor: homeAlpha(homeV2.white, 0.18),
+    borderColor: neonAlpha(NEON.cyan, 0.25),
   },
-  plinthLabel: {
-    color: homeV2.white,
+  playLabel: {
+    color: NEON.cyanPale,
     fontSize: 10,
     fontWeight: '700',
     marginTop: -2,
