@@ -31,9 +31,26 @@ const BLINK_MS = 120;
 const PULSE_MS = 2300;
 /** Podium footprint. Fixed by design: the mascot scales, the stage does not. */
 const PODIUM_W = 200;
-const PODIUM_H = 56;
-/** Share of the podium's height the mascot sits down into. */
-const PODIUM_OVERLAP = 0.55;
+/** Height of the elliptical top surface. */
+const PODIUM_TOP_H = 30;
+/** Visible depth of the podium's side below the top surface. */
+const PODIUM_DEPTH = 12;
+const PODIUM_TOTAL_H = PODIUM_TOP_H + PODIUM_DEPTH;
+/** The mascot's feet land on the centre line of the top surface. */
+const FOOT_SINK = PODIUM_TOP_H / 2;
+
+export interface PalHeroMetrics {
+  width: number;
+  height: number;
+  /** y of the podium's top edge within the hero. */
+  podiumTop: number;
+}
+
+/** Hero footprint for a given mascot size, so a parent can place the podium precisely. */
+export function palHeroMetrics(size: number): PalHeroMetrics {
+  const podiumTop = size - FOOT_SINK;
+  return { width: Math.max(size, PODIUM_W), height: podiumTop + PODIUM_TOTAL_H, podiumTop };
+}
 
 /**
  * White Pixel Pal hero idle: hover (±3pt / 3.4s), squash from hover, blink
@@ -193,8 +210,10 @@ export const HomePixelPalHero = memo(function HomePixelPalHero({
 
   const coreStyle = useAnimatedStyle(() => ({ opacity: pulse.get() }));
 
+  const metrics = palHeroMetrics(size);
+
   return (
-    <View style={{ width: Math.max(size, PODIUM_W), height: size + PODIUM_H * (1 - PODIUM_OVERLAP), alignItems: 'center' }}>
+    <View style={{ width: metrics.width, height: metrics.height, alignItems: 'center' }}>
       <Animated.View style={[styles.body, { width: size, height: size }, bodyStyle]}>
         <Animated.View
           pointerEvents="none"
@@ -216,11 +235,18 @@ export const HomePixelPalHero = memo(function HomePixelPalHero({
         </View>
       </Animated.View>
 
-      {/* Podium: two stacked ellipses behind the sprite. RN has no ellipse
-          primitive, so each is a fully rounded View. */}
-      <View pointerEvents="none" style={[styles.podium, { marginTop: -PODIUM_H * PODIUM_OVERLAP }]}>
+      {/* Podium: a solid cylinder the mascot stands on. Back to front: the
+          lower rim ellipse, the side band joining it to the top, the filled
+          top surface with its cyan rim, and a soft sheen. RN has no ellipse
+          primitive, so each ellipse is a fully rounded View. */}
+      <View
+        pointerEvents="none"
+        style={[styles.podium, { top: metrics.podiumTop, left: (metrics.width - PODIUM_W) / 2 }]}
+      >
         <View style={styles.podiumBase} />
+        <View style={styles.podiumSide} />
         <View style={styles.podiumTop} />
+        <View style={styles.podiumSheen} />
       </View>
     </View>
   );
@@ -323,28 +349,48 @@ const styles = StyleSheet.create({
     backgroundColor: neonAlpha(NEON.cyan, 0.45),
   },
   podium: {
+    position: 'absolute',
     width: PODIUM_W,
-    height: PODIUM_H,
-    alignItems: 'center',
-    justifyContent: 'center',
+    height: PODIUM_TOTAL_H,
     zIndex: 0,
   },
   podiumBase: {
+    position: 'absolute',
+    top: PODIUM_DEPTH,
     width: PODIUM_W,
-    height: PODIUM_H,
+    height: PODIUM_TOP_H,
     borderRadius: 100,
-    borderWidth: 2,
-    borderColor: NEON.cyan,
-    backgroundColor: neonAlpha(NEON.ink, 0.85),
+    backgroundColor: NEON.inkDeep,
+    borderWidth: 1.5,
+    borderColor: neonAlpha(NEON.cyan, 0.45),
+  },
+  podiumSide: {
+    position: 'absolute',
+    top: PODIUM_TOP_H / 2,
+    width: PODIUM_W,
+    height: PODIUM_DEPTH,
+    backgroundColor: NEON.inkDeep,
+    borderLeftWidth: 1.5,
+    borderRightWidth: 1.5,
+    borderColor: neonAlpha(NEON.cyan, 0.45),
   },
   podiumTop: {
     position: 'absolute',
-    width: 150,
-    height: 40,
+    top: 0,
+    width: PODIUM_W,
+    height: PODIUM_TOP_H,
     borderRadius: 100,
-    borderWidth: 1.5,
-    borderColor: NEON.cyanPale,
-    backgroundColor: neonAlpha(NEON.cyan, 0.18),
-    transform: [{ translateY: -8 }],
+    backgroundColor: NEON.ink,
+    borderWidth: 2,
+    borderColor: NEON.cyan,
+  },
+  podiumSheen: {
+    position: 'absolute',
+    top: 5,
+    left: 25,
+    width: PODIUM_W - 50,
+    height: PODIUM_TOP_H - 14,
+    borderRadius: 100,
+    backgroundColor: neonAlpha(NEON.cyan, 0.14),
   },
 });

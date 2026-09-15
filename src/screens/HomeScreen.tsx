@@ -1,15 +1,16 @@
-import { useCallback, useMemo } from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { StyleSheet, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useReducedMotion } from 'react-native-reanimated';
 
 import { HomeBottomNav } from '@/components/home/HomeBottomNav';
 import { HomeEnvironment } from '@/components/home/HomeEnvironment';
+import { sceneHorizonY } from '@/components/home/environment/sceneGeometry';
 import { HomeHud } from '@/components/home/HomeHud';
 import { computeHomeV2Layout } from '@/components/home/homeLayout';
 import { HomeLevelCard } from '@/components/home/HomeLevelCard';
 import { HomeMarquee } from '@/components/home/HomeMarquee';
-import { HomePixelPalHero } from '@/components/home/HomePixelPalHero';
+import { HomePixelPalHero, palHeroMetrics } from '@/components/home/HomePixelPalHero';
 import { HomePlayButton } from '@/components/home/HomePlayButton';
 import { getLevel, requireLevel } from '@/game/levels/levels';
 import { useAmbientActive } from '@/hooks/useAmbientActive';
@@ -26,6 +27,9 @@ interface HomeScreenProps {
   /** Dev-only: hidden long-press affordance on the marquee. */
   onSecretReset?: () => void;
 }
+
+/** Gap between the painted horizon and the podium's top edge. */
+const PODIUM_CLEARANCE = 2;
 
 /**
  * PIXEL ARCADIA HOME — tiled looping background + cabinet chrome. Presentation
@@ -50,6 +54,27 @@ export function HomeScreen({
   );
 
   const level = getLevel(highestUnlockedLevel) ?? requireLevel(1);
+
+  // Stand the mascot's podium just below the painted horizon. The hero's
+  // layout y is its window y: the SafeAreaView is the root's first in-flow
+  // child, at y 0, and the hero is its direct child. The clamp keeps the hero
+  // inside its own margins, so on short screens the podium yields before it
+  // would overlap the logo or the level card.
+  const [hero, setHero] = useState<{ y: number; height: number } | null>(null);
+  const handleHeroLayout = useCallback((event: LayoutChangeEvent) => {
+    const { y, height } = event.nativeEvent.layout;
+    setHero((prev) => (prev && prev.y === y && prev.height === height ? prev : { y, height }));
+  }, []);
+  const palMetrics = palHeroMetrics(layout.palSize);
+  const palTop = hero
+    ? Math.min(
+        hero.height + layout.gap - palMetrics.height,
+        Math.max(
+          -layout.gap,
+          sceneHorizonY(window.height) + PODIUM_CLEARANCE - hero.y - palMetrics.podiumTop,
+        ),
+      )
+    : null;
 
   const handleHomeTab = useCallback(() => {
     // Already on Home.
@@ -80,8 +105,14 @@ export function HomeScreen({
           />
         </View>
 
-        <View style={[styles.hero, { minHeight: layout.palSize + 36, marginVertical: layout.gap }]}>
-          <HomePixelPalHero size={layout.palSize} active={active} reducedMotion={!!reducedMotion} />
+        <View
+          style={[styles.hero, { minHeight: palMetrics.height, marginVertical: layout.gap }]}
+          onLayout={handleHeroLayout}
+        >
+          {/* Hidden for the single frame before the hero is measured. */}
+          <View style={palTop === null ? styles.palPending : [styles.palPinned, { top: palTop }]}>
+            <HomePixelPalHero size={layout.palSize} active={active} reducedMotion={!!reducedMotion} />
+          </View>
         </View>
 
         <View style={[styles.progress, { marginBottom: layout.gap }]}>
@@ -121,6 +152,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'visible',
   },
+  palPending: { opacity: 0 },
+  palPinned: { position: 'absolute' },
   progress: {
     alignItems: 'center',
     flexShrink: 0,

@@ -18,6 +18,9 @@ export const VANISH_X_RATIO = 0.339;
 /** Intrinsic size of the registered Home art (home-sky.png, home-city-b.png). */
 export const HOME_ART = { width: 1254, height: 1570 } as const;
 
+/** Scene layers render this much larger than the viewport so drift never exposes an edge. */
+export const SCENE_OVERSCAN = 1.1;
+
 /**
  * Ratio between adjacent grid-row distances from the horizon. Rows form a pure
  * geometric series, so scaling the floor by exactly this much about the
@@ -67,6 +70,16 @@ export function sceneFrame(width: number, height: number): SceneFrame {
 export function artBox(frame: SceneFrame): Rect {
   const h = (frame.width * HOME_ART.height) / HOME_ART.width;
   return { x: 0, y: frame.horizon - h, w: frame.width, h };
+}
+
+/**
+ * Window y of the horizon for a full-screen scene of `viewportHeight`: the
+ * overscanned layer's horizon, less the half-overscan the layer is shifted up
+ * by. Matches HomeEnvironment's layout exactly, so UI can be placed against it.
+ */
+export function sceneHorizonY(viewportHeight: number): number {
+  const layerH = Math.round(viewportHeight * SCENE_OVERSCAN);
+  return Math.round(layerH * HORIZON_RATIO) - (layerH - viewportHeight) / 2;
 }
 
 const n = (v: number) => v.toFixed(1);

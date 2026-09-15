@@ -18,7 +18,7 @@ import { useHomeTilt } from '@/hooks/useHomeTilt';
 import { NEON, neonAlpha } from '@/theme/neon';
 
 import { CityLayer, FloorLayer, FxLayer, ReflectionLayer, SkyLayer } from './environment';
-import { GRID_RATIO, sceneFrame } from './environment/sceneGeometry';
+import { GRID_RATIO, SCENE_OVERSCAN, sceneFrame } from './environment/sceneGeometry';
 
 interface HomeEnvironmentProps {
   width: number;
@@ -40,9 +40,6 @@ const SCRIM_COLORS = [
   neonAlpha(NEON.inkDeep, 0.75),
 ] as const;
 const SCRIM_LOCATIONS = [0, 0.45, 1] as const;
-
-/** Layers render this much larger than the viewport so drift and tilt never expose an edge. */
-const OVERSCAN = 1.1;
 
 /**
  * Motion only reads as depth when depths move at different rates. `drift` is px
@@ -138,8 +135,8 @@ export const HomeEnvironment = memo(function HomeEnvironment({
     return () => values.forEach((v) => cancelAnimation(v));
   }, [motionOn, cityDrift, floorDrift, floorPhase, flicker]);
 
-  const layerW = Math.round(width * OVERSCAN);
-  const layerH = Math.round(height * OVERSCAN);
+  const layerW = Math.round(width * SCENE_OVERSCAN);
+  const layerH = Math.round(height * SCENE_OVERSCAN);
   const frameStyle = useMemo(
     () => ({
       width: layerW,
