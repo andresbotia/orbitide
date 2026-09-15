@@ -17,7 +17,7 @@ import { useDeviceTilt, type DeviceTilt } from '@/hooks/useDeviceTilt';
 import { useHomeTilt } from '@/hooks/useHomeTilt';
 import { NEON, neonAlpha } from '@/theme/neon';
 
-import { CityLayer, FloorLayer, FxLayer, SkyLayer } from './environment';
+import { CityLayer, FloorLayer, FxLayer, ReflectionLayer, SkyLayer } from './environment';
 import { GRID_RATIO, sceneFrame } from './environment/sceneGeometry';
 
 interface HomeEnvironmentProps {
@@ -68,7 +68,8 @@ const LOG_GRID_RATIO = Math.log(GRID_RATIO);
 /**
  * PIXEL ARCADIA HOME SCENE — neon skyline at dusk over a perspective grid.
  *
- * Back to front: sky, city, two floor copies, fx, then the legibility scrim.
+ * Back to front: sky, city, floor reflections, two floor copies, fx, then the
+ * legibility scrim.
  * Each layer is static (painted art or a Skia picture) in its own
  * Animated.View; every frame of motion is a transform or opacity on the UI
  * thread, so nothing redraws.
@@ -188,6 +189,10 @@ export const HomeEnvironment = memo(function HomeEnvironment({
       </Animated.View>
       <Animated.View style={[styles.layer, frameStyle, cityStyle]}>
         <CityLayer width={layerW} height={layerH} />
+      </Animated.View>
+      {/* Reflections ride the city's parallax so each streak stays under its building. */}
+      <Animated.View style={[styles.layer, frameStyle, cityStyle]}>
+        <ReflectionLayer width={layerW} height={layerH} />
       </Animated.View>
       <Animated.View style={[styles.layer, frameStyle, floorA]}>
         <FloorLayer width={layerW} height={layerH} />
