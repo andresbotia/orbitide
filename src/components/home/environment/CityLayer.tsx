@@ -1,14 +1,9 @@
 import { memo, useMemo } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
-import { NEON } from '@/theme/neon';
-
 import { artBox, sceneFrame } from './sceneGeometry';
 
 const CITY_SOURCE = require('../../../../assets/home-city-b.png') as number;
-
-/** Dark strip below the skyline; see the footing note in the render. */
-const FOOTING_HEIGHT = 16;
 
 interface CityLayerProps {
   width: number;
@@ -40,10 +35,6 @@ export const CityLayer = memo(function CityLayer({ width, height }: CityLayerPro
         resizeMode="cover"
         style={[styles.art, { left: box.x, top: box.y, width: box.w, height: box.h }]}
       />
-      {/* Footing under the skyline. The city tilts further than the sky, so
-          without this the buildings would lift off the horizon and show the
-          sky's bottom band beneath them. */}
-      <View style={[styles.footing, { top: box.y + box.h }]} />
     </View>
   );
 });
@@ -51,12 +42,5 @@ export const CityLayer = memo(function CityLayer({ width, height }: CityLayerPro
 const styles = StyleSheet.create({
   art: {
     position: 'absolute',
-  },
-  footing: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: FOOTING_HEIGHT,
-    backgroundColor: NEON.inkDeep,
   },
 });

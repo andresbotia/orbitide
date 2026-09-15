@@ -13,8 +13,6 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
-import { useDeviceTilt, type DeviceTilt } from '@/hooks/useDeviceTilt';
-import { useHomeTilt } from '@/hooks/useHomeTilt';
 import { NEON, neonAlpha } from '@/theme/neon';
 
 import { CityLayer, FloorLayer, FxLayer, ReflectionLayer, SkyLayer } from './environment';
@@ -43,17 +41,14 @@ const SCRIM_LOCATIONS = [0, 0.45, 1] as const;
 
 /**
  * Motion only reads as depth when depths move at different rates. `drift` is px
- * of sway either side over one full back-and-forth `periodMs`; `tilt` is px of
- * travel at the ±0.3 rad sensor clamp.
+ * of sway either side over one full back-and-forth `periodMs`. The sky is not
+ * listed: it is at infinity and never moves.
  */
 const PARALLAX = {
-  // No drift: the sky is at infinity, so the painted sun stays locked on the
-  // floor's vanishing point.
-  sky: { tilt: 4 },
-  city: { drift: 14, periodMs: 11000, tilt: 12 },
+  city: { drift: 14, periodMs: 11000 },
   // Applied as a shear about the vanishing point: `drift` px at the near edge,
   // zero at the horizon, so the grid keeps converging on the sun.
-  floor: { drift: 26, periodMs: 9000, tilt: 24 },
+  floor: { drift: 26, periodMs: 9000 },
 } as const;
 
 /** Time for the floor to advance one grid row, i.e. scale by GRID_RATIO. */
@@ -80,8 +75,6 @@ const LOG_GRID_RATIO = Math.log(GRID_RATIO);
  *   cross-fade with sin² weights that sum to exactly 1, so each copy is fully
  *   transparent at its own reset and the loop point never shows.
  * - Flicker: irregular opacity sequence on fx only, so it reads electrical.
- * - Tilt: DeviceMotion feeds the same translates, gated by the Home tilt
- *   setting and by sensor availability.
  *
  * Reduced motion or an inactive screen drops everything to a static rest pose.
  * No blur radius or shadow is ever animated; the fx glow is pre-blurred.
@@ -93,8 +86,6 @@ export const HomeEnvironment = memo(function HomeEnvironment({
   reducedMotion,
 }: HomeEnvironmentProps) {
   const motionOn = active && !reducedMotion;
-  const tiltSetting = useHomeTilt();
-  const tilt = useDeviceTilt(motionOn && tiltSetting);
 
   const cityDrift = useSharedValue(0);
   const floorDrift = useSharedValue(0);
@@ -153,17 +144,9 @@ export const HomeEnvironment = memo(function HomeEnvironment({
   const vanishDy = frame.horizon - layerH / 2;
   const floorDepth = frame.height - frame.horizon;
 
-  const skyStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: -tilt.x.get() * PARALLAX.sky.tilt },
-      { translateY: -tilt.y.get() * PARALLAX.sky.tilt },
-    ],
-  }));
-
   const cityStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: cityDrift.get() * PARALLAX.city.drift - tilt.x.get() * PARALLAX.city.tilt },
-      { translateY: -tilt.y.get() * PARALLAX.city.tilt },
+      { translateX: cityDrift.get() * PARALLAX.city.drift },
     ],
   }));
 
@@ -171,19 +154,19 @@ export const HomeEnvironment = memo(function HomeEnvironment({
   const fxStyle = useAnimatedStyle(() => ({
     opacity: flicker.get(),
     transform: [
-      { translateX: cityDrift.get() * PARALLAX.city.drift - tilt.x.get() * PARALLAX.city.tilt },
-      { translateY: -tilt.y.get() * PARALLAX.city.tilt },
+      { translateX: cityDrift.get() * PARALLAX.city.drift },
     ],
   }));
 
-  const floorA = useFloorCopyStyle(floorDrift, floorPhase, tilt, 0, vanishDx, vanishDy, floorDepth);
-  const floorB = useFloorCopyStyle(floorDrift, floorPhase, tilt, 0.5, vanishDx, vanishDy, floorDepth);
+  const floorA = useFloorCopyStyle(floorDrift, floorPhase, 0, vanishDx, vanishDy, floorDepth);
+  const floorB = useFloorCopyStyle(floorDrift, floorPhase, 0.5, vanishDx, vanishDy, floorDepth);
 
   return (
     <View pointerEvents="none" style={styles.clip}>
-      <Animated.View style={[styles.layer, frameStyle, skyStyle]}>
+      {/* The sky is at infinity and never moves, so the painted sun stays on the vanishing point. */}
+      <View style={[styles.layer, frameStyle]}>
         <SkyLayer width={layerW} height={layerH} />
-      </Animated.View>
+      </View>
       <Animated.View style={[styles.layer, frameStyle, cityStyle]}>
         <CityLayer width={layerW} height={layerH} />
       </Animated.View>
@@ -230,7 +213,6 @@ function sway(value: SharedValue<number>, periodMs: number) {
 function useFloorCopyStyle(
   drift: SharedValue<number>,
   phase: SharedValue<number>,
-  tilt: DeviceTilt,
   offset: number,
   vanishDx: number,
   vanishDy: number,
@@ -242,8 +224,8 @@ function useFloorCopyStyle(
     return {
       opacity: fade * fade,
       transform: [
-        { translateX: -tilt.x.get() * PARALLAX.floor.tilt + vanishDx },
-        { translateY: -tilt.y.get() * PARALLAX.floor.tilt + vanishDy },
+        { translateX: vanishDx },
+        { translateY: vanishDy },
         // Sway as a shear about the vanishing point: full drift at the near
         // edge, none at the horizon.
         { skewX: `${Math.atan((drift.get() * PARALLAX.floor.drift) / floorDepth)}rad` },
