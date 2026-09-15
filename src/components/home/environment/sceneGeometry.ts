@@ -87,26 +87,6 @@ export function gridColumnBase(frame: SceneFrame, index: number, columns = GRID_
   return frame.vanishX + (index - mid) * step;
 }
 
-/** All grid rows as one SVG path. Rows overhang both edges so drift never shows an end. */
-export function gridRowsPath(frame: SceneFrame): string {
-  const x0 = n(-frame.width * 0.5);
-  const x1 = n(frame.width * 1.5);
-  return gridRowOffsets(frame)
-    .map((y) => `M ${x0} ${n(y)} L ${x1} ${n(y)}`)
-    .join(' ');
-}
-
-/** All converging verticals as one SVG path, drawn from the vanishing point outward. */
-export function gridColumnsPath(frame: SceneFrame): string {
-  const parts: string[] = [];
-  for (let i = 0; i < GRID_COLUMNS; i += 1) {
-    parts.push(
-      `M ${n(frame.vanishX)} ${n(frame.horizon)} L ${n(gridColumnBase(frame, i))} ${n(frame.height)}`,
-    );
-  }
-  return parts.join(' ');
-}
-
 export interface Rect {
   x: number;
   y: number;

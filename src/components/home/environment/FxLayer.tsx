@@ -56,13 +56,15 @@ export const FxLayer = memo(function FxLayer({ width, height }: FxLayerProps) {
       {/* Pre-blurred halo. Static — only the parent View's opacity moves. */}
       <Group>
         <Blur blur={7} />
-        <HorizonLine frame={frame} strokeWidth={4} alpha={0.55} />
+        {/* Kept faint: a bright band here makes the floor read brightest at the
+            horizon instead of receding toward it. */}
+        <HorizonLine frame={frame} strokeWidth={4} alpha={0.18} />
         {beacons.map((b, i) => (
           <Circle key={`halo-${i}`} cx={b.cx} cy={b.cy} r={b.halo} color={neonAlpha(NEON[b.tone], 0.6)} />
         ))}
       </Group>
 
-      <HorizonLine frame={frame} strokeWidth={1.5} alpha={1} />
+      <HorizonLine frame={frame} strokeWidth={1} alpha={0.35} />
       {beacons.map((b, i) => (
         <Circle key={`core-${i}`} cx={b.cx} cy={b.cy} r={b.core} color={NEON[b.tone]} />
       ))}
