@@ -50,8 +50,12 @@ const OVERSCAN = 1.1;
  * travel at the ±0.3 rad sensor clamp.
  */
 const PARALLAX = {
-  sky: { drift: 6, periodMs: 14000, tilt: 4 },
+  // No drift: the sky is at infinity, so the painted sun stays locked on the
+  // floor's vanishing point.
+  sky: { tilt: 4 },
   city: { drift: 14, periodMs: 11000, tilt: 12 },
+  // Applied as a shear about the vanishing point: `drift` px at the near edge,
+  // zero at the horizon, so the grid keeps converging on the sun.
   floor: { drift: 26, periodMs: 9000, tilt: 24 },
 } as const;
 
@@ -69,7 +73,9 @@ const LOG_GRID_RATIO = Math.log(GRID_RATIO);
  * Animated.View; every frame of motion is a transform or opacity on the UI
  * thread, so nothing redraws.
  *
- * - Parallax drift: per-layer amplitude and period, sine-eased.
+ * - Parallax drift: city and floor sway at their own amplitude and period,
+ *   sine-eased. The sky never drifts, and the floor sways as a shear about the
+ *   vanishing point, so the grid always converges on the painted sun.
  * - Floor: a perspective grid cannot scroll with translateY, because rows must
  *   accelerate toward the viewer. Each copy scales about the vanishing point
  *   from 1 to GRID_RATIO and wraps; the copies run half a phase apart and
@@ -92,23 +98,20 @@ export const HomeEnvironment = memo(function HomeEnvironment({
   const tiltSetting = useHomeTilt();
   const tilt = useDeviceTilt(motionOn && tiltSetting);
 
-  const skyDrift = useSharedValue(0);
   const cityDrift = useSharedValue(0);
   const floorDrift = useSharedValue(0);
   const floorPhase = useSharedValue(FLOOR_REST_PHASE);
   const flicker = useSharedValue(1);
 
   useEffect(() => {
-    const values = [skyDrift, cityDrift, floorDrift, floorPhase, flicker];
+    const values = [cityDrift, floorDrift, floorPhase, flicker];
     values.forEach((v) => cancelAnimation(v));
-    skyDrift.set(0);
     cityDrift.set(0);
     floorDrift.set(0);
     floorPhase.set(FLOOR_REST_PHASE);
     flicker.set(1);
     if (!motionOn) return;
 
-    sway(skyDrift, PARALLAX.sky.periodMs);
     sway(cityDrift, PARALLAX.city.periodMs);
     sway(floorDrift, PARALLAX.floor.periodMs);
 
@@ -132,7 +135,7 @@ export const HomeEnvironment = memo(function HomeEnvironment({
     );
 
     return () => values.forEach((v) => cancelAnimation(v));
-  }, [motionOn, skyDrift, cityDrift, floorDrift, floorPhase, flicker]);
+  }, [motionOn, cityDrift, floorDrift, floorPhase, flicker]);
 
   const layerW = Math.round(width * OVERSCAN);
   const layerH = Math.round(height * OVERSCAN);
@@ -150,10 +153,11 @@ export const HomeEnvironment = memo(function HomeEnvironment({
   const frame = sceneFrame(layerW, layerH);
   const vanishDx = frame.vanishX - layerW / 2;
   const vanishDy = frame.horizon - layerH / 2;
+  const floorDepth = frame.height - frame.horizon;
 
   const skyStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateX: skyDrift.get() * PARALLAX.sky.drift - tilt.x.get() * PARALLAX.sky.tilt },
+      { translateX: -tilt.x.get() * PARALLAX.sky.tilt },
       { translateY: -tilt.y.get() * PARALLAX.sky.tilt },
     ],
   }));
@@ -174,8 +178,8 @@ export const HomeEnvironment = memo(function HomeEnvironment({
     ],
   }));
 
-  const floorA = useFloorCopyStyle(floorDrift, floorPhase, tilt, 0, vanishDx, vanishDy);
-  const floorB = useFloorCopyStyle(floorDrift, floorPhase, tilt, 0.5, vanishDx, vanishDy);
+  const floorA = useFloorCopyStyle(floorDrift, floorPhase, tilt, 0, vanishDx, vanishDy, floorDepth);
+  const floorB = useFloorCopyStyle(floorDrift, floorPhase, tilt, 0.5, vanishDx, vanishDy, floorDepth);
 
   return (
     <View pointerEvents="none" style={styles.clip}>
@@ -228,6 +232,7 @@ function useFloorCopyStyle(
   offset: number,
   vanishDx: number,
   vanishDy: number,
+  floorDepth: number,
 ) {
   return useAnimatedStyle(() => {
     const q = (phase.get() + offset) % 1;
@@ -235,8 +240,11 @@ function useFloorCopyStyle(
     return {
       opacity: fade * fade,
       transform: [
-        { translateX: drift.get() * PARALLAX.floor.drift - tilt.x.get() * PARALLAX.floor.tilt + vanishDx },
+        { translateX: -tilt.x.get() * PARALLAX.floor.tilt + vanishDx },
         { translateY: -tilt.y.get() * PARALLAX.floor.tilt + vanishDy },
+        // Sway as a shear about the vanishing point: full drift at the near
+        // edge, none at the horizon.
+        { skewX: `${Math.atan((drift.get() * PARALLAX.floor.drift) / floorDepth)}rad` },
         { scale: Math.exp(q * LOG_GRID_RATIO) },
         { translateX: -vanishDx },
         { translateY: -vanishDy },
