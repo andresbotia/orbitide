@@ -50,7 +50,14 @@ export const Pixel = memo(function Pixel({
     if (clearAt === undefined) {
       return { opacity: rest, transform: [{ scale: 1 }] };
     }
-    const p = Math.max(0, Math.min(1, (clock.value - clearAt) / FEEL.PIXEL_POP_DURATION));
+    // `p` is clamped to 0 before the clear beat. The flash curve treats 0 as
+    // peak white, so without this gate every upcoming hit would paint white
+    // for the whole remaining lap.
+    const elapsed = clock.value - clearAt;
+    if (elapsed < 0) {
+      return { opacity: rest, transform: [{ scale: 1 }] };
+    }
+    const p = Math.max(0, Math.min(1, elapsed / FEEL.PIXEL_POP_DURATION));
     const overshoot = p < 0.35
       ? 1 + popOvershoot * (p / 0.35)
       : (1 + popOvershoot) * Math.max(0, 1 - (p - 0.35) / 0.65);

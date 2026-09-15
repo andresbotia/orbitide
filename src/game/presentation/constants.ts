@@ -23,7 +23,7 @@ export const LAUNCH_HUB = {
  * number elsewhere). One obvious tunable: convoy pauses can make a lap feel
  * slower than this base, so perceived speed is tuned here first.
  */
-export const CORE_V2_ORBIT_DURATION_MS = 7200;
+export const CORE_V2_ORBIT_DURATION_MS = 6000;
 
 /**
  * M5.8 — minimum Core V2 rail gap between consecutive active Pals, as a

@@ -342,7 +342,7 @@ export function PixelPalFace({ color, size, colorAssist, mood, capacity, selecte
   selected?: boolean;
 }) {
   return (
-    <View style={{ width: size, height: size, transform: selected ? [{ scale: 1.06 }] : undefined }}>
+    <View style={[{ width: size, height: size }, selected ? { transform: [{ scale: 1.06 }] } : null]}>
       {selected ? (
         <View
           pointerEvents="none"
