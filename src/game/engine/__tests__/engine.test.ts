@@ -61,13 +61,16 @@ test('full Holding can launch a tunnel charge that completely consumes itself', 
   expect(computeStatus(state)).toBe('playing');
   expect(resolveLaunch(state, 'tunnel-0').state.status).toBe('won');
 });
-test('full Holding rejects a partial tunnel pass without spending or clearing anything', () => {
+test('full Holding accepts a partial tunnel pass then loses without overwriting Holding', () => {
   const state = fullBoard();
-  state.tunnels[0]!.queue[0]!.capacity = 2;
+  state.tunnels[0]!.queue[0] = { id: 'overflow-blue', color: 'blue', capacity: 2 };
+  expect(computeStatus(state)).toBe('playing');
   const result = resolveLaunch(state, 'tunnel-0');
-  expect(result.state).toBe(state);
-  expect(result.rejection).toBe('holdingFull');
-  expect(computeStatus(state)).toBe('lost');
+  expect(result.accepted).toBe(true);
+  expect(result.state.status).toBe('lost');
+  expect(result.state.holding).toEqual(state.holding);
+  expect(result.heldCharge?.capacity).toBeGreaterThan(0);
+  expect(result.state.holding.some((c) => c.id === result.launchedCharge!.id)).toBe(false);
 });
 test('true deadlock can occur below full Holding when every tunnel is exhausted', () => {
   const state = fullBoard();

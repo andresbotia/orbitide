@@ -1,6 +1,12 @@
 import { attachModifiers, DEFAULT_ART_LEGEND, parsePixelArt } from './art';
 import { DEFAULT_ACTIVE_CAPACITY } from './concurrency';
-import { expectedTunnelCount, LEGACY_TUNNEL_COUNT, resolveRuleset } from './ruleset';
+import {
+  defaultHoldingCapacity,
+  expectedTunnelCount,
+  isCoreV2,
+  LEGACY_TUNNEL_COUNT,
+  resolveRuleset,
+} from './ruleset';
 import type { Charge, GameState, LevelDefinition, TunnelState } from './types';
 
 /** Legacy V1 tunnel count. Prefer {@link expectedTunnelCount} for ruleset-aware code. */
@@ -39,7 +45,7 @@ export function createGame(level: LevelDefinition): GameState {
 
   return {
     levelId: level.id,
-    holdingCapacity: level.holdingCapacity,
+    holdingCapacity: resolveHoldingCapacity(level),
     width,
     height,
     pixels,
@@ -52,6 +58,18 @@ export function createGame(level: LevelDefinition): GameState {
     ruleset: resolveRuleset(level.ruleset),
     activeCapacity: resolveActiveCapacity(level.activeCapacity),
   };
+}
+
+function resolveHoldingCapacity(level: LevelDefinition): number {
+  if (isCoreV2(level.ruleset)) {
+    if (typeof level.holdingCapacity === 'number' && level.holdingCapacity > 0 && level.holdingCapacity !== 4) {
+      return level.holdingCapacity;
+    }
+    return defaultHoldingCapacity(level.ruleset);
+  }
+  return typeof level.holdingCapacity === 'number' && level.holdingCapacity > 0
+    ? level.holdingCapacity
+    : defaultHoldingCapacity(level.ruleset);
 }
 
 function resolveActiveCapacity(value: number | undefined): number {

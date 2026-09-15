@@ -4,6 +4,7 @@ import { StyleSheet } from 'react-native';
 import { interpolate, useDerivedValue, type SharedValue } from 'react-native-reanimated';
 
 import type { GameState, LevelDefinition } from '@/game/engine/types';
+import { isCoreV2 } from '@/game/engine/ruleset';
 import { resolveReveal, revealTimeline, type CelebrationTier, type ResolvedReveal } from '@/game/rendering/revealGeometry';
 import { orbColors } from '@/theme/colors';
 import { material } from '@/theme/material';
@@ -11,6 +12,8 @@ import { cellCenter, computeBoardGeometry } from './boardGeometry';
 
 interface DiscoveryRevealProps {
   size: number;
+  width?: number;
+  height?: number;
   level: LevelDefinition;
   /** Won state — pixels carry their original positions (all cleared). */
   state: GameState;
@@ -34,9 +37,18 @@ const PARTICLE_COUNT: Record<CelebrationTier, number> = { normal: 8, capstone: 1
  * progress value; per-node derived values only. No JS per-frame work.
  */
 export const DiscoveryReveal = memo(function DiscoveryReveal({
-  size, level, state, progress, reducedMotion, tier,
+  size, width, height, level, state, progress, reducedMotion, tier,
 }: DiscoveryRevealProps) {
-  const geo = useMemo(() => computeBoardGeometry(size, state.width, state.height), [size, state.width, state.height]);
+  const canvasW = width ?? size;
+  const canvasH = height ?? size;
+  const geo = useMemo(() => computeBoardGeometry(
+    Math.max(canvasW, canvasH),
+    state.width,
+    state.height,
+    isCoreV2(state.ruleset)
+      ? { roundedRect: true, box: { width: canvasW, height: canvasH } }
+      : undefined,
+  ), [canvasW, canvasH, state.width, state.height, state.ruleset]);
   const reveal = useMemo<ResolvedReveal>(() => resolveReveal(level), [level]);
   const tl = useMemo(() => revealTimeline(reducedMotion, tier), [reducedMotion, tier]);
 

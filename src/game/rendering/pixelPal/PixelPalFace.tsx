@@ -186,13 +186,15 @@ export function PixelPalShell({ color, size, colorAssist }: { color: OrbColor; s
 /**
  * Glossy dark visor + eyes + expression. The visor never carries a numeral.
  */
-export function PixelPalVisor({ size, mood = 'calm' }: { size: number; mood?: PixelPalMood }) {
+export function PixelPalVisor({ size, mood = 'calm', animate = true }: {
+  size: number; mood?: PixelPalMood; animate?: boolean;
+}) {
   const reducedMotion = useReducedMotion();
   const detailed = size >= DETAIL_FLOOR;
   const blink = useSharedValue(0);
 
   useEffect(() => {
-    if (reducedMotion || !detailed) { cancelAnimation(blink); blink.set(0); return; }
+    if (!animate || reducedMotion || !detailed) { cancelAnimation(blink); blink.set(0); return; }
     let alive = true;
     const focusedNow = () => mood === 'focused';
     const scheduleBlink = () => {
@@ -210,7 +212,7 @@ export function PixelPalVisor({ size, mood = 'calm' }: { size: number; mood?: Pi
     // `mood` intentionally excluded — a mood change should not restart the
     // in-flight blink timer, only the NEXT scheduled gap reads it fresh.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reducedMotion, detailed, blink]);
+  }, [animate, reducedMotion, detailed, blink]);
 
   const eyeStyle = useAnimatedStyle(() => ({ transform: [{ scaleY: 1 - blink.value * 0.86 }] }));
   const focused = mood === 'focused';
@@ -334,12 +336,14 @@ export const PixelPalBadge = memo(function PixelPalBadge({ palSize, color, text,
 });
 
 /** Static composition (zero rotation) for a Tunnel port / Holding slot / preview chip. */
-export function PixelPalFace({ color, size, colorAssist, mood, capacity, selected }: {
+export function PixelPalFace({ color, size, colorAssist, mood, capacity, selected, animate }: {
   color: OrbColor; size: number; colorAssist?: boolean; mood?: PixelPalMood;
   /** Remaining count. Rendered on the badge, never in the visor. */
   capacity?: number;
   /** Tight colored outline + 1.06 scale — selection, not a glow. */
   selected?: boolean;
+  /** Queue previews skip blink worklets. */
+  animate?: boolean;
 }) {
   return (
     <View style={[{ width: size, height: size }, selected ? { transform: [{ scale: 1.06 }] } : null]}>
@@ -357,7 +361,7 @@ export function PixelPalFace({ color, size, colorAssist, mood, capacity, selecte
       ) : null}
       <PixelPalShell color={color} size={size} colorAssist={colorAssist} />
       <View style={StyleSheet.absoluteFill}>
-        <PixelPalVisor size={size} mood={mood} />
+        <PixelPalVisor size={size} mood={mood} animate={animate} />
       </View>
       {capacity !== undefined ? (
         <PixelPalBadge palSize={size} color={color} text={String(capacity)} />

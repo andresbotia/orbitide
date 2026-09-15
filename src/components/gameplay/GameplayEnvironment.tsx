@@ -4,6 +4,7 @@ import { StyleSheet, useWindowDimensions } from 'react-native';
 import { cancelAnimation, Easing, useDerivedValue, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 
 import { AmbientLayer } from '@/components/world/AmbientLayer';
+import { homeAlpha, homeV2 } from '@/theme/homeV2';
 import { material } from '@/theme/material';
 import type { AmbientTreatmentId } from '@/theme/worldSkins';
 
@@ -50,11 +51,11 @@ export const GameplayEnvironment = memo(function GameplayEnvironment({
   return (
     <Fragment>
       <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Rect x={0} y={0} width={width} height={height} color={material.background} />
+        <Rect x={0} y={0} width={width} height={height} color={homeV2.deepNavy} />
 
-        <Group opacity={0.46}>
+        <Group opacity={0.28}>
           {planes.map((p, i) => (
-            <RoundedRect key={i} x={p.x} y={p.y} width={p.w} height={p.h} r={p.r} color={material.recessedSurface} />
+            <RoundedRect key={i} x={p.x} y={p.y} width={p.w} height={p.h} r={p.r} color={homeAlpha(homeV2.navy, 0.9)} />
           ))}
         </Group>
 

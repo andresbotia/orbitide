@@ -19,43 +19,120 @@ interface PixelProps {
    * (locked desaturation, hidden concealment). Presentation only.
    */
   modifierDim?: number;
-  clock: SharedValue<number>;
+  clock?: SharedValue<number>;
   clearAt?: number;
 }
 
 /**
- * Production base pixel: a dimensional extruded body with consistent top-left
- * lighting — top highlight, lower/right shadow via a bevel, a restrained inner
- * emissive rim when the pixel is reachable. All depth cues scale down as the
- * board gets denser (see `PixelAdaptive`). A clean overlay layer is reserved for
- * a future Color Assist mark.
+ * Production base pixel. Idle cubes are plain Views — a board can carry
+ * 700+ cells, and Animated worklets on every idle cube were the hot-path
+ * cost during multi-Pal firing. Only cubes currently popping pay for
+ * `useAnimatedStyle`.
  */
-export const Pixel = memo(function Pixel({
-  color, cx, cy, cell, reachable, adaptive, modifierDim = 0, clock, clearAt,
-}: PixelProps) {
+export const Pixel = memo(function Pixel(props: PixelProps) {
+  if (props.clearAt === undefined || props.clock === undefined) {
+    return <StaticPixel {...props} />;
+  }
+  return <ClearingPixel {...props} clock={props.clock} clearAt={props.clearAt} />;
+});
+
+function pixelLayout(props: PixelProps) {
+  const { color, cell, reachable, adaptive, modifierDim = 0 } = props;
   const gutter = adaptive.gutter;
   const size = Math.max(4, cell - gutter);
   const material = pixelMaterial(color);
   const bevel = Math.min(adaptive.bevel, size * 0.22);
   const cornerRadius = Math.max(1.5, cell * adaptive.cornerRadius);
   const rest = (reachable ? 1 : 0.62) * (1 - modifierDim * 0.55);
+  return { size, material, bevel, cornerRadius, rest, adaptive, reachable, modifierDim };
+}
 
+function PixelChrome({
+  size, material, bevel, cornerRadius, adaptive, reachable, modifierDim = 0,
+}: ReturnType<typeof pixelLayout>) {
+  return (
+    <>
+      <View
+        style={[
+          styles.highlight,
+          {
+            height: size * 0.42,
+            borderTopLeftRadius: cornerRadius,
+            borderTopRightRadius: cornerRadius,
+            backgroundColor: material.top,
+            opacity: adaptive.highlight,
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.shade,
+          {
+            height: size * 0.32,
+            borderBottomLeftRadius: cornerRadius,
+            borderBottomRightRadius: cornerRadius,
+            backgroundColor: material.bottom,
+            opacity: adaptive.shadow,
+          },
+        ]}
+      />
+      {reachable ? (
+        <View
+          style={[
+            styles.rim,
+            {
+              borderRadius: Math.max(1, cornerRadius - 1),
+              borderColor: material.rim,
+              borderWidth: Math.max(1, bevel * 0.8),
+              opacity: (0.35 + adaptive.glow * 0.5) * (1 - modifierDim),
+            },
+          ]}
+        />
+      ) : null}
+    </>
+  );
+}
+
+const StaticPixel = memo(function StaticPixel(props: PixelProps) {
+  const chrome = pixelLayout(props);
+  const { size, material, bevel, cornerRadius, rest } = chrome;
+  return (
+    <View
+      pointerEvents="none"
+      style={[
+        styles.wrap,
+        {
+          width: size,
+          height: size,
+          left: props.cx - size / 2,
+          top: props.cy - size / 2,
+          borderRadius: cornerRadius,
+          backgroundColor: material.base,
+          borderWidth: bevel,
+          borderTopColor: material.top,
+          borderLeftColor: material.top,
+          borderRightColor: material.bottom,
+          borderBottomColor: material.bottom,
+          opacity: rest,
+        },
+      ]}
+    >
+      <PixelChrome {...chrome} />
+    </View>
+  );
+});
+
+const ClearingPixel = memo(function ClearingPixel({
+  cx, cy, clock, clearAt, ...rest
+}: PixelProps & { clock: SharedValue<number>; clearAt: number }) {
+  const chrome = pixelLayout({ cx, cy, clock, clearAt, ...rest });
+  const { size, material, bevel, cornerRadius, rest: restOpacity, adaptive } = chrome;
   const popOvershoot = adaptive.popOvershoot;
-  // UI-R9 — a very fast brightness peak on clear, folded into this SAME
-  // worklet/View rather than a second `useAnimatedStyle`/overlay layer: a
-  // board can carry 700+ `Pixel` instances, and only the ones actively
-  // clearing (this branch) ever pay the extra `interpolateColor` cost — the
-  // idle branch below is untouched and exactly as cheap as before.
+
   const animated = useAnimatedStyle(() => {
-    if (clearAt === undefined) {
-      return { opacity: rest, transform: [{ scale: 1 }] };
-    }
-    // `p` is clamped to 0 before the clear beat. The flash curve treats 0 as
-    // peak white, so without this gate every upcoming hit would paint white
-    // for the whole remaining lap.
     const elapsed = clock.value - clearAt;
     if (elapsed < 0) {
-      return { opacity: rest, transform: [{ scale: 1 }] };
+      return { opacity: restOpacity, transform: [{ scale: 1 }] };
     }
     const p = Math.max(0, Math.min(1, elapsed / FEEL.PIXEL_POP_DURATION));
     const overshoot = p < 0.35
@@ -63,7 +140,7 @@ export const Pixel = memo(function Pixel({
       : (1 + popOvershoot) * Math.max(0, 1 - (p - 0.35) / 0.65);
     const flash = p < 0.22 ? 1 - p / 0.22 : 0;
     return {
-      opacity: rest * (1 - p),
+      opacity: restOpacity * (1 - p),
       backgroundColor: flash > 0 ? interpolateColor(flash, [0, 1], [material.base, '#FFFFFF']) : material.base,
       transform: [{ scale: p === 0 ? 1 : overshoot }],
     };
@@ -90,46 +167,7 @@ export const Pixel = memo(function Pixel({
         animated,
       ]}
     >
-      {/* Top highlight — directional light from the upper-left. */}
-      <View
-        style={[
-          styles.highlight,
-          {
-            height: size * 0.42,
-            borderTopLeftRadius: cornerRadius,
-            borderTopRightRadius: cornerRadius,
-            backgroundColor: material.top,
-            opacity: adaptive.highlight,
-          },
-        ]}
-      />
-      {/* Lower shadow pool. */}
-      <View
-        style={[
-          styles.shade,
-          {
-            height: size * 0.32,
-            borderBottomLeftRadius: cornerRadius,
-            borderBottomRightRadius: cornerRadius,
-            backgroundColor: material.bottom,
-            opacity: adaptive.shadow,
-          },
-        ]}
-      />
-      {/* Restrained inner emissive rim when reachable. */}
-      {reachable ? (
-        <View
-          style={[
-            styles.rim,
-            {
-              borderRadius: Math.max(1, cornerRadius - 1),
-              borderColor: material.rim,
-              borderWidth: Math.max(1, bevel * 0.8),
-              opacity: (0.35 + adaptive.glow * 0.5) * (1 - modifierDim),
-            },
-          ]}
-        />
-      ) : null}
+      <PixelChrome {...chrome} />
     </Animated.View>
   );
 });

@@ -116,10 +116,13 @@ test('M4A repro — a full-Holding join onto the running epoch is both accepted 
   const joinLaunch: GameAction = { ...T(0), join: true };
   // The runtime accepts it (joining re-floats the stranded cyan charges)…
   expect(resolveAction(s, joinLaunch).accepted).toBe(true);
-  // …and the plain settle-first launch of the same tunnel is *rejected*
-  // (a fresh pass cannot reach the buried centre white, so it would overflow).
-  expect(resolveAction(s, T(0)).accepted).toBe(false);
-  expect(legalActions(s).map((a) => a.id)).not.toContain('tunnel-0');
+  // A settle-first launch is also a legal tap now: the player may take the
+  // risky move. Overflow parks nobody extra and the pass loses.
+  const settle = resolveAction(s, T(0));
+  expect(settle.accepted).toBe(true);
+  expect(settle.state.status).toBe('lost');
+  expect(settle.state.holding.map((c) => c.id)).toEqual(s.holding.map((c) => c.id));
+  expect(legalActions(s).map((a) => a.id)).toContain('tunnel-0');
   // The concurrent solver must still see the join — this is the fix.
   expect(enumerateActions(s, 'metrics').map(key)).toContain('tunnel:tunnel-0:J');
 

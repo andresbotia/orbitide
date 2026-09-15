@@ -140,14 +140,19 @@ test.each(['background', 'restart', 'unmount'])('%s retires all flights and igno
 });
 
 test('Holding stays parked; useless tap explains itself; useful tap starts a manual flight', () => {
-  const root = mount(4);
+  const level: LevelDefinition = {
+    id: 8401, title: 'Park', themeId: 'test', difficulty: 'easy', holdingCapacity: 3,
+    pixelArt: ['WWW', 'WBW', 'WWW'],
+    tunnels: [[{ color: 'blue', capacity: 1 }], [{ color: 'white', capacity: 8 }], []],
+  };
+  const root = mount(8401, level);
   act(() => session.launch('tunnel-0')); finish();
   const held = session.state.holding[0]!;
   expect(held).toBeTruthy();
   act(() => session.launchHeld(held.id));
   expect(session.flights).toHaveLength(0);
   expect(session.message).toBe('No exposed matching pixels yet.');
-  act(() => session.launch('tunnel-0')); finish();
+  act(() => session.launch('tunnel-1')); finish();
   expect(session.state.holding.some((c) => c.id === held.id)).toBe(true);
   act(() => session.launchHeld(held.id));
   expect(session.flights[0]!.origin).toBe('holding');
@@ -157,7 +162,12 @@ test('Holding stays parked; useless tap explains itself; useful tap starts a man
 });
 
 test('backgrounding a resolved win still records progress once, without replaying haptics', () => {
-  const root = mount();
+  const level: LevelDefinition = {
+    id: 8402, title: 'Win', themeId: 'test', difficulty: 'easy', holdingCapacity: 3,
+    pixelArt: ['WRB'],
+    tunnels: [[{ color: 'white', capacity: 1 }], [{ color: 'red', capacity: 1 }], [{ color: 'blue', capacity: 1 }]],
+  };
+  const root = mount(8402, level);
   act(() => session.launch('tunnel-0')); finish();
   act(() => session.launch('tunnel-1')); finish();
   act(() => session.launch('tunnel-2'));
@@ -170,9 +180,52 @@ test('backgrounding a resolved win still records progress once, without replayin
 });
 
 test('last clear keeps its sound hook and its consumed impact', () => {
-  const root = mount();
+  const level: LevelDefinition = {
+    id: 8403, title: 'Consume', themeId: 'test', difficulty: 'easy', holdingCapacity: 3,
+    pixelArt: ['WW', 'BB'],
+    tunnels: [[{ color: 'white', capacity: 2 }], [], []],
+  };
+  const root = mount(8403, level);
   act(() => session.launch('tunnel-0')); finish();
   expect(feedback.emit).toHaveBeenCalledWith('pixelPop', { haptic: false, voice: 'shot' });
   expect(feedback.emit).toHaveBeenCalledWith('chargeConsumed', { haptic: true });
+  act(() => root.unmount());
+});
+
+const overflowLevel: LevelDefinition = {
+  id: 9610, title: 'Session overflow', themeId: 'test', difficulty: 'easy',
+  holdingCapacity: 2, ruleset: 'coreV2',
+  pixelArt: ['WWW', 'WWW', 'WWW'],
+  tunnels: [
+    [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
+    [{ color: 'blue', capacity: 1 }],
+    [{ color: 'blue', capacity: 1 }],
+    [{ color: 'white', capacity: 9 }],
+  ],
+};
+
+test('full holding still launches a ready Pal; overflow loses without eating holds', () => {
+  const root = mount(9610, overflowLevel);
+  act(() => session.launch('tunnel-0')); finish();
+  act(() => session.launch('tunnel-1')); finish();
+  const held = session.state.holding.map((c) => c.id);
+  expect(held).toHaveLength(2);
+  act(() => session.launch('tunnel-2'));
+  expect(session.flights.length).toBeGreaterThan(0);
+  expect(session.message).not.toBe('Free a Holding slot first.');
+  finish();
+  expect(session.engineState.status).toBe('lost');
+  expect(session.state.holding.map((c) => c.id)).toEqual(held);
+  act(() => root.unmount());
+});
+
+test('full holding can still win with a fully consuming Pal', () => {
+  const root = mount(9610, overflowLevel);
+  act(() => session.launch('tunnel-0')); finish();
+  act(() => session.launch('tunnel-1')); finish();
+  expect(session.state.holding).toHaveLength(2);
+  act(() => session.launch('tunnel-3')); finish();
+  expect(session.engineState.status).toBe('won');
+  expect(session.state.holding).toHaveLength(2);
   act(() => root.unmount());
 });

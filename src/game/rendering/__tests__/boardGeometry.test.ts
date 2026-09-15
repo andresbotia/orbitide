@@ -1,5 +1,6 @@
 import {
   computeBoardGeometry,
+  fitRoundedRectCanvas,
   pixelAdaptive,
   SUPPORTED_DENSITIES,
   MAX_READY_DENSITY,
@@ -203,6 +204,47 @@ test('Core V2 roundedRect does not pan and does not change circular Legacy V1 ge
   const packed = computeBoardGeometry(size, 28, 28, { roundedRect: true });
   expect(packed.cell).toBeGreaterThanOrEqual(3);
   expect(packed.cell).toBeLessThan(14);
+});
+
+test('circular geometry reports width and height equal to size', () => {
+  const geo = computeBoardGeometry(358, 7, 7);
+  expect(geo.width).toBe(358);
+  expect(geo.height).toBe(358);
+  expect(geo.size).toBe(358);
+});
+
+test('Core V2 orbiting Pal stays in the 32–38pt readable band on phone-sized boards', () => {
+  for (const size of [320, 358, 390, 430] as const) {
+    const geo = computeBoardGeometry(size, 7, 7, { roundedRect: true });
+    const visual = geo.chargeRadius * 2.1;
+    expect(visual).toBeGreaterThanOrEqual(32 - 1e-6);
+    expect(visual).toBeLessThanOrEqual(38 + 1e-6);
+  }
+});
+
+test('Core V2 canvas shrinks to the puzzle aspect instead of letterboxing a square', () => {
+  const tall = fitRoundedRectCanvas(374, 500, 9, 11);
+  expect(tall.height).toBeGreaterThan(tall.width);
+
+  const wide = fitRoundedRectCanvas(374, 500, 15, 7);
+  expect(wide.width).toBeGreaterThan(wide.height);
+
+  const square = fitRoundedRectCanvas(374, 500, 7, 7);
+  expect(Math.abs(square.width - square.height)).toBeLessThanOrEqual(2);
+});
+
+test('Core V2 artwork fills 85–92% of the rail interior on a reference phone', () => {
+  const size = 390;
+  for (const [cols, rows] of [[7, 7], [9, 11], [15, 15], [21, 21]] as const) {
+    const geo = computeBoardGeometry(size, cols, rows, { roundedRect: true, box: { width: size, height: 520 } });
+    const p = geo.perimeter!;
+    const fillW = geo.gridWidth / p.width;
+    const fillH = geo.gridHeight / p.height;
+    expect(fillW).toBeGreaterThanOrEqual(0.85);
+    expect(fillW).toBeLessThanOrEqual(0.92);
+    expect(fillH).toBeGreaterThanOrEqual(0.85);
+    expect(fillH).toBeLessThanOrEqual(0.92);
+  }
 });
 
 test('flightBankDegrees stays within its documented cap on a coreV2 rounded-rect pass', () => {

@@ -310,7 +310,7 @@ describe('M5.2E Verification — Priority Edge Cases', () => {
 
   // ── 7. Holding full ───────────────────────────────────────────────────────
   describe('7. Holding full', () => {
-    test('at HOLDING 4/4, launching a non-clearing charge is denied with holdingFull; fully consuming charge is admitted', () => {
+    test('at HOLDING 4/4, a non-clearing launch is accepted then lost; a fully consuming charge still wins', () => {
       const def = v2(
         ['WWW', 'WWW', 'WWW'],
         [
@@ -328,11 +328,11 @@ describe('M5.2E Verification — Priority Edge Cases', () => {
       state = resolveAction(state, T(0)).state;
       expect(state.holding).toHaveLength(4);
 
-      // 5th tunnel launch of non-clearing blue charge is denied with holdingFull
-      const denied = resolveAction(state, T(0));
-      expect(denied.accepted).toBe(false);
-      expect(denied.rejection).toBe('holdingFull');
-      expect(denied.state.holding).toHaveLength(4);
+      const overflow = resolveAction(state, T(0));
+      expect(overflow.accepted).toBe(true);
+      expect(overflow.state.status).toBe('lost');
+      expect(overflow.state.holding).toHaveLength(4);
+      expect(overflow.state.holding.map((c) => c.id)).toEqual(state.holding.map((c) => c.id));
 
       // But tunnel 3 (white charge that fully consumes itself) IS accepted even at 4/4 Holding!
       const allowed = resolveAction(state, T(3));

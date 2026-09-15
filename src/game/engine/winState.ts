@@ -29,6 +29,7 @@ export function isWon(state: GameState): boolean { return remainingPixelCount(st
  * modifier break/prime), the state is lost.
  */
 export function isLost(state: GameState): boolean {
+  if (state.status === 'lost') return true;
   if (isWon(state)) return false;
   const playing: GameState = { ...state, status: 'playing' };
   const actions = legalActions(playing, { includeJoin: playing.epoch !== null });
@@ -52,5 +53,6 @@ export function isLost(state: GameState): boolean {
   return false;
 }
 export function computeStatus(state: GameState): GameStatus {
+  if (state.status === 'lost') return 'lost';
   return isWon(state) ? 'won' : isLost(state) ? 'lost' : 'playing';
 }

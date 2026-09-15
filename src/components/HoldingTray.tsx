@@ -22,6 +22,7 @@ import { isHeldChargeHighlighted, isHeldChargeSubdued } from '@/game/presentatio
 import type { TutorialView } from '@/game/tutorial';
 import { markContrast } from '@/theme/colorAssist';
 import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
+import { GAMEPLAY } from '@/theme/gameplayLayout';
 import { homeAlpha, homeV2 } from '@/theme/homeV2';
 
 interface HoldingTrayProps {
@@ -102,8 +103,8 @@ export const HoldingTray = memo(function HoldingTray({
   );
 });
 
-const SOCKET = 52;
-const PAL = 44;
+const SOCKET = GAMEPLAY.holdingWell;
+const PAL = GAMEPLAY.holdingPal;
 
 const Slot = memo(function Slot({
   index, charge, useful, disabled, colorAssist, justArrived, reducedMotion, pixelPal, onLaunch, onSourceLayout, layoutVersion,
@@ -200,6 +201,14 @@ const Slot = memo(function Slot({
       accessibilityHint={useful ? 'Tap to launch again' : 'No exposed matching pixels yet'}
       style={({ pressed }) => [
         styles.socket,
+        charge ? {
+          shadowColor: orbColors[charge.color],
+          shadowOpacity: 0.45,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 2 },
+          elevation: 4,
+          borderColor: homeAlpha(orbColors[charge.color], 0.4),
+        } : null,
         subdued && styles.socketSubdued,
         pressed && charge && styles.socketPressed,
       ]}
@@ -251,7 +260,7 @@ const Slot = memo(function Slot({
 
 const styles = StyleSheet.create({
   row: {
-    height: 64,
+    height: SOCKET + 8,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
@@ -263,16 +272,20 @@ const styles = StyleSheet.create({
     width: SOCKET,
     height: SOCKET,
     borderRadius: 14,
-    backgroundColor: homeAlpha('#000C28', 0.85),
+    backgroundColor: homeAlpha(homeV2.navy, 0.55),
+    borderWidth: 1,
+    borderColor: homeAlpha(homeV2.cyan, 0.22),
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'visible',
   },
   socketWell: {
-    width: SOCKET * 0.42,
-    height: SOCKET * 0.42,
-    borderRadius: SOCKET * 0.21,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    width: SOCKET * 0.38,
+    height: SOCKET * 0.38,
+    borderRadius: SOCKET * 0.19,
+    backgroundColor: homeAlpha('#000C28', 0.35),
+    borderWidth: 1,
+    borderColor: homeAlpha(homeV2.cyan, 0.12),
   },
   socketPressed: { transform: [{ scale: 0.94 }] },
   socketSubdued: { opacity: 0.55 },

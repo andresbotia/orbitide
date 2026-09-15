@@ -23,6 +23,7 @@ import { isTunnelHighlighted, isTunnelSubdued } from '@/game/presentation/tutori
 import type { TutorialView } from '@/game/tutorial';
 import { markContrast } from '@/theme/colorAssist';
 import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
+import { GAMEPLAY } from '@/theme/gameplayLayout';
 import { homeAlpha, homeV2 } from '@/theme/homeV2';
 
 interface TunnelBarProps {
@@ -47,11 +48,14 @@ export const TunnelBar = memo(function TunnelBar({ state, disabled, colorAssist,
   const upcoming = upcomingPreviewCount(state.ruleset);
   const pixelPal = isCoreV2(state.ruleset);
   const { width } = useWindowDimensions();
-  const inner = Math.max(240, width - 40);
+  const inner = Math.max(240, width - GAMEPLAY.deckPadX * 2);
   const gap = charges.length >= 4 ? 8 : 12;
   const col = (inner - gap * Math.max(0, charges.length - 1)) / Math.max(1, charges.length);
-  const readySize = Math.min(64, Math.max(56, Math.floor(col - 12)));
-  const queueSize = Math.round(readySize * 0.75);
+  const readySize = Math.min(GAMEPLAY.readyPalMax, Math.max(GAMEPLAY.readyPalMin, Math.floor(col - 14)));
+  const queueSize = Math.min(
+    GAMEPLAY.queuePalMax,
+    Math.max(GAMEPLAY.queuePalMin, Math.round(readySize * 0.72)),
+  );
 
   return (
     <View style={[styles.row, { gap }]}>
@@ -176,7 +180,7 @@ const Tunnel = memo(function Tunnel({
         hitSlop={6}
         style={({ pressed }) => [styles.pressable, pressed && !empty && styles.tunnelPressed]}
       >
-        <View style={styles.mouth}>
+        <View style={[styles.mouth, { minHeight: readySize + 10 }]}>
           {highlighted ? (
             <Animated.View pointerEvents="none" style={[styles.spotlightRing, { width: readySize + 16, height: readySize + 16, borderRadius: (readySize + 16) / 2 }, spotlightStyle]} />
           ) : null}
@@ -190,6 +194,32 @@ const Tunnel = memo(function Tunnel({
               collapsable={false}
               style={styles.readySeat}
             >
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.pedestal,
+                  {
+                    width: readySize * 0.92,
+                    height: readySize * 0.3,
+                    borderRadius: readySize * 0.16,
+                    backgroundColor: homeAlpha(orbColors[charge.color], 0.22),
+                    borderColor: homeAlpha(homeV2.cyan, 0.7),
+                    shadowColor: orbColors[charge.color],
+                  },
+                ]}
+              />
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.bloom,
+                  {
+                    width: readySize * 1.08,
+                    height: readySize * 1.08,
+                    borderRadius: readySize * 0.4,
+                    backgroundColor: homeAlpha(orbColors[charge.color], 0.2),
+                  },
+                ]}
+              />
               {pixelPal ? (
                 <PixelPalFace color={charge.color} size={readySize} colorAssist={colorAssist} mood={ready ? 'focused' : 'calm'} capacity={charge.capacity} />
               ) : (
@@ -211,20 +241,21 @@ const Tunnel = memo(function Tunnel({
         <View style={styles.queue}>
           {queue.map((nextCharge, previewIdx) => {
             if (!nextCharge) return null;
+            const depthOpacity = previewIdx === 0 ? 0.88 : 0.74;
             return (
               <View
                 key={nextCharge.id}
                 style={[
                   styles.queued,
                   {
-                    marginTop: -queueSize * 0.6,
+                    marginTop: -queueSize * (previewIdx === 0 ? 0.4 : 0.5),
                     zIndex: upcoming - previewIdx,
-                    opacity: 0.55,
+                    opacity: depthOpacity,
                   },
                 ]}
               >
                 {pixelPal ? (
-                  <PixelPalFace color={nextCharge.color} size={queueSize} capacity={nextCharge.capacity} />
+                  <PixelPalFace color={nextCharge.color} size={queueSize} capacity={nextCharge.capacity} animate={false} />
                 ) : (
                   <View
                     style={[
@@ -257,9 +288,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'flex-start',
-    minHeight: 120,
+    minHeight: 132,
   },
-  tunnel: { flex: 1, maxWidth: 88, alignItems: 'center' },
+  tunnel: { flex: 1, maxWidth: 96, alignItems: 'center' },
   pressable: { alignItems: 'center', width: '100%' },
   tunnelEmpty: { opacity: 0.45 },
   tunnelBlocked: { opacity: 0.72 },
@@ -272,7 +303,22 @@ const styles = StyleSheet.create({
   },
   readySeat: {
     zIndex: 4,
-    marginBottom: 4,
+    marginBottom: 6,
+    alignItems: 'center',
+  },
+  pedestal: {
+    position: 'absolute',
+    bottom: -6,
+    height: 10,
+    borderWidth: 1.5,
+    zIndex: 0,
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  bloom: {
+    position: 'absolute',
+    zIndex: 0,
   },
   emptyMouth: {
     backgroundColor: homeAlpha('#000C28', 0.9),

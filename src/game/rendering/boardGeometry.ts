@@ -7,6 +7,7 @@ import {
   type RoundedPerimeterBounds,
   type RoundedPerimeterMetrics,
 } from '@/game/geometry/roundedPerimeter';
+import { orbitingPalVisual } from '@/theme/gameplayLayout';
 
 /**
  * Reusable responsive board geometry for the production Cosmic Arcade gameplay
@@ -80,7 +81,15 @@ export function pixelAdaptive(density: number): PixelAdaptive {
 }
 
 export interface BoardGeometry {
+  /**
+   * Scale reference — `Math.max(width, height)`. Legacy V1 callers treat this
+   * as the square canvas edge; Core V2 reads {@link width}/{@link height}.
+   */
   size: number;
+  /** Canvas width in px. Equals `size` on square / Legacy V1 boards. */
+  width: number;
+  /** Canvas height in px. Equals `size` on square / Legacy V1 boards. */
+  height: number;
   cols: number;
   rows: number;
   /** max(cols, rows) — what the adaptive renderer keys off. */
@@ -157,59 +166,89 @@ export interface BoardGeometryOptions {
    * targeting stays in cell space.
    */
   roundedRect?: boolean;
+  /**
+   * Available canvas for Core V2 packing. When omitted, a `size × size`
+   * square is used. The returned geometry may shrink to the puzzle's aspect
+   * so a tall/wide grid does not sit in a giant letterboxed square.
+   */
+  box?: { width: number; height: number };
 }
 
 /**
- * Pack a Core V2 grid inside a near-edge rounded rail.
+ * Pack a Core V2 grid inside a near-edge rounded rail, then shrink the canvas
+ * to the puzzle's aspect so artwork fills ~85–92% of the rail interior.
  *
  * Presentation-only: does not change engine targeting, pass progress, or the
  * circular Legacy V1 layout. No 14pt cell floor and no panning — oversized
  * grids shrink cells down to {@link MIN_CELL} and should be reported, not
  * given a new navigation model.
  */
-function packRoundedRectBoard(size: number, cols: number, rows: number): {
+function packRoundedRectBoard(availW: number, availH: number, cols: number, rows: number): {
   cell: number;
   chargeRadius: number;
+  width: number;
+  height: number;
   perimeter: RoundedPerimeterBounds;
 } {
   const safeCols = Math.max(1, cols);
   const safeRows = Math.max(1, rows);
-  let chargeRadius = Math.min(size * 0.04, 16);
-  let cell = MIN_CELL;
-  let inset = 10;
-  for (let i = 0; i < 3; i++) {
-    inset = Math.max(chargeRadius + 3, 10);
-    const inner = Math.max(0, size - 2 * (inset + chargeRadius + 4));
-    cell = Math.max(
-      MIN_CELL,
-      Math.floor(Math.min(inner / safeCols, inner / safeRows)),
-    );
-    chargeRadius = Math.min(size * 0.04, Math.max(7, cell * 0.48));
-  }
-  inset = Math.max(chargeRadius + 3, 10);
-  const boundsWidth = Math.max(0, size - inset * 2);
-  const boundsHeight = Math.max(0, size - inset * 2);
+  const short = Math.min(availW, availH);
+  const chargeRadius = orbitingPalVisual(short) / 2.1;
+  const inset = Math.max(Math.ceil(chargeRadius + 4), 10);
+  const smallGrid = Math.max(safeCols, safeRows) <= 9;
+  const artClear = smallGrid
+    ? Math.max(Math.ceil(chargeRadius * 0.72 + 2), 6)
+    : Math.max(Math.ceil(chargeRadius + 4), 8);
+
+  const innerW = Math.max(0, availW - 2 * (inset + artClear));
+  const innerH = Math.max(0, availH - 2 * (inset + artClear));
+  const cell = Math.max(
+    MIN_CELL,
+    Math.floor(Math.min(innerW / safeCols, innerH / safeRows)),
+  );
+
+  const contentW = cell * safeCols;
+  const contentH = cell * safeRows;
+  const periW = contentW + artClear * 2;
+  const periH = contentH + artClear * 2;
+  const width = periW + inset * 2;
+  const height = periH + inset * 2;
+  const periX = Math.round((width - periW) / 2);
+  const periY = Math.round((height - periH) / 2);
+
   return {
     cell,
     chargeRadius,
+    width,
+    height,
     perimeter: {
-      x: inset,
-      y: inset,
-      width: boundsWidth,
-      height: boundsHeight,
-      radius: Math.min(boundsWidth, boundsHeight) * 0.22,
+      x: periX,
+      y: periY,
+      width: periW,
+      height: periH,
+      radius: Math.min(periW, periH) * 0.2,
     },
   };
 }
 
-/** Geometry for a square board rendering a `cols x rows` picture. */
+/** Fitted Core V2 canvas for an available region. */
+export function fitRoundedRectCanvas(
+  availW: number,
+  availH: number,
+  cols: number,
+  rows: number,
+): { width: number; height: number } {
+  const packed = packRoundedRectBoard(availW, availH, cols, rows);
+  return { width: packed.width, height: packed.height };
+}
+
+/** Geometry for a board rendering a `cols x rows` picture. */
 export function computeBoardGeometry(
   size: number,
   cols: number,
   rows: number,
   options?: BoardGeometryOptions,
 ): BoardGeometry {
-  const center: Point = { x: size / 2, y: size / 2 };
   const density = Math.max(1, Math.max(cols, rows));
 
   const maxGrid = size * FOOTPRINT;
@@ -221,17 +260,25 @@ export function computeBoardGeometry(
 
   let packed: ReturnType<typeof packRoundedRectBoard> | undefined;
   if (options?.roundedRect) {
-    packed = packRoundedRectBoard(size, cols, rows);
+    packed = packRoundedRectBoard(
+      options.box?.width ?? size,
+      options.box?.height ?? size,
+      cols,
+      rows,
+    );
     cell = packed.cell;
     chargeRadius = packed.chargeRadius;
   }
 
+  const width = packed?.width ?? size;
+  const height = packed?.height ?? size;
+  const center: Point = { x: width / 2, y: height / 2 };
+
   const gridWidth = cell * cols;
   const gridHeight = cell * rows;
-  const gridOrigin: Point = {
-    x: center.x - gridWidth / 2,
-    y: center.y - gridHeight / 2,
-  };
+  const gridOrigin: Point = packed
+    ? { x: Math.round(center.x - gridWidth / 2), y: Math.round(center.y - gridHeight / 2) }
+    : { x: center.x - gridWidth / 2, y: center.y - gridHeight / 2 };
   const artwork: Rect = { x: gridOrigin.x, y: gridOrigin.y, width: gridWidth, height: gridHeight };
 
   // Outer rail: as large as fits, but always outside the artwork corner with
@@ -260,11 +307,11 @@ export function computeBoardGeometry(
   // small vertical bias is available here if design wants the seat lower.
   const circularLaunchHub: Point = { x: center.x, y: center.y };
 
-  const holdingAnchor: Point = { x: center.x, y: size + chargeRadius * 2 };
+  const holdingAnchor: Point = { x: center.x, y: height + chargeRadius * 2 };
   const tunnelRegion: Rect = {
     x: 0,
-    y: size + chargeRadius * 4,
-    width: size,
+    y: height + chargeRadius * 4,
+    width,
     height: chargeRadius * 6,
   };
 
@@ -282,7 +329,9 @@ export function computeBoardGeometry(
   }
 
   return {
-    size,
+    size: Math.max(width, height),
+    width,
+    height,
     cols,
     rows,
     density,

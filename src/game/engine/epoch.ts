@@ -337,9 +337,11 @@ export function flushEpoch(plan: EpochPlan, resolution: EpochResolution): GameSt
     .filter((c) => c.landed === 'holding')
     .map((c) => ({ id: c.id, color: c.color, capacity: c.remainingCapacity }));
 
+  const keep = baseline.holding.filter((c) => !launchedHoldingIds.has(c.id));
+  const room = Math.max(0, baseline.holdingCapacity - keep.length);
   const holding: Charge[] = launchedHoldingIds.size === 0 && parked.length === 0
     ? baseline.holding
-    : [...baseline.holding.filter((c) => !launchedHoldingIds.has(c.id)), ...parked];
+    : [...keep, ...parked.slice(0, room)];
 
   const epoch: EpochState = { baseline, launches, clock: plan.clock };
 

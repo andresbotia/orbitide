@@ -176,10 +176,10 @@ describe('Holding capacity 4', () => {
     expect(state.holding.length).toBe(state.holdingCapacity);
 
     const fifth = resolveAction(state, T(0));
-    expect(fifth.accepted).toBe(false);
-    expect(fifth.rejection).toBe('holdingFull');
+    expect(fifth.accepted).toBe(true);
+    expect(fifth.state.status).toBe('lost');
     expect(fifth.state.holding).toHaveLength(4);
-    expect(fifth.state).toBe(state);
+    expect(fifth.state.holding.map((c) => c.id)).toEqual(state.holding.map((c) => c.id));
   });
 
   test('held relaunch from a 4-slot tray frees that slot and preserves identity', () => {

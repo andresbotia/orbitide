@@ -153,6 +153,21 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
   }, [settleAll]);
 
   const holdingSlotsRef = useRef<(Point | undefined)[]>([]);
+  /** Coalesce multi-flight `presentThrough` commits so 5 Pals clearing in
+   *  one frame don't each force a full GameScreen render. */
+  const viewFlushQueued = useRef(false);
+  const queueViewFlush = useCallback(() => {
+    if (process.env.NODE_ENV === 'test') {
+      setState(view.current);
+      return;
+    }
+    if (viewFlushQueued.current) return;
+    viewFlushQueued.current = true;
+    requestAnimationFrame(() => {
+      viewFlushQueued.current = false;
+      setState(view.current);
+    });
+  }, []);
 
   const perform = useCallback((action: GameAction, from?: Point, holdingSlots?: (Point | undefined)[]) => {
     if (truth.current.status !== 'playing') return;
@@ -183,11 +198,12 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     if (!outcome.accepted) {
       if (outcome.rejection === 'activeSlotsFull') {
         setMessage('Rail is full — wait for a Pal to land.');
-        feedback.emit('denied');
-        return;
+      } else if (outcome.rejection === 'noTargets') {
+        setMessage('No exposed matching pixels yet.');
+      } else {
+        setMessage('That Pal is no longer available.');
       }
-      setMessage(outcome.rejection === 'noTargets' ? 'No exposed matching pixels yet.' :
-        outcome.rejection === 'holdingFull' ? 'Free a Holding slot first.' : 'That Pal is no longer available.');
+      feedback.emit('denied');
       return;
     }
     setMessage('');
@@ -211,12 +227,14 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
         .sort((a, b) => a.pass.passId - b.pass.passId);
       pending.forEach((flight, index) => {
         const slot = presentedHolding.length + index;
-        const target = holdingSlotsRef.current[slot];
-        flight.pass = {
-          ...flight.pass,
-          holdingSlotIndex: slot,
-          ...(target ? { holdingTarget: target } : {}),
-        };
+        if (slot < outcome.state.holdingCapacity) {
+          const target = holdingSlotsRef.current[slot];
+          flight.pass = {
+            ...flight.pass,
+            holdingSlotIndex: slot,
+            ...(target ? { holdingTarget: target } : {}),
+          };
+        }
       });
     }
     let pass = buildLaunchScript(outcome, before, ++serial.current, from).pass;
@@ -232,12 +250,14 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
         .filter((flight) => flight.pass.endKind === 'toHolding' && !hasPresentedHoldingLanding(flight))
         .map((flight) => flight.pass);
       const slot = reserveHoldingSlot(presentedHolding, pending, outcome.state.holdingCapacity);
-      const target = holdingSlotsRef.current[slot];
-      pass = {
-        ...pass,
-        holdingSlotIndex: slot,
-        ...(target ? { holdingTarget: target } : {}),
-      };
+      if (slot >= 0) {
+        const target = holdingSlotsRef.current[slot];
+        pass = {
+          ...pass,
+          holdingSlotIndex: slot,
+          ...(target ? { holdingTarget: target } : {}),
+        };
+      }
     }
     active.current.set(pass.passId, { pass, outcome, cursor: 0 });
     // Show the source consumption immediately; keep the board itself lagged.
@@ -285,15 +305,19 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
             p.id === event.pixelId ? { ...p, modifier: truthPixel.modifier } : p) };
         }
       } else if (event.kind === 'holdingLanded') {
-        // Engine truth already parked every remaining-capacity charge in the
-        // epoch. Presentation Holding occupies a slot only after THIS Pal's
-        // own landing beat — convoy-delayed trailers stay off the tray.
-        view.current = {
-          ...view.current,
-          holding: appendPresentedHolding(view.current.holding, flight.outcome.heldCharge),
-        };
-        if (truth.current.status === 'playing') setMessage('Tap a held Pal to launch it again.');
-        advanceTutorial({ type: 'holdingEntered', chargeId: flight.pass.charge.id });
+        // Engine truth already parked remaining-capacity charges that fit.
+        // Overflow that caused LOSS is never appended — that Pal is accounted
+        // for on the flight, not silently eaten by the tray.
+        const parked = flight.outcome.heldCharge
+          && flight.outcome.state.holding.some((c) => c.id === flight.outcome.heldCharge!.id);
+        if (parked) {
+          view.current = {
+            ...view.current,
+            holding: appendPresentedHolding(view.current.holding, flight.outcome.heldCharge),
+          };
+          if (truth.current.status === 'playing') setMessage('Tap a held Pal to launch it again.');
+          advanceTutorial({ type: 'holdingEntered', chargeId: flight.pass.charge.id });
+        }
       } else if (event.kind === 'win' || event.kind === 'fail') {
         view.current = { ...truth.current, holding: view.current.holding };
         if (event.kind === 'win') advanceTutorial({ type: 'levelWon' });
@@ -328,8 +352,8 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
         feedback.emit(soundEvent, { haptic: event.kind === 'win' ? false : !replacedImpact });
       }
     }
-    setState(view.current);
-  }, [reportResult, settleAll, publishFlights, advanceTutorial]);
+    queueViewFlush();
+  }, [reportResult, settleAll, publishFlights, advanceTutorial, queueViewFlush]);
 
   const restart = useCallback(() => {
     active.current.clear();

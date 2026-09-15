@@ -10,7 +10,7 @@ import Animated, {
   Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming,
 } from 'react-native-reanimated';
 
-import { BOARD_FRAME_MARGIN, BoardFrame } from '@/components/gameplay/BoardFrame';
+import { BoardFrame } from '@/components/gameplay/BoardFrame';
 import { ControlDeck } from '@/components/gameplay/ControlDeck';
 import { GameplayEnvironment } from '@/components/gameplay/GameplayEnvironment';
 import { DebugOverlay } from '@/components/DebugOverlay';
@@ -30,11 +30,10 @@ import { useAmbientActive } from '@/hooks/useAmbientActive';
 import { useColorAssist } from '@/hooks/useColorAssist';
 import { useGameSession } from '@/hooks/useGameSession';
 import { useTutorialCompletion } from '@/hooks/useTutorialCompletion';
+import { GAMEPLAY } from '@/theme/gameplayLayout';
+import { homeV2 } from '@/theme/homeV2';
 import { material } from '@/theme/material';
 import { worldSkin } from '@/theme/worldSkins';
-
-const BOARD_SIDE_PAD = 12;
-const BOARD_DECK_GAP = 24;
 
 interface GameScreenProps {
   levelId: number;
@@ -66,7 +65,8 @@ export function GameScreen({
   onResetProgress,
   level: levelOverride,
 }: GameScreenProps) {
-  const [boardSize, setBoardSize] = useState(0);
+  const [boardBox, setBoardBox] = useState({ width: 0, height: 0 });
+  const boardSize = Math.max(boardBox.width, boardBox.height);
   const boardWrap = useRef<View>(null);
   const boardOrigin = useRef<Point>({ x: 0, y: 0 });
   const sourcePoints = useRef(new Map<string, Point>());
@@ -201,14 +201,15 @@ export function GameScreen({
 
   const onBoardArea = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
-    // Padding lives inside this layout box; size the square against the inner
-    // content area. Small extra inset keeps near-edge rail Pals on-screen.
-    const innerW = width - BOARD_SIDE_PAD * 2;
-    const innerH = height - BOARD_DECK_GAP;
-    const size = Math.max(0, Math.min(innerW, innerH) - BOARD_FRAME_MARGIN * 2);
-    const rounded = Math.round(size);
-    setBoardSize(rounded);
-  }, []);
+    const availW = Math.max(0, width - GAMEPLAY.boardSidePad * 2);
+    const availH = Math.max(0, height - GAMEPLAY.boardDeckGap);
+    if (isCoreV2(state.ruleset)) {
+      setBoardBox({ width: Math.round(availW), height: Math.round(availH) });
+    } else {
+      const size = Math.max(0, Math.round(Math.min(availW, availH)));
+      setBoardBox({ width: size, height: size });
+    }
+  }, [state.ruleset]);
 
   const onBoardLayout = useCallback(() => {
     boardWrap.current?.measureInWindow((x, y) => {
@@ -242,15 +243,16 @@ export function GameScreen({
         title={level.title}
         difficulty={level.difficulty}
         onRestart={session.restart}
+        onHome={onExit}
       />
 
       <View collapsable={false} style={styles.boardArea} onLayout={onBoardArea}>
-        {boardSize > 0 ? (
+        {boardBox.width > 0 ? (
           <View
             ref={boardWrap}
             collapsable={false}
             onLayout={onBoardLayout}
-            style={{ width: boardSize, height: boardSize, overflow: 'visible' }}
+            style={{ overflow: 'visible' }}
           >
             <BoardFrame
               size={boardSize}
@@ -262,6 +264,8 @@ export function GameScreen({
             {isCoreV2(state.ruleset) ? (
               <CoreV2Board
                 size={boardSize}
+                width={boardBox.width}
+                height={boardBox.height}
                 state={state}
                 flights={session.flights}
                 presentThrough={session.presentThrough}
@@ -282,6 +286,8 @@ export function GameScreen({
               <View style={StyleSheet.absoluteFill} pointerEvents="none">
                 <DiscoveryReveal
                   size={boardSize}
+                  width={boardBox.width}
+                  height={boardBox.height}
                   level={level}
                   state={state}
                   progress={revealProgress}
@@ -306,7 +312,7 @@ export function GameScreen({
           state={state}
           activeCount={session.activeCount}
           activeCapacity={isCoreV2(state.ruleset) ? session.activeCapacity : 0}
-          layoutVersion={boardSize}
+          layoutVersion={boardBox.width + boardBox.height}
           disabled={controlsLocked}
           usefulIds={usefulIds}
           colorAssist={colorAssist}
@@ -351,14 +357,14 @@ export function GameScreen({
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: material.background, overflow: 'hidden' },
+  safe: { flex: 1, backgroundColor: homeV2.deepNavy, overflow: 'hidden' },
   boardArea: {
     flex: 1,
     zIndex: 1,
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingHorizontal: BOARD_SIDE_PAD,
-    paddingBottom: BOARD_DECK_GAP,
+    justifyContent: 'center',
+    paddingHorizontal: GAMEPLAY.boardSidePad,
+    paddingBottom: GAMEPLAY.boardDeckGap,
   },
   controls: {
     width: '100%',

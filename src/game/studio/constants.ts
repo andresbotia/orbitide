@@ -8,7 +8,7 @@ export const LEVEL_DIFFICULTIES: LevelDifficulty[] = [
 /** Default holding-tray size for a new Legacy V1 Studio level. */
 export const DEFAULT_HOLDING_CAPACITY = 3;
 /** Default holding-tray size for Core V2 definitions. */
-export const DEFAULT_HOLDING_CAPACITY_V2 = 4;
+export const DEFAULT_HOLDING_CAPACITY_V2 = 3;
 
 /** Grid size a brand-new blank level starts at. */
 export const DEFAULT_GRID_SIZE = 9;

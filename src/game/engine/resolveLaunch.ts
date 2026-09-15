@@ -81,6 +81,16 @@ export function resolveAction(state: GameState, action: GameAction): LaunchOutco
   const resolution = simulateEpoch(plan.baseline, plan.launches);
   const flushed = flushEpoch(plan, resolution);
   flushed.status = computeStatus(flushed);
+  if (flushed.status !== 'won') {
+    const parkedIds = resolution.charges
+      .filter((c) => c.landed === 'holding')
+      .map((c) => c.id);
+    const heldIds = new Set(flushed.holding.map((c) => c.id));
+    if (parkedIds.some((id) => !heldIds.has(id))) {
+      flushed.status = 'lost';
+      flushed.epoch = null;
+    }
+  }
 
   const { pass, charge } = toChargePass(resolution, source.id, flushed);
   const heldCharge = charge.remainingCapacity > 0

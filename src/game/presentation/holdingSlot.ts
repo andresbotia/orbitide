@@ -22,5 +22,5 @@ export function reserveHoldingSlot(
   for (let i = 0; i < cap; i += 1) {
     if (!taken.has(i)) return i;
   }
-  return Math.max(0, cap - 1);
+  return -1;
 }

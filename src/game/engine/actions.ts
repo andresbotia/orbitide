@@ -2,16 +2,11 @@ import {
   activeCapacityOf,
   activeSlotCount,
   canJoinEpoch,
-  committedBaseline,
-  flushEpoch,
-  planLaunch,
-  simulateEpoch,
 } from './epoch';
-import { resolvePass } from './pass';
 import { reachablePixels } from './pixels';
 import { isLinkedPrimed } from './linked';
 import { isCoreV2 } from './ruleset';
-import type { EpochLaunch, GameState } from './types';
+import type { GameState } from './types';
 
 /**
  * `join: true` means the player launched this charge while earlier charges are
@@ -42,21 +37,6 @@ export function launchCandidate(state: GameState, action: GameAction) {
 /** Runtime id of the charge a launch action would send, or `undefined`. */
 export function actionChargeId(state: GameState, action: GameAction): string | undefined {
   return launchCandidate(state, action)?.id;
-}
-
-/** Project the epoch this launch would produce and read back its committed shape. */
-function projectLaunch(state: GameState, action: GameAction) {
-  const charge = launchCandidate(state, action)!;
-  const spec: Omit<EpochLaunch, 'insertionTime'> = {
-    chargeId: charge.id,
-    source: action.kind,
-    originId: action.id,
-    color: charge.color,
-    capacity: charge.capacity,
-    launchSequence: state.movesApplied,
-  };
-  const plan = planLaunch(state, spec, action.join === true);
-  return flushEpoch(plan, simulateEpoch(plan.baseline, plan.launches));
 }
 
 export function actionRejection(
@@ -93,19 +73,9 @@ export function actionRejection(
     return null;
   }
 
-  // A tunnel launch may never leave Holding over capacity. Only worth checking
-  // when the tray is already full — a free slot absorbs at most this one launch.
-  if (state.holding.length >= state.holdingCapacity) {
-    const joins = action.join === true && canJoinEpoch(state, charge.id);
-    if (!joins) {
-      // Fresh epoch, full tray: allow only a charge that fully consumes itself.
-      return resolvePass(committedBaseline(state), charge).charge.capacity === 0 ? null : 'holdingFull';
-    }
-    // Joining a running epoch: a re-simulation can bump an earlier charge into
-    // Holding too, so check the whole projected tray.
-    const projected = projectLaunch(state, action);
-    if (projected.holding.length > projected.holdingCapacity) return 'holdingFull';
-  }
+  // Full Holding must not pre-empt a legal tunnel tap. The player may launch;
+  // overflow is a LOSS after the pass if this Pal (or a joined peer) still
+  // needs a slot. See flushEpoch / resolveAction.
 
   return null;
 }

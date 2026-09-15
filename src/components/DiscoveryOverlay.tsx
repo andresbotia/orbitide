@@ -11,7 +11,7 @@ import Animated, {
 import { PlayButton } from '@/components/PlayButton';
 import { feedback } from '@/game/feedback';
 import { revealTimeline, type CelebrationTier, type RevealSource } from '@/game/rendering/revealGeometry';
-import { material } from '@/theme/material';
+import { homeAlpha, homeV2 } from '@/theme/homeV2';
 import { typography } from '@/theme/spacing';
 
 interface DiscoveryOverlayProps {
@@ -91,29 +91,35 @@ export function DiscoveryOverlay({
     <View style={styles.root} pointerEvents="box-none">
       <View style={styles.scrim} pointerEvents="none" />
 
-      <Animated.View style={[styles.titleWrap, titleStyle]} pointerEvents="none">
-        <Text style={[styles.kicker, tier === 'finale' && styles.kickerFinale]}>{kicker}</Text>
-        <Text style={styles.name}>{name}</Text>
-      </Animated.View>
+      <View style={styles.panel}>
+        <View pointerEvents="none" style={styles.panelEdge} />
+        <Animated.View style={[styles.titleWrap, titleStyle]} pointerEvents="none">
+          <View style={styles.kickerRow}>
+            <View style={styles.goldPip} />
+            <Text style={[styles.kicker, tier === 'finale' && styles.kickerFinale]}>{kicker}</Text>
+            <View style={styles.goldPip} />
+          </View>
+          <Text style={styles.name}>{name}</Text>
+        </Animated.View>
 
-      {/* Real completion info — never a fake reward. */}
-      <Animated.View style={[styles.infoChip, infoStyle]} pointerEvents="none">
-        <Text style={styles.infoText}>{worldTitle.toUpperCase()} · LEVEL {levelId}</Text>
-      </Animated.View>
+        <Animated.View style={[styles.infoChip, infoStyle]} pointerEvents="none">
+          <Text style={styles.infoText}>{worldTitle.toUpperCase()} · LEVEL {levelId}</Text>
+        </Animated.View>
 
-      <Animated.View style={nextStyle}>
-        <PlayButton
-          label={hasNext ? 'NEXT' : 'BACK TO HOME'}
-          onPress={hasNext ? handleNext : onHome}
-          onPressIn={() => feedback.emit('select')}
-          disabled={!nextReady}
-          idleGlow={nextReady && tier !== 'normal'}
-        />
-      </Animated.View>
+        <Animated.View style={nextStyle}>
+          <PlayButton
+            label={hasNext ? 'NEXT' : 'BACK TO HOME'}
+            onPress={hasNext ? handleNext : onHome}
+            onPressIn={() => feedback.emit('select')}
+            disabled={!nextReady}
+            idleGlow={nextReady && tier !== 'normal'}
+          />
+        </Animated.View>
 
-      <Pressable onPress={onHome} hitSlop={12} accessibilityRole="button">
-        <Text style={styles.home}>Home</Text>
-      </Pressable>
+        <Pressable onPress={onHome} hitSlop={12} accessibilityRole="button">
+          <Text style={styles.home}>Home</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -125,9 +131,8 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     alignItems: 'center',
-    paddingBottom: 28,
-    paddingTop: 24,
-    gap: 14,
+    paddingBottom: 20,
+    paddingTop: 12,
   },
   scrim: {
     position: 'absolute',
@@ -135,14 +140,41 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: material.overlay,
+    backgroundColor: 'rgba(0, 23, 66, 0.45)',
   },
-  titleWrap: { alignItems: 'center', gap: 4 },
-  kicker: { ...typography.label, color: material.accentCyan, fontSize: 10, letterSpacing: 4 },
-  kickerFinale: { color: material.energyWarm },
+  panel: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 12,
+    paddingTop: 16,
+    paddingBottom: 8,
+    paddingHorizontal: 20,
+    backgroundColor: homeAlpha(homeV2.deepNavy, 0.96),
+    borderTopWidth: 1,
+    borderTopColor: homeAlpha(homeV2.cyan, 0.28),
+  },
+  panelEdge: {
+    position: 'absolute',
+    top: 0,
+    left: 16,
+    right: 16,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: homeAlpha(homeV2.cyan, 0.7),
+  },
+  titleWrap: { alignItems: 'center', gap: 6 },
+  kickerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  goldPip: {
+    width: 5,
+    height: 5,
+    borderRadius: 1,
+    backgroundColor: homeV2.yellow,
+  },
+  kicker: { ...typography.label, color: homeV2.cyan, fontSize: 10, letterSpacing: 4 },
+  kickerFinale: { color: homeV2.yellow },
   name: {
     ...typography.title,
-    color: material.textPrimary,
+    color: homeV2.white,
     fontSize: 22,
     letterSpacing: 3,
     textAlign: 'center',
@@ -153,9 +185,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderWidth: 1,
-    borderColor: material.outline,
-    backgroundColor: material.structuralSurface,
+    borderColor: homeAlpha(homeV2.cyan, 0.4),
+    backgroundColor: homeV2.navy,
   },
-  infoText: { color: material.textSecondary, fontSize: 10, letterSpacing: 1.5, fontWeight: '700' },
-  home: { color: material.textSecondary, fontSize: 13, letterSpacing: 1, paddingTop: 2 },
+  infoText: { color: homeAlpha(homeV2.white, 0.78), fontSize: 10, letterSpacing: 1.5, fontWeight: '700' },
+  home: { color: homeAlpha(homeV2.white, 0.55), fontSize: 13, letterSpacing: 1, paddingTop: 2 },
 });

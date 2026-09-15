@@ -1,11 +1,13 @@
 import { memo } from 'react';
-import { StyleSheet, TextInput, type TextInputProps } from 'react-native';
+import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import Animated, {
   useAnimatedProps, useAnimatedStyle, useDerivedValue, type SharedValue,
 } from 'react-native-reanimated';
 
 import type { FlightPass } from '@/game/presentation/events';
 import { capacityAt } from '@/game/presentation/motion';
+import { orbColors } from '@/theme/colors';
+import { homeAlpha } from '@/theme/homeV2';
 import type { BoardGeometry } from '../boardGeometry';
 import { flightPose } from '../flightGeometry';
 import { palBadgeNumeralStyle, PixelPalBadge, PixelPalShell, PixelPalVisor } from './PixelPalFace';
@@ -28,7 +30,7 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
   dim?: boolean;
 }) {
   const r = layout.chargeRadius;
-  const size = r * 2.1;
+  const size = Math.round(r * 2.1);
 
   const motionState = useDerivedValue(() => {
     const t = clock.value;
@@ -93,6 +95,18 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
   return (
     <>
       <Animated.View pointerEvents="none" style={[styles.wrap, { width: size, height: size }, shellStyle]}>
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: -size * 0.06,
+            top: -size * 0.06,
+            width: size * 1.12,
+            height: size * 1.12,
+            borderRadius: size * 0.4,
+            backgroundColor: homeAlpha(orbColors[pass.charge.color], 0.2),
+          }}
+        />
         <PixelPalShell color={pass.charge.color} size={size} colorAssist={colorAssist} />
       </Animated.View>
       <Animated.View

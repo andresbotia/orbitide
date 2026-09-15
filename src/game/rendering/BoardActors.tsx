@@ -1,6 +1,5 @@
 import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useSharedValue } from 'react-native-reanimated';
 
 import { reachablePixels } from '@/game/engine/pixels';
 import type { GameState, ModifierInstance } from '@/game/engine/types';
@@ -28,8 +27,12 @@ export const BoardActors = memo(function BoardActors({ state, geo, colorAssist, 
   shotPixelIds: Set<string>;
 }) {
   const mods = modifiers ?? EMPTY;
-  const reachable = useMemo(() => new Set(reachablePixels(state).map((p) => p.id)), [state]);
-  const idle = useSharedValue(0);
+  const reachable = useMemo(
+    () => new Set(reachablePixels(state).map((p) => p.id)),
+    // Flood-fill keys off pixels + board size, not the rest of GameState.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state.pixels, state.width, state.height],
+  );
 
   const specials = useMemo<SpecialPixelInput[]>(() => {
     const list: SpecialPixelInput[] = [];
@@ -68,7 +71,6 @@ export const BoardActors = memo(function BoardActors({ state, geo, colorAssist, 
               adaptive={geo.adaptive}
               modifierDim={dimById.get(p.id) ?? 0}
               reachable={reachable.has(p.id)}
-              clock={idle}
             />
           );
         })}

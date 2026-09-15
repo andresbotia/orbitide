@@ -1,4 +1,4 @@
-import { Canvas, Group, LinearGradient, Rect, vec } from '@shopify/react-native-skia';
+import { Canvas, Group, LinearGradient, RadialGradient, Rect, vec } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 import { cancelAnimation, Easing, runOnJS, useAnimatedReaction, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -21,6 +21,9 @@ const CALM_TRAILS_AT = 3;
 
 interface CoreV2BoardProps {
   size: number;
+  /** Fitted canvas. Falls back to a `size × size` square. */
+  width?: number;
+  height?: number;
   state: GameState;
   /** Every charge currently on the rail. */
   flights: FlightPass[];
@@ -45,11 +48,18 @@ function laneOffset(index: number): number {
  * since neither depends on the rail's shape; only the rail paint and the
  * traveling character are new.
  */
-export function CoreV2Board({ size, state, flights, presentThrough, colorAssist, reducedMotion, modifiers }: CoreV2BoardProps) {
+export const CoreV2Board = memo(function CoreV2Board({ size, width, height, state, flights, presentThrough, colorAssist, reducedMotion, modifiers }: CoreV2BoardProps) {
+  const availW = width ?? size;
+  const availH = height ?? size;
   const geo = useMemo(
-    () => computeBoardGeometry(size, state.width, state.height, { roundedRect: true }),
-    [size, state.width, state.height],
+    () => computeBoardGeometry(Math.max(availW, availH), state.width, state.height, {
+      roundedRect: true,
+      box: { width: availW, height: availH },
+    }),
+    [availW, availH, state.width, state.height],
   );
+  const canvasW = geo.width;
+  const canvasH = geo.height;
 
   const shotPixelIds = useMemo(
     // A Frozen crack leaves the pixel on the board, so the static layer keeps
@@ -63,8 +73,8 @@ export function CoreV2Board({ size, state, flights, presentThrough, colorAssist,
   const calm = flights.length >= CALM_TRAILS_AT;
 
   return (
-    <View style={{ width: size, height: size, overflow: 'visible' }}>
-      <CoreV2Field geo={geo} size={size} />
+    <View style={{ width: canvasW, height: canvasH, overflow: 'visible' }}>
+      <CoreV2Field geo={geo} width={canvasW} height={canvasH} />
 
       <BoardActors
         state={state}
@@ -88,17 +98,24 @@ export function CoreV2Board({ size, state, flights, presentThrough, colorAssist,
       ))}
     </View>
   );
-}
+});
 
 /** Static Skia field + rail. Memoised so pixel-clear React updates don't redraw it. */
-const CoreV2Field = memo(function CoreV2Field({ geo, size }: { geo: BoardGeometry; size: number }) {
+const CoreV2Field = memo(function CoreV2Field({ geo, width, height }: { geo: BoardGeometry; width: number; height: number }) {
   return (
     <Canvas style={StyleSheet.absoluteFill}>
-      <Rect x={0} y={0} width={size} height={size}>
+      <Rect x={0} y={0} width={width} height={height}>
         <LinearGradient
           start={vec(0, 0)}
-          end={vec(0, size)}
+          end={vec(0, height)}
           colors={[coreV2Board.fieldCenter, coreV2Board.fieldEdge]}
+        />
+      </Rect>
+      <Rect x={0} y={0} width={width} height={height} opacity={0.22}>
+        <RadialGradient
+          c={vec(width * 0.5, height * 0.42)}
+          r={Math.min(width, height) * 0.62}
+          colors={['#00407A', 'rgba(0,0,0,0)']}
         />
       </Rect>
       <Group>
