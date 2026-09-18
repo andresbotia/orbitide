@@ -76,18 +76,14 @@ export function flightPose(
     y = layout.center.y + Math.sin(angle) * (layout.orbit[0]!.ry + radialOffset);
   }
 
-  if (time > pass.orbitEndAt && pass.endKind === 'toHolding') {
-    const fallbackX = typeof pass.holdingSlotIndex === 'number' && pass.holdingSlotIndex >= 0
-      ? layout.center.x + (pass.holdingSlotIndex - 1) * 64
-      : layout.center.x;
-    const fallbackY = typeof pass.holdingSlotIndex === 'number' && pass.holdingSlotIndex >= 0
-      ? layout.size + 100
-      : layout.size + 250;
-    const to = pass.holdingTarget ?? { x: fallbackX, y: fallbackY };
+  if (time > pass.orbitEndAt && pass.terminal.kind === 'toHolding') {
     if (metrics && progress < pass.endProgress - 1e-6) {
       return { x, y, heading, bank };
     }
-    const from = metrics ? insertion : { x, y };
+    // GateTerminal -> exactly this Pal's slot. An unmeasured slot point keeps
+    // the Pal at GateTerminal; there is no off-screen fallback target.
+    const from = metrics ? layout.gateTerminal : { x, y };
+    const to = pass.terminal.target ?? from;
     const p = Math.min(1, (time - pass.orbitEndAt) / Math.max(1, pass.landingAt - pass.orbitEndAt));
     return {
       x: from.x + (to.x - from.x) * p,
@@ -159,16 +155,10 @@ export function flightPosition(
     y = layout.center.y + Math.sin(angle) * (layout.orbit[0]!.ry + radialOffset);
   }
 
-  if (time > pass.orbitEndAt && pass.endKind === 'toHolding') {
-    const fallbackX = typeof pass.holdingSlotIndex === 'number' && pass.holdingSlotIndex >= 0
-      ? layout.center.x + (pass.holdingSlotIndex - 1) * 64
-      : layout.center.x;
-    const fallbackY = typeof pass.holdingSlotIndex === 'number' && pass.holdingSlotIndex >= 0
-      ? layout.size + 100
-      : layout.size + 250;
-    const to = pass.holdingTarget ?? { x: fallbackX, y: fallbackY };
+  if (time > pass.orbitEndAt && pass.terminal.kind === 'toHolding') {
     if (metrics && progress < pass.endProgress - 1e-6) return { x, y };
-    const from = metrics ? insertion : { x, y };
+    const from = metrics ? layout.gateTerminal : { x, y };
+    const to = pass.terminal.target ?? from;
     const p = Math.min(1, (time - pass.orbitEndAt) / Math.max(1, pass.landingAt - pass.orbitEndAt));
     return { x: from.x + (to.x - from.x) * p, y: from.y + (to.y - from.y) * p };
   }

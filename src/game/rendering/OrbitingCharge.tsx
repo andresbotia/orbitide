@@ -37,12 +37,13 @@ export const OrbitingCharge = memo(function OrbitingCharge({ layout, pass, clock
     const point = flightPosition(pass, layout, clock.value, laneOffset);
     const tail = Math.max(0, Math.min(1, (clock.value - pass.orbitEndAt) / Math.max(1, pass.landingAt - pass.orbitEndAt)));
     const gone = clock.value >= pass.landingAt;
+    const bursts = pass.terminal.kind !== 'toHolding';
     return {
-      opacity: gone ? 0 : pass.endKind === 'burst' ? 1 - tail : 1,
+      opacity: gone ? 0 : bursts ? 1 - tail : 1,
       transform: [
         { translateX: point.x - r },
         { translateY: point.y - r },
-        { scale: pass.endKind === 'burst' ? 1 + tail * 0.5 : 1 },
+        { scale: bursts ? 1 + tail * 0.5 : 1 },
       ],
     };
   });

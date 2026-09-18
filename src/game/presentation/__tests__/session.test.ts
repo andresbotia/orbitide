@@ -5,6 +5,7 @@ import { feedback } from '@/game/feedback';
 import { registerHit } from '@/game/hapticArbiter';
 import { eventCountAt } from '../motion';
 import type { LevelDefinition } from '@/game/engine/types';
+import { expectLifecycleValid } from './sessionDriver';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const renderer = require('react-test-renderer') as { create: (element: ReactElement) => { unmount: () => void } };
 jest.mock('react-native', () => ({ AppState: { addEventListener: jest.fn() } }));
@@ -57,6 +58,7 @@ test('a second launch while the first orbits joins as a concurrent flight', () =
   expect(session.activeCapacity).toBe(5);
   expect(session.engineState.epoch!.launches).toHaveLength(2);
   expect(session.engineState.movesApplied).toBe(2);
+  expectLifecycleValid(session);
   act(() => root.unmount());
 });
 
@@ -79,6 +81,7 @@ test('the rail caps at five flights; a sixth launch is denied cleanly', () => {
   expect(session.activeCount).toBe(5);
   expect(session.activeCapacity).toBe(5);
   expect(session.canLaunch).toBe(false);
+  expectLifecycleValid(session);
   expect(session.engineState.status).toBe('playing');
   const applied = session.engineState.movesApplied;
   act(() => { session.launch('tunnel-1'); });
@@ -258,9 +261,7 @@ test('overflow loss timing: engine knows loss immediately, but presented state s
   expect(session.state.holding.map((c) => c.id)).toEqual(held);
 
   // 5. Flight pass never enters holding
-  expect(flight.endKind).toBe('burst');
-  expect(flight.holdingTarget).toBeUndefined();
-  expect(flight.holdingSlotIndex).toBeUndefined();
+  expect(flight.terminal).toEqual({ kind: 'reject' }); // no slot, no target
   expect(flight.events.some((e) => e.kind === 'holdingLanded')).toBe(false);
 
   const failIndex = flight.events.findIndex((e) => e.kind === 'fail');
@@ -329,6 +330,7 @@ test('exact repro: holding full 3/3, two active Pals: first consumes, second hit
   // Now launch purple 1 and green 9 while f2 is still active
   act(() => session.launch('tunnel-0'));
   act(() => session.launch('tunnel-1'));
+  expectLifecycleValid(session);
 
   // Complete f2
   act(() => session.presentThrough(f2.passId, f2.events.length));

@@ -4,7 +4,7 @@ import { resolveAction } from '../resolveLaunch';
 import { DEFAULT_HOLDING_CAPACITY_V2, defaultHoldingCapacity } from '../ruleset';
 import type { LevelDefinition } from '../types';
 import { computeStatus, isLost, isWon } from '../winState';
-import { reserveHoldingSlot } from '../../presentation/holdingSlot';
+import { holdingSlotFor } from '../../presentation/holdingSlot';
 import { buildLaunchScript } from '../../presentation/buildScript';
 
 const T = (i: number): GameAction => ({ kind: 'tunnel', id: `tunnel-${i}` });
@@ -81,8 +81,8 @@ test('D — no slot reuse: exact same occupants before and after overflow attemp
   expect(outcome.state.holding[1]).toEqual(slot1Before);
   expect(outcome.state.holding[2]).toEqual(slot2Before);
 
-  // Presentation reservation also rejects slot reuse
-  expect(reserveHoldingSlot(state.holding, [], state.holdingCapacity)).toBe(-1);
+  // Presentation slots come from truth order: the overflow Pal has none.
+  expect(holdingSlotFor(outcome.state.holding, outcome.launchedCharge!.id)).toBe(-1);
 });
 
 test('E — full holding launch may still succeed if Pal fully resolves', () => {
@@ -199,8 +199,7 @@ test('I — authoritative regression: full holding [A, B, C] + launching Pal D w
 
   // Invariant 4: Presentation script must NOT have holdingLanded, must burst at terminal point
   const script = buildLaunchScript(outcome, state, 1);
-  expect(script.pass.endKind).toBe('burst');
-  expect(script.pass.holdingTarget).toBeUndefined();
+  expect(script.pass.terminal).toEqual({ kind: 'reject' }); // no slot, no target
   expect(script.pass.events.some((e) => e.kind === 'holdingLanded')).toBe(false);
   const failEvent = script.pass.events.find((e) => e.kind === 'fail');
   expect(failEvent).toBeDefined();
@@ -253,8 +252,7 @@ test('J — authoritative regression: full holding [A, B, C] + launching Pal D w
   expect(outcome.state.holding).toEqual(occupantsBefore);
 
   const script = buildLaunchScript(outcome, state, 1);
-  expect(script.pass.endKind).toBe('burst');
-  expect(script.pass.holdingTarget).toBeUndefined();
+  expect(script.pass.terminal).toEqual({ kind: 'reject' }); // no slot, no target
   expect(script.pass.events.some((e) => e.kind === 'holdingLanded')).toBe(false);
   expect(script.pass.events.some((e) => e.kind === 'fail')).toBe(true);
   expect(script.pass.endProgress).toBe(1);

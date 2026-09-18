@@ -1,10 +1,7 @@
+import { finalizePass, timedShot } from './buildScript';
 import { CORE_V2_CONVOY_SPACING, FEEL } from './constants';
-import type { ConvoyHold, FlightPass, PlaybackEvent, Shot } from './events';
+import type { ConvoyHold, FlightPass, Shot } from './events';
 import { progressAt } from './motion';
-
-const SHOT_EVENT_KINDS: ReadonlySet<PlaybackEvent['kind']> = new Set([
-  'pixelClear', 'frozenHit', 'shieldHit', 'linkPrime', 'linkGroupClear',
-]);
 
 /**
  * Core V2 convoy scheduler. Presentation-only: tap/launch order is the rail
@@ -18,31 +15,51 @@ const SHOT_EVENT_KINDS: ReadonlySet<PlaybackEvent['kind']> = new Set([
 export function applyCoreV2Convoy(follower: FlightPass, leaders: readonly FlightPass[]): FlightPass {
   const leader = pickLeader(leaders, follower);
   if (!leader) return follower;
+  const { shots, holds: merged, orbitEndAt } = scheduleRail(follower, follower.shots, leader);
+  const dt = orbitEndAt - follower.orbitEndAt;
+  if (dt <= 0.5 && merged.length === 0 && shotTimesUnchanged(follower.shots, shots)) return follower;
+  return retimedPass(follower, shots, merged, orbitEndAt);
+}
 
-  const offset = follower.launchedAtMs - leader.launchedAtMs;
+/** Where a re-scheduled tail picks up: pass-clock time and rail progress. */
+export interface RailResume { t: number; p: number }
 
-  const speed = 1 / follower.orbitDurationMs;
+export interface RailSchedule { shots: Shot[]; holds: ConvoyHold[]; orbitEndAt: number }
+
+/**
+ * Time `shots` (untimed or stale) along the rail from `resume` (default: orbit
+ * start), dwelling behind `leader` when one is given. The single rail clock
+ * used by the launch-time convoy and by tail re-scripting, so both keep the
+ * same rail-order and bumper semantics.
+ */
+export function scheduleRail(
+  pass: Pick<FlightPass, 'launchedAtMs' | 'liftMs' | 'orbitDurationMs' | 'endProgress' | 'terminal'>,
+  original: readonly Shot[],
+  leader: FlightPass | undefined,
+  resume: RailResume = { t: pass.liftMs, p: 0 },
+): RailSchedule {
+  const offset = leader ? pass.launchedAtMs - leader.launchedAtMs : 0;
+  const speed = 1 / pass.orbitDurationMs;
   const shotPause = FEEL.PIXEL_CLEAR_INTERVAL;
   const spacing = CORE_V2_CONVOY_SPACING;
-  const endProgress = follower.endProgress;
-  const original = follower.shots;
+  const endProgress = pass.endProgress;
 
-  let t = follower.liftMs;
-  let p = 0;
+  let t = resume.t;
+  let p = resume.p;
   let shotI = 0;
   const holds: ConvoyHold[] = [];
   const shots: Shot[] = [];
-  const maxT = follower.liftMs + follower.orbitDurationMs + 60_000;
+  const maxT = t + pass.orbitDurationMs + 60_000;
   let steps = 0;
 
   while (t < maxT && steps < 8_000) {
     steps += 1;
     const shot = original[shotI];
     const leaderT = t + offset;
-    const bumper = bumperProgress(leader, leaderT, spacing);
+    const bumper = leader ? bumperProgress(leader, leaderT, spacing) : Number.NaN;
     const atBumper = Number.isFinite(bumper) && p >= bumper - 1e-9;
 
-    if (atBumper && (bumper < 0 || isDwelling(leader, leaderT))) {
+    if (leader && atBumper && (bumper < 0 || isDwelling(leader, leaderT))) {
       const wait = Math.max(1, msUntilBumperAhead(leader, leaderT, p, spacing));
       holds.push({ progress: p, startAt: t, endAt: t + wait });
       t += wait;
@@ -50,14 +67,7 @@ export function applyCoreV2Convoy(follower: FlightPass, leaders: readonly Flight
     }
 
     if (shot && p >= shot.progress - 1e-9) {
-      const anticipateAt = t;
-      shots.push({
-        ...shot,
-        anticipateAt,
-        fireAt: anticipateAt + FEEL.ANTICIPATION_DURATION,
-        impactAt: anticipateAt + FEEL.ANTICIPATION_DURATION + FEEL.ENERGY_TRAVEL_DURATION,
-        clearAt: anticipateAt + shotPause,
-      });
+      shots.push(timedShot(shot, t));
       t += shotPause;
       shotI += 1;
       continue;
@@ -66,7 +76,7 @@ export function applyCoreV2Convoy(follower: FlightPass, leaders: readonly Flight
 
     const tOwnShot = shot ? (shot.progress - p) / speed : Number.POSITIVE_INFINITY;
     const tEnd = (endProgress - p) / speed;
-    const tLeaderDwell = nextDwellStart(leader, leaderT) - leaderT;
+    const tLeaderDwell = leader ? nextDwellStart(leader, leaderT) - leaderT : Number.POSITIVE_INFINITY;
     // Same speed as the leader: the bumper only closes while they are paused.
     // On the bumper, lockstep — never run past them to the exit or a later shot.
     let dt: number;
@@ -87,30 +97,16 @@ export function applyCoreV2Convoy(follower: FlightPass, leaders: readonly Flight
     t += dt;
   }
 
-  if (shotI < original.length) {
-    // Drain any remaining contacts at the progress they already occupy.
-    for (; shotI < original.length; shotI += 1) {
-      const shot = original[shotI]!;
-      const anticipateAt = t;
-      shots.push({
-        ...shot,
-        anticipateAt,
-        fireAt: anticipateAt + FEEL.ANTICIPATION_DURATION,
-        impactAt: anticipateAt + FEEL.ANTICIPATION_DURATION + FEEL.ENERGY_TRAVEL_DURATION,
-        clearAt: anticipateAt + shotPause,
-      });
-      t += shotPause;
-    }
+  // Drain any remaining contacts at the progress they already occupy.
+  for (; shotI < original.length; shotI += 1) {
+    shots.push(timedShot(original[shotI]!, t));
+    t += shotPause;
   }
 
-  const orbitEndAt = follower.endKind === 'burst' && shots.length > 0 && follower.endProgress < 1
+  const orbitEndAt = pass.terminal.kind === 'consumed' && shots.length > 0
     ? shots[shots.length - 1]!.clearAt
     : t;
-  const dt = orbitEndAt - follower.orbitEndAt;
-  const merged = mergeHolds(holds);
-  if (dt <= 0.5 && merged.length === 0 && shotTimesUnchanged(original, shots)) return follower;
-
-  return retimedPass(follower, shots, merged, orbitEndAt);
+  return { shots, holds: mergeHolds(holds), orbitEndAt };
 }
 
 function mergeHolds(holds: ConvoyHold[]): ConvoyHold[] {
@@ -127,7 +123,8 @@ function mergeHolds(holds: ConvoyHold[]): ConvoyHold[] {
   return out;
 }
 
-function pickLeader(leaders: readonly FlightPass[], follower: FlightPass): FlightPass | undefined {
+/** The Pal directly ahead on the rail when `follower` inserts, if any. */
+export function pickLeader(leaders: readonly FlightPass[], follower: FlightPass): FlightPass | undefined {
   for (let i = leaders.length - 1; i >= 0; i -= 1) {
     const leader = leaders[i]!;
     if (leader.passId === follower.passId || leader.launchedAtMs <= 0) continue;
@@ -205,20 +202,6 @@ function retimedPass(
   convoyHolds: ConvoyHold[],
   orbitEndAt: number,
 ): FlightPass {
-  const dt = orbitEndAt - follower.orbitEndAt;
-  const landingAt = follower.landingAt + dt;
-  const totalMs = follower.totalMs + dt;
-  let shotEvent = 0;
-  const events: PlaybackEvent[] = follower.events.map((event) => {
-    if (event.kind === 'orbitEnter') return event;
-    if (SHOT_EVENT_KINDS.has(event.kind)) {
-      const shot = shots[shotEvent];
-      shotEvent += 1;
-      return shot ? { ...event, at: shot.clearAt } : { ...event, at: event.at + dt };
-    }
-    if (event.kind === 'complete') return { ...event, at: totalMs };
-    return { ...event, at: event.at + dt };
-  });
-  events.sort((a, b) => a.at - b.at);
-  return { ...follower, shots, convoyHolds, orbitEndAt, landingAt, totalMs, events };
+  const landingAt = follower.landingAt + (orbitEndAt - follower.orbitEndAt);
+  return finalizePass({ ...follower, shots, convoyHolds, orbitEndAt, landingAt });
 }

@@ -1,7 +1,7 @@
 import { createGame } from '../src/game/engine/createGame';
 import { resolveAction } from '../src/game/engine/resolveLaunch';
 import { buildLaunchScript } from '../src/game/presentation/buildScript';
-import { reserveHoldingSlot } from '../src/game/presentation/holdingSlot';
+import { holdingSlotFor } from '../src/game/presentation/holdingSlot';
 import { LevelDefinition, Charge, GameState } from '../src/game/engine/types';
 import { flightPosition } from '../src/game/rendering/flightGeometry';
 import { computeBoardGeometry } from '../src/game/rendering/boardGeometry';
@@ -107,17 +107,9 @@ console.log('  [PASS] Pal D is NOT in holding');
 console.log('\nSTEP 4: Verify Presentation & Flight Invariants...');
 const scriptD = buildLaunchScript(outD, state, 4);
 
-// endKind must be 'burst', NOT 'toHolding'
-assert(scriptD.pass.endKind === 'burst', `Flight endKind MUST be "burst", got "${scriptD.pass.endKind}"`);
-console.log('  [PASS] Flight endKind is "burst" (never "toHolding")');
-
-// holdingSlotIndex must be undefined
-assert(scriptD.pass.holdingSlotIndex === undefined, 'Flight holdingSlotIndex must be undefined');
-console.log('  [PASS] Flight holdingSlotIndex is undefined');
-
-// holdingTarget must be undefined
-assert(scriptD.pass.holdingTarget === undefined, 'Flight holdingTarget must be undefined');
-console.log('  [PASS] Flight holdingTarget is undefined');
+// terminal must be 'reject' (no slot, no target), NOT 'toHolding'
+assert(scriptD.pass.terminal.kind === 'reject', `Flight terminal MUST be "reject", got "${scriptD.pass.terminal.kind}"`);
+console.log('  [PASS] Flight terminal is "reject" (never "toHolding", so no slot and no target)');
 
 // Events must NOT contain 'holdingLanded'
 const hasHoldingLanded = scriptD.pass.events.some((e) => e.kind === 'holdingLanded');
@@ -137,10 +129,10 @@ console.log('  [PASS] Events emit "complete"');
 console.log('  Events emitted:', scriptD.pass.events.map((e) => `${e.kind}@${e.at}ms`).join(', '));
 
 // 4. Verify reservation rejects slot reuse
-console.log('\nSTEP 5: Verify reserveHoldingSlot behavior...');
-const reservedSlot = reserveHoldingSlot(outD.state.holding, [scriptD.pass], outD.state.holdingCapacity);
-assert(reservedSlot === -1, `reserveHoldingSlot must return -1 when full, got ${reservedSlot}`);
-console.log('  [PASS] reserveHoldingSlot returned -1 (rejected)');
+console.log('\nSTEP 5: Verify the truth slot model...');
+const reservedSlot = holdingSlotFor(outD.state.holding, scriptD.pass.charge.id);
+assert(reservedSlot === -1, `truth must not keep the overflow Pal, got slot ${reservedSlot}`);
+console.log('  [PASS] overflow Pal has no truth slot (-1)');
 
 // 5. Verify flight position does NOT target Well 1
 console.log('\nSTEP 6: Verify flight position does NOT target Well 1...');

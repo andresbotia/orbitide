@@ -153,17 +153,25 @@ const CoreV2FlightActor = memo(function CoreV2FlightActor({ pass, geo, presentTh
   const clock = useSharedValue(0);
 
   useEffect(() => {
-    clock.set(0);
-    clock.set(
-      withTiming(pass.totalMs, { duration: pass.totalMs, easing: Easing.linear }, (finished) => {
-        if (finished) runOnJS(presentThrough)(pass.passId, pass.events.length);
-      }),
-    );
     const sub = AppState.addEventListener('change', (next) => {
       if (next !== 'active') cancelAnimation(clock);
     });
     return () => { cancelAnimation(clock); sub.remove(); };
-  }, [pass.passId, pass.totalMs, pass.events.length, clock, presentThrough]);
+  }, [pass.passId, clock]);
+
+  // Anchored to the pass's launch time: when a join re-scripts this pass's
+  // unplayed tail (new totalMs), the clock carries on instead of restarting.
+  const { passId, totalMs, launchedAtMs } = pass;
+  useEffect(() => {
+    const elapsed = Math.min(totalMs, Math.max(0, Date.now() - launchedAtMs));
+    clock.set(elapsed);
+    clock.set(
+      withTiming(totalMs, { duration: totalMs - elapsed, easing: Easing.linear }, (finished) => {
+        // Present everything: the event list may have grown since this started.
+        if (finished) runOnJS(presentThrough)(passId, Number.MAX_SAFE_INTEGER);
+      }),
+    );
+  }, [passId, totalMs, launchedAtMs, clock, presentThrough]);
 
   useAnimatedReaction(
     () => eventCountAt(pass, clock.value),

@@ -1,7 +1,6 @@
 import { createGame } from '../src/game/engine/createGame';
 import { resolveAction } from '../src/game/engine/resolveLaunch';
 import { buildLaunchScript } from '../src/game/presentation/buildScript';
-import { reserveHoldingSlot } from '../src/game/presentation/holdingSlot';
 import { LevelDefinition, Charge, GameState } from '../src/game/engine/types';
 
 const testLevel: LevelDefinition = {
@@ -44,7 +43,6 @@ const prevStateD = state;
 const scriptD = buildLaunchScript(resD, prevStateD, 4);
 
 console.log('Script D:');
-console.log('  endKind:', scriptD.pass.endKind);
-console.log('  holdingSlotIndex:', scriptD.pass.holdingSlotIndex);
-console.log('  holdingTarget:', scriptD.pass.holdingTarget);
+console.log('  terminal:', scriptD.pass.terminal.kind);
+console.log('  terminal detail:', JSON.stringify(scriptD.pass.terminal));
 console.log('  events:', scriptD.pass.events);

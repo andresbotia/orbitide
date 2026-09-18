@@ -24,19 +24,27 @@ export interface PlaybackEvent { kind: PlaybackKind; at: number; pixelId?: strin
   pixelIds?: string[]; groupId?: string;
   /** Set on the pixelClear that completes the picture — a stronger presentation beat. */
   final?: boolean }
+/**
+ * Every flight ends in exactly one of three ways (§ terminal contract):
+ * - `consumed`  — ends at its last successful hit; never returns to GateTerminal.
+ * - `toHolding` — full lap to GateTerminal, then GateTerminal → exactly `slot`.
+ *   `slot` is the Pal's index in the latest reconciled truth Holding; `target`
+ *   is that slot's measured screen point (absent only while unmeasured — the Pal
+ *   then waits at GateTerminal, never at an off-screen fallback).
+ * - `reject`    — full lap to GateTerminal and bursts in place; Holding unchanged.
+ */
+export type FlightTerminal =
+  | { kind: 'consumed' }
+  | { kind: 'toHolding'; slot: number; target?: Point }
+  | { kind: 'reject' };
+
 /** One independent charge's script and its UI-thread clock form one playback unit. */
 export interface FlightPass {
   passId: number;
   origin: 'tunnel' | 'holding';
   sourceIndex: number;
   from?: Point;
-  holdingTarget?: Point;
-  /**
-   * Compact presented-Holding index this pass will occupy. Assigned at launch
-   * (and reassigned if a landed Pal is relaunched and frees a lower slot).
-   * Undefined on burst / non-Holding endings.
-   */
-  holdingSlotIndex?: number;
+  terminal: FlightTerminal;
   charge: Charge;
   shots: Shot[];
   liftMs: number;
@@ -50,15 +58,20 @@ export interface FlightPass {
   orbitEndAt: number;
   endProgress: number;
   landingAt: number;
+  /** Derived by `finalizePass` from the fields above; never edited by hand. */
   totalMs: number;
-  endKind: 'burst' | 'toHolding';
+  /** Holding-pressure cue this landing raises (toHolding only). */
+  holdingCue?: 'critical' | 'full';
+  /** Level result this pass carries, presented after its terminal beat. */
+  result?: 'win' | 'fail';
+  /** Derived by `finalizePass` from the fields above; never edited by hand. */
   events: PlaybackEvent[];
   /** Pixel id of the clear that wins the level on this pass, if any. */
   finalClearPixelId?: string;
   /**
-   * Presentation-clock origin for this pass (`Date.now()` at launch). Used by
-   * Core V2 convoy scheduling to align an already-flying leader with a new
-   * follower. 0 when unused (Legacy V1).
+   * Presentation-clock origin for this pass (`Date.now()` at launch). The
+   * UI clock is anchored to it, convoy scheduling aligns leaders with it, and
+   * re-scripting uses it to know how much of the pass is already presented.
    */
   launchedAtMs: number;
   /**

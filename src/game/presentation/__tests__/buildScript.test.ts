@@ -47,7 +47,7 @@ test('a miss takes exactly one 1800ms moving lap then lands, without any automat
   const pass = buildLaunchScript(resolveLaunch(state, 'tunnel-1'), state).pass;
   expect(pass.shots).toEqual([]);
   expect(pass.orbitEndAt - pass.liftMs).toBe(FEEL.ORBIT_DURATION);
-  expect(pass.endKind).toBe('toHolding');
+  expect(pass.terminal).toEqual({ kind: 'toHolding', slot: 0 });
   expect(pass.events.filter((e) => e.kind === 'holdingLanded')).toHaveLength(1);
 });
 test('events are sorted, counted at exact boundaries, and complete after landing/result', () => {
@@ -140,12 +140,10 @@ test('an unresolved Pal overflowing full holding completes full lap to terminal 
   expect(outcome.state.holding).toHaveLength(2);
 
   const pass = buildLaunchScript(outcome, state).pass;
-  expect(pass.endKind).toBe('burst');
+  expect(pass.terminal).toEqual({ kind: 'reject' }); // no slot, no target
   expect(pass.endProgress).toBe(1);
   expect(pass.orbitEndAt - pass.liftMs).toBe(FEEL.ORBIT_DURATION);
   expect(pass.landingAt).toBe(pass.orbitEndAt + FEEL.BURST_DURATION);
-  expect(pass.holdingTarget).toBeUndefined();
-  expect(pass.holdingSlotIndex).toBeUndefined();
   expect(pass.events.some((e) => e.kind === 'holdingLanded')).toBe(false);
 
   const failEvent = pass.events.find((e) => e.kind === 'fail');
@@ -183,7 +181,7 @@ test('an unresolved Pal with hits that overflows Holding still completes full la
   // Orbit MUST NOT be cut short at the shot clear time:
   expect(pass.endProgress).toBe(1);
   expect(pass.orbitEndAt).toBeGreaterThan(pass.shots[0]!.clearAt);
-  expect(pass.endKind).toBe('burst');
+  expect(pass.terminal).toEqual({ kind: 'reject' });
   expect(pass.landingAt).toBe(pass.orbitEndAt + FEEL.BURST_DURATION);
   expect(pass.events.some((e) => e.kind === 'holdingLanded')).toBe(false);
 

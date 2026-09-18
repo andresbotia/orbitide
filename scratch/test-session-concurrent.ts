@@ -2,7 +2,7 @@ import { createGame } from '../src/game/engine/createGame';
 import { resolveAction, LaunchOutcome } from '../src/game/engine/resolveLaunch';
 import { buildLaunchScript } from '../src/game/presentation/buildScript';
 import { applyCoreV2Convoy } from '../src/game/presentation/convoy';
-import { reserveHoldingSlot } from '../src/game/presentation/holdingSlot';
+
 import { LevelDefinition, Charge, GameState } from '../src/game/engine/types';
 import { FlightPass } from '../src/game/presentation/events';
 import { isCoreV2 } from '../src/game/engine/ruleset';
@@ -23,12 +23,6 @@ const testLevel: LevelDefinition = {
     [{ color: 'gold', capacity: 1 }],
   ],
 };
-
-function hasPresentedHoldingLanding(flight: { pass: FlightPass; cursor: number }): boolean {
-  if (flight.pass.endKind !== 'toHolding') return false;
-  const at = flight.pass.events.findIndex((event) => event.kind === 'holdingLanded');
-  return at >= 0 && flight.cursor > at;
-}
 
 function appendPresentedHolding(holding: Charge[], landed: Charge | null): Charge[] {
   if (!landed || holding.some((charge) => charge.id === landed.id)) return holding;
@@ -63,15 +57,8 @@ class SessionSimulator {
       pass = { ...pass, launchedAtMs: Date.now() };
       pass = applyCoreV2Convoy(pass, [...this.active.values()].map((f) => f.pass));
     }
-    if (pass.endKind === 'toHolding') {
-      const pending = [...this.active.values()]
-        .filter((flight) => flight.pass.endKind === 'toHolding' && !hasPresentedHoldingLanding(flight))
-        .map((flight) => flight.pass);
-      const slot = reserveHoldingSlot(presentedHolding, pending, outcome.state.holdingCapacity);
-      console.log(`Flight ${pass.passId} (${pass.charge.id}) reserved slot: ${slot}`);
-      if (slot >= 0) {
-        pass = { ...pass, holdingSlotIndex: slot };
-      }
+    if (pass.terminal.kind === 'toHolding') {
+      console.log(`Flight ${pass.passId} (${pass.charge.id}) truth slot: ${pass.terminal.slot}`);
     }
     this.active.set(pass.passId, { pass, outcome, cursor: 0 });
     this.view = {

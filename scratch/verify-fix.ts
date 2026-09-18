@@ -1,7 +1,6 @@
 import { createGame } from '../src/game/engine/createGame';
 import { resolveAction } from '../src/game/engine/resolveLaunch';
 import { buildLaunchScript } from '../src/game/presentation/buildScript';
-import { reserveHoldingSlot } from '../src/game/presentation/holdingSlot';
 import { LevelDefinition } from '../src/game/engine/types';
 
 const testLevel: LevelDefinition = {
@@ -33,5 +32,5 @@ console.log('Outcome holding:', outD.state.holding.map(c => c.id));
 console.log('Outcome heldCharge:', outD.heldCharge?.id);
 
 const scriptD = buildLaunchScript(outD, s, 4);
-console.log('Script D endKind:', scriptD.pass.endKind);
+console.log('Script D endKind:', scriptD.pass.terminal.kind);
 console.log('Script D events:', scriptD.pass.events.map(e => e.kind));

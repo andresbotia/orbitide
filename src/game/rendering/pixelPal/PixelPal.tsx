@@ -51,8 +51,10 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
 
     const tail = Math.max(0, Math.min(1, (t - pass.orbitEndAt) / Math.max(1, pass.landingAt - pass.orbitEndAt)));
     const gone = t >= pass.landingAt;
-    const popScale = pass.endKind === 'burst' ? 1 + tail * 0.6 : 1;
-    const popOpacity = pass.endKind === 'burst' ? 1 - tail : 1;
+    // consumed bursts at its last hit; reject bursts in place at GateTerminal.
+    const bursts = pass.terminal.kind !== 'toHolding';
+    const popScale = bursts ? 1 + tail * 0.6 : 1;
+    const popOpacity = bursts ? 1 - tail : 1;
 
     return {
       x: pose.x, y: pose.y, heading, bank,

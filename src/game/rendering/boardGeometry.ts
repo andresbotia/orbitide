@@ -125,6 +125,12 @@ export interface BoardGeometry {
   orbitInsertion: Point;
   /** Legacy name for `orbitInsertion`, used by the flight worklet + tests. */
   insertion: Point;
+  /**
+   * GateTerminal — named alias of the same bottom-centre 0/1 point: where every
+   * full-lap Pal ends its lap, bursts (reject) or departs for its Holding slot.
+   * Not a new point; the engine entry is unchanged.
+   */
+  gateTerminal: Point;
 
   /** Radius of the rendered traveling-charge token. */
   chargeRadius: number;
@@ -348,6 +354,7 @@ export function computeBoardGeometry(
     launchHub,
     orbitInsertion: insertionPoint,
     insertion: insertionPoint,
+    gateTerminal: insertionPoint,
     chargeRadius,
     holdingAnchor,
     tunnelRegion,

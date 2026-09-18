@@ -1,7 +1,6 @@
 import { createGame } from '../src/game/engine/createGame';
 import { resolveAction } from '../src/game/engine/resolveLaunch';
 import { buildLaunchScript } from '../src/game/presentation/buildScript';
-import { reserveHoldingSlot } from '../src/game/presentation/holdingSlot';
 import { LevelDefinition, Charge, GameState } from '../src/game/engine/types';
 
 const testLevel: LevelDefinition = {

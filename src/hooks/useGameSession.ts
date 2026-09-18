@@ -3,17 +3,17 @@ import { AppState } from 'react-native';
 import { DEFAULT_ACTIVE_CAPACITY } from '@/game/engine/concurrency';
 import { createGame } from '@/game/engine/createGame';
 import { epochHasCapacity } from '@/game/engine/epoch';
-import { resolveAction, type LaunchOutcome } from '@/game/engine/resolveLaunch';
+import { resolveAction } from '@/game/engine/resolveLaunch';
 import { isCoreV2 } from '@/game/engine/ruleset';
 import type { GameAction } from '@/game/engine/actions';
-import type { Charge, GameState, LevelDefinition } from '@/game/engine/types';
+import type { GameState, LevelDefinition } from '@/game/engine/types';
 import { feedback } from '@/game/feedback';
 import { cancelHits, registerHit } from '@/game/hapticArbiter';
 import { requireLevel } from '@/game/levels/levels';
 import { buildLaunchScript } from '@/game/presentation/buildScript';
-import { applyCoreV2Convoy } from '@/game/presentation/convoy';
 import type { FlightPass, Point } from '@/game/presentation/events';
-import { reserveHoldingSlot } from '@/game/presentation/holdingSlot';
+import { commitLandings, holdingSlotFor, terminalProblem } from '@/game/presentation/holdingSlot';
+import { assignResult, reconcileFlights } from '@/game/presentation/reconcile';
 import {
   applyTutorialEvent,
   catchUpTutorial,
@@ -44,19 +44,24 @@ interface Options {
   onTutorialComplete?: (id: string) => void;
 }
 
-interface ActiveFlight { pass: FlightPass; outcome: LaunchOutcome; cursor: number }
+/**
+ * One Pal on the rail. `pass` is re-scripted (unplayed tail only) on every
+ * accepted launch, so it always reflects the latest reconciled truth.
+ */
+interface ActiveFlight { pass: FlightPass; cursor: number }
 
 /** True once this flight has presented its own Holding arrival beat. */
 function hasPresentedHoldingLanding(flight: ActiveFlight): boolean {
-  if (flight.pass.endKind !== 'toHolding') return false;
+  if (flight.pass.terminal.kind !== 'toHolding') return false;
   const at = flight.pass.events.findIndex((event) => event.kind === 'holdingLanded');
   return at >= 0 && flight.cursor > at;
 }
 
-/** Append one Pal to presented Holding; never copy the whole engine tray. */
-function appendPresentedHolding(holding: Charge[], landed: Charge | null): Charge[] {
-  if (!landed || holding.some((charge) => charge.id === landed.id)) return holding;
-  return [...holding, landed];
+// DEV-only lifecycle asserts at boundaries (launch, re-script, landing,
+// complete). Read at call time: ts-jest has no RN-injected `__DEV__`.
+const isDev = () => typeof __DEV__ !== 'undefined' && __DEV__;
+function lifecycleProblem(message: string): void {
+  if (isDev()) console.error('[PA_LIFECYCLE]', message);
 }
 
 export interface GameSession {
@@ -94,6 +99,8 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
   const view = useRef(state);
   const serial = useRef(0);
   const active = useRef(new Map<number, ActiveFlight>());
+  /** Pals that reached their slot but wait for a lower slot's Pal to land first. */
+  const landedIds = useRef(new Set<string>());
   const optionsRef = useRef(options);
   const reported = useRef(false);
   const [tutorial, setTutorial] = useState<TutorialState>(() =>
@@ -138,6 +145,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
   const settleAll = useCallback(() => {
     viewFlushQueued.current = false;
     active.current.clear();
+    landedIds.current.clear();
     cancelHits();
     setFlights([]);
     view.current = truth.current;
@@ -169,6 +177,13 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
       viewFlushQueued.current = false;
       setState(view.current);
     });
+  }, []);
+
+  /** Extend presented Holding with landed Pals, strictly in truth slot order. */
+  const commitHolding = useCallback((): string[] => {
+    const { holding, committed } = commitLandings(view.current.holding, truth.current.holding, landedIds.current);
+    if (committed.length) view.current = { ...view.current, holding };
+    return committed;
   }, []);
 
   const perform = useCallback((action: GameAction, from?: Point, holdingSlots?: (Point | undefined)[]): boolean => {
@@ -223,45 +238,33 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     setEngineState(outcome.state);
     let presentedHolding = view.current.holding;
     if (action.kind === 'holding') {
-      presentedHolding = view.current.holding.filter((charge) => charge.id !== action.id);
-      const pending = [...active.current.values()]
-        .filter((flight) => flight.pass.endKind === 'toHolding' && !hasPresentedHoldingLanding(flight))
-        .sort((a, b) => a.pass.passId - b.pass.passId);
-      pending.forEach((flight, index) => {
-        const slot = presentedHolding.length + index;
-        if (slot < outcome.state.holdingCapacity) {
-          const target = holdingSlotsRef.current[slot];
-          flight.pass = {
-            ...flight.pass,
-            holdingSlotIndex: slot,
-            ...(target ? { holdingTarget: target } : {}),
-          };
-        }
-      });
+      presentedHolding = presentedHolding.filter((charge) => charge.id !== action.id);
     }
-    let pass = buildLaunchScript(outcome, before, ++serial.current, from).pass;
-    if (isCoreV2(before.ruleset)) {
-      pass = {
-        ...pass,
-        launchedAtMs: Date.now(),
-      };
-      pass = applyCoreV2Convoy(pass, [...active.current.values()].map((f) => f.pass));
+    const now = Date.now();
+    const fresh: FlightPass = { ...buildLaunchScript(outcome, before, ++serial.current, from).pass, launchedAtMs: now };
+    // Reconcile every flight with the new truth: unplayed tails, terminals and
+    // slots follow the latest resolution; presented prefixes never change.
+    const { passes, divergences } = reconcileFlights({
+      flights: [...active.current.values(), { pass: fresh, cursor: 0 }],
+      freshPassId: fresh.passId,
+      truth: outcome.state,
+      resolutions: outcome.epochCharges ?? [],
+      pixels: before.pixels,
+      now,
+      slotPoints: holdingSlotsRef.current,
+      convoy: isCoreV2(before.ruleset),
+    });
+    for (const pass of assignResult(passes, outcome.state.status, now)) {
+      const flight = active.current.get(pass.passId);
+      if (flight) flight.pass = pass;
+      else active.current.set(pass.passId, { pass, cursor: 0 });
+      const problem = terminalProblem(pass, outcome.state.holdingCapacity);
+      if (problem) lifecycleProblem(problem);
     }
-    if (pass.endKind === 'toHolding') {
-      const pending = [...active.current.values()]
-        .filter((flight) => flight.pass.endKind === 'toHolding' && !hasPresentedHoldingLanding(flight))
-        .map((flight) => flight.pass);
-      const slot = reserveHoldingSlot(presentedHolding, pending, outcome.state.holdingCapacity);
-      if (slot >= 0) {
-        const target = holdingSlotsRef.current[slot];
-        pass = {
-          ...pass,
-          holdingSlotIndex: slot,
-          ...(target ? { holdingTarget: target } : {}),
-        };
-      }
+    if (isDev() && divergences.length) {
+      console.warn('[PA_HISTORY] a join changed already-presented history:',
+        divergences.map((d) => `${d.chargeId}@${Math.round(d.presentedMs)}ms ${d.detail}`).join('; '));
     }
-    active.current.set(pass.passId, { pass, outcome, cursor: 0 });
     // Show the source consumption immediately; keep the board itself lagged.
     view.current = {
       ...view.current,
@@ -269,10 +272,11 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
       tunnels: outcome.state.tunnels,
       holding: presentedHolding,
     };
+    commitHolding();
     setState(view.current);
     publishFlights();
     return true;
-  }, [publishFlights, advanceTutorial]);
+  }, [publishFlights, advanceTutorial, commitHolding]);
 
   const presentThrough = useCallback((passId: number, count: number) => {
     const flight = active.current.get(passId);
@@ -310,24 +314,27 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
           if (idx !== -1) nextPixels[idx] = { ...nextPixels[idx]!, modifier: truthPixel.modifier };
         }
       } else if (event.kind === 'holdingLanded') {
-        // Engine truth already parked remaining-capacity charges that fit.
-        // Overflow that caused LOSS is never appended — that Pal is accounted
-        // for on the flight, not silently eaten by the tray.
-        const parked = flight.outcome.heldCharge
-          && flight.outcome.state.holding.some((c) => c.id === flight.outcome.heldCharge!.id);
-        if (parked && view.current.holding.length < truth.current.holdingCapacity) {
-          view.current = {
-            ...view.current,
-            holding: appendPresentedHolding(view.current.holding, flight.outcome.heldCharge),
-          };
-          if (truth.current.status === 'playing') setMessage('Tap a held Pal to launch it again.');
-          advanceTutorial({ type: 'holdingEntered', chargeId: flight.pass.charge.id });
-        }
+        // The pass was re-scripted against the latest truth, so this Pal is
+        // one truth keeps, landing in its truth slot with truth's capacity.
+        const id = flight.pass.charge.id;
+        if (holdingSlotFor(truth.current.holding, id) < 0) lifecycleProblem(`${id} landed but truth Holding does not keep it`);
+        landedIds.current.add(id);
+        const committed = commitHolding();
+        if (!committed.includes(id)) lifecycleProblem(`${id} landed ahead of a lower Holding slot`);
+        if (committed.length && truth.current.status === 'playing') setMessage('Tap a held Pal to launch it again.');
+        for (const chargeId of committed) advanceTutorial({ type: 'holdingEntered', chargeId });
       } else if (event.kind === 'win' || event.kind === 'fail') {
-        view.current = { ...truth.current, holding: view.current.holding, status: truth.current.status };
+        // Status only: board and tray were presented beat by beat and already
+        // agree with truth — no snap at the result modal.
+        view.current = { ...view.current, status: truth.current.status };
         if (event.kind === 'win') advanceTutorial({ type: 'levelWon' });
         reportResult();
       } else if (event.kind === 'complete') {
+        const id = flight.pass.charge.id;
+        if (flight.pass.terminal.kind === 'toHolding' && !landedIds.current.has(id)
+          && !view.current.holding.some((c) => c.id === id)) {
+          lifecycleProblem(`${id} completed toHolding but is in neither Holding nor its landing queue`);
+        }
         active.current.delete(passId);
         if (active.current.size === 0) { settleAll(); return; }
         publishFlights();
@@ -361,10 +368,11 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
       view.current = { ...view.current, pixels: nextPixels };
     }
     queueViewFlush();
-  }, [reportResult, settleAll, publishFlights, advanceTutorial, queueViewFlush]);
+  }, [reportResult, settleAll, publishFlights, advanceTutorial, queueViewFlush, commitHolding]);
 
   const restart = useCallback(() => {
     active.current.clear();
+    landedIds.current.clear();
     feedback.cancelPending();
     cancelHits();
     const fresh = createGame(level);
