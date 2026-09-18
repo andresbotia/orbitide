@@ -67,14 +67,14 @@ function Report({ a }: { a: LevelAnalysis }) {
         ))}
       </Section>
 
-      <Section title="Sequential vs concurrent">
-        <Kv k="verdict" v={a.comparison.verdict} />
-        <Kv k="win length" v={`seq ${a.sequentialResult.length} · con ${a.concurrentResult.length}  (Δ ${a.comparison.winLengthDelta})`} />
-        <Kv k="min peak Holding" v={`seq ${a.sequentialResult.minWinningPeak} · con ${a.concurrentResult.minWinningPeak}`} />
-        <Kv k="viable first moves" v={`seq ${a.sequentialResult.viableFirstMoves} · con ${a.concurrentResult.viableFirstMoves}`} />
-        <Kv k="max active" v={`seq ${a.sequentialResult.maxActive} · con ${a.concurrentResult.maxActive}`} />
-        <Kv k="loss probability" v={`seq ${a.sequentialResult.lossProbability.toFixed(3)} · con ${a.concurrentResult.lossProbability.toFixed(3)}`} />
-        <Kv k="explored nodes" v={`seq ${a.sequentialResult.nodes.toLocaleString()} · con ${a.concurrentResult.nodes.toLocaleString()}`} />
+      {/* One search over logical choices: joining Pals on the rail is presentation, not a solver branch. */}
+      <Section title="Solver (logical choices)">
+        <Kv k="win length" v={String(a.solveResult.length)} />
+        <Kv k="min peak Holding" v={String(a.solveResult.minWinningPeak)} />
+        <Kv k="viable first moves" v={`${a.solveResult.viableFirstMoves}/${a.solveResult.totalFirstMoves}`} />
+        <Kv k="loss probability" v={a.solveResult.lossProbability.toFixed(3)} />
+        <Kv k="avg branching" v={a.solveResult.avgBranching.toFixed(2)} />
+        <Kv k="explored states" v={a.solveResult.nodes.toLocaleString()} />
       </Section>
 
       <Section title="Holding pressure (winning line)">
@@ -119,7 +119,6 @@ function Report({ a }: { a: LevelAnalysis }) {
 
       <Section title="Resource pressure">
         <Kv k="Holding util" v={`${(a.resourcePressure.holdingUtilization * 100).toFixed(0)}%  (${a.resourcePressure.maxHolding}/${a.resourcePressure.holdingCapacity})`} />
-        <Kv k="Active util" v={`${(a.resourcePressure.activeUtilization * 100).toFixed(0)}%  (${a.resourcePressure.maxActive}/${a.resourcePressure.activeCapacity})`} />
         <Kv k="manual relaunches" v={String(a.resourcePressure.manualRelaunches)} />
         <Kv k="into Holding" v={String(a.resourcePressure.chargesEnteringHolding)} />
       </Section>
@@ -128,7 +127,6 @@ function Report({ a }: { a: LevelAnalysis }) {
         <Kv k="outcome" v={a.antiSpam.outcome.toUpperCase()} strong={a.antiSpam.outcome === 'won' ? 'warn' : 'ok'} />
         <Kv k="steps" v={String(a.antiSpam.steps)} />
         <Kv k="peak Holding" v={String(a.antiSpam.peakHolding)} />
-        <Kv k="max Active" v={String(a.antiSpam.maxActive)} />
         <Kv k="Holding entries" v={String(a.antiSpam.holdingEntries)} />
         <Kv k="manual relaunches" v={String(a.antiSpam.manualRelaunches)} />
       </Section>

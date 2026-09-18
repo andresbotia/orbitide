@@ -31,8 +31,9 @@ test('World 7 adds ten ordered Skybound levels with its authored curves', () => 
   }
 });
 
-test.each(range(61, 70))('Skybound level $id solves in sequential and concurrent play', (level) => {
-  expect(solve(level, { mode: 'sequential-compat' }).solved).toBe(true);
+// One canonical solve over logical choices — joining the rail is not a separate
+// "concurrent play" mode under FIRST LAUNCHED, FIRST SERVED (engine/solver.ts).
+test.each(range(61, 70))('Skybound level $id solves', (level) => {
   expect(solve(level).solved).toBe(true);
 }, 120_000);
 
@@ -60,11 +61,8 @@ test('World 8 rolls out exact Linked pairs and only Level 71 teaches them', () =
   }
 });
 
-test.each(range(71, 80).flatMap((level) => [
-  { level, mode: 'sequential-compat' as const },
-  { level, mode: 'metrics' as const },
-]))('Tidal Depths level $level.id solves in $mode play', ({ level, mode }) => {
-  expect(solve(level, { mode }).solved).toBe(true);
+test.each(range(71, 80))('Tidal Depths level $id solves', (level) => {
+  expect(solve(level).solved).toBe(true);
 }, 120_000);
 
 test('World 9 adds ten Arcane Relics with a medium-to-hard mastery curve', () => {
@@ -83,10 +81,8 @@ test('World 9 adds ten Arcane Relics with a medium-to-hard mastery curve', () =>
   }
 });
 
-test.each(range(81, 90).flatMap((level) => [
-  { level, mode: 'sequential-compat' as const }, { level, mode: 'metrics' as const },
-]))('Arcane Relics level $level.id solves in $mode play', ({ level, mode }) => {
-  expect(solve(level, { mode }).solved).toBe(true);
+test.each(range(81, 90))('Arcane Relics level $id solves', (level) => {
+  expect(solve(level).solved).toBe(true);
 }, 120_000);
 
 test('World 10 completes the campaign with the requested Starforge curve', () => {
@@ -117,10 +113,8 @@ test('M4C authoring rejects modifier stacking on a single cell', () => {
   );
 });
 
-test.each(range(91, 100).flatMap((level) => [
-  { level, mode: 'sequential-compat' as const }, { level, mode: 'metrics' as const },
-]))('Starforge level $level.id solves in $mode play', ({ level, mode }) => {
-  const result = solve(level, { mode });
+test.each(range(91, 100))('Starforge level $id solves', (level) => {
+  const result = solve(level);
   expect(result.solved).toBe(true);
   if (level.id === 100) {
     expect(result.viableFirstMoves).toBeGreaterThanOrEqual(2);

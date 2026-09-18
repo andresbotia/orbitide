@@ -227,11 +227,6 @@ function resolveEpochLaunchUncached(from: GameState, launch: EpochLaunch): Launc
   };
 }
 
-/** The committed truth an epoch builds on: strip the epoch view off a state. */
-export function committedBaseline(state: GameState): GameState {
-  return { ...state, epoch: null, activeCharges: [] };
-}
-
 /**
  * Whether a launch of `chargeId` is even *able* to join the open epoch. Whether
  * it actually does is the player's coarse timing choice, carried on the action
@@ -261,8 +256,6 @@ export function epochHasCapacity(state: GameState): boolean {
 }
 
 export interface EpochPlan {
-  /** Committed state the epoch started from (the current one when not joining). */
-  baseline: GameState;
   /** Every launch in the epoch after this one, in launch order. */
   launches: EpochLaunch[];
   /** Insertion time assigned to the new launch. */
@@ -283,12 +276,10 @@ export function planLaunch(
   wantsJoin = false,
 ): EpochPlan {
   const join = wantsJoin && canJoinEpoch(state, launch.chargeId);
-  const baseline = join ? state.epoch!.baseline : committedBaseline(state);
   const prior = join ? state.epoch!.launches : [];
   const insertionTime = join ? state.epoch!.clock : 0;
   const full: EpochLaunch = { ...launch, insertionTime };
   return {
-    baseline,
     launches: [...prior, full],
     insertionTime,
     clock: insertionTime + LAUNCH_SPACING,
@@ -322,7 +313,7 @@ export function commitLaunch(state: GameState, plan: EpochPlan, resolution: Epoc
     ? state.holding
     : [...keep, ...parked.slice(0, room)];
 
-  const epoch: EpochState = { baseline: plan.baseline, launches: plan.launches, clock: plan.clock };
+  const epoch: EpochState = { launches: plan.launches, clock: plan.clock };
 
   return {
     ...state,
@@ -334,22 +325,6 @@ export function commitLaunch(state: GameState, plan: EpochPlan, resolution: Epoc
     epoch,
     status: state.status,
   };
-}
-
-/**
- * A canonical fingerprint of an open epoch, for solver memoization and the dev
- * overlay. Insertion times and the clock are a fixed function of the launch
- * count (`i * LAUNCH_SPACING`), so only the ordered launch list and the baseline
- * board need to appear; equivalent situations produce an identical string.
- */
-export function epochResidueKey(epoch: EpochState): string {
-  const cleared = boardFingerprint(epoch.baseline.pixels);
-  const tunnels = epoch.baseline.tunnels
-    .map((t) => t.queue.map((c) => `${c.color}${c.capacity}`).join('.')).join('|');
-  const holding = epoch.baseline.holding.map((c) => `${c.color}${c.capacity}`).join('.');
-  const launches = epoch.launches
-    .map((l) => `${l.source[0]}${l.originId}:${l.color}:${l.capacity}`).join(',');
-  return `${cleared}/${tunnels}/${holding}//${launches}`;
 }
 
 /** The launched charge's own resolution within an epoch resolution. */

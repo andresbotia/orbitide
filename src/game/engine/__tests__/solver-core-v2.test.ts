@@ -58,7 +58,7 @@ test('Core V2 multi-active join is accepted and the solver still wins', () => {
   expect(replay(V2_MULTI_ACTIVE, r.moves).status).toBe('won');
 });
 
-test('solver memoization does not collapse distinct Core V2 futures', () => {
+test('the solver memoizes on the logical state: epoch bookkeeping is ignored, Holding and queues are not', () => {
   const initial = createGame(V2_TRAP);
   const afterTrap = resolveAction(initial, T(0)).state;
 
@@ -66,10 +66,11 @@ test('solver memoization does not collapse distinct Core V2 futures', () => {
   expect(boardFingerprint(initial.pixels)).toBe(boardFingerprint(afterTrap.pixels));
   expect(stateKey(initial)).not.toBe(stateKey(afterTrap));
 
-  // Open epoch vs stripped committed baseline of the same launch.
+  // The open epoch is bookkeeping only — under FIRST LAUNCHED, FIRST SERVED the
+  // Pals on the rail are already resolved — so it must NOT split the key.
   expect(afterTrap.epoch).not.toBeNull();
   const settled = { ...afterTrap, epoch: null, activeCharges: [] };
-  expect(stateKey(afterTrap)).not.toBe(stateKey(settled));
+  expect(stateKey(afterTrap)).toBe(stateKey(settled));
 
   // Different Holding colours with identical occupancy cannot share a key.
   const recolored = {
@@ -77,7 +78,9 @@ test('solver memoization does not collapse distinct Core V2 futures', () => {
     holding: afterTrap.holding.map((c) => ({ ...c, color: 'red' as const })),
   };
   expect(stateKey(afterTrap)).not.toBe(stateKey(recolored));
+});
 
+test('solver memoization does not collapse distinct Core V2 futures', () => {
   // The trap opening is unsolvable; the other first move wins.
   const r = solve(V2_TRAP);
   expect(r.solved).toBe(true);
@@ -95,7 +98,7 @@ test('a Core V2 Holding miss-loop is a cycle, not an unbounded search', () => {
 });
 
 test('Legacy V1 campaign fixture still solves unchanged', () => {
-  const r = solve(LEVEL_DEFINITIONS[0]!, { mode: 'sequential-compat' });
+  const r = solve(LEVEL_DEFINITIONS[0]!);
   expect(r.solved).toBe(true);
   expect(r.complete).toBe(true);
   expect(r.totalFirstMoves).toBe(3);

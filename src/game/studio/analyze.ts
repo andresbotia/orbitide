@@ -30,7 +30,6 @@ export function analyzeStudioLevel(level: StudioLevel, opts: AnalyzeOptions = {}
   const started = Date.now();
   try {
     const result = solve(toLevelDefinition(level), {
-      mode: 'metrics',
       nodeCap: opts.nodeCap ?? 200_000,
       signal: opts.signal,
     });

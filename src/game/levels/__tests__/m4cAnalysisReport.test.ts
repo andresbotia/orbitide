@@ -21,7 +21,7 @@ report('prints the reproducible L61–100 analysis artifact', async () => {
       groups: groups.size, authored: level.difficulty, suggested: analysis.suggestedDifficulty,
       score: analysis.difficultyScore, win: analysis.shortestWinningLength,
       peak: analysis.peakHoldingOnWinningLine, viable: analysis.viableFirstMoves,
-      active: analysis.maxActiveOnWinningWitness, fail: analysis.failWitness?.length ?? null,
+      fail: analysis.failWitness?.length ?? null,
       held: analysis.heldRelaunches, nodes: analysis.exploredNodes,
       warnings: analysis.warnings.map((warning) => warning.code), ms: Date.now() - started,
     }));

@@ -7,8 +7,8 @@ import { solve } from '@/game/engine/solver';
 const id = Number(process.argv[2] ?? 1);
 const { levels } = parseAuthoredJSON(fs.readFileSync('content/levels/world-01.json', 'utf8'), 'w');
 const def = levels.find((l) => l.id === id)!;
-const r = solve(def, { mode: 'metrics', nodeCap: 80_000, partialOnCap: true });
-console.log('solved', r.solved, 'len', r.length, 'peakH', r.peakHolding, 'held', r.heldLaunches, 'maxA', r.maxActiveOnWitness);
+const r = solve(def, { nodeCap: 80_000, partialOnCap: true });
+console.log('solved', r.solved, 'len', r.length, 'peakH', r.peakHolding, 'held', r.heldLaunches);
 console.log(r.moves);
 let s = createGame(def);
 for (const m of r.moves) {

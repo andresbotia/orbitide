@@ -8,7 +8,7 @@ import { LEVEL_DEFINITIONS } from '../../levels/levelDefinitions';
 const L = (id: number) => LEVEL_DEFINITIONS[id - 1]!;
 
 test('firstMoves has one entry per legal first action, all solvable for the campaign', () => {
-  const r = solve(L(1), { mode: 'sequential-compat' });
+  const r = solve(L(1));
   expect(r.firstMoves).toHaveLength(r.totalFirstMoves);
   expect(r.totalFirstMoves).toBe(3);
   expect(r.firstMoves.every((m) => m.solvable)).toBe(true);
@@ -17,7 +17,7 @@ test('firstMoves has one entry per legal first action, all solvable for the camp
 
 test('the shortest win equals one move plus the best solvable first-move continuation', () => {
   for (const id of [1, 2, 3, 5, 9]) {
-    const r = solve(L(id), { mode: 'sequential-compat' });
+    const r = solve(L(id));
     const best = Math.min(...r.firstMoves.filter((m) => m.solvable).map((m) => m.winLength));
     expect(r.length).toBe(best + 1);
   }
@@ -45,8 +45,8 @@ test('avgBranching is > 1 and deterministic', () => {
 }, 120_000);
 
 test('the whole result is deterministic (deep-equal across runs)', () => {
-  const a = solve(L(5), { mode: 'sequential-compat' });
-  const b = solve(L(5), { mode: 'sequential-compat' });
+  const a = solve(L(5));
+  const b = solve(L(5));
   expect(a).toEqual(b);
 }, 120_000);
 

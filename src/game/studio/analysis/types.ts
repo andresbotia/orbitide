@@ -26,7 +26,6 @@ export interface FirstMoveAnalysis {
   /** Minimum peak Holding achievable on any winning continuation (-1 if unsolvable). */
   minPeakHolding: number;
   heldRelaunches: number;
-  maxActive: number;
   /** Loss probability of the whole subtree after this move (uniform play). */
   lossAfter: number;
   classification: FirstMoveClass;
@@ -81,7 +80,6 @@ export interface AntiSpamResult {
   outcome: AntiSpamOutcome;
   steps: number;
   peakHolding: number;
-  maxActive: number;
   holdingEntries: number;
   manualRelaunches: number;
 }
@@ -94,10 +92,6 @@ export interface ResourcePressure {
   manualRelaunches: number;
   chargesEnteringHolding: number;
   longestHeldDurationSteps: number;
-  maxActive: number;
-  activeCapacity: number;
-  /** maxActive / activeCapacity (0 when capacity is 0). */
-  activeUtilization: number;
 }
 
 export interface PaletteSnapshot {
@@ -129,32 +123,6 @@ export interface HoldingPressure {
   longestHeldDurationSteps: number;
 }
 
-export type ConcurrencyVerdict =
-  | 'equivalent'
-  | 'concurrency-helps'
-  | 'concurrency-hurts'
-  | 'concurrency-required'
-  | 'concurrency-mixed';
-
-export interface SeqConComparison {
-  sequentialSolvable: boolean;
-  concurrentSolvable: boolean;
-  solvabilityChanged: boolean;
-  /** seq.length − con.length ( > 0 ⇒ concurrency shortens the solution ). */
-  winLengthDelta: number;
-  /** seq.minWinningPeak − con.minWinningPeak ( > 0 ⇒ concurrency lowers Holding pressure ). */
-  peakHoldingDelta: number;
-  /** con.viableFirstMoves − seq.viableFirstMoves. */
-  viableFirstMoveDelta: number;
-  /** con.maxActive − seq.maxActive. */
-  maxActiveDelta: number;
-  /** con.nodes − seq.nodes. */
-  nodeDelta: number;
-  /** seq.lossProbability − con.lossProbability ( > 0 ⇒ concurrency is safer ). */
-  lossDelta: number;
-  verdict: ConcurrencyVerdict;
-}
-
 export type WarningSeverity = 'info' | 'warn';
 
 export interface AnalysisWarning {
@@ -179,8 +147,8 @@ export interface DifficultyAssessment {
   mismatchTiers: number;
 }
 
+/** The one canonical solve over logical player choices (see engine/solver.ts). */
 export interface SolveSummary {
-  mode: 'sequential-compat' | 'metrics';
   solved: boolean;
   complete: boolean;
   nodeCapHit: boolean;
@@ -189,7 +157,6 @@ export interface SolveSummary {
   maxHolding: number;
   viableFirstMoves: number;
   totalFirstMoves: number;
-  maxActive: number;
   nodes: number;
   avgBranching: number;
   lossProbability: number;
@@ -197,9 +164,8 @@ export interface SolveSummary {
   failPathLength: number | null;
 }
 
-export function toSolveSummary(mode: SolveSummary['mode'], r: SolveResult): SolveSummary {
+export function toSolveSummary(r: SolveResult): SolveSummary {
   return {
-    mode,
     solved: r.solved,
     complete: r.complete,
     nodeCapHit: r.nodeCapHit,
@@ -208,7 +174,6 @@ export function toSolveSummary(mode: SolveSummary['mode'], r: SolveResult): Solv
     maxHolding: r.maxHolding,
     viableFirstMoves: r.viableFirstMoves,
     totalFirstMoves: r.totalFirstMoves,
-    maxActive: r.maxActive,
     nodes: r.nodes,
     avgBranching: r.avgBranching,
     lossProbability: r.lossProbability,
@@ -220,7 +185,7 @@ export function toSolveSummary(mode: SolveSummary['mode'], r: SolveResult): Solv
 export interface LevelAnalysis {
   levelId: number;
   title: string;
-  /** `false` when any solve was truncated by the node cap. */
+  /** `false` when the solve was truncated by the node cap. */
   complete: boolean;
   /** Human notes about what is approximate or unknown. */
   limitations: string[];
@@ -238,10 +203,8 @@ export interface LevelAnalysis {
   failingTrace: Trace | null;
   shortestWinningLength: number;
   peakHoldingOnWinningLine: number;
-  maxActiveOnWinningWitness: number;
   heldRelaunches: number;
   maxHoldingObserved: number;
-  maxActiveObserved: number;
   exploredNodes: number;
   avgBranching: number;
   solveDurationMs: number;
@@ -251,9 +214,7 @@ export interface LevelAnalysis {
   viableFirstMoves: number;
   firstMoveAnalysis: FirstMoveAnalysis[];
 
-  sequentialResult: SolveSummary;
-  concurrentResult: SolveSummary;
-  comparison: SeqConComparison;
+  solveResult: SolveSummary;
 
   holdingPressure: HoldingPressure;
 
@@ -279,7 +240,6 @@ export interface BatchRow {
   viableFirstMoves: number;
   totalFirstMoves: number;
   peakHolding: number;
-  maxActive: number;
   heldRelaunches: number;
   nodes: number;
   warningCount: number;

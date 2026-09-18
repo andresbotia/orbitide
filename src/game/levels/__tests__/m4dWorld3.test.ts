@@ -2,13 +2,12 @@ import type { GameAction } from '../../engine/actions';
 import { createGame } from '../../engine/createGame';
 import { iceLayers } from '../../engine/frozen';
 import { resolveAction } from '../../engine/resolveLaunch';
-import { solve, type SolveMode } from '../../engine/solver';
+import { solve } from '../../engine/solver';
 import type { LevelDefinition } from '../../engine/types';
 import { analyzeLevel } from '../../studio/analysis/analyzeLevel';
 import { LEVEL_DEFINITIONS } from '../levelDefinitions';
 
 const WORLD_3 = LEVEL_DEFINITIONS.filter((level) => level.id >= 21 && level.id <= 30);
-const MODES: SolveMode[] = ['sequential-compat', 'metrics'];
 
 function replay(level: LevelDefinition, moves: GameAction[]) {
   let state = createGame(level);
@@ -58,10 +57,10 @@ test.each(WORLD_3)('Deep Frost level $id has an exact Frozen-aware per-color bud
   expect(have).toEqual(need);
 });
 
-test.each(WORLD_3.flatMap((level) => MODES.map((mode) => ({ level, mode }))))(
-  'Deep Frost level $level.id solves and its $mode witness replays through runtime',
-  ({ level, mode }) => {
-    const result = solve(level, { mode });
+test.each(WORLD_3)(
+  'Deep Frost level $id solves and its witness replays through runtime',
+  (level) => {
+    const result = solve(level);
     expect(result.solved).toBe(true);
     expect(result.complete).toBe(true);
     expect(result.viableFirstMoves).toBeGreaterThanOrEqual(1);
@@ -81,8 +80,7 @@ test('Deep Frost analyzer report stays scoped to Levels 21-30', async () => {
       authored: analysis.authoredDifficulty,
       suggested: analysis.suggestedDifficulty,
       score: analysis.difficultyScore,
-      seq: analysis.sequentialResult,
-      con: analysis.concurrentResult,
+      solve: analysis.solveResult,
       warnings: analysis.warnings.map((warning) => `${warning.severity}:${warning.code}`),
     });
   }
@@ -91,32 +89,32 @@ test('Deep Frost analyzer report stays scoped to Levels 21-30', async () => {
   // keeping every opening viable and consequence-free.
   for (const row of rows.slice(0, 2)) {
     expect(row).toMatchObject({ authored: 'easy', suggested: 'easy' });
-    expect(row.con).toMatchObject({
+    expect(row.solve).toMatchObject({
       length: 4, minWinningPeak: 1, heldLaunches: 1, failPathLength: null,
     });
-    expect(row.con.viableFirstMoves).toBe(row.con.totalFirstMoves);
+    expect(row.solve.viableFirstMoves).toBe(row.solve.totalFirstMoves);
   }
 
   // L23-L25 make the Easy-to-Medium handoff without a sudden first-move trap.
   for (const row of rows.slice(2, 5)) {
     expect(row).toMatchObject({ authored: 'medium', suggested: 'medium' });
-    expect(row.con.minWinningPeak).toBeGreaterThanOrEqual(1);
-    expect(row.con.heldLaunches).toBeGreaterThanOrEqual(1);
-    expect(row.con.viableFirstMoves).toBe(row.con.totalFirstMoves);
+    expect(row.solve.minWinningPeak).toBeGreaterThanOrEqual(1);
+    expect(row.solve.heldLaunches).toBeGreaterThanOrEqual(1);
+    expect(row.solve.viableFirstMoves).toBe(row.solve.totalFirstMoves);
   }
 
   // L26-L28 vary Medium pressure deliberately: L26 has the longest line, L27
   // fills Holding on risky lines, and the two-colour Frozen plan makes L28 a
   // stronger step than L27 without manufacturing a fail path.
   expect(rows[5]).toMatchObject({ authored: 'medium', suggested: 'medium' });
-  expect(rows[5]!.con.length).toBeGreaterThanOrEqual(8);
-  expect(rows[5]!.con.heldLaunches).toBeGreaterThanOrEqual(2);
+  expect(rows[5]!.solve.length).toBeGreaterThanOrEqual(8);
+  expect(rows[5]!.solve.heldLaunches).toBeGreaterThanOrEqual(2);
   expect(rows[6]).toMatchObject({ authored: 'medium', suggested: 'medium' });
-  expect(rows[6]!.con.maxHolding).toBe(3);
-  expect(rows[6]!.con.heldLaunches).toBeGreaterThanOrEqual(3);
+  expect(rows[6]!.solve.maxHolding).toBe(3);
+  expect(rows[6]!.solve.heldLaunches).toBeGreaterThanOrEqual(3);
   expect(rows[7]).toMatchObject({ authored: 'medium', suggested: 'medium' });
   expect(rows[7]!.score).toBeGreaterThan(rows[6]!.score);
-  expect(rows[7]!.con.maxHolding).toBeGreaterThanOrEqual(2);
+  expect(rows[7]!.solve.maxHolding).toBeGreaterThanOrEqual(2);
 
   // L29-L30 are genuine Hard steps through unavoidable two-slot Holding and
   // sustained manual relaunch planning. Their exact budgets intentionally keep
@@ -124,14 +122,14 @@ test('Deep Frost analyzer report stays scoped to Levels 21-30', async () => {
   for (const row of rows.slice(8)) {
     expect(row).toMatchObject({ authored: 'hard', suggested: 'hard' });
     expect(row.score).toBeGreaterThan(Math.max(...rows.slice(0, 8).map((candidate) => candidate.score)));
-    expect(row.con.minWinningPeak).toBeGreaterThanOrEqual(2);
-    expect(row.con.heldLaunches).toBeGreaterThanOrEqual(3);
-    expect(row.con.viableFirstMoves).toBe(row.con.totalFirstMoves);
+    expect(row.solve.minWinningPeak).toBeGreaterThanOrEqual(2);
+    expect(row.solve.heldLaunches).toBeGreaterThanOrEqual(3);
+    expect(row.solve.viableFirstMoves).toBe(row.solve.totalFirstMoves);
     expect(row.warnings).toContain('warn:NO_FAIL_PATH');
   }
   expect(rows[9]!.score).toBeGreaterThan(rows[8]!.score);
-  expect(rows[9]!.con.length).toBeGreaterThan(rows[8]!.con.length);
-  expect(rows[9]!.con.heldLaunches).toBeGreaterThan(rows[8]!.con.heldLaunches);
+  expect(rows[9]!.solve.length).toBeGreaterThan(rows[8]!.solve.length);
+  expect(rows[9]!.solve.heldLaunches).toBeGreaterThan(rows[8]!.solve.heldLaunches);
 
   if (process.env.REPORT_WORLD_3) console.log(JSON.stringify(rows, null, 2));
 }, 180_000);

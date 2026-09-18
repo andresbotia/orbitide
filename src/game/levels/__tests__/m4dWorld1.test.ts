@@ -1,13 +1,12 @@
 import { createGame } from '../../engine/createGame';
 import { resolveAction } from '../../engine/resolveLaunch';
-import { solve, type SolveMode } from '../../engine/solver';
+import { solve } from '../../engine/solver';
 import type { GameAction } from '../../engine/actions';
 import type { LevelDefinition } from '../../engine/types';
 import { analyzeLevel } from '../../studio/analysis/analyzeLevel';
 import { LEVEL_DEFINITIONS } from '../levelDefinitions';
 
 const WORLD_1 = LEVEL_DEFINITIONS.filter((level) => level.id >= 1 && level.id <= 10);
-const MODES: SolveMode[] = ['sequential-compat', 'metrics'];
 
 function replay(level: LevelDefinition, moves: GameAction[]) {
   let state = createGame(level);
@@ -46,10 +45,10 @@ test.each(WORLD_1)('First Light level $id has an exact per-color charge budget',
   expect(capacityByColor).toEqual(pixelsByColor);
 });
 
-test.each(WORLD_1.flatMap((level) => MODES.map((mode) => ({ level, mode }))))(
-  'First Light level $level.id solves and its $mode witness replays through runtime',
-  ({ level, mode }) => {
-    const result = solve(level, { mode });
+test.each(WORLD_1)(
+  'First Light level $id solves and its witness replays through runtime',
+  (level) => {
+    const result = solve(level);
     expect(result.solved).toBe(true);
     expect(result.complete).toBe(true);
     expect(result.viableFirstMoves).toBeGreaterThanOrEqual(1);
@@ -69,20 +68,19 @@ test('First Light analyzer report stays scoped to Levels 1-10', async () => {
       authored: analysis.authoredDifficulty,
       suggested: analysis.suggestedDifficulty,
       score: analysis.difficultyScore,
-      seq: analysis.sequentialResult,
-      con: analysis.concurrentResult,
+      solve: analysis.solveResult,
       warnings: analysis.warnings.map((warning) => `${warning.severity}:${warning.code}`),
     });
   }
 
-  const concurrent = rows.map((row) => row.con);
+  const concurrent = rows.map((row) => row.solve);
 
   // L1-L3 are deliberately forgiving: every opening works and the calm line
   // neither uses Holding nor has a fail path.
   for (const row of rows.slice(0, 3)) {
-    expect(row.con.viableFirstMoves).toBe(row.con.totalFirstMoves);
-    expect(row.con.minWinningPeak).toBe(0);
-    expect(row.con.failPathLength).toBeNull();
+    expect(row.solve.viableFirstMoves).toBe(row.solve.totalFirstMoves);
+    expect(row.solve.minWinningPeak).toBe(0);
+    expect(row.solve.failPathLength).toBeNull();
   }
 
   // L4-L8 expose Holding through imperfect lines without requiring it on the
@@ -91,20 +89,20 @@ test('First Light analyzer report stays scoped to Levels 1-10', async () => {
   for (const result of concurrent.slice(3, 8)) expect(result.minWinningPeak).toBe(0);
   expect(concurrent.slice(3, 8).every((result) => result.maxHolding >= 1)).toBe(true);
   expect(rows[4]).toMatchObject({ authored: 'easy', suggested: 'medium' });
-  expect(rows[4]!.con.lossProbability).toBeLessThan(0.1);
-  expect(rows[4]!.con.failPathLength).toBeGreaterThan(2);
+  expect(rows[4]!.solve.lossProbability).toBeLessThan(0.1);
+  expect(rows[4]!.solve.failPathLength).toBeGreaterThan(2);
 
   // L9 is the first required-Holding Medium step. L10 then makes a substantial,
   // deterministic Hard jump while retaining three viable openings.
   expect(rows[8]).toMatchObject({ authored: 'medium', suggested: 'medium' });
-  expect(rows[8]!.con.minWinningPeak).toBe(1);
+  expect(rows[8]!.solve.minWinningPeak).toBe(1);
   expect(rows[8]!.score).toBeGreaterThan(rows[7]!.score);
   expect(rows[9]).toMatchObject({ authored: 'hard', suggested: 'hard' });
-  expect(rows[9]!.con.minWinningPeak).toBeGreaterThanOrEqual(2);
-  expect(rows[9]!.seq.heldLaunches).toBeGreaterThanOrEqual(2);
-  expect(rows[9]!.con.lossProbability).toBeGreaterThan(0.5);
-  expect(rows[9]!.con.viableFirstMoves).toBe(rows[9]!.con.totalFirstMoves);
-  expect(rows[9]!.con.failPathLength).toBeGreaterThan(2);
+  expect(rows[9]!.solve.minWinningPeak).toBeGreaterThanOrEqual(2);
+  expect(rows[9]!.solve.heldLaunches).toBeGreaterThanOrEqual(2);
+  expect(rows[9]!.solve.lossProbability).toBeGreaterThan(0.5);
+  expect(rows[9]!.solve.viableFirstMoves).toBe(rows[9]!.solve.totalFirstMoves);
+  expect(rows[9]!.solve.failPathLength).toBeGreaterThan(2);
 
   if (process.env.REPORT_WORLD_1) console.log(JSON.stringify(rows, null, 2));
 }, 180_000);

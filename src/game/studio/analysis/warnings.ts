@@ -2,13 +2,18 @@
  * Deterministic, advisory "suspicious level" warnings. Every threshold is here
  * and documented — no magic numbers in the caller. Warnings never block
  * anything; they are design signals.
+ *
+ * The CONCURRENCY_TRIVIALIZES_LEVEL / CONCURRENCY_INCREASES_RISK warnings are
+ * retired: they compared a "sequential" and a "concurrent" solve, and under
+ * FIRST LAUNCHED, FIRST SERVED joining the rail no longer changes any outcome —
+ * there is one solve over logical choices (see engine/solver.ts).
  */
 import type { GameRuleset, LevelDifficulty } from '@/game/engine/types';
 import { isCoreV2 } from '@/game/engine/ruleset';
 import type { Trace } from '@/game/engine/trace';
 import type {
   AnalysisWarning, AntiSpamResult, ChoiceMetrics, DirectionalGeometry, FirstMoveAnalysis,
-  HoldingPressure, ResourcePressure, SeqConComparison, SolveSummary,
+  HoldingPressure, ResourcePressure, SolveSummary,
 } from './types';
 
 export const WARNING_THRESHOLDS = {
@@ -20,12 +25,6 @@ export const WARNING_THRESHOLDS = {
   narrowEasyViable: 1,
   /** LOW_BRANCHING_HARD_LEVEL: hard+ level with mean branching below this. */
   lowBranchingHard: 1.7,
-  /** CONCURRENCY_TRIVIALIZES_LEVEL: concurrent solution ≥ this many moves shorter. */
-  concurrencyTrivializeLen: 2,
-  concurrencyTrivializePeakDrop: 1,
-  concurrencyTrivializeLossDrop: 0.15,
-  /** CONCURRENCY_INCREASES_RISK: concurrency raises loss probability by ≥ this. */
-  concurrencyRiskLoss: 0.1,
   /** EXCESSIVE_UNUSED_CAPACITY: unused / authored tunnel capacity ≥ this. */
   unusedCapacityRatio: 0.4,
   /** SOLVER_NODE_EXPLOSION: explored nodes ≥ this. */
@@ -51,9 +50,8 @@ export interface WarningContext {
   complete: boolean;
   firstMoveAnalysis: FirstMoveAnalysis[];
   viableFirstMoves: number;
-  seq: SolveSummary;
-  con: SolveSummary;
-  comparison: SeqConComparison;
+  /** The one canonical solve over logical player choices. */
+  solve: SolveSummary;
   holdingPressure: HoldingPressure;
   winTrace: Trace | null;
   failWitnessLength: number | null;
@@ -92,7 +90,7 @@ export function deriveWarnings(ctx: WarningContext): AnalysisWarning[] {
   }
 
   if (solvable && T.pressureExpectedTiers.includes(ctx.authoredDifficulty)
-    && ctx.con.minWinningPeak <= 0 && ctx.con.heldLaunches === 0) {
+    && ctx.solve.minWinningPeak <= 0 && ctx.solve.heldLaunches === 0) {
     add('NO_HOLDING_PRESSURE', 'warn',
       `Authored ${ctx.authoredDifficulty} but the best line never uses Holding.`,
       'min winning peak Holding is 0 and there are no held relaunches.');
@@ -101,28 +99,13 @@ export function deriveWarnings(ctx: WarningContext): AnalysisWarning[] {
   if (solvable && ctx.authoredDifficulty === 'easy' && ctx.viableFirstMoves <= T.narrowEasyViable) {
     add('NARROW_EASY_LEVEL', 'warn',
       'Easy level has only one viable first move.',
-      `${ctx.viableFirstMoves}/${ctx.con.totalFirstMoves} first moves lead to a solution.`);
+      `${ctx.viableFirstMoves}/${ctx.solve.totalFirstMoves} first moves lead to a solution.`);
   }
 
   if (solvable && T.hardTiers.includes(ctx.authoredDifficulty) && ctx.avgBranching < T.lowBranchingHard) {
     add('LOW_BRANCHING_HARD_LEVEL', 'warn',
       `Authored ${ctx.authoredDifficulty} but the solution graph is almost linear.`,
       `mean branching ${ctx.avgBranching.toFixed(2)} < ${T.lowBranchingHard}.`);
-  }
-
-  const c = ctx.comparison;
-  if (c.verdict === 'concurrency-required'
-    || c.winLengthDelta >= T.concurrencyTrivializeLen
-    || (c.peakHoldingDelta >= T.concurrencyTrivializePeakDrop && c.lossDelta >= T.concurrencyTrivializeLossDrop)) {
-    add('CONCURRENCY_TRIVIALIZES_LEVEL', 'warn',
-      'Concurrent play makes this level substantially easier.',
-      `Δlen ${c.winLengthDelta}, Δpeak ${c.peakHoldingDelta}, Δloss ${c.lossDelta.toFixed(2)}${c.verdict === 'concurrency-required' ? ', sequential play cannot solve it' : ''}.`);
-  }
-
-  if (-c.lossDelta >= T.concurrencyRiskLoss || ctx.con.maxHolding > ctx.seq.maxHolding) {
-    add('CONCURRENCY_INCREASES_RISK', 'info',
-      'Concurrent play opens materially worse lines.',
-      `concurrent loss ${ctx.con.lossProbability.toFixed(2)} vs sequential ${ctx.seq.lossProbability.toFixed(2)}; max Holding ${ctx.con.maxHolding} vs ${ctx.seq.maxHolding}.`);
   }
 
   if (ctx.winTrace && ctx.totalAuthoredCapacity > 0) {

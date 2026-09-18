@@ -2,14 +2,13 @@ import type { GameAction } from '../../engine/actions';
 import { createGame } from '../../engine/createGame';
 import { iceLayers, shieldLayers } from '../../engine/frozen';
 import { resolveAction } from '../../engine/resolveLaunch';
-import { solve, type SolveMode } from '../../engine/solver';
+import { solve } from '../../engine/solver';
 import { traceActions } from '../../engine/trace';
 import type { LevelDefinition } from '../../engine/types';
 import { analyzeLevel } from '../../studio/analysis/analyzeLevel';
 import { LEVEL_DEFINITIONS } from '../levelDefinitions';
 
 const WORLD_7 = LEVEL_DEFINITIONS.filter((level) => level.id >= 61 && level.id <= 70);
-const MODES: SolveMode[] = ['sequential-compat', 'metrics'];
 
 function replay(level: LevelDefinition, moves: GameAction[]) {
   let state = createGame(level);
@@ -54,10 +53,10 @@ test.each(WORLD_7)('Skybound level $id has an exact modifier-aware per-color bud
   expect(have).toEqual(need);
 });
 
-test.each(WORLD_7.flatMap((level) => MODES.map((mode) => ({ level, mode }))))(
-  'Skybound level $level.id solves and its $mode witness replays through runtime',
-  ({ level, mode }) => {
-    const result = solve(level, { mode });
+test.each(WORLD_7)(
+  'Skybound level $id solves and its witness replays through runtime',
+  (level) => {
+    const result = solve(level);
     expect(result.solved).toBe(true);
     expect(result.complete).toBe(true);
     expect(result.viableFirstMoves).toBeGreaterThanOrEqual(1);
@@ -80,8 +79,7 @@ test('Skybound analyzer report stays scoped to Levels 61-70', async () => {
       authored: analysis.authoredDifficulty,
       suggested: analysis.suggestedDifficulty,
       score: analysis.difficultyScore,
-      seq: analysis.sequentialResult,
-      con: analysis.concurrentResult,
+      solve: analysis.solveResult,
       exposure: analysis.difficulty.factors.exposureDepth,
       warnings: analysis.warnings.map((warning) => `${warning.severity}:${warning.code}`),
     });
@@ -92,31 +90,28 @@ test('Skybound analyzer report stays scoped to Levels 61-70', async () => {
   // saves 0 steps across all three openers.
   for (const row of rows.slice(0, 3)) {
     expect(row).toMatchObject({ authored: 'medium', suggested: 'medium' });
-    expect(row.con.minWinningPeak).toBe(1);
-    expect(row.seq.length - row.con.length).toBe(0);
+    expect(row.solve.minWinningPeak).toBe(1);
   }
-  expect(rows.slice(0, 3).map((row) => row.con.length)).toEqual([8, 11, 9]);
-  expect(rows.slice(0, 3).map((row) => row.con.heldLaunches)).toEqual([2, 2, 2]);
+  expect(rows.slice(0, 3).map((row) => row.solve.length)).toEqual([8, 11, 9]);
+  expect(rows.slice(0, 3).map((row) => row.solve.heldLaunches)).toEqual([2, 2, 2]);
 
   // L64-L66 provide stronger Medium aerial challenges. L64 demands 4 held relaunches,
   // while L65's parachute rim order eliminates artificial durable-shell lockout.
   for (const row of rows.slice(3, 6)) {
     expect(row).toMatchObject({ authored: 'medium', suggested: 'medium' });
-    expect(row.con.minWinningPeak).toBe(1);
-    expect(row.seq.length - row.con.length).toBe(0);
+    expect(row.solve.minWinningPeak).toBe(1);
   }
-  expect(rows.slice(3, 6).map((row) => row.con.length)).toEqual([10, 9, 9]);
-  expect(rows.slice(3, 6).map((row) => row.con.heldLaunches)).toEqual([4, 2, 2]);
+  expect(rows.slice(3, 6).map((row) => row.solve.length)).toEqual([10, 9, 9]);
+  expect(rows.slice(3, 6).map((row) => row.solve.heldLaunches)).toEqual([4, 2, 2]);
 
   // L67-L68 form the Medium/Hard transition bridge. Radar Spire peels cleanly
   // with zero concurrency shortcut, and Rescue Helicopter matches length 9 with gap 0.
   for (const row of rows.slice(6, 8)) {
     expect(row).toMatchObject({ authored: 'medium', suggested: 'medium' });
-    expect(row.con.minWinningPeak).toBe(1);
-    expect(row.seq.length - row.con.length).toBe(0);
+    expect(row.solve.minWinningPeak).toBe(1);
   }
-  expect(rows.slice(6, 8).map((row) => row.con.length)).toEqual([8, 9]);
-  expect(rows.slice(6, 8).map((row) => row.con.heldLaunches)).toEqual([2, 2]);
+  expect(rows.slice(6, 8).map((row) => row.solve.length)).toEqual([8, 9]);
+  expect(rows.slice(6, 8).map((row) => row.solve.heldLaunches)).toEqual([2, 2]);
 
   // L69-L70 are true Hard aviation milestones with zero concurrency shortcuts.
   // L69 (Midnight Jetliner) establishes peak-2 holding with 5 relaunches and score 50.
@@ -124,13 +119,12 @@ test('Skybound analyzer report stays scoped to Levels 61-70', async () => {
   // dropping solver nodes from >60k down to ~12k without solver explosion.
   for (const row of rows.slice(8)) {
     expect(row).toMatchObject({ authored: 'hard', suggested: 'hard' });
-    expect(row.seq.length - row.con.length).toBe(0);
     expect(row.score).toBeGreaterThanOrEqual(42);
   }
-  expect(rows[8]!.con.minWinningPeak).toBe(2);
-  expect(rows[8]!.con.heldLaunches).toBe(5);
-  expect(rows[9]!.con.failPathLength).toBe(6);
-  expect(rows[9]!.con.nodes).toBeLessThan(30_000);
+  expect(rows[8]!.solve.minWinningPeak).toBe(2);
+  expect(rows[8]!.solve.heldLaunches).toBe(5);
+  expect(rows[9]!.solve.failPathLength).toBe(6);
+  expect(rows[9]!.solve.nodes).toBeLessThan(30_000);
   expect(rows[9]!.warnings).toEqual([]);
 
   if (process.env.REPORT_WORLD_7) console.log(JSON.stringify(rows, null, 2));

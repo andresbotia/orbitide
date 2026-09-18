@@ -120,14 +120,15 @@ export async function analyzeAuthoredLevel(
   const colorSet = new Set<string>();
   for (const p of state.pixels) colorSet.add(p.color);
 
-  const seq = studioAnalysis.sequentialResult;
-  const con = studioAnalysis.concurrentResult;
+  // One canonical solve over logical player choices — joining Pals on the rail
+  // is not a separate branch under FIRST LAUNCHED, FIRST SERVED.
+  const solved = studioAnalysis.solveResult;
 
-  const minWinningHoldingPeak = Math.max(seq.minWinningPeak, con.minWinningPeak);
-  const maxHoldingObserved = Math.max(seq.maxHolding, con.maxHolding);
-  const requiredHeldLaunches = seq.heldLaunches;
-  const lossProbability = con.lossProbability;
-  const failPathLength = con.failPathLength;
+  const minWinningHoldingPeak = solved.minWinningPeak;
+  const maxHoldingObserved = solved.maxHolding;
+  const requiredHeldLaunches = solved.heldLaunches;
+  const lossProbability = solved.lossProbability;
+  const failPathLength = solved.failPathLength;
 
   const difficultyMismatch = studioAnalysis.authoredDifficulty !== studioAnalysis.suggestedDifficulty;
 
@@ -137,8 +138,8 @@ export async function analyzeAuthoredLevel(
     requiredHeldLaunches,
     lossProbability,
     failPathLength,
-    viableFirstMoves: con.viableFirstMoves,
-    totalFirstMoves: con.totalFirstMoves,
+    viableFirstMoves: solved.viableFirstMoves,
+    totalFirstMoves: solved.totalFirstMoves,
     totalTunnelDepth,
   });
 
@@ -157,12 +158,12 @@ export async function analyzeAuthoredLevel(
     minWinningHoldingPeak,
     maxHoldingObserved,
     requiredHeldLaunches,
-    viableFirstMoves: con.viableFirstMoves,
-    totalFirstMoves: con.totalFirstMoves,
+    viableFirstMoves: solved.viableFirstMoves,
+    totalFirstMoves: solved.totalFirstMoves,
     lossProbability,
     failPathLength,
-    solvable: seq.solved && con.solved,
-    replaysSuccessfully: seq.solved,
+    solvable: solved.solved,
+    replaysSuccessfully: solved.solved,
     antiSpam,
     naiveSpamOutcome: studioAnalysis.antiSpam.outcome,
     naiveSpamSteps: studioAnalysis.antiSpam.steps,

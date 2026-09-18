@@ -280,7 +280,7 @@ describe('Runtime Engine Compatibility Proof', () => {
     expect(state.tunnels.length).toBe(3);
 
     // Runtime solve
-    const solveRes = solve(level11, { mode: 'sequential-compat' });
+    const solveRes = solve(level11);
     expect(solveRes.solved).toBe(true);
     expect(solveRes.moves.length).toBeGreaterThan(0);
 

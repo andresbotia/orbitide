@@ -1,21 +1,17 @@
 /**
- * Holding + Active resource pressure composed from the winning-line trace
- * metrics and the solver's witness Active peak. Does not re-simulate.
+ * Holding resource pressure composed from the winning-line trace metrics. Does
+ * not re-simulate.
+ *
+ * Active-slot pressure is deliberately absent: Pals sharing the rail is
+ * presentation / game feel, not a puzzle resource. Under FIRST LAUNCHED, FIRST
+ * SERVED a join resolves exactly like a settle-first launch, so the solver never
+ * launches concurrently and has no Active peak to report.
  */
-import { DEFAULT_ACTIVE_CAPACITY } from '@/game/engine/concurrency';
-import type { LevelDefinition } from '@/game/engine/types';
 import type { HoldingPressure, ResourcePressure } from './types';
 
-export function resourcePressure(args: {
-  def: LevelDefinition;
-  holding: HoldingPressure;
-  /** Peak concurrent actives on the winning witness (0 when unsolved). */
-  maxActiveOnWitness: number;
-}): ResourcePressure {
+export function resourcePressure(args: { holding: HoldingPressure }): ResourcePressure {
   const holdingCapacity = args.holding.holdingCapacity;
-  const activeCapacity = resolveActiveCapacity(args.def.activeCapacity);
   const maxHolding = args.holding.maxHolding;
-  const maxActive = args.maxActiveOnWitness;
   return {
     maxHolding,
     holdingCapacity,
@@ -23,13 +19,5 @@ export function resourcePressure(args: {
     manualRelaunches: args.holding.manualRelaunches,
     chargesEnteringHolding: args.holding.chargesEnteringHolding,
     longestHeldDurationSteps: args.holding.longestHeldDurationSteps,
-    maxActive,
-    activeCapacity,
-    activeUtilization: activeCapacity > 0 ? maxActive / activeCapacity : 0,
   };
-}
-
-function resolveActiveCapacity(value: number | undefined): number {
-  if (typeof value === 'number' && Number.isInteger(value) && value > 0) return value;
-  return DEFAULT_ACTIVE_CAPACITY;
 }

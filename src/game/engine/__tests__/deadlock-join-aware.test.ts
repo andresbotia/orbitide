@@ -163,7 +163,7 @@ test('E · full Holding + a legal held relaunch → NOT lost', () => {
       { id: 'b', color: 'red', capacity: 1 },
       { id: 'w', color: 'white', capacity: 4 },
     ],
-    epoch: { baseline: { ...g, epoch: null, activeCharges: [] }, launches: [], clock: 0 },
+    epoch: { launches: [], clock: 0 },
   };
   expect(full.holding).toHaveLength(full.holdingCapacity);
   expect(reachablePixels(full).some((p) => p.color === 'white')).toBe(true);
@@ -183,12 +183,11 @@ test('G · five active charges (a sixth join denied) is not a loss on its own', 
   // Build a state with a full five-charge rail, a tunnel charge still queued and
   // pixels still reachable.
   const g = createGame(LEVEL_DEFINITIONS[9]!); // Ring Nebula — many white charges
-  const baseline: GameState = { ...g, epoch: null, activeCharges: [] };
   const launches = Array.from({ length: MAX_ACTIVE_CHARGES }, (_, i) => ({
     chargeId: `epoch-${i}`, source: 'tunnel' as const, originId: 'tunnel-0',
     color: 'white' as const, capacity: 1, insertionTime: i * 0.18, launchSequence: i,
   }));
-  const railFull: GameState = { ...g, epoch: { baseline, launches, clock: MAX_ACTIVE_CHARGES * 0.18 } };
+  const railFull: GameState = { ...g, epoch: { launches, clock: MAX_ACTIVE_CHARGES * 0.18 } };
 
   expect(railFull.epoch!.launches).toHaveLength(MAX_ACTIVE_CHARGES);
   // canJoinEpoch is false at the cap → no join variant is even a candidate…
@@ -204,7 +203,7 @@ test('H · all queues exhausted + held charges useless + pixels remain → lost'
     ...g,
     tunnels: g.tunnels.map((t) => ({ ...t, queue: [] })),
     holding: [{ id: 'h', color: 'blue', capacity: 5 }], // blue — no blue pixels
-    epoch: { baseline: { ...g, epoch: null, activeCharges: [] }, launches: [], clock: 0 },
+    epoch: { launches: [], clock: 0 },
   };
   expect(remainingPixelCount(stuck)).toBeGreaterThan(0);
   expect(legalActions(stuck, { includeJoin: true })).toHaveLength(0);
@@ -231,12 +230,11 @@ test('J · the final pixel cleared mid-epoch → won, never lost', () => {
   expect(s.status).toBe('won');
 });
 
-test('sequential-compat dead-ends on JOIN_ONLY without crashing', () => {
-  // `sequential-compat` ignores joins and dead-ends here. The property under
-  // test is that it does so cleanly — it must NOT throw "Runtime failed to mark
-  // a deadlock".
-  expect(() => solve(JOIN_ONLY, { mode: 'sequential-compat' })).not.toThrow();
-  expect(solve(JOIN_ONLY, { mode: 'sequential-compat' }).solved).toBe(false);
+test('the solver dead-ends on JOIN_ONLY without crashing', () => {
+  // The property under test is that it does so cleanly — it must NOT throw
+  // "Runtime failed to mark a deadlock".
+  expect(() => solve(JOIN_ONLY)).not.toThrow();
+  expect(solve(JOIN_ONLY).solved).toBe(false);
 });
 
 /**
@@ -257,7 +255,7 @@ test('sequential-compat dead-ends on JOIN_ONLY without crashing', () => {
  * need a state where the tray is full and every queue is stuck.
  */
 test('JOIN_ONLY is unsolvable under first-launched-first-served, and runtime agrees', () => {
-  const con = solve(JOIN_ONLY, { mode: 'metrics' });
+  const con = solve(JOIN_ONLY);
   expect(con.solved).toBe(false);
   expect(con.complete).toBe(true);
 
@@ -276,7 +274,7 @@ test('JOIN_ONLY is unsolvable under first-launched-first-served, and runtime agr
 
 // ── solver / runtime consistency ───────────────────────────────────────────
 
-test('runtime deadlock, legalActions(includeJoin) and the concurrent solver agree', () => {
+test('runtime deadlock, legalActions and the solver agree; joins add no logical choice', () => {
   // Sweep reachable states across a few structurally varied campaign levels.
   for (const idx of [4, 9, 19, 25, 29]) {
     const def = LEVEL_DEFINITIONS[idx]!;
@@ -292,14 +290,15 @@ test('runtime deadlock, legalActions(includeJoin) and the concurrent solver agre
 
       const lost = isLost(s);
       const joinAware = legalActions(s, { includeJoin: s.epoch !== null });
-      const concurrentEnum = enumerateActions(s, 'metrics');
+      const solverEnum = enumerateActions(s);
+      const key = (a: GameAction) => `${a.kind}:${a.id}`;
 
       // the three views of "is there a move" cannot disagree
       expect(lost).toBe(joinAware.length === 0 && remainingPixelCount(s) > 0);
-      if (s.epoch !== null) {
-        expect(concurrentEnum.map((a) => `${a.kind}:${a.id}:${a.join ? 'J' : '-'}`).sort())
-          .toEqual(joinAware.map((a) => `${a.kind}:${a.id}:${a.join ? 'J' : '-'}`).sort());
-      }
+      // the solver's choices are exactly the runtime's settle-first launches, and
+      // every join the runtime admits is a twin of one of them — no extra choice
+      expect(solverEnum.map(key)).toEqual(legalActions(s).map(key));
+      expect(new Set(joinAware.map(key))).toEqual(new Set(solverEnum.map(key)));
       // a state the runtime calls 'lost' really has no accepted progress move
       if (s.status === 'lost') {
         for (const a of [...candidateActions(s, true)]) {
@@ -309,7 +308,7 @@ test('runtime deadlock, legalActions(includeJoin) and the concurrent solver agre
       }
 
       if (s.status !== 'playing') continue;
-      for (const a of concurrentEnum) {
+      for (const a of joinAware) {
         const out = resolveAction(s, a);
         if (out.accepted && stack.length < 1800) stack.push(out.state);
       }
@@ -337,7 +336,7 @@ test('every admitted action makes progress — no keep-alive loop', () => {
       seen.add(k);
       checked += 1;
       const before = fingerprint(s);
-      for (const a of enumerateActions(s, 'metrics')) {
+      for (const a of legalActions(s, { includeJoin: true })) {
         const out = resolveAction(s, a);
         if (!out.accepted) continue;
         expect(fingerprint(out.state)).not.toBe(before); // real change every time

@@ -169,13 +169,12 @@ export interface ActiveCharge {
 }
 
 /**
- * A batch of launches whose laps overlap in logical time, resolved as one
- * deterministic timeline. `baseline` is the committed truth when the epoch
- * opened (always `epoch: null`, `activeCharges: []`); replaying `launches`
- * against it reproduces the current state exactly.
+ * The launches currently sharing the rail. Bookkeeping only — each launch was
+ * fully resolved when it launched (FIRST LAUNCHED, FIRST SERVED) — used for
+ * Active-slot pressure, the clock that times the next insertion, and to show
+ * every Pal on the rail together.
  */
 export interface EpochState {
-  baseline: GameState;
   launches: EpochLaunch[];
   /** Insertion time the next launch would use. */
   clock: number;

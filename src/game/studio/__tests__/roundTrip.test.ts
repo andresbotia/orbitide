@@ -31,8 +31,8 @@ test.each(LEVEL_DEFINITIONS)('level $id: load → serialize → identical engine
 test('every campaign level stays solvable after a round-trip, with the same witness length', () => {
   for (const def of LEVEL_DEFINITIONS) {
     const back = toLevelDefinition(fromLevelDefinition(def));
-    const original = solve(def, { mode: 'sequential-compat' });
-    const roundTripped = solve(back, { mode: 'sequential-compat' });
+    const original = solve(def);
+    const roundTripped = solve(back);
     expect(roundTripped.solved).toBe(true);
     expect(roundTripped.length).toBe(original.length);
     expect(roundTripped.lossProbability).toBeCloseTo(original.lossProbability, 10);

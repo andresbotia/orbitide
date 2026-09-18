@@ -31,7 +31,6 @@ export function evaluateRoundRobinSpam(
   let state = createGame(def);
   let steps = 0;
   let peakHolding = state.holding.length;
-  let maxActive = state.epoch?.launches.length ?? 0;
   let holdingEntries = 0;
   let manualRelaunches = 0;
   let seenHolding = new Set(state.holding.map((c) => c.id));
@@ -42,7 +41,6 @@ export function evaluateRoundRobinSpam(
     outcome,
     steps,
     peakHolding,
-    maxActive,
     holdingEntries,
     manualRelaunches,
   });
@@ -68,7 +66,6 @@ export function evaluateRoundRobinSpam(
     steps += 1;
     state = outcome.state;
     peakHolding = Math.max(peakHolding, state.holding.length);
-    maxActive = Math.max(maxActive, state.epoch?.launches.length ?? 0);
     if (action.kind === 'holding') manualRelaunches += 1;
     const now = new Set(state.holding.map((c) => c.id));
     for (const id of now) {

@@ -163,7 +163,7 @@ describe('Runtime Integration Proof — Authored JSON to Engine Replay', () => {
     expect(valResult.valid).toBe(true);
 
     // Engine solver
-    const solveRes = solve(authoredLevel, { mode: 'sequential-compat' });
+    const solveRes = solve(authoredLevel);
     expect(solveRes.solved).toBe(true);
     expect(solveRes.moves.length).toBeGreaterThan(0);
 
@@ -293,7 +293,7 @@ describe('Safe Explicit Replacement (replacesLegacy: true)', () => {
     expect(state.tunnels.length).toBe(3);
 
     // Playable end-to-end
-    const solveRes = solve(level11, { mode: 'sequential-compat' });
+    const solveRes = solve(level11);
     expect(solveRes.solved).toBe(true);
 
     let curState = state;

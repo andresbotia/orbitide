@@ -2,27 +2,21 @@ import type { Trace } from '@/game/engine/trace';
 import { WARNING_THRESHOLDS, deriveWarnings, type WarningContext } from '../warnings';
 import type {
   AntiSpamResult, ChoiceMetrics, DirectionalGeometry, FirstMoveAnalysis, ResourcePressure,
-  SeqConComparison, SolveSummary,
+  SolveSummary,
 } from '../types';
 
 const summary = (o: Partial<SolveSummary> = {}): SolveSummary => ({
-  mode: 'metrics', solved: true, complete: true, nodeCapHit: false, length: 6,
+  solved: true, complete: true, nodeCapHit: false, length: 6,
   minWinningPeak: 1, maxHolding: 1, viableFirstMoves: 3, totalFirstMoves: 3,
-  maxActive: 2, nodes: 500, avgBranching: 2.5, lossProbability: 0.1, heldLaunches: 1,
+  nodes: 500, avgBranching: 2.5, lossProbability: 0.1, heldLaunches: 1,
   failPathLength: 5, ...o,
-});
-
-const comparison = (o: Partial<SeqConComparison> = {}): SeqConComparison => ({
-  sequentialSolvable: true, concurrentSolvable: true, solvabilityChanged: false,
-  winLengthDelta: 0, peakHoldingDelta: 0, viableFirstMoveDelta: 0, maxActiveDelta: 0,
-  nodeDelta: 0, lossDelta: 0, verdict: 'equivalent', ...o,
 });
 
 const firstMove = (o: Partial<FirstMoveAnalysis> = {}): FirstMoveAnalysis => ({
   action: { kind: 'tunnel', id: 'tunnel-0' }, label: 'Tunnel A', source: 'tunnel', tunnelIndex: 0,
   color: 'white', startingCapacity: 4, solvableAfter: true, remainingWinLength: 5,
   // Not "calm": loss above the trivial threshold, so the default context is healthy.
-  peakHolding: 1, minPeakHolding: 1, heldRelaunches: 1, maxActive: 2, lossAfter: 0.2,
+  peakHolding: 1, minPeakHolding: 1, heldRelaunches: 1, lossAfter: 0.2,
   classification: 'VIABLE', reasons: [], ...o,
 });
 
@@ -34,8 +28,7 @@ const ctx = (o: Partial<WarningContext> = {}): WarningContext => ({
   solvable: true, complete: true,
   firstMoveAnalysis: [firstMove(), firstMove(), firstMove()],
   viableFirstMoves: 3,
-  seq: summary({ mode: 'sequential-compat' }), con: summary(),
-  comparison: comparison(),
+  solve: summary(),
   holdingPressure: {
     timeline: [1, 1], holdingCapacity: 3, maxHolding: 1, stepsAtOrAbove2: 0,
     fractionAtOrAbove2: 0, manualRelaunches: 1, chargesEnteringHolding: 1, longestHeldDurationSteps: 1,
@@ -59,8 +52,8 @@ test('TRIVIAL_FIRST_MOVES: ≥90% calm viable first moves (≥2 moves)', () => {
 });
 
 test('NO_HOLDING_PRESSURE: authored medium+, best line never uses Holding', () => {
-  expect(codes(ctx({ con: summary({ minWinningPeak: 0, heldLaunches: 0 }) }))).toContain('NO_HOLDING_PRESSURE');
-  expect(codes(ctx({ authoredDifficulty: 'easy', con: summary({ minWinningPeak: 0, heldLaunches: 0 }) })))
+  expect(codes(ctx({ solve: summary({ minWinningPeak: 0, heldLaunches: 0 }) }))).toContain('NO_HOLDING_PRESSURE');
+  expect(codes(ctx({ authoredDifficulty: 'easy', solve: summary({ minWinningPeak: 0, heldLaunches: 0 }) })))
     .not.toContain('NO_HOLDING_PRESSURE');
 });
 
@@ -74,19 +67,11 @@ test('LOW_BRANCHING_HARD_LEVEL: hard+ level with near-linear graph', () => {
   expect(codes(ctx({ authoredDifficulty: 'medium', avgBranching: 1.2 }))).not.toContain('LOW_BRANCHING_HARD_LEVEL');
 });
 
-test('CONCURRENCY_TRIVIALIZES_LEVEL: concurrency shortens by ≥2, or is required', () => {
-  expect(codes(ctx({ comparison: comparison({ winLengthDelta: WARNING_THRESHOLDS.concurrencyTrivializeLen }) })))
-    .toContain('CONCURRENCY_TRIVIALIZES_LEVEL');
-  expect(codes(ctx({
-    comparison: comparison({ verdict: 'concurrency-required', sequentialSolvable: false }),
-  }))).toContain('CONCURRENCY_TRIVIALIZES_LEVEL');
-});
-
-test('CONCURRENCY_INCREASES_RISK: concurrency raises loss / Holding', () => {
-  expect(codes(ctx({ comparison: comparison({ lossDelta: -WARNING_THRESHOLDS.concurrencyRiskLoss }) })))
-    .toContain('CONCURRENCY_INCREASES_RISK');
-  expect(codes(ctx({ con: summary({ maxHolding: 3 }), seq: summary({ mode: 'sequential-compat', maxHolding: 2 }) })))
-    .toContain('CONCURRENCY_INCREASES_RISK');
+test('the CONCURRENCY_* warnings are retired — joining the rail is not a separate solve', () => {
+  // Under FIRST LAUNCHED, FIRST SERVED a join resolves exactly like a settle-first
+  // launch, so there is no "sequential vs concurrent" difference left to flag.
+  expect(Object.keys(WARNING_THRESHOLDS).filter((k) => k.startsWith('concurrency'))).toEqual([]);
+  expect(codes(ctx()).filter((c) => c.startsWith('CONCURRENCY_'))).toEqual([]);
 });
 
 test('EXCESSIVE_UNUSED_CAPACITY + UNUSED_QUEUE_ENTRIES', () => {
@@ -141,7 +126,7 @@ test('CORE_V2_LOW_DIRECTIONAL_DEPTH: medium+ Core V2 with no layers', () => {
 
 test('NAIVE_SPAM_WINS: Hard+ only, when round-robin wins', () => {
   const spam: AntiSpamResult = {
-    policy: 'round-robin', outcome: 'won', steps: 4, peakHolding: 0, maxActive: 1,
+    policy: 'round-robin', outcome: 'won', steps: 4, peakHolding: 0,
     holdingEntries: 0, manualRelaunches: 0,
   };
   expect(codes(ctx({ authoredDifficulty: 'hard', antiSpam: spam }))).toContain('NAIVE_SPAM_WINS');
@@ -162,8 +147,7 @@ test('LOW_MEANINGFUL_CHOICE: Hard+ with only forced decisions', () => {
 test('HOLDING_IRRELEVANCE: Hard+ with unused Holding', () => {
   const pressure: ResourcePressure = {
     maxHolding: 0, holdingCapacity: 4, holdingUtilization: 0, manualRelaunches: 0,
-    chargesEnteringHolding: 0, longestHeldDurationSteps: 0, maxActive: 1, activeCapacity: 5,
-    activeUtilization: 0.2,
+    chargesEnteringHolding: 0, longestHeldDurationSteps: 0,
   };
   expect(codes(ctx({
     authoredDifficulty: 'hard',
@@ -172,7 +156,7 @@ test('HOLDING_IRRELEVANCE: Hard+ with unused Holding', () => {
       timeline: [], holdingCapacity: 4, maxHolding: 0, stepsAtOrAbove2: 0,
       fractionAtOrAbove2: 0, manualRelaunches: 0, chargesEnteringHolding: 0, longestHeldDurationSteps: 0,
     },
-    con: summary({ minWinningPeak: 0, heldLaunches: 0 }),
+    solve: summary({ minWinningPeak: 0, heldLaunches: 0 }),
   }))).toContain('HOLDING_IRRELEVANCE');
   expect(codes(ctx({
     authoredDifficulty: 'easy',

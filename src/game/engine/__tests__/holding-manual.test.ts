@@ -206,17 +206,15 @@ describe('the solver models manual Holding', () => {
 
   test('Holding relaunches on a witness are always explicit holding actions', () => {
     for (const level of LEVEL_DEFINITIONS) {
-      for (const mode of ['sequential-compat', 'metrics'] as const) {
-        const result = solve(level, { mode });
-        expect(result.solved).toBe(true);
-        const heldMoves = result.moves.filter((a) => a.kind === 'holding');
-        expect(heldMoves.length).toBe(result.heldLaunches);
-      }
+      const result = solve(level);
+      expect(result.solved).toBe(true);
+      const heldMoves = result.moves.filter((a) => a.kind === 'holding');
+      expect(heldMoves.length).toBe(result.heldLaunches);
     }
     // The production campaign does exercise manual Holding within World 1.
     const w1NeedsHolding = LEVEL_DEFINITIONS
       .filter((l) => l.themeId === 'first-light')
-      .some((l) => solve(l, { mode: 'sequential-compat' }).heldLaunches > 0);
+      .some((l) => solve(l).heldLaunches > 0);
     expect(w1NeedsHolding).toBe(true);
   }, 120_000);
 });

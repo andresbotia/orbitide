@@ -1,17 +1,34 @@
 /**
  * Advisory, deterministic difficulty model. A weighted sum of normalised solver
- * features → a 0–100 score → a suggested tier. The authored difficulty is NEVER
- * overwritten; the score only advises and, on a material disagreement, warns.
+ * features → a score (0–95 for now, see below) → a suggested tier. The
+ * authored difficulty is NEVER overwritten; the score only advises and, on a
+ * material disagreement, warns.
  *
  * FORMULA
  *   factor_i        ∈ [0, 1]   (see `difficultyFactors`)
  *   contribution_i  = DIFFICULTY_WEIGHTS[i] × factor_i × 100
- *   score           = round( Σ contribution_i )                    ∈ [0, 100]
+ *   score           = round( Σ contribution_i )                    ∈ [0, 95]
  *   suggestedTier   = highest TIER_THRESHOLDS entry with score ≥ min
+ *
+ * Every solver feature is measured over LOGICAL player choices (engine/solver.ts):
+ * joining Pals already on the rail is not a separate choice under FIRST
+ * LAUNCHED, FIRST SERVED, so it is never double-counted in loss probability,
+ * branching or explored states.
+ *
+ * `concurrencyGap` (0.05 — how much shorter the "concurrent" solution was) is
+ * RETIRED: a join can no longer shorten a solution, so it had become 0 for every
+ * level. The other weights keep their values, so retiring it moves no score;
+ * they now sum to 0.95 and the practical ceiling is 95.
+ *
+ * TODO(difficulty-recalibration): the 0.95 total is intentional. Do not
+ * renormalise these weights to 1.0 on their own — that would raise every score
+ * by ~5% (× 1/0.95) without any level changing. Revisit the weights,
+ * DIFFICULTY_SATURATION and TIER_THRESHOLDS together in a dedicated
+ * difficulty-model recalibration.
  */
 import type { LevelDifficulty } from '@/game/engine/types';
 
-/** Weights sum to 1.00. Change here, nowhere else. */
+/** Weights sum to 0.95 on purpose — see the TODO above. Change here, nowhere else. */
 export const DIFFICULTY_WEIGHTS = {
   /** Min achievable peak Holding on the best winning line, over holding capacity. */
   holdingPressure: 0.22,
@@ -25,8 +42,6 @@ export const DIFFICULTY_WEIGHTS = {
   winningLength: 0.11,
   /** Clears required before the deepest-buried colour first becomes reachable. */
   exposureDepth: 0.10,
-  /** How much shorter the concurrent solution is than the sequential one. */
-  concurrencyGap: 0.05,
   /** Explored solver nodes (log scale) — a proxy for search difficulty. */
   solverNodes: 0.04,
 } as const;
@@ -36,7 +51,6 @@ export const DIFFICULTY_SATURATION = {
   winningLength: 14,
   heldRelaunches: 3,
   exposureDepth: 14,
-  concurrencyGap: 4,
   solverNodes: 60_000,
 } as const;
 
@@ -65,8 +79,6 @@ export interface DifficultyFeatures {
   heldRelaunches: number;
   winningLength: number;
   exposureDepth: number;
-  /** seq.length − con.length (clamped ≥ 0). */
-  concurrencyGap: number;
   nodes: number;
 }
 
@@ -80,7 +92,6 @@ export function difficultyFactors(f: DifficultyFeatures): Record<string, number>
     heldRelaunches: clamp01(f.heldRelaunches / DIFFICULTY_SATURATION.heldRelaunches),
     winningLength: clamp01(f.winningLength / DIFFICULTY_SATURATION.winningLength),
     exposureDepth: clamp01(f.exposureDepth / DIFFICULTY_SATURATION.exposureDepth),
-    concurrencyGap: clamp01(Math.max(0, f.concurrencyGap) / DIFFICULTY_SATURATION.concurrencyGap),
     solverNodes: clamp01(Math.log10(Math.max(1, f.nodes)) / Math.log10(DIFFICULTY_SATURATION.solverNodes)),
   };
 }

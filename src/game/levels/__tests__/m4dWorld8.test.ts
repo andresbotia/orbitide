@@ -2,14 +2,13 @@ import type { GameAction } from '../../engine/actions';
 import { createGame } from '../../engine/createGame';
 
 import { resolveAction } from '../../engine/resolveLaunch';
-import { solve, type SolveMode } from '../../engine/solver';
+import { solve } from '../../engine/solver';
 import { traceActions } from '../../engine/trace';
 import type { LevelDefinition } from '../../engine/types';
 import { analyzeLevel } from '../../studio/analysis/analyzeLevel';
 import { LEVEL_DEFINITIONS } from '../levelDefinitions';
 
 const WORLD_8 = LEVEL_DEFINITIONS.filter((lev) => lev.id >= 71 && lev.id <= 80);
-const MODES: SolveMode[] = ['sequential-compat', 'metrics'];
 
 function replay(lev: LevelDefinition, moves: GameAction[]) {
   let state = createGame(lev);
@@ -60,10 +59,10 @@ test.each(WORLD_8)('Tidal Depths level $id has exact per-color budget', (lev) =>
 });
 
 // ── 3. Solve + witness replay (sequential and concurrent) ─────────────────────
-test.each(WORLD_8.flatMap((lev) => MODES.map((mode) => ({ lev, mode }))))(
-  'Tidal Depths level $lev.id solves and $mode witness replays',
-  ({ lev, mode }) => {
-    const result = solve(lev, { mode });
+test.each(WORLD_8)(
+  'Tidal Depths level $id solves and its witness replays',
+  (lev) => {
+    const result = solve(lev);
     expect(result.solved).toBe(true);
     expect(result.complete).toBe(true);
     expect(result.viableFirstMoves).toBeGreaterThanOrEqual(1);
@@ -90,8 +89,7 @@ test('Tidal Depths analyzer report stays scoped to Levels 71-80', async () => {
       authored: analysis.authoredDifficulty,
       suggested: analysis.suggestedDifficulty,
       score: analysis.difficultyScore,
-      seq: analysis.sequentialResult,
-      con: analysis.concurrentResult,
+      solve: analysis.solveResult,
       exposure: analysis.difficulty.factors.exposureDepth,
       warnings: analysis.warnings.map((w) => `${w.severity}:${w.code}`),
     });
@@ -115,8 +113,8 @@ test('Tidal Depths analyzer report stays scoped to Levels 71-80', async () => {
   const r79 = rows[8]!;
   expect(r79).toMatchObject({ authored: 'hard' });
   expect(r79.score).toBeGreaterThanOrEqual(42);
-  expect(r79.con.minWinningPeak).toBeGreaterThanOrEqual(1);
-  expect(r79.con.heldLaunches).toBeGreaterThanOrEqual(1);
+  expect(r79.solve.minWinningPeak).toBeGreaterThanOrEqual(1);
+  expect(r79.solve.heldLaunches).toBeGreaterThanOrEqual(1);
 
   // L80 must be authored Hard and score at least Medium (≥ 20).
   const r80 = rows[9]!;

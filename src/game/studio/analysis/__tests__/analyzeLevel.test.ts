@@ -40,7 +40,7 @@ describe('fixture difficulty tiers + warnings are stable', () => {
   test('HOLDING_MEDIUM → medium, real Holding pressure, no mismatch', async () => {
     const a = await analyzeLevel(HOLDING_MEDIUM, { now: () => 0 });
     expect(a.suggestedDifficulty).toBe('medium');
-    expect(a.concurrentResult.minWinningPeak).toBeGreaterThanOrEqual(1);
+    expect(a.solveResult.minWinningPeak).toBeGreaterThanOrEqual(1);
     expect(a.difficulty.mismatch).toBe(false);
   }, 60_000);
 
@@ -99,9 +99,7 @@ test('Core V2 analysis uses ray geometry and 4-tunnel queue metrics', async () =
 test('phase callback fires once per phase, in order', async () => {
   const phases: AnalysisPhase[] = [];
   await analyzeLevel(OBVIOUS_EASY, { now: () => 0, onPhase: (p) => phases.push(p) });
-  expect(phases).toEqual([
-    'sequential-solve', 'concurrent-solve', 'winning-trace', 'failing-trace', 'first-moves', 'scoring',
-  ]);
+  expect(phases).toEqual(['solve', 'winning-trace', 'failing-trace', 'first-moves', 'scoring']);
 }, 60_000);
 
 test('a pre-cancelled signal rejects with SolverCancelled', async () => {
@@ -116,13 +114,19 @@ test('a tiny node cap yields an incomplete analysis — solvable "unknown", not 
   expect(a.limitations.some((l) => /unknown/i.test(l))).toBe(true);
 });
 
-test('sequential vs concurrent comparison is populated for the campaign', async () => {
-  const a = await analyzeLevel(LEVEL_DEFINITIONS[18]!, { now: () => 0 }); // L19 Red Fox — concurrency shortens the line
-  expect(a.comparison.sequentialSolvable).toBe(true);
-  expect(a.comparison.concurrentSolvable).toBe(true);
-  expect(a.comparison.winLengthDelta).toBeGreaterThanOrEqual(1);
-  expect(a.comparison.verdict).not.toBe('equivalent');
-}, 120_000);
+test('one canonical solve over logical choices — no sequential / concurrent split', async () => {
+  // Under FIRST LAUNCHED, FIRST SERVED joining Pals on the rail resolves exactly
+  // like launching after it settles, so there is nothing to compare: the
+  // analysis reports ONE solve, and every headline number comes from it.
+  const a = await analyzeLevel(OBVIOUS_EASY, { now: () => 0 });
+  expect(a).not.toHaveProperty('comparison');
+  expect(a).not.toHaveProperty('concurrentResult');
+  expect(a.solveResult.solved).toBe(true);
+  expect(a.exploredNodes).toBe(a.solveResult.nodes);
+  expect(a.avgBranching).toBe(a.solveResult.avgBranching);
+  expect(a.lossProbability).toBe(a.solveResult.lossProbability);
+  expect(a.difficulty.factors).not.toHaveProperty('concurrencyGap');
+}, 60_000);
 
 test('Levels 1–10 all analyse as solvable (solver still valid)', async () => {
   // Keep this regression focused on its original smoke-test scope. The separate

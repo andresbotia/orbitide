@@ -21,7 +21,6 @@ export function toBatchRow(a: LevelAnalysis): BatchRow {
     viableFirstMoves: a.viableFirstMoves,
     totalFirstMoves: a.totalFirstMoves,
     peakHolding: a.peakHoldingOnWinningLine,
-    maxActive: a.maxActiveObserved,
     heldRelaunches: a.heldRelaunches,
     nodes: a.exploredNodes,
     warningCount: a.warnings.length,

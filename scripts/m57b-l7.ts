@@ -81,7 +81,7 @@ const forced3 = play(def, (() => {
 dump('force T0+T1j+T2j then join3', forced3);
 
 const spam = evaluateRoundRobinSpam(def);
-console.log('RR', spam.outcome, 'steps', spam.steps, 'peakH', spam.peakHolding, 'A', spam.maxActive);
+console.log('RR', spam.outcome, 'steps', spam.steps, 'peakH', spam.peakHolding);
 
 const first = findFirstWinningWitness(def, { nodeCap: 80_000, timeCapMs: 20_000 });
 console.log('firstWin', first.solved, 'len', first.moves.length, 'nodes', first.nodes, 'timeCap', first.timeCapHit);

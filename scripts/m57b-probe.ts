@@ -200,13 +200,12 @@ function dumpLevel(def: LevelDefinition) {
   if (firstWinOnly || noDfs) return;
 
   const t1 = Date.now();
-  const mode = process.argv.includes('--seq') ? 'sequential-compat' as const : 'metrics' as const;
   try {
-    const r = solve(def, { mode, nodeCap: 250_000, partialOnCap: true });
+    const r = solve(def, { nodeCap: 250_000, partialOnCap: true });
     console.log('solve', {
       solved: r.solved, complete: r.complete, nodeCapHit: r.nodeCapHit,
       len: r.length, peakH: r.peakHolding, minPeak: r.minWinningPeak,
-      maxA: r.maxActiveOnWitness, held: r.heldLaunches,
+      held: r.heldLaunches,
       viable: `${r.viableFirstMoves}/${r.totalFirstMoves}`,
       nodes: r.nodes, loss: r.lossProbability.toFixed(3),
       ms: Date.now() - t1,
@@ -217,7 +216,7 @@ function dumpLevel(def: LevelDefinition) {
       console.log('choice', c);
       console.log('firstMoves', r.firstMoves.map((m) => ({
         a: `${m.action.kind}:${m.action.id}`,
-        ok: m.solvable, rest: m.winLength, peak: m.peakHoldingOnLine, A: m.maxActiveOnLine,
+        ok: m.solvable, rest: m.winLength, peak: m.peakHoldingOnLine,
         held: m.heldRelaunchesOnLine, loss: Number(m.lossAfter.toFixed(3)),
       })));
     }

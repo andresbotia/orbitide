@@ -13,8 +13,8 @@ test('the shim re-exports the one solver implementation', () => {
 });
 
 test('solving Level 1 through either path gives the identical result', () => {
-  const a = solveFromModule(LEVEL_DEFINITIONS[0]!, { mode: 'sequential-compat' });
-  const b = solveFromShim(LEVEL_DEFINITIONS[0]!, { mode: 'sequential-compat' });
+  const a = solveFromModule(LEVEL_DEFINITIONS[0]!);
+  const b = solveFromShim(LEVEL_DEFINITIONS[0]!);
   expect(a).toEqual(b);
   expect(a.solved).toBe(true);
 });
@@ -26,7 +26,7 @@ test('a flipped cancel signal aborts with SolverCancelled', () => {
 
 test('an un-flipped signal solves normally', () => {
   const signal = { cancelled: false };
-  const result = solveFromModule(LEVEL_DEFINITIONS[0]!, { signal, mode: 'solvability' });
+  const result = solveFromModule(LEVEL_DEFINITIONS[0]!, { signal });
   expect(result.solved).toBe(true);
 });
 

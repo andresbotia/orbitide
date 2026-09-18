@@ -1,12 +1,13 @@
 /**
  * M4A.1 — the solver and the runtime must have ONE consistent view of which
- * player actions are legal.
+ * player choices are legal.
  *
- *   • every action `enumerateActions` returns → `resolveAction` accepts it
- *   • every candidate `resolveAction` accepts → `enumerateActions` returns it
- *     (a `join: true` request that `canJoinEpoch` cannot honour is treated by
- *     the runtime as a plain settle-first launch, so those two keys are
- *     equivalent — the invariant is checked modulo that equivalence).
+ *   • every choice `enumerateActions` returns → `resolveAction` accepts it
+ *   • every action `resolveAction` accepts — joins included — is one of those
+ *     choices. A `join: true` launch is the same LOGICAL choice as its
+ *     settle-first twin (FIRST LAUNCHED, FIRST SERVED: it resolves identically),
+ *     so the solver lists only the settle-first form and the invariant is
+ *     checked on the logical key (kind + id).
  *
  * Both directions of the mismatch M4A flagged ("Solver/runtime admission
  * mismatch") are pinned here: a full-Holding join that the old enumeration
@@ -33,33 +34,25 @@ function acceptedActions(s: GameState): GameAction[] {
   return all.filter((a) => resolveAction(s, a).accepted);
 }
 
-/** Canonical key: a `join` that cannot be honoured is a plain launch. */
-function canonical(s: GameState, a: GameAction): string {
-  if (!a.join) return key(a);
-  const chargeId = a.kind === 'tunnel'
-    ? s.tunnels.find((t) => t.id === a.id)?.queue[0]?.id
-    : a.id;
-  return chargeId && canJoinEpoch(s, chargeId) ? key(a) : key({ ...a, join: false });
-}
+/** Logical key: a join and its settle-first twin are one player choice. */
+const logical = (a: GameAction) => `${a.kind}:${a.id}`;
 
 function assertConsistent(s: GameState, where: string) {
   if (s.status !== 'playing') return;
-  const enumerated = enumerateActions(s, 'metrics');
-  const enumKeys = new Set(enumerated.map((a) => canonical(s, a)));
+  const enumerated = enumerateActions(s);
+  const enumKeys = new Set(enumerated.map(logical));
 
   for (const a of enumerated) {
     expect(`${where} enum→accept ${key(a)}: ${resolveAction(s, a).rejection ?? 'ok'}`)
       .toBe(`${where} enum→accept ${key(a)}: ok`);
   }
   for (const a of acceptedActions(s)) {
-    expect(`${where} accept→enum ${canonical(s, a)}: ${enumKeys.has(canonical(s, a))}`)
-      .toBe(`${where} accept→enum ${canonical(s, a)}: true`);
+    expect(`${where} accept→enum ${logical(a)}: ${enumKeys.has(logical(a))}`)
+      .toBe(`${where} accept→enum ${logical(a)}: true`);
   }
-  // `legalActions` (runtime + deadlock check) and the concurrent enumeration
-  // must agree on the plain actions.
-  const plainRuntime = new Set(legalActions(s).map(key));
-  const plainEnum = new Set(enumerated.filter((a) => !a.join).map(key));
-  expect([...plainEnum].sort()).toEqual([...plainRuntime].sort());
+  // `legalActions` (runtime + deadlock check) and the solver enumeration are
+  // one and the same list.
+  expect(enumerated.map(key)).toEqual(legalActions(s).map(key));
 }
 
 // ── the M4A repro: a full Holding tray with an open epoch ───────────────────
@@ -107,15 +100,16 @@ function fullTrayState(): GameState {
 }
 
 
-test('M4A repro — a full-Holding join onto the running epoch is both accepted and enumerated', () => {
+test('M4A repro — a full-Holding join is accepted, and is the same logical choice the solver lists', () => {
   const s = fullTrayState();
   expect(s.status).toBe('playing');
   expect(s.holding.length).toBe(s.holdingCapacity); // tray is full
   expect(s.epoch).not.toBeNull();
 
   const joinLaunch: GameAction = { ...T(0), join: true };
-  // The runtime accepts it (joining re-floats the stranded cyan charges)…
-  expect(resolveAction(s, joinLaunch).accepted).toBe(true);
+  // The runtime accepts it…
+  const joined = resolveAction(s, joinLaunch);
+  expect(joined.accepted).toBe(true);
   // A settle-first launch is also a legal tap now: the player may take the
   // risky move. Overflow parks nobody extra and the pass loses.
   const settle = resolveAction(s, T(0));
@@ -123,13 +117,17 @@ test('M4A repro — a full-Holding join onto the running epoch is both accepted 
   expect(settle.state.status).toBe('lost');
   expect(settle.state.holding.map((c) => c.id)).toEqual(s.holding.map((c) => c.id));
   expect(legalActions(s).map((a) => a.id)).toContain('tunnel-0');
-  // The concurrent solver must still see the join — this is the fix.
-  expect(enumerateActions(s, 'metrics').map(key)).toContain('tunnel:tunnel-0:J');
+  // …and it is the same logical choice as the settle-first launch the solver
+  // lists: it reaches the very same outcome (FIRST LAUNCHED, FIRST SERVED).
+  expect(enumerateActions(s).map(logical)).toContain('tunnel:tunnel-0');
+  expect(joined.state.status).toBe(settle.state.status);
+  expect(joined.state.holding).toEqual(settle.state.holding);
+  expect(joined.state.pixels.map((p) => p.cleared)).toEqual(settle.state.pixels.map((p) => p.cleared));
 
   assertConsistent(s, 'repro-full-tray');
 });
 
-test('M4A repro — the reverse: an enumerated join is never one resolveAction rejects', () => {
+test('M4A repro — the reverse: across the whole subtree, every accepted action is an enumerated choice', () => {
   // Drive a few more moves from the full-tray state and check the invariant at
   // every step — the old enumeration could emit a join that overflowed on the
   // joined re-simulation.
@@ -146,7 +144,7 @@ test('M4A repro — the reverse: an enumerated join is never one resolveAction r
     checked += 1;
     assertConsistent(s, `repro-deep#${checked}`);
     if (s.status !== 'playing') continue;
-    for (const a of enumerateActions(s, 'metrics')) {
+    for (const a of acceptedActions(s)) {
       const out = resolveAction(s, a);
       if (out.accepted && stack.length < 300) stack.push(out.state);
     }
@@ -181,11 +179,11 @@ test.each(FIXTURES)('admission is consistent — $name', ({ level, setup }) => {
   }
   assertConsistent(s, level.title);
 
-  // enumerateActions is exactly legalActions(includeJoin) — no private logic.
-  expect(enumerateActions(s, 'metrics').map(key).sort())
-    .toEqual(legalActions(s, { includeJoin: true }).map(key).sort());
-  expect(enumerateActions(s, 'sequential-compat').map(key).sort())
-    .toEqual(legalActions(s).map(key).sort());
+  // enumerateActions is exactly legalActions — no private logic — and allowing
+  // joins adds no logical choice.
+  expect(enumerateActions(s).map(key)).toEqual(legalActions(s).map(key));
+  expect(new Set(legalActions(s, { includeJoin: true }).map(logical)))
+    .toEqual(new Set(enumerateActions(s).map(logical)));
 });
 
 // ── whole-campaign reachable-state sweep ────────────────────────────────────
@@ -202,7 +200,7 @@ test.each(LEVEL_DEFINITIONS)('level $id — enumerate ⟺ accept on every reacha
     visited += 1;
     assertConsistent(s, `L${def.id}#${visited}`);
     if (s.status !== 'playing') continue;
-    for (const a of enumerateActions(s, 'metrics')) {
+    for (const a of acceptedActions(s)) {
       const out = resolveAction(s, a);
       if (out.accepted && stack.length < 2500) stack.push(out.state);
     }

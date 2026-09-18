@@ -2,14 +2,13 @@ import type { GameAction } from '../../engine/actions';
 import { createGame } from '../../engine/createGame';
 import { iceLayers, shieldLayers } from '../../engine/frozen';
 import { resolveAction } from '../../engine/resolveLaunch';
-import { solve, type SolveMode } from '../../engine/solver';
+import { solve } from '../../engine/solver';
 import { traceActions } from '../../engine/trace';
 import type { LevelDefinition } from '../../engine/types';
 import { analyzeLevel } from '../../studio/analysis/analyzeLevel';
 import { LEVEL_DEFINITIONS } from '../levelDefinitions';
 
 const WORLD_9 = LEVEL_DEFINITIONS.filter((lev) => lev.id >= 81 && lev.id <= 90);
-const MODES: SolveMode[] = ['sequential-compat', 'metrics'];
 
 function replay(lev: LevelDefinition, moves: GameAction[]) {
   let state = createGame(lev);
@@ -60,10 +59,10 @@ test.each(WORLD_9)('Arcane Relics level $id has exact modifier-aware per-color b
 });
 
 // ── 3. Solve + witness replay (sequential and concurrent) ─────────────────────
-test.each(WORLD_9.flatMap((lev) => MODES.map((mode) => ({ lev, mode }))))(
-  'Arcane Relics level $lev.id solves and $mode witness replays',
-  ({ lev, mode }) => {
-    const result = solve(lev, { mode });
+test.each(WORLD_9)(
+  'Arcane Relics level $id solves and its witness replays',
+  (lev) => {
+    const result = solve(lev);
     expect(result.solved).toBe(true);
     expect(result.complete).toBe(true);
     expect(result.viableFirstMoves).toBeGreaterThanOrEqual(1);
@@ -98,12 +97,11 @@ test('Arcane Relics analyzer report stays scoped to Levels 81-90', async () => {
       authored: analysis.authoredDifficulty,
       suggested: analysis.suggestedDifficulty,
       score: analysis.difficultyScore,
-      seqLen: analysis.sequentialResult.length,
-      conLen: analysis.concurrentResult.length,
-      peak: analysis.concurrentResult.minWinningPeak,
-      held: analysis.concurrentResult.heldLaunches,
-      fail: analysis.concurrentResult.failPathLength,
-      nodes: analysis.concurrentResult.nodes,
+      len: analysis.solveResult.length,
+      peak: analysis.solveResult.minWinningPeak,
+      held: analysis.solveResult.heldLaunches,
+      fail: analysis.solveResult.failPathLength,
+      nodes: analysis.solveResult.nodes,
       warnings: analysis.warnings.map((w) => `${w.severity}:${w.code}`),
     });
   }

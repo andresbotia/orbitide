@@ -9,6 +9,40 @@ backend/monetization, or start M4 campaign authoring.
 Commits: `93a0819` (M3B.1 solver + trace) · `5193282` (M3B.2 analysis model) ·
 `8ef98f4` (M3B.3 Studio analytics UI + batch tooling).
 
+> **Update — FIRST LAUNCHED, FIRST SERVED canonicalization (2026-09-18).**
+> With `LAUNCH_SPACING` = one lap, a launch that joins Pals already on the rail
+> resolves exactly like the same launch made after the rail settles (proven over
+> every reachable join in `join-settle-equivalence.test.ts`). Joining is therefore
+> **not a puzzle choice**, and the analytics no longer treat it as one:
+>
+> - The solver searches **logical choices only** (settle-first launches) and
+>   memoizes on the **logical state** (board progress + queues + Holding; the
+>   epoch is bookkeeping). `SolveOptions.mode` is gone.
+> - `analyzeLevel` runs **one** solve. `sequentialResult` / `concurrentResult` /
+>   `comparison` (§5) are replaced by a single `solveResult`.
+> - `nodes`, `avgBranching`, `lossProbability`, choice metrics and viable
+>   choices are defined over logical choices, so join twins are no longer
+>   double-counted (L4: 19 913 explored states → 999).
+> - A move that loops back onto the current line — a Core V2 Holding relaunch
+>   that clears nothing and returns to the same logical state — is neither
+>   progress nor a loss: it is excluded from `lossProbability` (uniform random
+>   play just picks again) and can never appear in a fail path. It used to count
+>   as a certain loss, which inflated Core V2 loss rates (L2 → 0.000, L3 → 0.125,
+>   L4 → 0.000, L5 → 0.083 now) and produced "fail paths" that replayed to
+>   `playing`, not `lost`. A state where every move loops is a soft-lock and
+>   counts as lost. Legacy V1 has no such loops (a held relaunch needs a target).
+> - `concurrencyGap` is **retired** (it had become 0 for every level); the other
+>   weights keep their values, so no score moved from the retirement — they now
+>   sum to 0.95.
+> - `CONCURRENCY_TRIVIALIZES_LEVEL` / `CONCURRENCY_INCREASES_RISK` are retired.
+> - Every solver- or policy-derived "max active" / Active-utilization field is
+>   retired. **Active-slot pressure and Pals sharing the rail are presentation /
+>   game feel** — the live session still launches concurrently — not solver
+>   branches or puzzle resources.
+>
+> The sections below are updated accordingly; §10 is kept as a historical
+> snapshot of the M3B-era numbers.
+
 ---
 
 ## 1. `LevelAnalysis` model
@@ -20,22 +54,21 @@ Commits: `93a0819` (M3B.1 solver + trace) · `5193282` (M3B.2 analysis model) ·
 | field | meaning |
 |---|---|
 | `levelId`, `title` | identity |
-| `complete` | `false` if any solve hit the node cap |
+| `complete` | `false` if the solve hit the node cap |
 | `limitations[]` | human notes about what is approximate / unknown |
 | `solvable` | `true` \| `false` \| `'unknown'` (node-cap truncation ⇒ unknown, never `false`) |
 | `difficulty` | `DifficultyAssessment` (authored, suggested, score, factors, contributions, mismatch, mismatchTiers) |
 | `authoredDifficulty` / `suggestedDifficulty` / `difficultyScore` | flat accessors |
-| `winningWitness` / `failWitness` | `GameAction[] \| null` — the concurrent-mode shortest lines |
+| `winningWitness` / `failWitness` | `GameAction[] \| null` — the shortest winning / failing lines |
 | `winningTrace` / `failingTrace` | `Trace \| null` — full frame-by-frame replay (the visualisers) |
-| `shortestWinningLength` | moves on the concurrent winning witness |
-| `peakHoldingOnWinningLine` / `maxActiveOnWinningWitness` / `heldRelaunches` | witness observations |
-| `maxHoldingObserved` / `maxActiveObserved` / `exploredNodes` / `avgBranching` | whole-graph observations |
+| `shortestWinningLength` | moves on the winning witness |
+| `peakHoldingOnWinningLine` / `heldRelaunches` | witness observations |
+| `maxHoldingObserved` / `exploredNodes` / `avgBranching` | whole-graph observations (logical states / choices) |
 | `solveDurationMs` | wall-clock (excluded from determinism comparisons) |
-| `lossProbability` | uniform random-play loss rate (concurrent model) |
+| `lossProbability` | loss rate when every logical choice is taken uniformly at random |
 | `totalFirstMoves` / `viableFirstMoves` | counts |
 | `firstMoveAnalysis[]` | `FirstMoveAnalysis` per legal first move (below) |
-| `sequentialResult` / `concurrentResult` | `SolveSummary` for each mode |
-| `comparison` | `SeqConComparison` (below) |
+| `solveResult` | `SolveSummary` of the one canonical solve |
 | `holdingPressure` | `HoldingPressure` (below) |
 | `warnings[]` | `AnalysisWarning` (below) |
 
@@ -46,10 +79,10 @@ Commits: `93a0819` (M3B.1 solver + trace) · `5193282` (M3B.2 analysis model) ·
 `SolveResult` gained, backward-compatibly:
 - `firstMoves: FirstMoveStat[]` — one per legal first action: `solvable`,
   `winLength` (shortest remaining), `minPeakHolding`, `lossAfter`,
-  `peakHoldingOnLine` / `heldRelaunchesOnLine` / `maxActiveOnLine` (replaying the
+  `peakHoldingOnLine` / `heldRelaunchesOnLine` (replaying the
   shortest continuation). Computed from the child subtrees the search already
   memoizes — negligible cost.
-- `totalFirstMoves`, `avgBranching` (mean actions per explored node).
+- `totalFirstMoves`, `avgBranching` (mean logical choices per explored state).
 - `nodeCapHit` + `complete`; `opts.partialOnCap` salvages counters instead of
   throwing `NodeCapExceeded`.
 
@@ -72,11 +105,17 @@ Advisory only — the authored difficulty is **never** overwritten.
 ```
 factor_i        ∈ [0, 1]
 contribution_i  = DIFFICULTY_WEIGHTS[i] × factor_i × 100
-score           = round( Σ contribution_i )                 ∈ [0, 100]
+score           = round( Σ contribution_i )                 ∈ [0, 95]
 suggestedTier   = highest TIER_THRESHOLDS entry with score ≥ min
 ```
 
-### `DIFFICULTY_WEIGHTS` (sum = 1.00)
+### `DIFFICULTY_WEIGHTS` (sum = 0.95 — `concurrencyGap` retired)
+
+> **TODO (difficulty recalibration):** the 0.95 total is intentional. Retiring
+> `concurrencyGap` moved no score; renormalising the rest to 1.0 would raise
+> every score by ~5% without any level changing. It stays at 0.95 until a
+> dedicated difficulty-model recalibration revisits the weights, saturation
+> points and tier thresholds together.
 
 | factor | weight | normalised value |
 |---|---|---|
@@ -86,12 +125,11 @@ suggestedTier   = highest TIER_THRESHOLDS entry with score ≥ min
 | `heldRelaunches` | 0.12 | `heldRelaunches / 3` |
 | `winningLength` | 0.11 | `shortestWinningLength / 14` |
 | `exposureDepth` | 0.10 | `clearsBeforeDeepestColourOpens / 14` |
-| `concurrencyGap` | 0.05 | `max(0, seq.length − con.length) / 4` |
 | `solverNodes` | 0.04 | `log10(nodes) / log10(60000)` |
 
 All normalised values are clamped to `[0, 1]`. `DIFFICULTY_SATURATION` holds the
 denominators (`winningLength 14`, `heldRelaunches 3`, `exposureDepth 14`,
-`concurrencyGap 4`, `solverNodes 60000`).
+`solverNodes 60000`).
 
 ### `TIER_THRESHOLDS` (ascending score → tier)
 
@@ -103,8 +141,7 @@ denominators (`winningLength 14`, `heldRelaunches 3`, `exposureDepth 14`,
 | super-hard | 63 |
 | extreme | 82 |
 
-Features are read from the **concurrent** solve (that is what the player
-actually faces); `nodes` is `max(seq, con)`.
+Features are read from the one canonical solve over logical choices.
 
 ---
 
@@ -132,11 +169,9 @@ All advisory (`info` \| `warn`), never blocking. Thresholds in
 | code | fires when |
 |---|---|
 | `TRIVIAL_FIRST_MOVES` | ≥ 2 first moves and ≥ 90 % are VIABLE with ≤ 1 peak Holding and ≤ 0.1 loss. `info` if authored easy, else `warn`. |
-| `NO_HOLDING_PRESSURE` | authored medium+ and `con.minWinningPeak = 0` and `con.heldLaunches = 0`. |
+| `NO_HOLDING_PRESSURE` | authored medium+ and `solve.minWinningPeak = 0` and `solve.heldLaunches = 0`. |
 | `NARROW_EASY_LEVEL` | authored easy and ≤ 1 viable first move. |
 | `LOW_BRANCHING_HARD_LEVEL` | authored hard+ and `avgBranching < 1.7`. |
-| `CONCURRENCY_TRIVIALIZES_LEVEL` | concurrent solution ≥ 2 moves shorter, OR (peak drop ≥ 1 and loss drop ≥ 0.15), OR sequential play cannot solve it. |
-| `CONCURRENCY_INCREASES_RISK` | concurrency raises loss probability by ≥ 0.1, or raises max Holding. (`info`) |
 | `EXCESSIVE_UNUSED_CAPACITY` | ≥ 40 % of authored tunnel capacity is unused on the winning line. |
 | `UNUSED_QUEUE_ENTRIES` | an authored charge never launches on the winning line. (`info`) |
 | `SOLVER_NODE_EXPLOSION` | ≥ 60 000 explored states. (`info`) |
@@ -146,9 +181,14 @@ All advisory (`info` \| `warn`), never blocking. Thresholds in
 
 ---
 
-## 5. Sequential vs concurrent comparison (`SeqConComparison`)
+## 5. Sequential vs concurrent comparison — RETIRED
 
-Runs `solve` in both `sequential-compat` and `metrics` mode. Reports
+Retired with the FIRST LAUNCHED, FIRST SERVED canonicalization (see the update
+at the top): a join reaches the same logical state as a settle-first launch, so
+the two solves were one search and every delta below was identically zero.
+Historical description:
+
+Ran `solve` in both `sequential-compat` and `metrics` mode. Reported
 `winLengthDelta` (seq − con), `peakHoldingDelta`, `viableFirstMoveDelta`,
 `maxActiveDelta`, `nodeDelta`, `lossDelta` (seq − con), and a `verdict`:
 
@@ -182,8 +222,9 @@ Measured over the winning trace in **action steps** (never wall-clock):
 
 ## 8. Performance
 
-- One `analyzeLevel` = **two full solves** (sequential + concurrent) + 2 trace
-  replays + a first-move replay pass. On the campaign: L1–L4 well under 1 s each;
+- One `analyzeLevel` = **one canonical solve** + 2 trace replays + a first-move
+  replay pass. (The M3B-era figures below were measured with two solves; the
+  canonical search is ~10–50× smaller on the same levels.) On the campaign: L1–L4 well under 1 s each;
   L5–L10 ~1–4 s; L6 / L9 ~4–6 s (they explore ~78–79 k states).
 - The whole campaign audit (`analyzeBatch(LEVEL_DEFINITIONS)`) is roughly
   **45–60 s** — the sum of the per-level solves, unchanged from M2B's audit
@@ -216,7 +257,8 @@ results and the Studio surfaces as "cancelled".
 
 ## 10. Levels 1–10 analysis (current campaign)
 
-Produced by `analyzeLevel` (concurrent-mode features, injected zero clock).
+**Historical snapshot (M3B era, pre-FLFS).** Produced by the then-concurrent
+`analyzeLevel` (injected zero clock); the "max active" column is no longer computed.
 **Advisory — the campaign is NOT auto-edited from this.**
 
 | L | title | authored | suggested | score | solvable | shortest win | peak Holding | viable 1st | max active | nodes | warnings |
@@ -254,7 +296,7 @@ lives in ANALYSIS. Play / Export stay on the bottom action bar.
   run and is the remount key for the visualisers.
 - `AnalysisPanel` — Run/Cancel + live phase; then verdict (solvable, authored,
   suggested, score), difficulty-factor bars (points of 100), first-move table
-  (VIABLE/DANGEROUS/DEAD-END + reasons), sequential-vs-concurrent, a Holding
+  (VIABLE/DANGEROUS/DEAD-END + reasons), the solver summary, a Holding
   timeline strip + metrics, and the warnings list (`■` warn / `▲` info).
   Incomplete runs show their `limitations` banner.
 - `WitnessVisualizer` + `TraceBoard` — Prev / Next / Restart / Play Through over

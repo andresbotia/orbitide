@@ -2,14 +2,13 @@ import type { GameAction } from '../../engine/actions';
 import { createGame } from '../../engine/createGame';
 import { iceLayers, shieldLayers } from '../../engine/frozen';
 import { resolveAction } from '../../engine/resolveLaunch';
-import { solve, type SolveMode } from '../../engine/solver';
+import { solve } from '../../engine/solver';
 import { traceActions } from '../../engine/trace';
 import type { LevelDefinition } from '../../engine/types';
 import { analyzeLevel } from '../../studio/analysis/analyzeLevel';
 import { LEVEL_DEFINITIONS } from '../levelDefinitions';
 
 const WORLD_6 = LEVEL_DEFINITIONS.filter((level) => level.id >= 51 && level.id <= 60);
-const MODES: SolveMode[] = ['sequential-compat', 'metrics'];
 
 function replay(level: LevelDefinition, moves: GameAction[]) {
   let state = createGame(level);
@@ -54,10 +53,10 @@ test.each(WORLD_6)('Frostglass Forge level $id has an exact modifier-aware per-c
   expect(have).toEqual(need);
 });
 
-test.each(WORLD_6.flatMap((level) => MODES.map((mode) => ({ level, mode }))))(
-  'Frostglass Forge level $level.id solves and its $mode witness replays through runtime',
-  ({ level, mode }) => {
-    const result = solve(level, { mode });
+test.each(WORLD_6)(
+  'Frostglass Forge level $id solves and its witness replays through runtime',
+  (level) => {
+    const result = solve(level);
     expect(result.solved).toBe(true);
     expect(result.complete).toBe(true);
     expect(result.viableFirstMoves).toBeGreaterThanOrEqual(1);
@@ -65,11 +64,10 @@ test.each(WORLD_6.flatMap((level) => MODES.map((mode) => ({ level, mode }))))(
     const trace = traceActions(level, result.moves);
     expect(trace.steps.some((step) => step.frozenBreakPixelIds.length > 0)).toBe(true);
     expect(trace.steps.some((step) => step.shieldBreakPixelIds.length > 0)).toBe(true);
-    if (mode === 'sequential-compat') {
-      expect(trace.steps.every(
-        (step) => step.frozenBreakPixelIds.length === 0 || step.shieldBreakPixelIds.length === 0,
-      )).toBe(true);
-    }
+    // One launch per step (the canonical settle-first line), so no step breaks both.
+    expect(trace.steps.every(
+      (step) => step.frozenBreakPixelIds.length === 0 || step.shieldBreakPixelIds.length === 0,
+    )).toBe(true);
   },
   120_000,
 );
@@ -85,8 +83,7 @@ test('Frostglass Forge analyzer report stays scoped to Levels 51-60', async () =
       authored: analysis.authoredDifficulty,
       suggested: analysis.suggestedDifficulty,
       score: analysis.difficultyScore,
-      seq: analysis.sequentialResult,
-      con: analysis.concurrentResult,
+      solve: analysis.solveResult,
       exposure: analysis.difficulty.factors.exposureDepth,
       warnings: analysis.warnings.map((warning) => `${warning.severity}:${warning.code}`),
     });
@@ -97,45 +94,40 @@ test('Frostglass Forge analyzer report stays scoped to Levels 51-60', async () =
   // any step of their intended solve.
   for (const row of rows.slice(0, 3)) {
     expect(row.authored).toBe('medium');
-    expect(row.con.minWinningPeak).toBe(1);
-    expect(row.seq.length - row.con.length).toBe(0);
+    expect(row.solve.minWinningPeak).toBe(1);
   }
-  expect(rows.slice(0, 3).map((row) => row.con.length)).toEqual([9, 7, 8]);
-  expect(rows.slice(0, 3).map((row) => row.con.heldLaunches)).toEqual([2, 2, 2]);
+  expect(rows.slice(0, 3).map((row) => row.solve.length)).toEqual([9, 7, 8]);
+  expect(rows.slice(0, 3).map((row) => row.solve.heldLaunches)).toEqual([2, 2, 2]);
 
   // L54-L56 are sustained Medium plans. They retain one-slot best lines while
   // adding longer staged relaunch sequences; L54 and L56 provide fair fail
   // paths without forcing one onto L55.
   for (const row of rows.slice(3, 6)) {
     expect(row.authored).toBe('medium');
-    expect(row.con.minWinningPeak).toBe(1);
-    expect(row.seq.length - row.con.length).toBe(0);
+    expect(row.solve.minWinningPeak).toBe(1);
   }
-  expect(rows.slice(3, 6).map((row) => row.con.length)).toEqual([11, 10, 11]);
-  expect(rows.slice(3, 6).map((row) => row.con.heldLaunches)).toEqual([5, 4, 4]);
-  expect(rows[3]!.con.failPathLength).toBeGreaterThan(2);
-  expect(rows[4]!.con.failPathLength).toBeNull();
-  expect(rows[5]!.con.failPathLength).toBeGreaterThan(2);
+  expect(rows.slice(3, 6).map((row) => row.solve.length)).toEqual([11, 10, 11]);
+  expect(rows.slice(3, 6).map((row) => row.solve.heldLaunches)).toEqual([5, 4, 4]);
+  expect(rows[3]!.solve.failPathLength).toBeGreaterThan(2);
+  expect(rows[4]!.solve.failPathLength).toBeNull();
+  expect(rows[5]!.solve.failPathLength).toBeGreaterThan(2);
 
   // L57 remains the last one-slot bridge; L58 introduces peak-2 Holding and a
   // fifth relaunch. Neither transition level is shortened by concurrency.
   expect(rows.slice(6, 8).map((row) => row.authored)).toEqual(['medium', 'medium']);
-  expect(rows.slice(6, 8).map((row) => row.con.minWinningPeak)).toEqual([1, 2]);
-  expect(rows.slice(6, 8).map((row) => row.con.heldLaunches)).toEqual([4, 5]);
-  for (const row of rows.slice(6, 8)) expect(row.seq.length - row.con.length).toBe(0);
+  expect(rows.slice(6, 8).map((row) => row.solve.minWinningPeak)).toEqual([1, 2]);
+  expect(rows.slice(6, 8).map((row) => row.solve.heldLaunches)).toEqual([4, 5]);
 
   // L59-L60 are peak-2 Hard finishes with real fail paths. L59 allows only a
   // one-step concurrent saving and L60 closes that gap while requiring the
   // world's longest concurrent plan and most manual relaunches.
   for (const row of rows.slice(8)) {
     expect(row).toMatchObject({ authored: 'hard', suggested: 'hard' });
-    expect(row.con.minWinningPeak).toBe(2);
-    expect(row.con.failPathLength).toBeGreaterThan(2);
+    expect(row.solve.minWinningPeak).toBe(2);
+    expect(row.solve.failPathLength).toBeGreaterThan(2);
   }
-  expect(rows[8]!.seq.length - rows[8]!.con.length).toBe(1);
-  expect(rows[9]!.seq.length - rows[9]!.con.length).toBe(0);
-  expect(rows[9]!.con.length).toBeGreaterThan(rows[8]!.con.length);
-  expect(rows[9]!.con.heldLaunches).toBeGreaterThan(rows[8]!.con.heldLaunches);
+  expect(rows[9]!.solve.length).toBeGreaterThan(rows[8]!.solve.length);
+  expect(rows[9]!.solve.heldLaunches).toBeGreaterThan(rows[8]!.solve.heldLaunches);
 
   if (process.env.REPORT_WORLD_6) console.log(JSON.stringify(rows, null, 2));
 }, 240_000);

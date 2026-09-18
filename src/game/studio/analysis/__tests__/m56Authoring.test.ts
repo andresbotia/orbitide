@@ -135,7 +135,7 @@ describe('resource pressure', () => {
     const r = solve(def);
     const trace = traceActions(def, r.moves);
     const holding = holdingPressure(trace, def.holdingCapacity);
-    const p = resourcePressure({ def, holding, maxActiveOnWitness: r.maxActiveOnWitness });
+    const p = resourcePressure({ holding });
     expect(p.holdingCapacity).toBe(4);
     expect(p.maxHolding).toBeGreaterThanOrEqual(1);
     expect(p.holdingUtilization).toBe(p.maxHolding / p.holdingCapacity);
@@ -143,16 +143,14 @@ describe('resource pressure', () => {
     expect(p.chargesEnteringHolding).toBeGreaterThanOrEqual(1);
   });
 
-  test('Active utilization is witness peak / active capacity', () => {
+  test('Active-slot pressure is not a solver resource — it is presentation', () => {
+    // The solver searches logical choices only (a join resolves like a
+    // settle-first launch), so it has no Active peak to report.
     const def = V2_SPAM_WINS;
     const r = solve(def);
-    const trace = traceActions(def, r.moves);
-    const holding = holdingPressure(trace, def.holdingCapacity);
-    const p = resourcePressure({ def, holding, maxActiveOnWitness: r.maxActiveOnWitness });
-    expect(p.activeCapacity).toBe(5);
-    expect(p.activeUtilization).toBe(p.maxActive / p.activeCapacity);
-    expect(p.activeUtilization).toBeGreaterThanOrEqual(0);
-    expect(p.activeUtilization).toBeLessThanOrEqual(1);
+    const p = resourcePressure({ holding: holdingPressure(traceActions(def, r.moves), def.holdingCapacity) });
+    expect(p).not.toHaveProperty('activeUtilization');
+    expect(p).not.toHaveProperty('maxActive');
   });
 });
 

@@ -484,7 +484,7 @@ describe('Gameplay Color Palette Expansion — Blue & Purple', () => {
       expect(validation.valid).toBe(true);
 
       // 2. Solve
-      const result = solve(syntheticLevel, { mode: 'sequential-compat' });
+      const result = solve(syntheticLevel);
       expect(result.solved).toBe(true);
       expect(result.moves.length).toBeGreaterThanOrEqual(3);
 

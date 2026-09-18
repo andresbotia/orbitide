@@ -108,7 +108,7 @@ test.each(LEVELS)('level $id is deterministically winnable with zero boosters', 
   expect(result.solved).toBe(true);
   expect(result.complete).toBe(true);
   // Sequential (M1-compatible) play must also be able to solve every level.
-  expect(solve(level, { mode: 'sequential-compat' }).solved).toBe(true);
+  expect(solve(level).solved).toBe(true);
   // The witness replays through the real runtime and actually wins.
   let state = createGame(level);
   for (const action of result.moves) {

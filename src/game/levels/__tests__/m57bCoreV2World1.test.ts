@@ -197,14 +197,14 @@ describe('BLOCK A — Levels 1–3', () => {
     const first = findFirstWinningWitness(level, { nodeCap: 50_000, timeCapMs: 15_000 });
     expect(first.solved).toBe(true);
     expect(replay(level, first.moves).state.status).toBe('won');
-    const r = solve(level, { mode: 'sequential-compat', nodeCap: 80_000, partialOnCap: true });
+    const r = solve(level, { nodeCap: 80_000, partialOnCap: true });
     expect(r.solved).toBe(true);
     expect(replay(level, r.moves).state.status).toBe('won');
   }, 30_000);
 
   test('Level 2 has a meaningful opening choice and cyan-first is more efficient', () => {
     const def = WORLD_1[1]!;
-    const r = solve(def, { mode: 'sequential-compat', nodeCap: 80_000 });
+    const r = solve(def, { nodeCap: 80_000 });
     expect(r.solved).toBe(true);
     expect(r.totalFirstMoves).toBeGreaterThanOrEqual(2);
     expect(r.viableFirstMoves).toBeGreaterThanOrEqual(2);
@@ -221,7 +221,7 @@ describe('BLOCK A — Levels 1–3', () => {
     expect(geo.mode).toBe('coreV2');
     expect(geo.maxLayerDepth).toBeGreaterThanOrEqual(2);
     expect(geo.buried).toBeGreaterThan(0);
-    const r = solve(def, { mode: 'sequential-compat', nodeCap: 80_000 });
+    const r = solve(def, { nodeCap: 80_000 });
     expect(r.solved).toBe(true);
     expect(r.heldLaunches).toBeGreaterThanOrEqual(0);
   }, 30_000);
@@ -230,7 +230,7 @@ describe('BLOCK A — Levels 1–3', () => {
 describe('BLOCK B — Levels 4–7', () => {
   test('Level 4 has the required 3-way good/acceptable/premature opening', () => {
     const def = WORLD_1[3]!;
-    const r = solve(def, { mode: 'sequential-compat', nodeCap: 80_000 });
+    const r = solve(def, { nodeCap: 80_000 });
     expect(r.solved).toBe(true);
     expect(r.totalFirstMoves).toBe(3);
     expect(r.viableFirstMoves).toBe(3);

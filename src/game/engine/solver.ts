@@ -9,49 +9,47 @@
  *
  * (Historically this lived in `engine/__tests__/solver.ts`; that path now
  * re-exports this module so existing test imports keep working.)
+ *
+ * It searches LOGICAL player choices only. Under FIRST LAUNCHED, FIRST SERVED a
+ * launch that joins Pals still on the rail resolves exactly like the same launch
+ * made after the rail settles, so joining is not a puzzle decision and is never
+ * a separate branch. Pals sharing the rail and Active-slot pressure are
+ * presentation / game feel — the live session still launches concurrently.
  */
 import { legalActions, type GameAction } from './actions';
 import { createGame } from './createGame';
-import { epochResidueKey } from './epoch';
 import { boardFingerprint } from './frozen';
 import { resolveAction } from './resolveLaunch';
 import type { GameState, LevelDefinition } from './types';
 
+/**
+ * The logical state a decision is made from: board progress, tunnel queues and
+ * Holding. Nothing else shapes the rest of the game — the Pals on the rail were
+ * resolved when they launched, and a join resolves like a settle-first launch —
+ * so equal logical states have equal futures and memoize together.
+ *
+ * Tunnel colour is part of the key so two queues with identical ids/capacities
+ * but different colours cannot collide. Holding already included colour.
+ */
 export function stateKey(s: GameState): string {
-  // Tunnel colour is part of the key so two queues with identical ids/capacities
-  // but different colours cannot collide. Holding already included colour.
-  // Open-epoch residue (baseline board + launches) is enough for Core V2: a
-  // join re-simulates the pass, so consumedBins / one-pass residue are derived
-  // from the launch list rather than stored separately.
-  const committed = boardFingerprint(s.pixels) + '/' +
+  return boardFingerprint(s.pixels) + '/' +
     s.tunnels.map((t) => t.queue.map((c) => `${c.id}:${c.color}:${c.capacity}`).join(',')).join('|') + '/' +
     s.holding.map((c) => `${c.id}:${c.color}:${c.capacity}`).join(',');
-  // An open epoch changes how the next launch arbitrates, so equivalent boards
-  // with different epoch residue must not memoize together.
-  return s.epoch ? `${committed}##${epochResidueKey(s.epoch)}` : committed;
 }
 
-export type SolveMode = 'solvability' | 'metrics' | 'sequential-compat';
-
 /**
- * Every action the player could take from `state`. A plain launch waits for the
- * board to settle (fresh epoch, M1 semantics); when an epoch is still running a
- * launchable charge also gets a `join: true` variant that enters that epoch and
- * arbitrates against the charges already on the rail. The settle-first branch is
- * listed first so a witness prefers the calmer line at equal length.
- * `sequential-compat` drops the join variants entirely, reproducing M1.
+ * Every logical choice from `state`: one settle-first launch per tunnel front
+ * and per held charge that the runtime would admit — the same candidate
+ * generator and `actionRejection` filter as {@link legalActions}. A `join: true`
+ * twin is not a separate choice: it reaches exactly the same next logical state
+ * (see join-settle-equivalence.test.ts), so counting it would only duplicate
+ * the branch and skew every per-choice metric.
  *
  * Held charges only ever appear here as an explicit `{ kind: 'holding' }`
  * action — the solver never implicitly relaunches Holding.
- *
- * This delegates entirely to {@link legalActions}: the same candidate generator
- * and the same `actionRejection` filter the runtime uses. A `join: true` variant
- * is therefore emitted only when `resolveAction` would actually accept it (fixed
- * an M4A mismatch where a full-Holding join could be enumerated-but-rejected, or
- * accepted-but-not-enumerated).
  */
-export function enumerateActions(state: GameState, mode: SolveMode): GameAction[] {
-  return legalActions(state, { includeJoin: mode !== 'sequential-compat' });
+export function enumerateActions(state: GameState): GameAction[] {
+  return legalActions(state);
 }
 
 /** Per-first-move breakdown, computed from the (already-visited) child subtrees. */
@@ -68,8 +66,6 @@ export interface FirstMoveStat {
   peakHoldingOnLine: number;
   /** Explicit held-charge relaunches on that continuation. */
   heldRelaunchesOnLine: number;
-  /** Peak concurrent active charges on that continuation. */
-  maxActiveOnLine: number;
 }
 
 /** One settled player-decision state along a winning witness (memoized lookups). */
@@ -91,14 +87,15 @@ export interface SolveResult {
   moves: GameAction[]; length: number;
   peakHolding: number; minWinningPeak: number; maxHolding: number;
   viableFirstMoves: number; totalFirstMoves: number; nodes: number;
-  /** Mean number of actions considered per explored (non-terminal, non-cached) node. */
+  /** Mean number of logical choices per explored (non-terminal, non-cached) state. */
   avgBranching: number;
   failPath: GameAction[] | null;
+  /**
+   * Loss probability when every logical choice is taken uniformly at random. A
+   * move that loops back to a state already on the line (a Core V2 Holding
+   * relaunch that clears nothing) is simply picked again, so it is excluded.
+   */
   lossProbability: number; heldLaunches: number;
-  /** Peak charges sharing the rail on the shortest winning witness. */
-  maxActiveOnWitness: number;
-  /** Peak charges sharing the rail anywhere in the explored graph. */
-  maxActive: number;
   firstMoves: FirstMoveStat[];
   /**
    * Per-decision-state branching along the winning witness, filled from the
@@ -126,7 +123,6 @@ export class NodeCapExceeded extends Error {
 
 export interface SolveOptions {
   nodeCap?: number;
-  mode?: SolveMode;
   /** Cooperative cancellation — flip `cancelled` to abort with {@link SolverCancelled}. */
   signal?: { cancelled: boolean };
   /**
@@ -138,76 +134,73 @@ export interface SolveOptions {
   partialOnCap?: boolean;
 }
 
-function replayLine(from: GameState, line: GameAction[]): {
-  peakHolding: number; heldRelaunches: number; maxActive: number;
-} {
+function replayLine(from: GameState, line: GameAction[]): { peakHolding: number; heldRelaunches: number } {
   let peak = from.holding.length;
   let held = 0;
-  let active = 0;
   let state = from;
   for (const action of line) {
-    const outcome = resolveAction(state, action);
-    active = Math.max(active, outcome.epochCharges?.length ?? 0);
     if (action.kind === 'holding') held += 1;
-    state = outcome.state;
+    state = resolveAction(state, action).state;
     peak = Math.max(peak, state.holding.length);
   }
-  return { peakHolding: peak, heldRelaunches: held, maxActive: active };
+  return { peakHolding: peak, heldRelaunches: held };
 }
 
 export function solve(level: LevelDefinition, opts: SolveOptions = {}): SolveResult {
-  const { nodeCap = 300_000, mode = 'metrics', signal, partialOnCap = false } = opts;
+  const { nodeCap = 300_000, signal, partialOnCap = false } = opts;
   const memo = new Map<string, Node>();
+  /** Logical states on the current search line (for loop detection). */
+  const onLine = new Set<string>();
   let nodes = 0;
   let branchSum = 0;
   let maxHolding = 0;
-  let maxActive = 0;
 
-  function visit(state: GameState): Node {
+  function visit(state: GameState, key: string = stateKey(state)): Node {
     if (signal?.cancelled) throw new SolverCancelled();
     maxHolding = Math.max(maxHolding, state.holding.length);
-    maxActive = Math.max(maxActive, state.epoch?.launches.length ?? 0);
     if (state.status === 'won') return { win: [], fail: null, minPeak: state.holding.length, loss: 0 };
     if (state.status === 'lost') return { win: null, fail: [], minPeak: Infinity, loss: 1 };
-    const key = stateKey(state);
     const cached = memo.get(key);
     if (cached) return cached;
     if (++nodes > nodeCap) throw new NodeCapExceeded(level.id, nodeCap);
-    const actions = enumerateActions(state, mode);
-    if (!actions.length) {
-      // The runtime keeps this state alive via a join into the open epoch — a
-      // move `sequential-compat` deliberately ignores. That is a dead end for
-      // sequential play, not a runtime deadlock bug.
-      if (mode === 'sequential-compat') {
-        const dead: Node = { win: null, fail: [], minPeak: Infinity, loss: 1 };
-        memo.set(key, dead);
-        return dead;
-      }
-      throw new Error('Runtime failed to mark a deadlock');
-    }
-    // Core V2 can cycle (a miss-relaunch from Holding returns to the same
-    // committed + epoch-residue key). Record an unsolved placeholder so a
-    // re-entrant visit is a loss, not infinite recursion.
-    const inProgress: Node = { win: null, fail: [], minPeak: Infinity, loss: 1 };
-    memo.set(key, inProgress);
+    const actions = enumerateActions(state);
+    // A playing state with no admitted move is one `isLost` must already have
+    // called — the solver and the runtime share the same predicate.
+    if (!actions.length) throw new Error('Runtime failed to mark a deadlock');
+    onLine.add(key);
     branchSum += actions.length;
     let win: GameAction[] | null = null;
     let fail: GameAction[] | null = null;
     let minPeak = Infinity;
     let loss = 0;
+    let counted = 0;
     for (const action of actions) {
       const outcome = resolveAction(state, action);
       if (!outcome.accepted) throw new Error('Solver/runtime admission mismatch');
-      const child = visit(outcome.state);
+      const childKey = outcome.state.status === 'playing' ? stateKey(outcome.state) : '';
+      // A move that loops back onto this line — e.g. a Core V2 Holding relaunch
+      // that clears nothing and returns to the same logical state — is neither
+      // progress nor a loss: it cannot shorten a win or end the game, so it is
+      // left out of the win, fail and loss-probability accounting. (Uniform
+      // random play simply picks again, which is what renormalising over the
+      // remaining moves computes.)
+      if (childKey && onLine.has(childKey)) continue;
+      const child = visit(outcome.state, childKey || undefined);
       if (child.win !== null) {
         const candidate = [action, ...child.win];
         if (win === null || candidate.length < win.length) win = candidate;
         minPeak = Math.min(minPeak, Math.max(state.holding.length, child.minPeak));
       }
       if (child.fail !== null && (fail === null || child.fail.length + 1 < fail.length)) fail = [action, ...child.fail];
-      loss += child.loss / actions.length;
+      loss += child.loss;
+      counted += 1;
     }
-    const result = { win, fail, minPeak, loss };
+    onLine.delete(key);
+    // Every move loops back: the player can never make progress again — a
+    // soft-lock, which is a loss for the level.
+    const result: Node = counted === 0
+      ? { win: null, fail: [], minPeak: Infinity, loss: 1 }
+      : { win, fail, minPeak, loss: loss / counted };
     memo.set(key, result);
     return result;
   }
@@ -233,7 +226,6 @@ export function solve(level: LevelDefinition, opts: SolveOptions = {}): SolveRes
         lossAfter: child.loss,
         peakHoldingOnLine: child.win !== null ? replay.peakHolding : childState.holding.length,
         heldRelaunchesOnLine: replay.heldRelaunches,
-        maxActiveOnLine: replay.maxActive,
       };
     });
   } catch (e) {
@@ -245,7 +237,7 @@ export function solve(level: LevelDefinition, opts: SolveOptions = {}): SolveRes
     }
   }
 
-  const witnessReplay = root.win ? replayLine(initial, root.win) : { peakHolding: 0, heldRelaunches: 0, maxActive: 0 };
+  const witnessReplay = root.win ? replayLine(initial, root.win) : { peakHolding: 0, heldRelaunches: 0 };
 
   // Replay the winning line and classify each decision from the already-filled
   // memo — no extra search. Truncated runs leave this empty (incomplete).
@@ -254,7 +246,7 @@ export function solve(level: LevelDefinition, opts: SolveOptions = {}): SolveRes
     let state = initial;
     for (const action of root.win) {
       if (state.status === 'playing') {
-        const actions = enumerateActions(state, mode);
+        const actions = enumerateActions(state);
         let winningCount = 0;
         let losingCount = 0;
         for (const a of actions) {
@@ -284,8 +276,6 @@ export function solve(level: LevelDefinition, opts: SolveOptions = {}): SolveRes
     failPath: root.fail,
     lossProbability: root.loss,
     heldLaunches: root.win?.filter((a) => a.kind === 'holding').length ?? 0,
-    maxActiveOnWitness: witnessReplay.maxActive,
-    maxActive,
     firstMoves,
     decisionStats,
   };
@@ -308,7 +298,7 @@ export interface FirstWinResult {
 
 /**
  * Rapidly answers: "Does at least ONE valid winning sequence exist?"
- * Explores sequentially-launchable action paths with DFS and stops
+ * Explores the same logical choices as {@link solve} with DFS and stops
  * immediately once the first winning state is encountered.
  *
  * Does not calculate difficulty, rank paths, or explore alternative branches.
@@ -352,7 +342,7 @@ export function findFirstWinningWitness(
     }
 
     visiting.add(key);
-    const actions = legalActions(state, { includeJoin: false });
+    const actions = enumerateActions(state);
     for (const action of actions) {
       const outcome = resolveAction(state, action);
       if (!outcome.accepted) continue;

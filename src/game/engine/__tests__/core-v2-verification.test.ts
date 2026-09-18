@@ -609,7 +609,7 @@ describe('M5.2E Verification — Priority Edge Cases', () => {
       state = {
         ...state,
         holding: [{ id: 'held-red', color: 'red', capacity: 2 }],
-        epoch: { baseline: state, launches: [activeLaunch], clock: 0.18 },
+        epoch: { launches: [activeLaunch], clock: 0.18 },
         activeCharges: [{
           id: 'active-blue', source: 'tunnel', originId: 'tunnel-0', color: 'blue', capacity: 1,
           remainingCapacity: 1, insertionTime: 0, launchSequence: 0, passCount: 0,

@@ -8,7 +8,7 @@ import type { LevelAnalysisController } from '@/hooks/useLevelAnalysis';
 import { StudioButton } from './StudioButton';
 import { studioSpace, studioTheme } from './theme';
 
-type SortKey = keyof Pick<BatchRow, 'levelId' | 'score' | 'shortestWin' | 'viableFirstMoves' | 'peakHolding' | 'maxActive' | 'heldRelaunches' | 'nodes' | 'warningCount' | 'density' | 'uniqueColors' | 'maxLayerDepth'>;
+type SortKey = keyof Pick<BatchRow, 'levelId' | 'score' | 'shortestWin' | 'viableFirstMoves' | 'peakHolding' | 'heldRelaunches' | 'nodes' | 'warningCount' | 'density' | 'uniqueColors' | 'maxLayerDepth'>;
 type RowFilter = 'all' | 'mismatch' | 'unsolvable' | 'warnings';
 
 const COLS: { key: SortKey; label: string; get: (r: BatchRow) => number | string; width: number }[] = [
@@ -17,7 +17,6 @@ const COLS: { key: SortKey; label: string; get: (r: BatchRow) => number | string
   { key: 'shortestWin', label: 'win', get: (r) => r.shortestWin, width: 44 },
   { key: 'viableFirstMoves', label: 'vfm', get: (r) => `${r.viableFirstMoves}/${r.totalFirstMoves}`, width: 50 },
   { key: 'peakHolding', label: 'peak', get: (r) => r.peakHolding, width: 46 },
-  { key: 'maxActive', label: 'maxA', get: (r) => r.maxActive, width: 48 },
   { key: 'heldRelaunches', label: 'held', get: (r) => r.heldRelaunches, width: 44 },
   { key: 'density', label: 'dens', get: (r) => r.density.toFixed(2), width: 48 },
   { key: 'uniqueColors', label: 'clr', get: (r) => r.uniqueColors, width: 36 },

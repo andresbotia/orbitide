@@ -5,13 +5,15 @@ import {
 
 const ZERO: DifficultyFeatures = {
   minWinningPeak: 0, holdingCapacity: 3, lossProbability: 0, viableFirstMoves: 3,
-  totalFirstMoves: 3, heldRelaunches: 0, winningLength: 0, exposureDepth: 0,
-  concurrencyGap: 0, nodes: 1,
+  totalFirstMoves: 3, heldRelaunches: 0, winningLength: 0, exposureDepth: 0, nodes: 1,
 };
 
-test('the weights sum to 1', () => {
+test('the weights sum to 0.95 — concurrencyGap (0.05) was retired without re-weighting', () => {
+  // Retiring it moved no level's score (it had become 0 everywhere); re-weighting
+  // the rest would have shifted every score by 1/0.95. See difficulty.ts.
   const sum = Object.values(DIFFICULTY_WEIGHTS).reduce((a, b) => a + b, 0);
-  expect(sum).toBeCloseTo(1, 10);
+  expect(sum).toBeCloseTo(0.95, 10);
+  expect(Object.keys(DIFFICULTY_WEIGHTS)).not.toContain('concurrencyGap');
 });
 
 test('an all-zero feature set scores 0 → easy', () => {
@@ -20,14 +22,14 @@ test('an all-zero feature set scores 0 → easy', () => {
   expect(r.tier).toBe('easy');
 });
 
-test('a maxed feature set scores 100 → extreme', () => {
+test('a maxed feature set scores 95 → extreme', () => {
   const maxed: DifficultyFeatures = {
     minWinningPeak: 3, holdingCapacity: 3, lossProbability: 1, viableFirstMoves: 0,
     totalFirstMoves: 3, heldRelaunches: 10, winningLength: 100, exposureDepth: 100,
-    concurrencyGap: 100, nodes: 10_000_000,
+    nodes: 10_000_000,
   };
   const r = scoreDifficulty(maxed);
-  expect(r.score).toBe(100);
+  expect(r.score).toBe(95);
   expect(r.tier).toBe('extreme');
 });
 
@@ -35,13 +37,12 @@ test('every factor is clamped to [0, 1]', () => {
   const f = difficultyFactors({
     minWinningPeak: 9, holdingCapacity: 3, lossProbability: 5, viableFirstMoves: -1,
     totalFirstMoves: 3, heldRelaunches: 99, winningLength: 999, exposureDepth: 999,
-    concurrencyGap: -5, nodes: 1e12,
+    nodes: 1e12,
   });
   for (const v of Object.values(f)) {
     expect(v).toBeGreaterThanOrEqual(0);
     expect(v).toBeLessThanOrEqual(1);
   }
-  expect(f.concurrencyGap).toBe(0); // negative gap floored
 });
 
 test('score is monotonic in loss probability, all else equal', () => {
