@@ -1,8 +1,10 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { memo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 
 import { PrimaryCta } from '@/components/brand';
 import { material } from '@/theme/material';
+import { NEON, neonAlpha } from '@/theme/neon';
 import { radius, spacing, typography } from '@/theme/spacing';
 
 export type FailureReason = 'holdingFull' | 'noMoves';
@@ -24,23 +26,38 @@ const COPY: Record<FailureReason, { heading: string; sub: string }> = {
 };
 
 /**
- * Lightweight in-place fail treatment (UI-R6 — Pixel Arcadia material,
+ * Polished in-place fail treatment (UI-R6 — Pixel Arcadia material,
  * accurate reason copy). Deliberately minimal so the player can press Try
  * Again almost immediately (no punitive delay, no shaming language).
  */
-export function ResultOverlay({ visible, reason = 'holdingFull', onRetry, onHome }: ResultOverlayProps) {
+export const ResultOverlay = memo(function ResultOverlay({ visible, reason = 'holdingFull', onRetry, onHome }: ResultOverlayProps) {
   if (!visible) return null;
   const copy = COPY[reason];
 
   return (
     <Animated.View
-      entering={FadeIn.duration(160)}
+      entering={FadeIn.duration(200)}
       style={styles.backdrop}
       pointerEvents="auto"
     >
-      <Animated.View entering={FadeInDown.duration(220)} style={styles.card}>
-        <Text style={styles.heading}>{copy.heading}</Text>
-        <Text style={styles.sub}>{copy.sub}</Text>
+      <Animated.View 
+        entering={ZoomIn.springify().damping(16).mass(0.9).stiffness(120)} 
+        style={styles.card}
+      >
+        <View style={styles.palIcon}>
+          <View style={styles.visor}>
+            <Text style={styles.eyes}>×</Text>
+            <View style={styles.eyeGap} />
+            <Text style={styles.eyes}>×</Text>
+          </View>
+        </View>
+
+        <Text style={styles.levelFailed}>LEVEL FAILED</Text>
+        
+        <View style={styles.messageBox}>
+          <Text style={styles.reasonHeading}>{copy.heading}</Text>
+          <Text style={styles.reasonSub}>{copy.sub}</Text>
+        </View>
 
         <PrimaryCta label="Try Again" onPress={onRetry} fullWidth style={styles.cta} />
 
@@ -50,7 +67,7 @@ export function ResultOverlay({ visible, reason = 'holdingFull', onRetry, onHome
       </Animated.View>
     </Animated.View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   backdrop: {
@@ -68,33 +85,83 @@ const styles = StyleSheet.create({
   },
   card: {
     alignItems: 'center',
-    gap: spacing.md,
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing.xl,
     borderRadius: radius.lg,
-    backgroundColor: material.structuralSurface,
+    backgroundColor: NEON.inkDeep,
     borderWidth: 1,
-    borderTopColor: material.bevelHighlight,
-    borderLeftColor: material.bevelHighlight,
-    borderRightColor: material.bevelShadow,
-    borderBottomColor: material.bevelShadow,
+    borderColor: neonAlpha(NEON.cyan, 0.25),
     width: '100%',
     maxWidth: 340,
     zIndex: 101,
     elevation: 101,
   },
-  heading: { ...typography.title, fontSize: 22, color: material.textPrimary },
-  sub: {
+  palIcon: {
+    width: 44,
+    height: 44,
+    backgroundColor: material.danger,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+    borderTopWidth: 2,
+    borderTopColor: '#FF7B8A',
+    borderBottomWidth: 3,
+    borderBottomColor: '#B82030',
+  },
+  visor: {
+    width: 28,
+    height: 14,
+    backgroundColor: '#090A1E',
+    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  eyeGap: {
+    width: 6,
+  },
+  eyes: {
+    color: material.danger,
+    fontSize: 12,
+    fontWeight: '900',
+    marginTop: -2,
+  },
+  levelFailed: {
+    ...typography.display,
+    color: material.danger,
+    fontSize: 28,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+  },
+  messageBox: {
+    backgroundColor: neonAlpha(NEON.ink, 0.6),
+    padding: spacing.md,
+    borderRadius: radius.md,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  reasonHeading: {
+    ...typography.title,
+    fontSize: 16,
+    color: material.textPrimary,
+    marginBottom: spacing.xs,
+    letterSpacing: 1,
+  },
+  reasonSub: {
     color: material.textSecondary,
     textAlign: 'center',
     fontSize: 14,
     lineHeight: 20,
   },
-  cta: { marginTop: spacing.sm },
+  cta: {
+    marginBottom: spacing.lg,
+  },
   secondary: {
     color: material.textSecondary,
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: '600',
     letterSpacing: 1,
-    paddingTop: spacing.xs,
   },
 });

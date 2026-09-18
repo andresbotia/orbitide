@@ -117,3 +117,78 @@ test('Linked prime and atomic discharge use distinct semantic events', () => {
   }));
   expect(discharge.shots[0]!.linkedClearTargets).toHaveLength(2);
 });
+
+test('an unresolved Pal overflowing full holding completes full lap to terminal point, does not land in holding, and schedules fail after terminal burst', () => {
+  const overflowLevel: LevelDefinition = {
+    id: 805, title: 'BuildScript Overflow', themeId: 'test', difficulty: 'easy', holdingCapacity: 2,
+    pixelArt: ['WWW', 'WWW', 'WWW'],
+    tunnels: [
+      [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
+      [{ color: 'blue', capacity: 1 }],
+      [{ color: 'blue', capacity: 1 }],
+    ],
+  };
+  let state = createGame(overflowLevel);
+  // Fill holding
+  state = resolveLaunch(state, 'tunnel-0').state;
+  state = resolveLaunch(state, 'tunnel-1').state;
+  expect(state.holding).toHaveLength(2);
+
+  // Launch third blue Pal (miss -> overflow)
+  const outcome = resolveLaunch(state, 'tunnel-2');
+  expect(outcome.state.status).toBe('lost');
+  expect(outcome.state.holding).toHaveLength(2);
+
+  const pass = buildLaunchScript(outcome, state).pass;
+  expect(pass.endKind).toBe('burst');
+  expect(pass.endProgress).toBe(1);
+  expect(pass.orbitEndAt - pass.liftMs).toBe(FEEL.ORBIT_DURATION);
+  expect(pass.landingAt).toBe(pass.orbitEndAt + FEEL.BURST_DURATION);
+  expect(pass.holdingTarget).toBeUndefined();
+  expect(pass.holdingSlotIndex).toBeUndefined();
+  expect(pass.events.some((e) => e.kind === 'holdingLanded')).toBe(false);
+
+  const failEvent = pass.events.find((e) => e.kind === 'fail');
+  expect(failEvent).toBeDefined();
+  expect(failEvent!.at).toBe(pass.landingAt + FEEL.FAIL_DELAY);
+
+  const completeEvent = pass.events.find((e) => e.kind === 'complete');
+  expect(completeEvent).toBeDefined();
+  expect(completeEvent!.at).toBe(failEvent!.at + 20);
+});
+
+test('an unresolved Pal with hits that overflows Holding still completes full lap to terminal point without cutting orbit short', () => {
+  const partialLevel: LevelDefinition = {
+    id: 806, title: 'Partial Overflow', themeId: 'test', difficulty: 'easy', holdingCapacity: 1,
+    pixelArt: ['W', 'B'],
+    tunnels: [
+      [{ color: 'white', capacity: 1 }],
+      [{ color: 'red', capacity: 1 }],
+      [{ color: 'blue', capacity: 2 }],
+    ],
+  };
+  let state = createGame(partialLevel);
+  // Tunnel-1 (red) misses and enters holding (1/1)
+  state = resolveLaunch(state, 'tunnel-1').state;
+  expect(state.holding).toHaveLength(1);
+
+  // Tunnel-2 (blue, capacity 2) clears the 1 blue pixel, capacity 1 remaining, holding full -> overflow
+  const outcome = resolveLaunch(state, 'tunnel-2');
+  expect(outcome.state.status).toBe('lost');
+  expect(outcome.heldCharge?.capacity).toBe(1);
+  expect(outcome.state.holding).toHaveLength(1);
+
+  const pass = buildLaunchScript(outcome, state).pass;
+  expect(pass.shots).toHaveLength(1);
+  // Orbit MUST NOT be cut short at the shot clear time:
+  expect(pass.endProgress).toBe(1);
+  expect(pass.orbitEndAt).toBeGreaterThan(pass.shots[0]!.clearAt);
+  expect(pass.endKind).toBe('burst');
+  expect(pass.landingAt).toBe(pass.orbitEndAt + FEEL.BURST_DURATION);
+  expect(pass.events.some((e) => e.kind === 'holdingLanded')).toBe(false);
+
+  const failEvent = pass.events.find((e) => e.kind === 'fail');
+  expect(failEvent).toBeDefined();
+  expect(failEvent!.at).toBe(pass.landingAt + FEEL.FAIL_DELAY);
+});
+

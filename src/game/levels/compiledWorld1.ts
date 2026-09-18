@@ -12,7 +12,7 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
     "title": "First Spark",
     "themeId": "first-light",
     "difficulty": "easy",
-    "holdingCapacity": 4,
+    "holdingCapacity": 3,
     "pixelArt": [
       ".......",
       "..C.C..",
@@ -50,7 +50,7 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
     "title": "Morning Kite",
     "themeId": "first-light",
     "difficulty": "easy",
-    "holdingCapacity": 4,
+    "holdingCapacity": 3,
     "pixelArt": [
       "....B....",
       "...BWB...",
@@ -97,7 +97,7 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
     "title": "Sunrise Balloon",
     "themeId": "first-light",
     "difficulty": "easy",
-    "holdingCapacity": 4,
+    "holdingCapacity": 3,
     "pixelArt": [
       "...PPP...",
       "..POOOP..",
@@ -150,7 +150,7 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
     "title": "Dawn Windmill",
     "themeId": "first-light",
     "difficulty": "medium",
-    "holdingCapacity": 4,
+    "holdingCapacity": 3,
     "pixelArt": [
       ".....I.......",
       "....III......",
@@ -216,7 +216,7 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
     "title": "Sunlit Bloom",
     "themeId": "first-light",
     "difficulty": "medium",
-    "holdingCapacity": 4,
+    "holdingCapacity": 3,
     "pixelArt": [
       "......Y.Y......",
       "....YYCYY......",
@@ -285,7 +285,7 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
     "title": "Rainbow Gate",
     "themeId": "first-light",
     "difficulty": "medium",
-    "holdingCapacity": 4,
+    "holdingCapacity": 3,
     "pixelArt": [
       "......RRRRR......",
       "....RRYYYYYRR....",
@@ -364,7 +364,7 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
     "title": "Morning Hummingbird",
     "themeId": "first-light",
     "difficulty": "medium",
-    "holdingCapacity": 4,
+    "holdingCapacity": 3,
     "pixelArt": [
       ".......B...........",
       "......BBB..........",
@@ -446,7 +446,7 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
     "title": "Sunrise Lighthouse",
     "themeId": "first-light",
     "difficulty": "medium",
-    "holdingCapacity": 4,
+    "holdingCapacity": 3,
     "pixelArt": [
       ".......YYYYY.......",
       ".....YY.....YY.....",
@@ -538,7 +538,7 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
     "title": "Prismatic Peacock",
     "themeId": "first-light",
     "difficulty": "hard",
-    "holdingCapacity": 4,
+    "holdingCapacity": 3,
     "pixelArt": [
       "...........T.........",
       ".......T..TST..T.....",
@@ -635,7 +635,7 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
     "title": "First Light Citadel",
     "themeId": "first-light",
     "difficulty": "hard",
-    "holdingCapacity": 4,
+    "holdingCapacity": 3,
     "pixelArt": [
       "..........G..........",
       "........G.G.G........",

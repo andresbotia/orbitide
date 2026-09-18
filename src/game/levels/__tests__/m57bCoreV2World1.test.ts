@@ -155,7 +155,7 @@ describe('M5.7B per-level structure', () => {
   test.each(WORLD_1)('$id $title is Core V2 with exact budget and no special mechanics', (level) => {
     expect(level.ruleset).toBe('coreV2');
     expect(level.themeId).toBe('first-light');
-    expect(level.holdingCapacity).toBe(4);
+    expect(level.holdingCapacity).toBe(3);
     expect(level.tunnels).toHaveLength(4);
     expect(level.modifiers).toBeUndefined();
     const { need, have } = pixelBudget(level);

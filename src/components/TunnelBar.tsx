@@ -24,14 +24,14 @@ import type { TutorialView } from '@/game/tutorial';
 import { markContrast } from '@/theme/colorAssist';
 import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
 import { GAMEPLAY } from '@/theme/gameplayLayout';
-import { homeAlpha, homeV2 } from '@/theme/homeV2';
+import { NEON, neonAlpha } from '@/theme/neon';
 
 interface TunnelBarProps {
   state: GameState;
   layoutVersion: number;
   disabled: boolean;
   colorAssist?: boolean;
-  onLaunch: (tunnelId: string) => void;
+  onLaunch: (tunnelId: string) => boolean;
   onSourceLayout: (key: string, point: Point) => void;
   tutorial?: TutorialView;
   /** Recessed mouths in the control deck — no cards, T-labels, or ghost circles. */
@@ -42,6 +42,7 @@ interface TunnelBarProps {
  * Launch tunnels — presentation only. Renders however many tunnels the state
  * has (Legacy V1: 3, Core V2: 4). Each magazine shows the loaded front plus a
  * bounded upcoming preview; the hidden queue tail stays in engine state.
+ * Physical launcher mouths — front Pal clearly ready, next/next+1 behind.
  */
 export const TunnelBar = memo(function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayout, layoutVersion, tutorial }: TunnelBarProps) {
   const charges = visibleCharges(state);
@@ -49,12 +50,12 @@ export const TunnelBar = memo(function TunnelBar({ state, disabled, colorAssist,
   const pixelPal = isCoreV2(state.ruleset);
   const { width } = useWindowDimensions();
   const inner = Math.max(240, width - GAMEPLAY.deckPadX * 2);
-  const gap = charges.length >= 4 ? 8 : 12;
+  const gap = charges.length >= 4 ? 6 : 10;
   const col = (inner - gap * Math.max(0, charges.length - 1)) / Math.max(1, charges.length);
-  const readySize = Math.min(GAMEPLAY.readyPalMax, Math.max(GAMEPLAY.readyPalMin, Math.floor(col - 14)));
+  const readySize = Math.min(GAMEPLAY.readyPalMax, Math.max(GAMEPLAY.readyPalMin, Math.floor(col - 12)));
   const queueSize = Math.min(
     GAMEPLAY.queuePalMax,
-    Math.max(GAMEPLAY.queuePalMin, Math.round(readySize * 0.72)),
+    Math.max(GAMEPLAY.queuePalMin, Math.round(readySize * 0.68)),
   );
 
   return (
@@ -106,7 +107,7 @@ const Tunnel = memo(function Tunnel({
   pixelPal: boolean;
   readySize: number;
   queueSize: number;
-  onLaunch: (tunnelId: string) => void;
+  onLaunch: (tunnelId: string) => boolean;
   onSourceLayout: (key: string, point: Point) => void;
   layoutVersion: number;
   highlighted: boolean;
@@ -152,10 +153,22 @@ const Tunnel = memo(function Tunnel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [charge?.id]);
 
+  // One-shot rejection shake — never a standing state, distinct from the
+  // launch recoil above (which fires on every accepted launch).
+  const shakeX = useSharedValue(0);
+  const triggerDeniedShake = useCallback(() => {
+    cancelAnimation(shakeX);
+    shakeX.set(withSequence(
+      withTiming(-4, { duration: 35 }), withTiming(4, { duration: 60 }),
+      withTiming(-3, { duration: 60 }), withTiming(0, { duration: 50 }),
+    ));
+  }, [shakeX]);
+
   const housingStyle = useAnimatedStyle(() => ({
     transform: [
       { translateY: reducedMotion ? 0 : -recoil.value * 2.5 },
       { scale: 1 - recoil.value * 0.03 },
+      { translateX: shakeX.value },
     ],
   }));
 
@@ -169,7 +182,7 @@ const Tunnel = memo(function Tunnel({
     >
       <Pressable
         disabled={disabled || empty}
-        onPressIn={() => onLaunch(tunnelId)}
+        onPressIn={() => { if (!onLaunch(tunnelId)) triggerDeniedShake(); }}
         accessibilityState={{ disabled: disabled || empty }}
         accessibilityRole="button"
         accessibilityLabel={
@@ -180,9 +193,10 @@ const Tunnel = memo(function Tunnel({
         hitSlop={6}
         style={({ pressed }) => [styles.pressable, pressed && !empty && styles.tunnelPressed]}
       >
-        <View style={[styles.mouth, { minHeight: readySize + 10 }]}>
+        {/* Launcher mouth — recessed physical port */}
+        <View style={[styles.mouth, { minHeight: readySize + 8 }]}>
           {highlighted ? (
-            <Animated.View pointerEvents="none" style={[styles.spotlightRing, { width: readySize + 16, height: readySize + 16, borderRadius: (readySize + 16) / 2 }, spotlightStyle]} />
+            <Animated.View pointerEvents="none" style={[styles.spotlightRing, { width: readySize + 14, height: readySize + 14, borderRadius: (readySize + 14) / 2 }, spotlightStyle]} />
           ) : null}
 
           {charge ? (
@@ -194,29 +208,16 @@ const Tunnel = memo(function Tunnel({
               collapsable={false}
               style={styles.readySeat}
             >
+              {/* Subtle color pedestal — no bloom, simpler than before */}
               <View
                 pointerEvents="none"
                 style={[
                   styles.pedestal,
                   {
-                    width: readySize * 0.92,
-                    height: readySize * 0.3,
-                    borderRadius: readySize * 0.16,
-                    backgroundColor: homeAlpha(orbColors[charge.color], 0.22),
-                    borderColor: homeAlpha(homeV2.cyan, 0.7),
-                    shadowColor: orbColors[charge.color],
-                  },
-                ]}
-              />
-              <View
-                pointerEvents="none"
-                style={[
-                  styles.bloom,
-                  {
-                    width: readySize * 1.08,
-                    height: readySize * 1.08,
-                    borderRadius: readySize * 0.4,
-                    backgroundColor: homeAlpha(orbColors[charge.color], 0.2),
+                    width: readySize * 0.88,
+                    height: readySize * 0.26,
+                    borderRadius: readySize * 0.13,
+                    backgroundColor: neonAlpha(orbColors[charge.color], 0.18),
                   },
                 ]}
               />
@@ -241,14 +242,14 @@ const Tunnel = memo(function Tunnel({
         <View style={styles.queue}>
           {queue.map((nextCharge, previewIdx) => {
             if (!nextCharge) return null;
-            const depthOpacity = previewIdx === 0 ? 0.88 : 0.74;
+            const depthOpacity = previewIdx === 0 ? 0.82 : 0.65;
             return (
               <View
                 key={nextCharge.id}
                 style={[
                   styles.queued,
                   {
-                    marginTop: -queueSize * (previewIdx === 0 ? 0.4 : 0.5),
+                    marginTop: -queueSize * (previewIdx === 0 ? 0.38 : 0.48),
                     zIndex: upcoming - previewIdx,
                     opacity: depthOpacity,
                   },
@@ -288,51 +289,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'flex-start',
-    minHeight: 132,
+    minHeight: 120,
   },
-  tunnel: { flex: 1, maxWidth: 96, alignItems: 'center' },
+  tunnel: { flex: 1, maxWidth: 100, alignItems: 'center' },
   pressable: { alignItems: 'center', width: '100%' },
-  tunnelEmpty: { opacity: 0.45 },
-  tunnelBlocked: { opacity: 0.72 },
+  tunnelEmpty: { opacity: 0.4 },
+  tunnelBlocked: { opacity: 0.7 },
   tunnelSubdued: { opacity: 0.55 },
   tunnelPressed: { transform: [{ translateY: 1 }, { scale: 0.97 }] },
   mouth: {
     alignItems: 'center',
     justifyContent: 'flex-end',
-    minHeight: 68,
+    minHeight: 64,
   },
   readySeat: {
     zIndex: 4,
-    marginBottom: 6,
+    marginBottom: 4,
     alignItems: 'center',
   },
   pedestal: {
     position: 'absolute',
-    bottom: -6,
-    height: 10,
-    borderWidth: 1.5,
-    zIndex: 0,
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  bloom: {
-    position: 'absolute',
+    bottom: -4,
+    height: 8,
     zIndex: 0,
   },
   emptyMouth: {
-    backgroundColor: homeAlpha('#000C28', 0.9),
+    backgroundColor: neonAlpha(NEON.ink, 0.5),
+    borderWidth: 1,
+    borderColor: neonAlpha(NEON.cyan, 0.12),
   },
   spotlightRing: {
     position: 'absolute',
     borderWidth: 1.5,
-    borderColor: homeV2.cyan,
+    borderColor: NEON.cyan,
     backgroundColor: 'transparent',
     zIndex: 5,
   },
   queue: {
     alignItems: 'center',
-    marginTop: -4,
+    marginTop: -3,
   },
   queued: {
     alignItems: 'center',

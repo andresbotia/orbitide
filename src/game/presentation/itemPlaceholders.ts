@@ -7,17 +7,19 @@
  */
 export const ENABLE_GAMEPLAY_ITEM_PLACEHOLDERS = true;
 
-export type GameplayItemId = 'extraSlot' | 'pixelBomb';
+export type GameplayItemId = 'undo' | 'scanner' | 'extraSlot';
 
 export interface GameplayItemPreview {
+  undo: number;
+  scanner: number;
   extraSlot: number;
-  pixelBomb: number;
 }
 
 /** Preview counts only — not earned inventory. */
 export const GAMEPLAY_ITEM_PREVIEW: GameplayItemPreview = {
-  extraSlot: 2,
-  pixelBomb: 1,
+  undo: 3,
+  scanner: 2,
+  extraSlot: 1,
 };
 
 export const GAMEPLAY_ITEMS: readonly {
@@ -25,6 +27,7 @@ export const GAMEPLAY_ITEMS: readonly {
   label: string;
   accessibilityLabel: string;
 }[] = [
+  { id: 'undo', label: 'Undo', accessibilityLabel: 'Undo last move' },
+  { id: 'scanner', label: 'Scanner', accessibilityLabel: 'Hint Scanner item' },
   { id: 'extraSlot', label: 'Extra Slot', accessibilityLabel: 'Extra Slot item' },
-  { id: 'pixelBomb', label: 'Pixel Bomb', accessibilityLabel: 'Pixel Bomb item' },
 ] as const;

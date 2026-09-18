@@ -31,13 +31,19 @@ export function buildLaunchScript(outcome: LaunchOutcome, prevState: GameState,
       linkedGroupClear: encounter.linkedGroupClear === true,
       ...(linkedClearTargets ? { linkedClearTargets } : {}) };
   });
+  const fitsInHolding = outcome.state.holding.some((c) => c.id === outcome.launchedCharge?.id);
+  const landsInHolding = !!outcome.heldCharge && fitsInHolding;
+
   // Holding always completes a full visual lap to the bottom-center exit
-  // (progress 1) before departing. Burst still ends at the last contact.
-  const endProgress = outcome.heldCharge ? 1 : chargePass.progress;
-  const orbitEndAt = !outcome.heldCharge && shots.length > 0
+  // (progress 1) before departing. An unresolved Pal that overflows Holding
+  // also completes its full lap to the Holding-entry / terminal point before bursting.
+  // Burst ends at the last contact only when all charges were consumed.
+  const isConsumed = !outcome.heldCharge && shots.length > 0;
+  const endProgress = isConsumed ? chargePass.progress : 1;
+  const orbitEndAt = isConsumed
     ? shots[shots.length - 1]!.clearAt
     : FEEL.LAUNCH_DURATION + endProgress * orbitMs + shots.length * FEEL.PIXEL_CLEAR_INTERVAL;
-  const landingAt = orbitEndAt + (outcome.heldCharge ? FEEL.HOLDING_TRAVEL_DURATION : FEEL.BURST_DURATION);
+  const landingAt = orbitEndAt + (landsInHolding ? FEEL.HOLDING_TRAVEL_DURATION : FEEL.BURST_DURATION);
   const won = outcome.state.status === 'won';
   const lastShot = shots[shots.length - 1];
   // The clear that completes the picture gets a stronger presentation beat (a
@@ -57,9 +63,9 @@ export function buildLaunchScript(outcome: LaunchOutcome, prevState: GameState,
       ...(s.linkedGroupId ? { groupId: s.linkedGroupId } : {}),
       final: !s.frozenBreak && !s.shieldBreak && !s.linkedPrime && won && i === shots.length - 1,
     })),
-    { kind: outcome.heldCharge ? 'holdingLanded' : 'chargeConsumed', at: outcome.heldCharge ? landingAt : orbitEndAt },
+    { kind: landsInHolding ? 'holdingLanded' : 'chargeConsumed', at: landsInHolding ? landingAt : orbitEndAt },
   ];
-  if (outcome.heldCharge) {
+  if (landsInHolding) {
     const before = prevState.holding.length - (outcome.action.kind === 'holding' ? 1 : 0);
     const after = outcome.state.holding.length;
     // Returning to the same occupancy is not a new pressure warning.
@@ -74,9 +80,9 @@ export function buildLaunchScript(outcome: LaunchOutcome, prevState: GameState,
   events.push({ kind: 'complete', at: totalMs });
   events.sort((a, b) => a.at - b.at);
   const pass: FlightPass = { passId, origin: outcome.action.kind, sourceIndex: outcome.sourceIndex,
-    from, holdingTarget, charge: outcome.launchedCharge, shots, liftMs: FEEL.LAUNCH_DURATION,
+    from, holdingTarget: landsInHolding ? holdingTarget : undefined, charge: outcome.launchedCharge, shots, liftMs: FEEL.LAUNCH_DURATION,
     orbitDurationMs: orbitMs, orbitEndAt, endProgress, landingAt, totalMs,
-    endKind: outcome.heldCharge ? 'toHolding' : 'burst', events, finalClearPixelId,
+    endKind: landsInHolding ? 'toHolding' : 'burst', events, finalClearPixelId,
     launchedAtMs: 0, convoyHolds: [] };
   return { pass, totalMs };
 }

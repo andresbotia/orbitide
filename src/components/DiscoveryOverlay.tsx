@@ -11,7 +11,7 @@ import Animated, {
 import { PlayButton } from '@/components/PlayButton';
 import { feedback } from '@/game/feedback';
 import { revealTimeline, type CelebrationTier, type RevealSource } from '@/game/rendering/revealGeometry';
-import { homeAlpha, homeV2 } from '@/theme/homeV2';
+import { NEON, neonAlpha } from '@/theme/neon';
 import { typography } from '@/theme/spacing';
 
 interface DiscoveryOverlayProps {
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 23, 66, 0.45)',
+    backgroundColor: neonAlpha(NEON.ink, 0.5),
   },
   panel: {
     width: '100%',
@@ -149,9 +149,9 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 8,
     paddingHorizontal: 20,
-    backgroundColor: homeAlpha(homeV2.deepNavy, 0.96),
+    backgroundColor: neonAlpha(NEON.inkDeep, 0.96),
     borderTopWidth: 1,
-    borderTopColor: homeAlpha(homeV2.cyan, 0.28),
+    borderTopColor: neonAlpha(NEON.cyan, 0.28),
   },
   panelEdge: {
     position: 'absolute',
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     right: 16,
     height: 2,
     borderRadius: 1,
-    backgroundColor: homeAlpha(homeV2.cyan, 0.7),
+    backgroundColor: neonAlpha(NEON.cyan, 0.7),
   },
   titleWrap: { alignItems: 'center', gap: 6 },
   kickerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -168,13 +168,13 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 1,
-    backgroundColor: homeV2.yellow,
+    backgroundColor: NEON.gold,
   },
-  kicker: { ...typography.label, color: homeV2.cyan, fontSize: 10, letterSpacing: 4 },
-  kickerFinale: { color: homeV2.yellow },
+  kicker: { ...typography.label, color: NEON.cyan, fontSize: 10, letterSpacing: 4 },
+  kickerFinale: { color: NEON.gold },
   name: {
     ...typography.title,
-    color: homeV2.white,
+    color: NEON.cyanPale,
     fontSize: 22,
     letterSpacing: 3,
     textAlign: 'center',
@@ -185,9 +185,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderWidth: 1,
-    borderColor: homeAlpha(homeV2.cyan, 0.4),
-    backgroundColor: homeV2.navy,
+    borderColor: neonAlpha(NEON.cyan, 0.4),
+    backgroundColor: NEON.surface,
   },
-  infoText: { color: homeAlpha(homeV2.white, 0.78), fontSize: 10, letterSpacing: 1.5, fontWeight: '700' },
-  home: { color: homeAlpha(homeV2.white, 0.55), fontSize: 13, letterSpacing: 1, paddingTop: 2 },
+  infoText: { color: neonAlpha(NEON.cyanPale, 0.78), fontSize: 10, letterSpacing: 1.5, fontWeight: '700' },
+  home: { color: neonAlpha(NEON.cyanPale, 0.55), fontSize: 13, letterSpacing: 1, paddingTop: 2 },
 });

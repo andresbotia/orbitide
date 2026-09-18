@@ -5,6 +5,7 @@ import { DEFAULT_HOLDING_CAPACITY_V2, defaultHoldingCapacity } from '../ruleset'
 import type { LevelDefinition } from '../types';
 import { computeStatus, isLost, isWon } from '../winState';
 import { reserveHoldingSlot } from '../../presentation/holdingSlot';
+import { buildLaunchScript } from '../../presentation/buildScript';
 
 const T = (i: number): GameAction => ({ kind: 'tunnel', id: `tunnel-${i}` });
 
@@ -141,4 +142,120 @@ test('H — terminal lock: once lost, no additional launches, insertions, or win
   expect(computeStatus(lostState)).toBe('lost');
   expect(isLost(lostState)).toBe(true);
   expect(isWon(lostState)).toBe(false);
+});
+
+test('I — authoritative regression: full holding [A, B, C] + launching Pal D with partial hits and overflow preserves [A, B, C] and timing', () => {
+  // Exact scenario: Holding is full at 3/3 with Blue 1, Yellow 11, Yellow 13.
+  // Board has 1 Green pixel. Green 9 launches, hits 1 green pixel, becomes Green 8.
+  // Green 8 must NOT enter holding; Blue 1 / Yellow 11 / Yellow 13 must remain unchanged;
+  // Green 8 bursts at terminal point; status is lost.
+  const level: LevelDefinition = {
+    id: 9620,
+    title: 'Partial Overflow Regression',
+    themeId: 'test',
+    difficulty: 'easy',
+    holdingCapacity: 3,
+    ruleset: 'coreV2',
+    pixelArt: [
+      'G..',
+      'WWW',
+      'WWW',
+    ],
+    tunnels: [
+      [{ color: 'blue', capacity: 1 }],
+      [{ color: 'yellow', capacity: 11 }],
+      [{ color: 'yellow', capacity: 13 }],
+      [{ color: 'green', capacity: 9 }],
+    ],
+  };
+
+  let state = createGame(level);
+  // Fill holding to 3/3 with slots 0, 1, 2
+  state = resolveAction(state, T(0)).state;
+  state = resolveAction(state, T(1)).state;
+  state = resolveAction(state, T(2)).state;
+  expect(state.holding).toHaveLength(3);
+  expect(state.holding[0]).toMatchObject({ color: 'blue', capacity: 1 });
+  expect(state.holding[1]).toMatchObject({ color: 'yellow', capacity: 11 });
+  expect(state.holding[2]).toMatchObject({ color: 'yellow', capacity: 13 });
+  const occupantsBefore = state.holding.map((c) => ({ ...c }));
+
+  // Launch Green 9 (tunnel-3)
+  const outcome = resolveAction(state, T(3));
+  expect(outcome.accepted).toBe(true);
+  expect(outcome.launchedCharge).toMatchObject({ color: 'green', capacity: 9 });
+  // It hit 1 pixel and has 8 remaining capacity
+  expect(outcome.heldCharge).toMatchObject({ color: 'green', capacity: 8 });
+
+  // Invariant 1: outcome.state.status must be 'lost'
+  expect(outcome.state.status).toBe('lost');
+
+  // Invariant 2: Green 8 must NOT enter holding
+  expect(outcome.state.holding.some((c) => c.color === 'green')).toBe(false);
+
+  // Invariant 3: Blue 1, Yellow 11, Yellow 13 must remain strictly unchanged and intact
+  expect(outcome.state.holding).toHaveLength(3);
+  expect(outcome.state.holding).toEqual(occupantsBefore);
+
+  // Invariant 4: Presentation script must NOT have holdingLanded, must burst at terminal point
+  const script = buildLaunchScript(outcome, state, 1);
+  expect(script.pass.endKind).toBe('burst');
+  expect(script.pass.holdingTarget).toBeUndefined();
+  expect(script.pass.events.some((e) => e.kind === 'holdingLanded')).toBe(false);
+  const failEvent = script.pass.events.find((e) => e.kind === 'fail');
+  expect(failEvent).toBeDefined();
+  // Lap completes to the terminal point before bursting
+  expect(script.pass.endProgress).toBe(1);
+  expect(script.pass.landingAt).toBeGreaterThan(script.pass.orbitEndAt);
+});
+
+test('J — authoritative regression: full holding [A, B, C] + launching Pal D with 0 hits and overflow preserves [A, B, C] and timing', () => {
+  // Exact scenario: Holding is full at 3/3 with Blue 1, Yellow 11, Yellow 13.
+  // Board has NO Green pixels (only Purple). Green 9 launches, hits 0 pixels, remains Green 9.
+  // Green 9 must NOT enter holding; Blue 1 / Yellow 11 / Yellow 13 remain intact;
+  // Green 9 bursts at terminal point; status is lost.
+  const level: LevelDefinition = {
+    id: 9621,
+    title: 'Zero Hit Overflow Regression',
+    themeId: 'test',
+    difficulty: 'easy',
+    holdingCapacity: 3,
+    ruleset: 'coreV2',
+    pixelArt: [
+      'P..',
+      '...',
+      '...',
+    ],
+    tunnels: [
+      [{ color: 'blue', capacity: 1 }],
+      [{ color: 'yellow', capacity: 11 }],
+      [{ color: 'yellow', capacity: 13 }],
+      [{ color: 'green', capacity: 9 }],
+    ],
+  };
+
+  let state = createGame(level);
+  state = resolveAction(state, T(0)).state;
+  state = resolveAction(state, T(1)).state;
+  state = resolveAction(state, T(2)).state;
+  expect(state.holding).toHaveLength(3);
+  const occupantsBefore = state.holding.map((c) => ({ ...c }));
+
+  // Launch Green 9 (tunnel-3)
+  const outcome = resolveAction(state, T(3));
+  expect(outcome.accepted).toBe(true);
+  expect(outcome.launchedCharge).toMatchObject({ color: 'green', capacity: 9 });
+  expect(outcome.heldCharge).toMatchObject({ color: 'green', capacity: 9 });
+
+  // Invariants
+  expect(outcome.state.status).toBe('lost');
+  expect(outcome.state.holding.some((c) => c.color === 'green')).toBe(false);
+  expect(outcome.state.holding).toEqual(occupantsBefore);
+
+  const script = buildLaunchScript(outcome, state, 1);
+  expect(script.pass.endKind).toBe('burst');
+  expect(script.pass.holdingTarget).toBeUndefined();
+  expect(script.pass.events.some((e) => e.kind === 'holdingLanded')).toBe(false);
+  expect(script.pass.events.some((e) => e.kind === 'fail')).toBe(true);
+  expect(script.pass.endProgress).toBe(1);
 });

@@ -10,8 +10,8 @@ import Animated, {
   Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming,
 } from 'react-native-reanimated';
 
-import { BoardFrame } from '@/components/gameplay/BoardFrame';
 import { ControlDeck } from '@/components/gameplay/ControlDeck';
+import { LEVEL_INTRO_MIN_MS, LevelIntro } from '@/components/gameplay/LevelIntro';
 import { GameplayEnvironment } from '@/components/gameplay/GameplayEnvironment';
 import { DebugOverlay } from '@/components/DebugOverlay';
 import { DiscoveryOverlay } from '@/components/DiscoveryOverlay';
@@ -31,8 +31,8 @@ import { useColorAssist } from '@/hooks/useColorAssist';
 import { useGameSession } from '@/hooks/useGameSession';
 import { useTutorialCompletion } from '@/hooks/useTutorialCompletion';
 import { GAMEPLAY } from '@/theme/gameplayLayout';
-import { homeV2 } from '@/theme/homeV2';
 import { material } from '@/theme/material';
+import { NEON, neonAlpha } from '@/theme/neon';
 import { worldSkin } from '@/theme/worldSkins';
 
 interface GameScreenProps {
@@ -47,6 +47,8 @@ interface GameScreenProps {
    */
   level?: LevelDefinition;
 }
+
+const EMPTY_USEFUL_IDS = new Set<string>();
 
 /**
  * Production Pixel Arcadia gameplay shell (UI-R3 — Cosmic Arcade materials
@@ -113,13 +115,15 @@ export function GameScreen({
   const won = state.status === 'won';
   const holdingCapacity = state.holdingCapacity;
   const holding = state.holding;
+
   const launchTunnelPal = useCallback((id: string) => {
     const slots = Array.from({ length: holdingCapacity }, (_, index) => boardPoint(`holding-${index}`));
-    launch(id, boardPoint(id), slots);
+    return launch(id, boardPoint(id), slots);
   }, [launch, holdingCapacity]);
+
   const launchHeldPal = useCallback((id: string) => {
     const slots = Array.from({ length: holdingCapacity }, (_, index) => boardPoint(`holding-${index}`));
-    launchHeld(
+    return launchHeld(
       id,
       boardPoint(`holding-${holding.findIndex((c) => c.id === id)}`),
       slots,
@@ -129,27 +133,35 @@ export function GameScreen({
   // Lightweight, non-modal teaching cue (Level 21's Frozen intro). Shows while
   // the level still has all its ice and the player is in their first few moves;
   // the first successful ice break — or a fourth launch — retires it.
+  // Performance: only initialized on levels that actually specify a tutorial.
   const initialTutorialState = useMemo(() => {
+    if (!level.tutorial) return null;
     const pixels = createGame(level).pixels;
     const linkedGroups = new Set(pixels.map(linkedGroupId).filter((group): group is string => group !== undefined));
+    const hasShields = pixels.some((p) => shieldLayers(p) > 0);
     return {
       protectedCount: pixels.filter((p) => iceLayers(p) > 0 || shieldLayers(p) > 0).length,
       linkedGroups,
+      hasShields,
     };
   }, [level]);
-  const currentLinkedGroups = useMemo(
-    () => new Set(state.pixels.filter((p) => !p.cleared).map(linkedGroupId)
-      .filter((group): group is string => group !== undefined)),
-    [state.pixels],
-  );
-  const currentProtected = state.pixels.filter((p) => iceLayers(p) > 0 || shieldLayers(p) > 0).length;
-  const tutorialProgressPending = initialTutorialState.linkedGroups.size > 0
-    ? currentLinkedGroups.size >= initialTutorialState.linkedGroups.size
-    : currentProtected >= initialTutorialState.protectedCount;
-  const tutorialIcon = initialTutorialState.linkedGroups.size > 0 ? '⋈'
-    : createGame(level).pixels.some((p) => shieldLayers(p) > 0) ? '◌' : '❄';
-  const showTutorial = !!level.tutorial && state.status === 'playing'
-    && tutorialProgressPending && state.movesApplied < 4;
+
+  const showTutorial = useMemo(() => {
+    if (!initialTutorialState || state.status !== 'playing' || state.movesApplied >= 4) return false;
+    if (initialTutorialState.linkedGroups.size > 0) {
+      let activeLinked = 0;
+      for (const p of state.pixels) {
+        if (!p.cleared && linkedGroupId(p) !== undefined) activeLinked++;
+      }
+      return activeLinked >= initialTutorialState.linkedGroups.size;
+    }
+    const currentProtected = state.pixels.filter((p) => iceLayers(p) > 0 || shieldLayers(p) > 0).length;
+    return currentProtected >= initialTutorialState.protectedCount;
+  }, [initialTutorialState, state.status, state.movesApplied, state.pixels]);
+
+  const tutorialIcon = initialTutorialState?.linkedGroups.size && initialTutorialState.linkedGroups.size > 0
+    ? '⋈'
+    : initialTutorialState?.hasShields ? '◌' : '❄';
 
   const reveal = useMemo(() => resolveReveal(level), [level]);
   const revealProgress = useSharedValue(0);
@@ -161,19 +173,6 @@ export function GameScreen({
       easing: Easing.linear,
     }));
   }, [won, reducedMotion, tier, revealProgress]);
-
-  // A brief warm handoff pulse on the board frame right as the win happens —
-  // NOT the win celebration itself (that stays DiscoveryOverlay/DiscoveryReveal's
-  // job, untouched). Ramps up and holds; `useFocusEffect`-free since a level
-  // remount (restart/advance) naturally resets the shared value's owner.
-  // Capstone/finale ramp a little higher — `BoardFrame`'s glow/aura formulas
-  // are unbounded-above by design, so this reads as a stronger (not clipped)
-  // pulse without touching `BoardFrame.tsx` itself.
-  const celebrateTarget = tier === 'finale' ? 1.4 : tier === 'capstone' ? 1.15 : 1;
-  const celebrate = useSharedValue(0);
-  useEffect(() => {
-    celebrate.set(withTiming(won ? celebrateTarget : 0, { duration: won ? 260 : 0, easing: Easing.out(Easing.cubic) }));
-  }, [won, celebrateTarget, celebrate]);
 
   // A brief warning-edge pulse on failure — local to this screen, not a
   // `BoardFrame` prop (that channel is reserved for the warm win handoff and
@@ -211,19 +210,59 @@ export function GameScreen({
     }
   }, [state.ruleset]);
 
+  // ---- Gameplay readiness ------------------------------------------------
+  // "Ready" is not a timer. It is: the level resolved, the session built (both
+  // synchronous, above), tutorial persistence settled, the board area measured,
+  // the geometry valid, and the board subtree having actually laid out and
+  // produced a frame. Until all of that holds, `LevelIntro` covers the screen,
+  // because the first committed frame is otherwise the HUD and deck over an
+  // empty board area.
+  const [boardPainted, setBoardPainted] = useState(false);
+  const [minIntroElapsed, setMinIntroElapsed] = useState(false);
+  const [readyTimedOut, setReadyTimedOut] = useState(false);
+  const [introDone, setIntroDone] = useState(false);
+
+  useEffect(() => {
+    const minimum = setTimeout(() => setMinIntroElapsed(true), LEVEL_INTRO_MIN_MS);
+    // Failsafe, not a delay: nothing in the readiness chain is allowed to strand
+    // the player on the card — not a layout edge case that never fires
+    // `onLayout`, not slow tutorial persistence. It has no effect on the normal
+    // path, which lifts well inside this.
+    const failsafe = setTimeout(() => setReadyTimedOut(true), 2500);
+    return () => { clearTimeout(minimum); clearTimeout(failsafe); };
+  }, []);
+
   const onBoardLayout = useCallback(() => {
     boardWrap.current?.measureInWindow((x, y) => {
       boardOrigin.current = { x, y };
     });
+    // The board has been laid out. One more frame guarantees it has been drawn
+    // before the intro lifts, so the player never sees a partial board.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setBoardPainted(true));
+    });
   }, []);
 
   const usefulIds = useMemo(() => {
+    if (holding.length === 0) return EMPTY_USEFUL_IDS;
+    if (isCoreV2(state.ruleset)) {
+      const colors = new Set<string>();
+      for (const p of state.pixels) {
+        if (!p.cleared) colors.add(p.color);
+      }
+      return new Set(holding.filter((c) => colors.has(c.color)).map((c) => c.id));
+    }
     const colors = new Set(reachablePixels(state).map((p) => p.color));
     return new Set(holding.filter((c) => colors.has(c.color)).map((c) => c.id));
   // View state is a new object on every shot; pixels/holding are the inputs that matter.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.pixels, holding, state.width, state.height]);
+  }, [state.pixels, holding, state.width, state.height, state.ruleset]);
   const next = nextLevelId(levelId);
+  const gameplayReady = (
+    boardPainted && boardBox.width > 0 && boardSize > 0 && tutorials.ready
+  ) || readyTimedOut;
+  const introVisible = !introDone;
+  const handleIntroDone = useCallback(() => setIntroDone(true), []);
   // M2B: launching is allowed while charges orbit — only the full rail or a
   // finished level closes the controls.
   const controlsLocked = !session.canLaunch;
@@ -248,55 +287,56 @@ export function GameScreen({
 
       <View collapsable={false} style={styles.boardArea} onLayout={onBoardArea}>
         {boardBox.width > 0 ? (
-          <View
-            ref={boardWrap}
-            collapsable={false}
-            onLayout={onBoardLayout}
-            style={{ overflow: 'visible' }}
-          >
-            <BoardFrame
-              size={boardSize}
-              worldAccent={worldAccent}
-              active={active}
-              reducedMotion={reducedMotion}
-              celebrate={celebrate}
-            />
-            {isCoreV2(state.ruleset) ? (
-              <CoreV2Board
-                size={boardSize}
-                width={boardBox.width}
-                height={boardBox.height}
-                state={state}
-                flights={session.flights}
-                presentThrough={session.presentThrough}
-                colorAssist={colorAssist}
-                reducedMotion={reducedMotion}
-              />
-            ) : (
-              <OrbitBoard
-                size={boardSize}
-                state={state}
-                flights={session.flights}
-                presentThrough={session.presentThrough}
-                colorAssist={colorAssist}
-                reducedMotion={reducedMotion}
-              />
-            )}
-            {won ? (
-              <View style={StyleSheet.absoluteFill} pointerEvents="none">
-                <DiscoveryReveal
+          // Restrained board frame — a single ink panel + hairline cyan border
+          // so the board reads as sitting inside the same machine as the HUD/
+          // deck, not floating. `boardWrap` (measured for launch/holding
+          // coordinates) is unchanged and has no padding of its own; this is a
+          // new, uninvolved parent, so `boardOrigin` still measures the
+          // board's own true position.
+          <View style={styles.boardFrame}>
+            <View
+              ref={boardWrap}
+              collapsable={false}
+              onLayout={onBoardLayout}
+              style={{ overflow: 'visible' }}
+            >
+              {isCoreV2(state.ruleset) ? (
+                <CoreV2Board
                   size={boardSize}
                   width={boardBox.width}
                   height={boardBox.height}
-                  level={level}
                   state={state}
-                  progress={revealProgress}
+                  flights={session.flights}
+                  presentThrough={session.presentThrough}
+                  colorAssist={colorAssist}
                   reducedMotion={reducedMotion}
-                  tier={tier}
                 />
-              </View>
-            ) : null}
-            <Animated.View pointerEvents="none" style={[styles.failRing, failPulseStyle]} />
+              ) : (
+                <OrbitBoard
+                  size={boardSize}
+                  state={state}
+                  flights={session.flights}
+                  presentThrough={session.presentThrough}
+                  colorAssist={colorAssist}
+                  reducedMotion={reducedMotion}
+                />
+              )}
+              {won ? (
+                <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                  <DiscoveryReveal
+                    size={boardSize}
+                    width={boardBox.width}
+                    height={boardBox.height}
+                    level={level}
+                    state={state}
+                    progress={revealProgress}
+                    reducedMotion={reducedMotion}
+                    tier={tier}
+                  />
+                </View>
+              ) : null}
+              <Animated.View pointerEvents="none" style={[styles.failRing, failPulseStyle]} />
+            </View>
           </View>
         ) : null}
         {showTutorial ? (
@@ -352,12 +392,22 @@ export function GameScreen({
         locked={session.locked}
         onResetProgress={onResetProgress}
       />
+
+      {introVisible ? (
+        <LevelIntro
+          levelId={levelId}
+          title={level.title}
+          ready={gameplayReady && minIntroElapsed}
+          reducedMotion={reducedMotion}
+          onDone={handleIntroDone}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: homeV2.deepNavy, overflow: 'hidden' },
+  safe: { flex: 1, backgroundColor: NEON.inkDeep, overflow: 'hidden' },
   boardArea: {
     flex: 1,
     zIndex: 1,
@@ -365,6 +415,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: GAMEPLAY.boardSidePad,
     paddingBottom: GAMEPLAY.boardDeckGap,
+  },
+  // One thin ink panel + hairline border — not a cabinet. Plain RN View
+  // styling only, no shadow/blur, so it costs nothing per frame.
+  boardFrame: {
+    padding: 2,
+    borderRadius: 20,
+    backgroundColor: neonAlpha(NEON.ink, 0.35),
+    borderWidth: 1,
+    borderColor: neonAlpha(NEON.cyan, 0.2),
   },
   controls: {
     width: '100%',
@@ -388,7 +447,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: material.overlay,
     borderWidth: 1,
-    borderColor: 'rgba(77,225,255,0.35)',
+    borderColor: neonAlpha(NEON.cyan, 0.35),
   },
   tutorialText: {
     color: material.textPrimary,

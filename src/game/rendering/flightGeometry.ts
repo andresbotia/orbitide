@@ -7,6 +7,7 @@ import {
   pointAtMeasuredPerimeterProgress,
   inwardNormalAtMeasuredPerimeterProgress,
   tangentAtMeasuredPerimeterProgress,
+  poseAtMeasuredPerimeterProgress,
 } from '@/game/geometry/roundedPerimeter';
 import type { BoardGeometry, Point } from './boardGeometry';
 
@@ -64,26 +65,11 @@ export function flightPose(
 
   if (metrics) {
     const t = normalizePerimeterProgress(orbitFraction(progress));
-    const base = pointAtMeasuredPerimeterProgress(metrics, t);
-    if (radialOffset) {
-      const inward = inwardNormalAtMeasuredPerimeterProgress(metrics, t);
-      x = base.x - inward.x * radialOffset;
-      y = base.y - inward.y * radialOffset;
-    } else {
-      x = base.x;
-      y = base.y;
-    }
-    const tangent = tangentAtMeasuredPerimeterProgress(metrics, t);
-    heading = Math.atan2(tangent.y, tangent.x);
-    const behind = normalizePerimeterProgress(t - BANK_SAMPLE_DELTA);
-    const ahead = normalizePerimeterProgress(t + BANK_SAMPLE_DELTA);
-    const a = tangentAtMeasuredPerimeterProgress(metrics, behind);
-    const b = tangentAtMeasuredPerimeterProgress(metrics, ahead);
-    let dTheta = Math.atan2(b.y, b.x) - Math.atan2(a.y, a.x);
-    if (dTheta > Math.PI) dTheta -= Math.PI * 2;
-    if (dTheta < -Math.PI) dTheta += Math.PI * 2;
-    const deg = (dTheta / (BANK_SAMPLE_DELTA * 2)) * (MAX_BANK_DEG / 90);
-    bank = Math.max(-MAX_BANK_DEG, Math.min(MAX_BANK_DEG, deg));
+    const pose = poseAtMeasuredPerimeterProgress(metrics, t, radialOffset);
+    x = pose.x;
+    y = pose.y;
+    heading = pose.heading;
+    bank = pose.bank;
   } else {
     const angle = orbitFraction(progress) * Math.PI * 2 - Math.PI / 2;
     x = layout.center.x + Math.cos(angle) * (layout.orbit[0]!.rx + radialOffset);
@@ -91,7 +77,13 @@ export function flightPose(
   }
 
   if (time > pass.orbitEndAt && pass.endKind === 'toHolding') {
-    const to = pass.holdingTarget ?? { x: layout.center.x, y: layout.size + 100 };
+    const fallbackX = typeof pass.holdingSlotIndex === 'number' && pass.holdingSlotIndex >= 0
+      ? layout.center.x + (pass.holdingSlotIndex - 1) * 64
+      : layout.center.x;
+    const fallbackY = typeof pass.holdingSlotIndex === 'number' && pass.holdingSlotIndex >= 0
+      ? layout.size + 100
+      : layout.size + 250;
+    const to = pass.holdingTarget ?? { x: fallbackX, y: fallbackY };
     if (metrics && progress < pass.endProgress - 1e-6) {
       return { x, y, heading, bank };
     }
@@ -168,7 +160,13 @@ export function flightPosition(
   }
 
   if (time > pass.orbitEndAt && pass.endKind === 'toHolding') {
-    const to = pass.holdingTarget ?? { x: layout.center.x, y: layout.size + 100 };
+    const fallbackX = typeof pass.holdingSlotIndex === 'number' && pass.holdingSlotIndex >= 0
+      ? layout.center.x + (pass.holdingSlotIndex - 1) * 64
+      : layout.center.x;
+    const fallbackY = typeof pass.holdingSlotIndex === 'number' && pass.holdingSlotIndex >= 0
+      ? layout.size + 100
+      : layout.size + 250;
+    const to = pass.holdingTarget ?? { x: fallbackX, y: fallbackY };
     if (metrics && progress < pass.endProgress - 1e-6) return { x, y };
     const from = metrics ? insertion : { x, y };
     const p = Math.min(1, (time - pass.orbitEndAt) / Math.max(1, pass.landingAt - pass.orbitEndAt));

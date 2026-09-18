@@ -4,34 +4,36 @@
  * unchanged. Colors come from `homeV2` / `NEON`; this module is sizes.
  */
 export const GAMEPLAY = {
-  hudHeight: 48,
-  hudButton: 38,
+  hudHeight: 44,
+  hudButton: 36,
   hudButtonHit: 44,
-  hudProgressHeight: 8,
-  hudMedallion: 36,
+  hudProgressHeight: 7,
+  hudMedallion: 34,
 
-  boardSidePad: 8,
-  boardDeckGap: 6,
+  // Reserves room for GameScreen's board frame (padding + hairline border)
+  // around the rail — the frame lives outside `boardWrap`, this is its budget.
+  boardSidePad: 7,
+  boardDeckGap: 8,
 
   /** Orbiting Pal visual size (pt). chargeRadius ≈ this / 2.1 */
   orbitingPalMin: 32,
   orbitingPalMax: 38,
 
-  holdingWell: 56,
-  holdingPal: 48,
+  holdingWell: 62,
+  holdingPal: 52,
 
-  readyPalMin: 60,
-  readyPalMax: 70,
-  queuePalMin: 42,
-  queuePalMax: 52,
+  readyPalMin: 64,
+  readyPalMax: 76,
+  queuePalMin: 44,
+  queuePalMax: 54,
 
-  deckPadTop: 10,
-  deckPadX: 12,
-  deckPadBottom: 10,
-  deckGap: 8,
+  deckPadTop: 8,
+  deckPadX: 10,
+  deckPadBottom: 8,
+  deckGap: 6,
 
-  itemButton: 44,
-  itemButtonHit: 44,
+  itemButton: 58,
+  itemButtonHit: 64,
 } as const;
 
 /** Visual Pal size for a board whose shorter canvas edge is `short`. */

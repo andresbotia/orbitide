@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, useDerivedValue, type SharedValue } from 'react-native-reanimated';
 
@@ -7,86 +7,128 @@ import { orbColors, orbGlow } from '@/theme/colors';
 import type { BoardGeometry } from './boardGeometry';
 import { flightPosition } from './flightGeometry';
 
+interface PrecomputedShot {
+  shot: Shot;
+  fromX: number;
+  fromY: number;
+  dx: number;
+  dy: number;
+  angle: number;
+  duration: number;
+  flashX: number;
+  flashY: number;
+  coreX: number;
+  coreY: number;
+}
+
 /**
  * Exactly two native views per pass: the projectile streak and the impact flash.
  * The active shot is selected entirely on the UI thread. The streak starts at
  * the charge's ACTUAL rendered position and ends at the exact engine-selected
  * target cell — the player can always see which pixel spent the capacity.
  *
- * UI-R9: `calm` (mirrors `OrbitingCharge`'s existing concurrency dimming —
- * previously this component never dimmed at all, the one inconsistency in an
- * otherwise-graceful degrade-under-load story) softens both the streak and
- * the impact flash once several charges share the rail, so five simultaneous
- * flights don't stack into visual noise.
+ * Performance: Per-shot flight position, target coordinates, angle, and offsets
+ * are precalculated once per pass instead of re-evaluating flightPosition worklets
+ * and Math.atan2 on every animation frame. Passes without shots return null.
  */
-export const EnergyShot = memo(function EnergyShot({ pass, layout, clock, laneOffset = 0, calm = false }: {
+export const EnergyShot = memo(function EnergyShot(props: {
+  pass: FlightPass; layout: BoardGeometry; clock: SharedValue<number>; laneOffset?: number; calm?: boolean;
+}) {
+  if (props.pass.shots.length === 0) return null;
+  return <ActiveEnergyShot {...props} />;
+});
+
+const ActiveEnergyShot = memo(function ActiveEnergyShot({ pass, layout, clock, laneOffset = 0, calm = false }: {
   pass: FlightPass; layout: BoardGeometry; clock: SharedValue<number>; laneOffset?: number; calm?: boolean;
 }) {
   const depth = calm ? 0.6 : 1;
+  const length = Math.min(16, layout.cell * 0.8);
+  const color = orbColors[pass.charge.color];
+
+  const precomputed = useMemo<PrecomputedShot[]>(() => {
+    return pass.shots.map((shot) => {
+      const from = flightPosition(pass, layout, shot.fireAt, laneOffset);
+      const targetCenterX = layout.gridOrigin.x + (shot.target.x + 0.5) * layout.cell;
+      const targetCenterY = layout.gridOrigin.y + (shot.target.y + 0.5) * layout.cell;
+      const dx = targetCenterX - from.x;
+      const dy = targetCenterY - from.y;
+      const angle = Math.atan2(dy, dx);
+      const duration = Math.max(1, shot.impactAt - shot.fireAt);
+      const flashX = layout.gridOrigin.x + shot.target.x * layout.cell - layout.cell * 0.15;
+      const flashY = layout.gridOrigin.y + shot.target.y * layout.cell - layout.cell * 0.15;
+      const coreX = layout.gridOrigin.x + shot.target.x * layout.cell + layout.cell * 0.2;
+      const coreY = layout.gridOrigin.y + shot.target.y * layout.cell + layout.cell * 0.2;
+      return {
+        shot,
+        fromX: from.x,
+        fromY: from.y,
+        dx,
+        dy,
+        angle,
+        duration,
+        flashX,
+        flashY,
+        coreX,
+        coreY,
+      };
+    });
+  }, [pass, layout, laneOffset]);
+
   const active = useDerivedValue(() => {
-    let current: Shot | null = null;
-    for (const shot of pass.shots) {
-      if (clock.value < shot.anticipateAt) break;
-      current = shot;
+    let current: PrecomputedShot | null = null;
+    for (let i = 0; i < precomputed.length; i++) {
+      const ps = precomputed[i]!;
+      if (clock.value < ps.shot.anticipateAt) break;
+      current = ps;
     }
     return current;
   });
 
-  const length = Math.min(16, layout.cell * 0.8);
-  const color = orbColors[pass.charge.color];
-
   const streak = useAnimatedStyle(() => {
-    const shot = active.value;
+    const ps = active.value;
     const t = clock.value;
-    if (!shot || t < shot.fireAt || t >= shot.impactAt) return { opacity: 0 };
-    const from = flightPosition(pass, layout, shot.fireAt, laneOffset);
-    const target = {
-      x: layout.gridOrigin.x + (shot.target.x + 0.5) * layout.cell,
-      y: layout.gridOrigin.y + (shot.target.y + 0.5) * layout.cell,
-    };
-    const angle = Math.atan2(target.y - from.y, target.x - from.x);
-    const p = Math.max(0, Math.min(1, (t - shot.fireAt) / Math.max(1, shot.impactAt - shot.fireAt)));
+    if (!ps || t < ps.shot.fireAt || t >= ps.shot.impactAt) return { opacity: 0 };
+    const p = Math.max(0, Math.min(1, (t - ps.shot.fireAt) / ps.duration));
     return {
       opacity: depth,
       transform: [
-        { translateX: from.x + (target.x - from.x) * p - length / 2 },
-        { translateY: from.y + (target.y - from.y) * p - 2 },
-        { rotate: `${angle}rad` },
+        { translateX: ps.fromX + ps.dx * p - length / 2 },
+        { translateY: ps.fromY + ps.dy * p - 2 },
+        { rotate: `${ps.angle}rad` },
       ],
     };
   });
 
   const flash = useAnimatedStyle(() => {
-    const shot = active.value;
+    const ps = active.value;
     const t = clock.value;
-    if (!shot || t < shot.impactAt || t > shot.clearAt + 120) return { opacity: 0 };
-    const pop = Math.max(0, Math.min(1, (t - shot.clearAt) / 120));
+    if (!ps || t < ps.shot.impactAt || t > ps.shot.clearAt + 120) return { opacity: 0 };
+    const pop = Math.max(0, Math.min(1, (t - ps.shot.clearAt) / 120));
     return {
       opacity: (1 - pop) * 0.95 * depth,
       transform: [
-        { translateX: layout.gridOrigin.x + shot.target.x * layout.cell - layout.cell * 0.15 },
-        { translateY: layout.gridOrigin.y + shot.target.y * layout.cell - layout.cell * 0.15 },
+        { translateX: ps.flashX },
+        { translateY: ps.flashY },
         { scale: 1 + pop * 1.1 },
       ],
     };
   });
 
-  // A brief brighter core at the instant of impact, under the ring flash —
-  // reads as a sharper "hit" beat before the ring expands and fades.
   const core = useAnimatedStyle(() => {
-    const shot = active.value;
+    const ps = active.value;
     const t = clock.value;
-    if (!shot || t < shot.impactAt || t > shot.clearAt + 70) return { opacity: 0 };
-    const pop = Math.max(0, Math.min(1, (t - shot.impactAt) / 70));
+    if (!ps || t < ps.shot.impactAt || t > ps.shot.clearAt + 70) return { opacity: 0 };
+    const pop = Math.max(0, Math.min(1, (t - ps.shot.impactAt) / 70));
     return {
       opacity: (1 - pop) * depth,
       transform: [
-        { translateX: layout.gridOrigin.x + shot.target.x * layout.cell + layout.cell * 0.2 },
-        { translateY: layout.gridOrigin.y + shot.target.y * layout.cell + layout.cell * 0.2 },
+        { translateX: ps.coreX },
+        { translateY: ps.coreY },
         { scale: 0.6 + pop * 0.7 },
       ],
     };
   });
+
 
   return (
     <>

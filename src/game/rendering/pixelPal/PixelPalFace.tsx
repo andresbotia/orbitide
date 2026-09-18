@@ -37,7 +37,7 @@ const BADGE_PLATE = 34;
 const BADGE_HIDE = 22;
 const BADGE_FILL = 'rgba(0, 23, 66, 0.92)';
 
-export function PixelPalShell({ color, size, colorAssist }: { color: OrbColor; size: number; colorAssist?: boolean }) {
+export const PixelPalShell = memo(function PixelPalShell({ color, size, colorAssist }: { color: OrbColor; size: number; colorAssist?: boolean }) {
   const shell = orbColors[color];
   const podSize = size * 0.26;
   const detailed = size >= DETAIL_FLOOR;
@@ -181,12 +181,12 @@ export function PixelPalShell({ color, size, colorAssist }: { color: OrbColor; s
       ) : null}
     </View>
   );
-}
+});
 
 /**
  * Glossy dark visor + eyes + expression. The visor never carries a numeral.
  */
-export function PixelPalVisor({ size, mood = 'calm', animate = true }: {
+export const PixelPalVisor = memo(function PixelPalVisor({ size, mood = 'calm', animate = true }: {
   size: number; mood?: PixelPalMood; animate?: boolean;
 }) {
   const reducedMotion = useReducedMotion();
@@ -251,7 +251,7 @@ export function PixelPalVisor({ size, mood = 'calm', animate = true }: {
       </View>
     </View>
   );
-}
+});
 
 export function palBadgeNumeralStyle(palSize: number): TextStyle {
   const plate = palSize > BADGE_PLATE;
@@ -336,7 +336,7 @@ export const PixelPalBadge = memo(function PixelPalBadge({ palSize, color, text,
 });
 
 /** Static composition (zero rotation) for a Tunnel port / Holding slot / preview chip. */
-export function PixelPalFace({ color, size, colorAssist, mood, capacity, selected, animate }: {
+export const PixelPalFace = memo(function PixelPalFace({ color, size, colorAssist, mood, capacity, selected, animate }: {
   color: OrbColor; size: number; colorAssist?: boolean; mood?: PixelPalMood;
   /** Remaining count. Rendered on the badge, never in the visor. */
   capacity?: number;
@@ -368,4 +368,4 @@ export function PixelPalFace({ color, size, colorAssist, mood, capacity, selecte
       ) : null}
     </View>
   );
-}
+});

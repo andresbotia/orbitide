@@ -8,8 +8,8 @@ interface BoardFrameProps {
   worldAccent: string;
   active: boolean;
   reducedMotion: boolean;
-  /** 0 idle -> 1 on the win transition. Kept so GameScreen's celebrate clock is harmless. */
-  celebrate: SharedValue<number>;
+  /** @deprecated Celebrate clock is no longer used. */
+  celebrate?: SharedValue<number>;
 }
 
 /**

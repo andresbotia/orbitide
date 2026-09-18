@@ -274,12 +274,17 @@ function onHitResolved(
   const decremented =
     state.launchedCapacity > 0 && event.remaining < state.launchedCapacity;
   if (!decremented && event.remaining >= state.launchedCapacity) return state;
+  const sawCountDecrement = state.flags.sawCountDecrement || decremented;
+  // Every pixel hit of a multi-hit charge reaches here once sawHit/sawCountDecrement
+  // are already true — bail instead of allocating a same-valued object every time,
+  // so commitTutorial's `prev === next` check skips the no-op re-render.
+  if (state.flags.sawHit && state.flags.sawCountDecrement === sawCountDecrement) return state;
   return {
     ...state,
     flags: {
       ...state.flags,
       sawHit: true,
-      sawCountDecrement: state.flags.sawCountDecrement || decremented,
+      sawCountDecrement,
     },
   };
 }

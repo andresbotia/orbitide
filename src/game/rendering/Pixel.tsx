@@ -34,7 +34,17 @@ export const Pixel = memo(function Pixel(props: PixelProps) {
     return <StaticPixel {...props} />;
   }
   return <ClearingPixel {...props} clock={props.clock} clearAt={props.clearAt} />;
-});
+}, (prev, next) => (
+  prev.color === next.color &&
+  prev.cx === next.cx &&
+  prev.cy === next.cy &&
+  prev.cell === next.cell &&
+  prev.reachable === next.reachable &&
+  prev.modifierDim === next.modifierDim &&
+  prev.adaptive === next.adaptive &&
+  prev.clock === next.clock &&
+  prev.clearAt === next.clearAt
+));
 
 function pixelLayout(props: PixelProps) {
   const { color, cell, reachable, adaptive, modifierDim = 0 } = props;

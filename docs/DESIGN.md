@@ -478,3 +478,20 @@ touched — this is campaign-organisation metadata only. A dedicated regression
 test (`game/levels/__tests__/campaignMetadata.test.ts`) pins the ten current
 world names/ids/order and asserts none of the retired codenames can leak back
 into consumer-facing metadata.
+
+## 28. Gameplay HUD/board/control-deck redesign landed on `NEON`, not `material.ts`
+
+§22 planned Gameplay board/HUD (Milestone 4) and Tunnels/Holding (Milestone 5)
+as `material.ts` consumers. By the time that milestone actually ran, Home had
+moved past `homeV2.ts` to `theme/neon.ts` (dropping purple/violet entirely —
+see `neon.ts`'s header). Matching *current* Home meant matching `NEON`, so
+Gameplay adopted `NEON`/`neonAlpha` directly instead of `material.ts`'s
+violet/indigo hardware system — `Hud.tsx`, `ControlDeck.tsx`, `HoldingTray.tsx`,
+`TunnelBar.tsx`, `ItemRack.tsx`, `ResultOverlay.tsx`'s card chrome, and the new
+board-frame wrapper in `GameScreen.tsx` all read `NEON` for surfaces/borders/
+accents now. `material.ts`'s hue-neutral status roles (`success`/`danger`/
+`warning`, `textPrimary`/`textSecondary`, `overlay`) are unaffected — those
+are shared with `palette.ts` by design (§16) and were never part of the
+violet system being replaced. `material.ts` itself is left in place, unused,
+documented here as superseded rather than deleted (nothing else consumed it
+either). `theme/gameplayLayout.ts` is sizes only and did not need to change.

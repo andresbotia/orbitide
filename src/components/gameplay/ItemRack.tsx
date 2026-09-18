@@ -8,7 +8,7 @@ import {
   type GameplayItemId,
 } from '@/game/presentation/itemPlaceholders';
 import { GAMEPLAY } from '@/theme/gameplayLayout';
-import { homeAlpha, homeV2 } from '@/theme/homeV2';
+import { NEON, neonAlpha } from '@/theme/neon';
 
 const SIZE = GAMEPLAY.itemButton;
 
@@ -40,11 +40,11 @@ const ItemButton = memo(function ItemButton({
       accessibilityRole="button"
       accessibilityLabel={`${label}, ${count}`}
       accessibilityState={{ disabled: empty }}
-      hitSlop={2}
+      hitSlop={4}
       style={({ pressed }) => [
         styles.btn,
         empty && styles.btnEmpty,
-        pressed && styles.btnPressed,
+        pressed && !empty && styles.btnPressed,
       ]}
     >
       <ItemGlyph id={id} empty={empty} />
@@ -58,23 +58,33 @@ const ItemButton = memo(function ItemButton({
 });
 
 function ItemGlyph({ id, empty }: { id: GameplayItemId; empty: boolean }) {
-  const ink = empty ? homeAlpha(homeV2.cyan, 0.4) : homeV2.cyan;
-  const gold = empty ? homeAlpha(homeV2.yellow, 0.4) : homeV2.yellow;
-  if (id === 'extraSlot') {
+  const ink = empty ? neonAlpha(NEON.cyan, 0.4) : NEON.cyan;
+  
+  if (id === 'undo') {
     return (
       <View style={styles.glyph}>
-        <View style={[styles.slotWell, { borderColor: ink }]} />
-        <View style={[styles.plusH, { backgroundColor: ink }]} />
-        <View style={[styles.plusV, { backgroundColor: ink }]} />
-        <View style={[styles.goldNode, { backgroundColor: gold }]} />
+        <View style={[styles.undoArc, { borderColor: ink, borderRightColor: 'transparent', borderBottomColor: 'transparent' }]} />
+        <View style={[styles.undoArrow, { borderBottomColor: ink }]} />
       </View>
     );
   }
+  
+  if (id === 'scanner') {
+    return (
+      <View style={styles.glyph}>
+        <View style={[styles.scannerCircle, { borderColor: ink }]} />
+        <View style={[styles.scannerCrossH, { backgroundColor: ink }]} />
+        <View style={[styles.scannerCrossV, { backgroundColor: ink }]} />
+      </View>
+    );
+  }
+
+  // extraSlot
   return (
     <View style={styles.glyph}>
-      <View style={[styles.bomb, { borderColor: ink, backgroundColor: homeAlpha('#000C28', 0.9) }]} />
-      <View style={[styles.fuse, { backgroundColor: gold }]} />
-      <View style={[styles.spark, { backgroundColor: gold }]} />
+      <View style={[styles.slotWell, { borderColor: ink }]} />
+      <View style={[styles.plusH, { backgroundColor: ink }]} />
+      <View style={[styles.plusV, { backgroundColor: ink }]} />
     </View>
   );
 }
@@ -84,93 +94,105 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 12,
     alignSelf: 'center',
-    paddingTop: 2,
+    paddingTop: 8,
   },
+  // Same ink-well + single neon ring language as Holding/Tunnels — one
+  // control-deck material, no bevel-pair hardware, no drop shadows.
   btn: {
     width: SIZE,
     height: SIZE,
-    borderRadius: 11,
-    backgroundColor: homeAlpha('#000C28', 0.92),
+    borderRadius: 14,
+    backgroundColor: neonAlpha(NEON.ink, 0.55),
     borderWidth: 1.5,
-    borderColor: homeAlpha(homeV2.cyan, 0.5),
+    borderColor: neonAlpha(NEON.cyan, 0.25),
     alignItems: 'center',
     justifyContent: 'center',
   },
   btnEmpty: {
-    borderColor: homeAlpha(homeV2.cyan, 0.18),
-    opacity: 0.55,
+    borderStyle: 'dashed',
+    borderColor: neonAlpha(NEON.cyan, 0.18),
+    opacity: 0.6,
+    backgroundColor: 'transparent',
   },
   btnPressed: {
     transform: [{ scale: 0.94 }],
-    borderColor: homeV2.cyan,
-    backgroundColor: homeAlpha(homeV2.cyan, 0.12),
+    backgroundColor: neonAlpha(NEON.ink, 0.85),
+    borderColor: NEON.cyan,
   },
+  // Slightly bigger/higher-contrast than a generic badge — this number is
+  // how the player judges whether a booster is worth tapping.
   badge: {
     position: 'absolute',
-    right: -3,
-    bottom: -3,
-    minWidth: 16,
-    height: 16,
+    right: -5,
+    bottom: -5,
+    minWidth: 23,
+    height: 23,
     paddingHorizontal: 4,
-    borderRadius: 8,
-    backgroundColor: homeV2.deepNavy,
-    borderWidth: 1,
-    borderColor: homeV2.yellow,
+    borderRadius: 12,
+    backgroundColor: NEON.inkDeep,
+    borderWidth: 2,
+    borderColor: NEON.gold,
     alignItems: 'center',
     justifyContent: 'center',
   },
   badgeNum: {
-    color: homeV2.white,
-    fontSize: 10,
+    color: NEON.cyanPale,
+    fontSize: 13,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
-    lineHeight: 12,
+    lineHeight: 15,
   },
   glyph: {
-    width: 22,
-    height: 22,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  undoArc: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2.5,
+    transform: [{ rotate: '-45deg' }],
+  },
+  undoArrow: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 5,
+    borderRightWidth: 5,
+    borderBottomWidth: 7,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    transform: [{ rotate: '-45deg' }],
+  },
+  scannerCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+  },
+  scannerCrossH: {
+    position: 'absolute',
+    width: 26,
+    height: 2,
+  },
+  scannerCrossV: {
+    position: 'absolute',
+    width: 2,
+    height: 26,
+  },
   slotWell: {
     position: 'absolute',
-    width: 16,
-    height: 16,
+    width: 20,
+    height: 20,
     borderRadius: 4,
-    borderWidth: 1.5,
+    borderWidth: 2,
   },
   plusH: { position: 'absolute', width: 10, height: 2, borderRadius: 1 },
   plusV: { position: 'absolute', width: 2, height: 10, borderRadius: 1 },
-  goldNode: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-  },
-  bomb: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 1.5,
-    marginTop: 3,
-  },
-  fuse: {
-    position: 'absolute',
-    top: 2,
-    width: 2,
-    height: 5,
-    borderRadius: 1,
-  },
-  spark: {
-    position: 'absolute',
-    top: 0,
-    right: 6,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-  },
 });

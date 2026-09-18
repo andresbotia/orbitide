@@ -9,7 +9,8 @@ import type { Charge, GameState } from '@/game/engine/types';
 import type { Point } from '@/game/rendering/boardGeometry';
 import type { TutorialView } from '@/game/tutorial';
 import { GAMEPLAY } from '@/theme/gameplayLayout';
-import { homeAlpha, homeV2 } from '@/theme/homeV2';
+import { NEON, neonAlpha } from '@/theme/neon';
+
 
 interface ControlDeckProps {
   state: GameState;
@@ -21,8 +22,8 @@ interface ControlDeckProps {
   colorAssist?: boolean;
   pixelPal: boolean;
   onSourceLayout: (key: string, point: Point) => void;
-  onLaunchTunnel: (id: string) => void;
-  onLaunchHeld: (id: string) => void;
+  onLaunchTunnel: (id: string) => boolean;
+  onLaunchHeld: (id: string) => boolean;
   message: string;
   tutorial?: TutorialView;
 }
@@ -33,9 +34,18 @@ function isTransientStatus(message: string): boolean {
   return true;
 }
 
+function setsEqual(a: Set<string>, b: Set<string>): boolean {
+  if (a === b) return true;
+  if (a.size !== b.size) return false;
+  for (const v of a) if (!b.has(v)) return false;
+  return true;
+}
+
 /**
  * Single gameplay control surface: Active, ready Pals, Holding, item dock.
  * Material matches Home's nav deck. Slot count follows engine capacity.
+ * Holding sits ABOVE tunnels in the visual stack:
+ *   ACTIVE/STATUS → HOLDING → TUNNELS → ITEMS
  */
 export const ControlDeck = memo(function ControlDeck({
   state,
@@ -57,28 +67,18 @@ export const ControlDeck = memo(function ControlDeck({
 
   return (
     <View style={styles.deck}>
+      {/* Subtle lit edge along the top — hardware seam */}
       <View pointerEvents="none" style={styles.litEdge} />
-      <View pointerEvents="none" style={styles.bevel} />
-      <View pointerEvents="none" style={[styles.screw, styles.screwTL]} />
-      <View pointerEvents="none" style={[styles.screw, styles.screwTR]} />
+
       {activeCapacity > 0 ? (
         <ActiveStatus count={activeCount} capacity={activeCapacity} embedded />
       ) : null}
-      <TunnelBar
-        layoutVersion={layoutVersion}
-        state={state}
-        disabled={disabled}
-        colorAssist={colorAssist}
-        onSourceLayout={onSourceLayout}
-        onLaunch={onLaunchTunnel}
-        tutorial={tutorial}
-        embedded
-      />
+
+      {/* Holding sits above tunnels — the hierarchy is Board → Active → Holding → Tunnels → Items */}
       <HoldingTray
         layoutVersion={layoutVersion}
         holding={holding}
         capacity={state.holdingCapacity}
-        overflow={state.status === 'lost'}
         disabled={disabled}
         usefulIds={usefulIds}
         colorAssist={colorAssist}
@@ -89,63 +89,80 @@ export const ControlDeck = memo(function ControlDeck({
         tutorial={tutorial}
         embedded
       />
+
+      {/* Separator between holding and tunnels */}
+      <View pointerEvents="none" style={styles.separator} />
+
+      <TunnelBar
+        layoutVersion={layoutVersion}
+        state={state}
+        disabled={disabled}
+        colorAssist={colorAssist}
+        onSourceLayout={onSourceLayout}
+        onLaunch={onLaunchTunnel}
+        tutorial={tutorial}
+        embedded
+      />
+
       <ItemRack />
+
       {status ? (
         <Text accessibilityLiveRegion="polite" style={styles.status}>{status}</Text>
       ) : null}
     </View>
   );
-});
+}, (prev, next) => (
+  prev.activeCount === next.activeCount
+  && prev.activeCapacity === next.activeCapacity
+  && prev.layoutVersion === next.layoutVersion
+  && prev.disabled === next.disabled
+  && prev.colorAssist === next.colorAssist
+  && prev.pixelPal === next.pixelPal
+  && prev.onSourceLayout === next.onSourceLayout
+  && prev.onLaunchTunnel === next.onLaunchTunnel
+  && prev.onLaunchHeld === next.onLaunchHeld
+  && prev.message === next.message
+  && prev.tutorial === next.tutorial
+  && setsEqual(prev.usefulIds, next.usefulIds)
+  && prev.state.holding === next.state.holding
+  && prev.state.holdingCapacity === next.state.holdingCapacity
+  && prev.state.tunnels === next.state.tunnels
+  && prev.state.ruleset === next.state.ruleset
+));
 
 const styles = StyleSheet.create({
   deck: {
     width: '100%',
-    backgroundColor: homeV2.deepNavy,
+    // Same ink-panel + cyan-trim language as Home's bottom nav — the deck
+    // reads as one control surface, not stacked components.
+    backgroundColor: neonAlpha(NEON.ink, 0.92),
     paddingTop: GAMEPLAY.deckPadTop,
     paddingHorizontal: GAMEPLAY.deckPadX,
     paddingBottom: GAMEPLAY.deckPadBottom,
     gap: GAMEPLAY.deckGap,
     borderTopWidth: 1,
-    borderTopColor: homeAlpha(homeV2.cyan, 0.22),
-    shadowColor: homeV2.cyan,
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: -2 },
-    elevation: 8,
+    borderTopColor: neonAlpha(NEON.cyan, 0.35),
   },
   litEdge: {
     position: 'absolute',
     top: 0,
-    left: 12,
-    right: 12,
-    height: 2,
+    left: 16,
+    right: 16,
+    height: 1.5,
     borderRadius: 1,
-    backgroundColor: homeAlpha(homeV2.cyan, 0.7),
+    backgroundColor: neonAlpha(NEON.cyan, 0.5),
   },
-  bevel: {
-    position: 'absolute',
-    top: 2,
-    left: 0,
-    right: 0,
-    height: 10,
-    backgroundColor: homeAlpha(homeV2.navy, 0.35),
+  // Deliberately a hairline, not a card border — Holding/Tunnels/Items are
+  // one deck with sections, never separately-framed cards.
+  separator: {
+    height: 1,
+    marginHorizontal: 8,
+    backgroundColor: neonAlpha(NEON.cyan, 0.08),
   },
-  screw: {
-    position: 'absolute',
-    top: 8,
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: homeAlpha(homeV2.yellow, 0.55),
-    borderWidth: 1,
-    borderColor: homeAlpha(homeV2.yellow, 0.8),
-  },
-  screwTL: { left: 8 },
-  screwTR: { right: 8 },
   status: {
-    color: homeAlpha(homeV2.white, 0.7),
-    fontSize: 12,
+    color: neonAlpha(NEON.cyanPale, 0.6),
+    fontSize: 11,
     textAlign: 'center',
-    marginTop: -4,
+    marginTop: -2,
   },
 });

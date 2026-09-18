@@ -45,7 +45,7 @@ function laneOffset(index: number): number {
  * clock, so up to five charges animate independently off one shared board
  * without a singleton anywhere.
  */
-export function OrbitBoard({ size, state, flights, presentThrough, colorAssist, reducedMotion, modifiers }: OrbitBoardProps) {
+export const OrbitBoard = memo(function OrbitBoard({ size, state, flights, presentThrough, colorAssist, reducedMotion, modifiers }: OrbitBoardProps) {
   const geo = useMemo(
     () => computeBoardGeometry(size, state.width, state.height),
     [size, state.width, state.height],
@@ -64,22 +64,7 @@ export function OrbitBoard({ size, state, flights, presentThrough, colorAssist, 
 
   return (
     <View style={{ width: size, height: size, overflow: 'visible' }}>
-      <Canvas style={StyleSheet.absoluteFill}>
-        {/* Recessed gameplay plane — Pixel Arcadia material, not the old Cosmic
-            Arcade deep-space fill. No default starfield: that becomes Cosmic
-            Frontier's world-specific ambient later, not the global identity. */}
-        <Rect x={0} y={0} width={size} height={size}>
-          <RadialGradient
-            c={vec(geo.center.x, geo.center.y)}
-            r={size * 0.66}
-            colors={[material.structuralSurface, material.recessedSurface]}
-          />
-        </Rect>
-        <Group>
-          <OrbitRail geo={geo} />
-          <LaunchHubMarker geo={geo} />
-        </Group>
-      </Canvas>
+      <OrbitField geo={geo} size={size} />
 
       <BoardActors
         state={state}
@@ -103,7 +88,26 @@ export function OrbitBoard({ size, state, flights, presentThrough, colorAssist, 
       ))}
     </View>
   );
-}
+});
+
+/** Static Skia field + rail. Memoised so pixel-clear React updates don't redraw it. */
+const OrbitField = memo(function OrbitField({ geo, size }: { geo: BoardGeometry; size: number }) {
+  return (
+    <Canvas style={StyleSheet.absoluteFill}>
+      <Rect x={0} y={0} width={size} height={size}>
+        <RadialGradient
+          c={vec(geo.center.x, geo.center.y)}
+          r={size * 0.66}
+          colors={[material.structuralSurface, material.recessedSurface]}
+        />
+      </Rect>
+      <Group>
+        <OrbitRail geo={geo} />
+        <LaunchHubMarker geo={geo} />
+      </Group>
+    </Canvas>
+  );
+});
 
 /**
  * One in-flight charge: its own linear UI-thread clock (0 → totalMs), the
@@ -122,12 +126,16 @@ const FlightActor = memo(function FlightActor({ pass, geo, presentThrough, color
 
   useEffect(() => {
     clock.set(0);
-    clock.set(withTiming(pass.totalMs, { duration: pass.totalMs, easing: Easing.linear }));
+    clock.set(
+      withTiming(pass.totalMs, { duration: pass.totalMs, easing: Easing.linear }, (finished) => {
+        if (finished) runOnJS(presentThrough)(pass.passId, pass.events.length);
+      }),
+    );
     const sub = AppState.addEventListener('change', (next) => {
       if (next !== 'active') cancelAnimation(clock);
     });
     return () => { cancelAnimation(clock); sub.remove(); };
-  }, [pass.passId, pass.totalMs, clock]);
+  }, [pass.passId, pass.totalMs, pass.events.length, clock, presentThrough]);
 
   useAnimatedReaction(
     () => eventCountAt(pass, clock.value),

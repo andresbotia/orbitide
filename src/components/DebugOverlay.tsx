@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { reachablePixels, remainingPixelCount } from '@/game/engine/pixels';
@@ -19,7 +19,7 @@ interface DebugOverlayProps {
  * Development-only state inspector. Rendered only when `__DEV__` is true so it
  * never ships in a release build. Starts collapsed to a small dot.
  */
-export function DebugOverlay({ state, locked, onResetProgress }: DebugOverlayProps) {
+export const DebugOverlay = memo(function DebugOverlay({ state, locked, onResetProgress }: DebugOverlayProps) {
   const [open, setOpen] = useState(false);
   const [haptics, setHaptics] = useState(HAPTICS_ENABLED);
   const colorAssist = useColorAssist();
@@ -115,7 +115,7 @@ export function DebugOverlay({ state, locked, onResetProgress }: DebugOverlayPro
       </View>
     </View>
   );
-}
+});
 
 function Row({ k, v }: { k: string; v: string }) {
   return (

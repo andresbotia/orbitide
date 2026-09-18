@@ -74,8 +74,9 @@ export interface GameSession {
   message: string;
   /** M5.4B UI contract. Presentation-only consumers must not drive engine truth. */
   tutorial: TutorialView;
-  launch: (tunnelId: string, from?: Point, holdingSlots?: (Point | undefined)[]) => void;
-  launchHeld: (chargeId: string, from?: Point, holdingSlots?: (Point | undefined)[]) => void;
+  /** Returns whether the tap was accepted — the tapped element uses this for local denied feedback. */
+  launch: (tunnelId: string, from?: Point, holdingSlots?: (Point | undefined)[]) => boolean;
+  launchHeld: (chargeId: string, from?: Point, holdingSlots?: (Point | undefined)[]) => boolean;
   presentThrough: (passId: number, eventCount: number) => void;
   restart: () => void;
 }
@@ -135,6 +136,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
   }, []);
 
   const settleAll = useCallback(() => {
+    viewFlushQueued.current = false;
     active.current.clear();
     cancelHits();
     setFlights([]);
@@ -169,11 +171,11 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     });
   }, []);
 
-  const perform = useCallback((action: GameAction, from?: Point, holdingSlots?: (Point | undefined)[]) => {
-    if (truth.current.status !== 'playing') return;
+  const perform = useCallback((action: GameAction, from?: Point, holdingSlots?: (Point | undefined)[]): boolean => {
+    if (truth.current.status !== 'playing') return false;
     if (!isTutorialActionAllowed(tutorialRef.current, action)) {
       feedback.emit('denied');
-      return;
+      return false;
     }
     const cap = truth.current.activeCapacity || DEFAULT_ACTIVE_CAPACITY;
     // Visible flights occupy Active slots until they land. Deny with no mutation.
@@ -181,18 +183,16 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
       for (const flight of active.current.values()) {
         if (flight.pass.charge.id === action.id && !hasPresentedHoldingLanding(flight)) {
           feedback.emit('denied');
-          return;
+          return false;
         }
       }
     }
     if (active.current.size >= cap) {
       setMessage('Rail is full — wait for a Pal to land.');
       feedback.emit('denied');
-      return;
+      return false;
     }
     const joining = active.current.size > 0 && epochHasCapacity(truth.current);
-    // Acknowledge the touch before resolving the pure engine action.
-    feedback.emit(action.kind === 'holding' ? 'heldRelaunch' : 'select');
     const before = truth.current;
     const outcome = resolveAction(before, { ...action, join: joining });
     if (!outcome.accepted) {
@@ -204,9 +204,11 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
         setMessage('That Pal is no longer available.');
       }
       feedback.emit('denied');
-      return;
+      return false;
     }
     setMessage('');
+    // Light/selection haptic immediately on accepted Pal interaction.
+    feedback.emit(action.kind === 'holding' ? 'heldRelaunch' : 'select');
     feedback.emit('launch', { haptic: false });
     truth.current = outcome.state;
     if (holdingSlots) holdingSlotsRef.current = holdingSlots;
@@ -269,17 +271,21 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     };
     setState(view.current);
     publishFlights();
+    return true;
   }, [publishFlights, advanceTutorial]);
 
   const presentThrough = useCallback((passId: number, count: number) => {
     const flight = active.current.get(passId);
     if (!flight) return;
     const end = Math.min(count, flight.pass.events.length);
+    let nextPixels = view.current.pixels;
+    let pixelsDirty = false;
     for (; flight.cursor < end; flight.cursor++) {
       const event = flight.pass.events[flight.cursor]!;
       if (event.kind === 'pixelClear') {
-        view.current = { ...view.current, pixels: view.current.pixels.map((p) =>
-          p.id === event.pixelId ? { ...p, cleared: true } : p) };
+        if (!pixelsDirty) { nextPixels = [...nextPixels]; pixelsDirty = true; }
+        const idx = nextPixels.findIndex((p) => p.id === event.pixelId);
+        if (idx !== -1) nextPixels[idx] = { ...nextPixels[idx]!, cleared: true };
         if (typeof event.remaining === 'number') {
           advanceTutorial({
             type: 'hitResolved',
@@ -288,21 +294,20 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
           });
         }
       } else if (event.kind === 'linkGroupClear') {
+        if (!pixelsDirty) { nextPixels = [...nextPixels]; pixelsDirty = true; }
         const cleared = new Set(event.pixelIds ?? []);
-        view.current = { ...view.current, pixels: view.current.pixels.map((p) =>
-          cleared.has(p.id) ? { ...p, cleared: true } : p) };
-      } else if (event.kind === 'frozenHit' || event.kind === 'linkPrime') {
-        // The ice cracked — mirror the engine's updated modifier; the pixel stays.
-        const truthPixel = truth.current.pixels.find((p) => p.id === event.pixelId);
-        if (truthPixel) {
-          view.current = { ...view.current, pixels: view.current.pixels.map((p) =>
-            p.id === event.pixelId ? { ...p, modifier: truthPixel.modifier } : p) };
+        for (let i = 0; i < nextPixels.length; i++) {
+          if (cleared.has(nextPixels[i]!.id)) {
+            nextPixels[i] = { ...nextPixels[i]!, cleared: true };
+          }
         }
-      } else if (event.kind === 'shieldHit') {
+      } else if (event.kind === 'frozenHit' || event.kind === 'linkPrime' || event.kind === 'shieldHit') {
+        // The ice/shield cracked — mirror the engine's updated modifier; the pixel stays.
         const truthPixel = truth.current.pixels.find((p) => p.id === event.pixelId);
         if (truthPixel) {
-          view.current = { ...view.current, pixels: view.current.pixels.map((p) =>
-            p.id === event.pixelId ? { ...p, modifier: truthPixel.modifier } : p) };
+          if (!pixelsDirty) { nextPixels = [...nextPixels]; pixelsDirty = true; }
+          const idx = nextPixels.findIndex((p) => p.id === event.pixelId);
+          if (idx !== -1) nextPixels[idx] = { ...nextPixels[idx]!, modifier: truthPixel.modifier };
         }
       } else if (event.kind === 'holdingLanded') {
         // Engine truth already parked remaining-capacity charges that fit.
@@ -310,7 +315,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
         // for on the flight, not silently eaten by the tray.
         const parked = flight.outcome.heldCharge
           && flight.outcome.state.holding.some((c) => c.id === flight.outcome.heldCharge!.id);
-        if (parked) {
+        if (parked && view.current.holding.length < truth.current.holdingCapacity) {
           view.current = {
             ...view.current,
             holding: appendPresentedHolding(view.current.holding, flight.outcome.heldCharge),
@@ -319,7 +324,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
           advanceTutorial({ type: 'holdingEntered', chargeId: flight.pass.charge.id });
         }
       } else if (event.kind === 'win' || event.kind === 'fail') {
-        view.current = { ...truth.current, holding: view.current.holding };
+        view.current = { ...truth.current, holding: view.current.holding, status: truth.current.status };
         if (event.kind === 'win') advanceTutorial({ type: 'levelWon' });
         reportResult();
       } else if (event.kind === 'complete') {
@@ -352,6 +357,9 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
         feedback.emit(soundEvent, { haptic: event.kind === 'win' ? false : !replacedImpact });
       }
     }
+    if (pixelsDirty) {
+      view.current = { ...view.current, pixels: nextPixels };
+    }
     queueViewFlush();
   }, [reportResult, settleAll, publishFlights, advanceTutorial, queueViewFlush]);
 
@@ -370,17 +378,17 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
   }, [level, commitTutorial]);
 
   const launch = useCallback((id: string, from?: Point, holdingSlots?: (Point | undefined)[]) => {
-    perform({ kind: 'tunnel', id }, from, holdingSlots);
+    return perform({ kind: 'tunnel', id }, from, holdingSlots);
   }, [perform]);
   const launchHeld = useCallback((id: string, from?: Point, holdingSlots?: (Point | undefined)[]) => {
-    perform({ kind: 'holding', id }, from, holdingSlots);
+    return perform({ kind: 'holding', id }, from, holdingSlots);
   }, [perform]);
 
   const cap = engineState.activeCapacity || DEFAULT_ACTIVE_CAPACITY;
   return {
     state, engineState, locked: flights.length >= cap,
     flights, flightPass: flights[flights.length - 1] ?? null,
-    canLaunch: state.status === 'playing' && flights.length < cap,
+    canLaunch: state.status === 'playing' && truth.current.status === 'playing' && flights.length < cap,
     activeCount: flights.length,
     activeCapacity: cap,
     message,

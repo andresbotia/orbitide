@@ -3,7 +3,6 @@ import { DEFAULT_ACTIVE_CAPACITY } from './concurrency';
 import {
   defaultHoldingCapacity,
   expectedTunnelCount,
-  isCoreV2,
   LEGACY_TUNNEL_COUNT,
   resolveRuleset,
 } from './ruleset';
@@ -11,6 +10,29 @@ import type { Charge, GameState, LevelDefinition, TunnelState } from './types';
 
 /** Legacy V1 tunnel count. Prefer {@link expectedTunnelCount} for ruleset-aware code. */
 export const TUNNEL_COUNT = LEGACY_TUNNEL_COUNT;
+
+// Charge-id uniqueness is a hard invariant the presentation layer relies on to
+// track a Pal from tunnel to Holding. The check is DEV-only so it never costs
+// anything in a release build or in the solver's bulk `createGame` calls.
+// No import: `typeof` keeps this safe in ts-jest's plain-Node environment,
+// where the RN-injected `__DEV__` global doesn't exist.
+const DEV = typeof __DEV__ !== 'undefined' && __DEV__;
+
+/** Every charge id createGame just produced must be globally unique across all tunnels. */
+function assertUniqueChargeIds(levelId: number, tunnels: TunnelState[]): void {
+  if (!DEV) return;
+  const seen = new Map<string, { tunnelIndex: number; chargeIndex: number; color: string; capacity: number }>();
+  tunnels.forEach((tunnel, tunnelIndex) => {
+    tunnel.queue.forEach((charge, chargeIndex) => {
+      const prior = seen.get(charge.id);
+      const here = { tunnelIndex, chargeIndex, color: charge.color, capacity: charge.capacity };
+      if (prior) {
+        console.error('[DUPLICATE_CHARGE_ID]', `level ${levelId}`, charge.id, { first: prior, duplicate: here });
+      }
+      seen.set(charge.id, here);
+    });
+  });
+}
 
 /**
  * Build a fresh {@link GameState} from a {@link LevelDefinition}.
@@ -42,6 +64,7 @@ export function createGame(level: LevelDefinition): GameState {
     }));
     return { id: `tunnel-${tunnelIndex}`, queue };
   });
+  assertUniqueChargeIds(level.id, tunnels);
 
   return {
     levelId: level.id,
@@ -61,12 +84,6 @@ export function createGame(level: LevelDefinition): GameState {
 }
 
 function resolveHoldingCapacity(level: LevelDefinition): number {
-  if (isCoreV2(level.ruleset)) {
-    if (typeof level.holdingCapacity === 'number' && level.holdingCapacity > 0 && level.holdingCapacity !== 4) {
-      return level.holdingCapacity;
-    }
-    return defaultHoldingCapacity(level.ruleset);
-  }
   return typeof level.holdingCapacity === 'number' && level.holdingCapacity > 0
     ? level.holdingCapacity
     : defaultHoldingCapacity(level.ruleset);

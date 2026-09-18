@@ -1,18 +1,27 @@
 import { Canvas, Group, LinearGradient, RadialGradient, Rect, vec } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
-import { cancelAnimation, Easing, runOnJS, useAnimatedReaction, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, {
+  cancelAnimation, Easing, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
 
 import type { GameState, ModifierInstance } from '@/game/engine/types';
 import type { FlightPass } from '@/game/presentation/events';
 import { eventCountAt } from '@/game/presentation/motion';
 import { coreV2Board } from '@/theme/coreV2Board';
+import { NEON } from '@/theme/neon';
 import { BoardActors } from './BoardActors';
 import { EnergyShot } from './EnergyShot';
 import { cellCenter, computeBoardGeometry, type BoardGeometry } from './boardGeometry';
 import { RoundedLauncherGate, RoundedRail } from './RoundedRail';
 import { Pixel } from './Pixel';
 import { PixelPal } from './pixelPal/PixelPal';
+
+/** TUNABLE — how long the one-shot winning-clear flash takes to fade out. */
+const FINAL_FLASH_MS = 220;
+/** TUNABLE — peak opacity of the winning-clear flash. Subtle, not a bloom. */
+const FINAL_FLASH_PEAK_OPACITY = 0.32;
 
 /** TUNABLE — presentation-only radial lane spacing so crowded Pixel Pals stay legible. */
 const LANE_OFFSET_PX = 3;
@@ -145,12 +154,16 @@ const CoreV2FlightActor = memo(function CoreV2FlightActor({ pass, geo, presentTh
 
   useEffect(() => {
     clock.set(0);
-    clock.set(withTiming(pass.totalMs, { duration: pass.totalMs, easing: Easing.linear }));
+    clock.set(
+      withTiming(pass.totalMs, { duration: pass.totalMs, easing: Easing.linear }, (finished) => {
+        if (finished) runOnJS(presentThrough)(pass.passId, pass.events.length);
+      }),
+    );
     const sub = AppState.addEventListener('change', (next) => {
       if (next !== 'active') cancelAnimation(clock);
     });
     return () => { cancelAnimation(clock); sub.remove(); };
-  }, [pass.passId, pass.totalMs, clock]);
+  }, [pass.passId, pass.totalMs, pass.events.length, clock, presentThrough]);
 
   useAnimatedReaction(
     () => eventCountAt(pass, clock.value),
@@ -185,6 +198,31 @@ const CoreV2FlightActor = memo(function CoreV2FlightActor({ pass, geo, presentTh
       </View>
       <EnergyShot pass={pass} layout={geo} clock={clock} laneOffset={lane} calm={calm} />
       <PixelPal layout={geo} pass={pass} clock={clock} colorAssist={colorAssist} laneOffset={lane} dim={calm} />
+      {pass.finalClearPixelId ? (
+        <FinalClearFlash
+          clock={clock}
+          at={pass.shots.find((s) => s.pixelId === pass.finalClearPixelId)?.clearAt ?? pass.orbitEndAt}
+        />
+      ) : null}
     </>
   );
+});
+
+/**
+ * One-shot warm flash across the board the instant the winning pixel clears —
+ * the only visual cue (besides the existing `finalClear` haptic) that this
+ * specific clear finished the level, before the Discovery reveal takes over.
+ * Reuses the flight's own clock; no new shared value, no persistent loop.
+ */
+const FinalClearFlash = memo(function FinalClearFlash({ clock, at }: { clock: SharedValue<number>; at: number }) {
+  const style = useAnimatedStyle(() => {
+    const t = clock.value - at;
+    if (t < 0 || t > FINAL_FLASH_MS) return { opacity: 0 };
+    return { opacity: (1 - t / FINAL_FLASH_MS) * FINAL_FLASH_PEAK_OPACITY };
+  });
+  return <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.finalFlash, style]} />;
+});
+
+const styles = StyleSheet.create({
+  finalFlash: { backgroundColor: NEON.gold },
 });

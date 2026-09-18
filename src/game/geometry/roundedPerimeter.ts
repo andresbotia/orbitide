@@ -293,6 +293,68 @@ export function tangentAtMeasuredPerimeterProgress(
   return tangentOnPerimeter(m, loc.index, loc.t);
 }
 
+export interface MeasuredPerimeterPose {
+  x: number;
+  y: number;
+  heading: number;
+  bank: number;
+}
+
+/**
+ * Single-pass position + heading + bank.
+ * Avoids 5 redundant locateOnPerimeter traversals per Pal per frame by sharing
+ * the segment lookup and skipping bank math on pure straight sections.
+ */
+export function poseAtMeasuredPerimeterProgress(
+  m: RoundedPerimeterMetrics,
+  progress: number,
+  radialOffset = 0,
+): MeasuredPerimeterPose {
+  'worklet';
+  if (m.length <= 0) return { x: m.x, y: m.y, heading: 0, bank: 0 };
+  const loc = locateOnPerimeter(m, progress);
+  const base = pointOnPerimeter(m, loc.index, loc.t);
+  let x = base.x;
+  let y = base.y;
+  if (radialOffset !== 0) {
+    const inward = inwardOnPerimeter(m, loc.index, loc.t);
+    x -= inward.x * radialOffset;
+    y -= inward.y * radialOffset;
+  }
+  const tangent = tangentOnPerimeter(m, loc.index, loc.t);
+  const heading = Math.atan2(tangent.y, tangent.x);
+
+  let bank = 0;
+  // Corner arc indices are 1, 3, 5, 7. Straight edges are 0, 2, 4, 6, 8.
+  const isCorner = loc.index % 2 === 1;
+  const delta = 0.006;
+  // Banking is only ever non-zero on a corner arc or within `delta` of one.
+  // The previous guard was `isCorner || m.arc > 0`, and `m.arc` is > 0 for every
+  // rounded board, so the two extra perimeter lookups and two atan2 calls below
+  // ran on every frame of every straight edge — roughly 70% of the lap, per Pal,
+  // at 60fps — only to produce the 0 this now returns directly. Same output.
+  const segment = partLength(m, loc.index);
+  const reach = delta * m.length;
+  const nearBoundary = loc.t * segment <= reach || (1 - loc.t) * segment <= reach;
+  if (isCorner || nearBoundary) {
+    const behind = normalizePerimeterProgress(progress - delta);
+    const ahead = normalizePerimeterProgress(progress + delta);
+    const locA = locateOnPerimeter(m, behind);
+    const locB = locateOnPerimeter(m, ahead);
+    if (locA.index !== locB.index || locA.index % 2 === 1) {
+      const a = tangentOnPerimeter(m, locA.index, locA.t);
+      const b = tangentOnPerimeter(m, locB.index, locB.t);
+      let dTheta = Math.atan2(b.y, b.x) - Math.atan2(a.y, a.x);
+      if (dTheta > Math.PI) dTheta -= Math.PI * 2;
+      if (dTheta < -Math.PI) dTheta += Math.PI * 2;
+      const deg = (dTheta / (delta * 2)) * 0.1; // 9 / 90 = 0.1
+      bank = Math.max(-9, Math.min(9, deg));
+    }
+  }
+
+  return { x, y, heading, bank };
+}
+
 export function pointAtRoundedPerimeterProgress(
   bounds: RoundedPerimeterBounds,
   progress: number,

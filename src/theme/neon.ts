@@ -1,15 +1,22 @@
 /**
- * HOME-SCOPED NEON tokens (Pixel Arcadia arcade-scene rebuild).
+ * NEON tokens — Pixel Arcadia's shared product-chrome palette.
  *
- * The locked palette for the Home screen: neon only reads as neon when the
- * surfaces around it stay dark and desaturated, so every bright element is
- * cyan, magenta, or gold and everything else is deep navy. There is no purple
- * or violet in this system, deliberately — lavender lighting is what made the
- * previous render read as generic.
+ * Originated as the Home-only rebuild palette; the Gameplay redesign pass
+ * (board/HUD/control-deck) adopted it as-is instead of inventing a second
+ * "gameplay" palette, so Home and Gameplay are now both `NEON` consumers.
+ * Neon only reads as neon when the surfaces around it stay dark and
+ * desaturated, so every bright element is cyan, magenta, or gold and
+ * everything else is deep navy. There is no purple or violet in this system,
+ * deliberately — lavender lighting is what made an earlier render read as
+ * generic (see `homeV2.ts`, now superseded).
  *
- * Home-scoped like `homeV2.ts` before it. Do not copy these into `brand.ts` /
- * `material.ts` / `arcade.ts`; Worlds and Gameplay keep their existing token
- * systems until their own milestones.
+ * Do not copy these into `brand.ts` / `material.ts` / `arcade.ts` — Worlds
+ * still keeps its own token system until its own milestone. `material.ts`'s
+ * violet/indigo hardware system was drafted as gameplay's originally-planned
+ * target and was superseded by this palette before any component adopted it;
+ * `material.ts`'s hue-neutral status roles (`success`/`danger`/`warning`,
+ * `textPrimary`/`textSecondary`, `overlay`) are unaffected and still used by
+ * both Home and Gameplay chrome.
  */
 
 export const NEON = {

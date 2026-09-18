@@ -17,17 +17,10 @@ const TOOLS = [
 ] as const;
 
 /**
+ * @deprecated Replaced by ItemRack.tsx in the control deck. Retained for reference.
+ *
  * Secondary tools: Undo, Scanner/Hint, Extra Slot (UI-R8 — Pixel Arcadia
- * materials; still presentation-only). No booster logic exists yet anywhere
- * in the app — `onUndo`/`onHint`/`onExtraSlot` are never actually supplied
- * by `GameScreen` today — so this stays Path B from the UI-R8 brief:
- * an intentionally-unavailable "coming later" state, not hidden and not a
- * fabricated working control. Rendered as dormant arcade-power-up sockets —
- * the same recessed/bevel hardware language as Tunnels/Holding/the icon
- * buttons, dimmed rather than lit — with a small reserved (empty) corner
- * ring for a future quantity badge, so adding real counts later doesn't
- * require a layout change. Do not wire real booster behavior here; that is
- * separate roadmap work with its own economy/gameplay design.
+ * materials; still presentation-only).
  */
 export function ToolBar({ onUndo, onHint, onExtraSlot }: ToolBarProps) {
   const handlers: Record<string, (() => void) | undefined> = {

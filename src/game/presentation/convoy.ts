@@ -103,7 +103,7 @@ export function applyCoreV2Convoy(follower: FlightPass, leaders: readonly Flight
     }
   }
 
-  const orbitEndAt = follower.endKind === 'burst' && shots.length > 0
+  const orbitEndAt = follower.endKind === 'burst' && shots.length > 0 && follower.endProgress < 1
     ? shots[shots.length - 1]!.clearAt
     : t;
   const dt = orbitEndAt - follower.orbitEndAt;

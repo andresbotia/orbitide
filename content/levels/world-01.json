@@ -9,7 +9,7 @@
       "id": 1,
       "title": "First Spark",
       "difficulty": "easy",
-      "holdingCapacity": 4,
+      "holdingCapacity": 3,
       "ruleset": "coreV2",
       "legend": { "Y": "gold", "C": "coral" },
       "grid": [
@@ -32,7 +32,7 @@
       "id": 2,
       "title": "Morning Kite",
       "difficulty": "easy",
-      "holdingCapacity": 4,
+      "holdingCapacity": 3,
       "ruleset": "coreV2",
       "legend": { "B": "cyan" },
       "grid": [
@@ -57,7 +57,7 @@
       "id": 3,
       "title": "Sunrise Balloon",
       "difficulty": "easy",
-      "holdingCapacity": 4,
+      "holdingCapacity": 3,
       "ruleset": "coreV2",
       "legend": { "P": "pink" },
       "grid": [
@@ -84,7 +84,7 @@
       "id": 4,
       "title": "Dawn Windmill",
       "difficulty": "medium",
-      "holdingCapacity": 4,
+      "holdingCapacity": 3,
       "ruleset": "coreV2",
       "legend": { "I": "white", "T": "teal", "Y": "gold" },
       "grid": [
@@ -113,7 +113,7 @@
       "id": 5,
       "title": "Sunlit Bloom",
       "difficulty": "medium",
-      "holdingCapacity": 4,
+      "holdingCapacity": 3,
       "ruleset": "coreV2",
       "legend": { "Y": "gold", "C": "coral", "A": "orange", "L": "lime" },
       "grid": [
@@ -144,7 +144,7 @@
       "id": 6,
       "title": "Rainbow Gate",
       "difficulty": "medium",
-      "holdingCapacity": 4,
+      "holdingCapacity": 3,
       "ruleset": "coreV2",
       "legend": { "V": "purple" },
       "grid": [
@@ -175,7 +175,7 @@
       "id": 7,
       "title": "Morning Hummingbird",
       "difficulty": "medium",
-      "holdingCapacity": 4,
+      "holdingCapacity": 3,
       "ruleset": "coreV2",
       "legend": { "T": "cyan", "M": "magenta" },
       "grid": [
@@ -208,7 +208,7 @@
       "id": 8,
       "title": "Sunrise Lighthouse",
       "difficulty": "medium",
-      "holdingCapacity": 4,
+      "holdingCapacity": 3,
       "ruleset": "coreV2",
       "legend": { "Y": "gold", "N": "indigo", "I": "white", "V": "purple", "T": "teal", "A": "cyan" },
       "grid": [
@@ -243,7 +243,7 @@
       "id": 9,
       "title": "Prismatic Peacock",
       "difficulty": "hard",
-      "holdingCapacity": 4,
+      "holdingCapacity": 3,
       "ruleset": "coreV2",
       "legend": { "T": "teal", "S": "blue", "E": "green", "G": "gold", "V": "purple" },
       "grid": [
@@ -280,7 +280,7 @@
       "id": 10,
       "title": "First Light Citadel",
       "difficulty": "hard",
-      "holdingCapacity": 4,
+      "holdingCapacity": 3,
       "ruleset": "coreV2",
       "legend": { "G": "gold", "C": "coral", "I": "white", "V": "purple", "N": "indigo", "M": "lime", "E": "green", "S": "cyan" },
       "grid": [

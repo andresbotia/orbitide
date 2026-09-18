@@ -1,6 +1,11 @@
-import { memo } from 'react';
-import { StyleSheet, TextInput, type TextInputProps } from 'react-native';
-import Animated, { useAnimatedProps, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
+import { memo, useState } from 'react';
+import { StyleSheet, Text } from 'react-native';
+import Animated, {
+  runOnJS,
+  useAnimatedReaction,
+  useAnimatedStyle,
+  type SharedValue,
+} from 'react-native-reanimated';
 
 import { ColorAssistMark } from '@/components/ColorAssistMark';
 import type { FlightPass } from '@/game/presentation/events';
@@ -9,8 +14,6 @@ import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
 import { arcade } from '@/theme/arcade';
 import type { BoardGeometry } from './boardGeometry';
 import { flightPosition } from './flightGeometry';
-
-const Counter = Animated.createAnimatedComponent(TextInput);
 
 /**
  * One independent active-charge renderer. It owns nothing global: N simultaneous
@@ -53,10 +56,17 @@ export const OrbitingCharge = memo(function OrbitingCharge({ layout, pass, clock
     };
   });
 
-  const count = useAnimatedProps(() => {
-    const text = String(capacityAt(pass, clock.value));
-    return { text, defaultValue: text } as TextInputProps & { text: string };
-  });
+  const [capacity, setCapacity] = useState(pass.charge.capacity);
+
+  useAnimatedReaction(
+    () => capacityAt(pass, clock.value),
+    (current, previous) => {
+      if (current !== previous) {
+        runOnJS(setCapacity)(current);
+      }
+    },
+    [pass],
+  );
 
   return (
     <>
@@ -77,16 +87,7 @@ export const OrbitingCharge = memo(function OrbitingCharge({ layout, pass, clock
         ]}
       >
         <Animated.View style={[styles.gloss, { width: r * 1.1, height: r * 0.8, borderRadius: r, top: r * 0.28, left: r * 0.3 }]} />
-        <Counter
-          editable={false}
-          caretHidden
-          accessible={false}
-          pointerEvents="none"
-          underlineColorAndroid="transparent"
-          defaultValue={String(pass.charge.capacity)}
-          animatedProps={count}
-          style={[styles.count, { fontSize: r * 1.0 }]}
-        />
+        <Text style={[styles.count, { fontSize: r * 1.0 }]}>{capacity}</Text>
         {colorAssist ? (
           <Animated.View style={[styles.assist, { bottom: r * 0.12 }]} pointerEvents="none">
             <ColorAssistMark color={pass.charge.color} size={r * 0.82} etched />

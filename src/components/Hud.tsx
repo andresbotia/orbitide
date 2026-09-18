@@ -1,9 +1,11 @@
+import { memo, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { remainingPixelCount } from '@/game/engine/pixels';
 import type { GameState, LevelDifficulty } from '@/game/engine/types';
 import { GAMEPLAY } from '@/theme/gameplayLayout';
-import { homeAlpha, homeV2 } from '@/theme/homeV2';
+import { NEON, neonAlpha } from '@/theme/neon';
 
 interface HudProps {
   state: GameState;
@@ -21,8 +23,9 @@ const HIT = GAMEPLAY.hudButtonHit;
 /**
  * Compact arcade HUD strip: level medallion, progress, Home + Restart.
  * Level name and difficulty stay on Home — they are not repeated here.
+ * Memoized to prevent rerenders from unrelated board/deck changes.
  */
-export function Hud({
+export const Hud = memo(function Hud({
   state, onRestart, onHome,
 }: HudProps) {
   const remaining = remainingPixelCount(state);
@@ -33,8 +36,6 @@ export function Hud({
 
   return (
     <View style={styles.container}>
-      <View pointerEvents="none" style={styles.litEdge} />
-
       <View
         accessible
         accessibilityRole="text"
@@ -44,13 +45,7 @@ export function Hud({
         <Text style={styles.medallionNum}>{state.levelId}</Text>
       </View>
 
-      <View style={styles.progressBlock}>
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${Math.round(progress * 100)}%` }]} />
-          {progress >= 0.97 ? <View pointerEvents="none" style={styles.goldTip} /> : null}
-        </View>
-        <Text style={styles.progressNum}>{cleared}/{total}</Text>
-      </View>
+      <ProgressBar progress={progress} cleared={cleared} total={total} />
 
       <View style={styles.actions}>
         <Pressable
@@ -74,7 +69,28 @@ export function Hud({
       </View>
     </View>
   );
-}
+});
+
+/** Memoized progress bar — only rerenders when cleared/total actually change. */
+const ProgressBar = memo(function ProgressBar({ progress, cleared, total }: {
+  progress: number; cleared: number; total: number;
+}) {
+  const width = useSharedValue(progress * 100);
+  useEffect(() => {
+    width.set(withTiming(progress * 100, { duration: 220, easing: Easing.out(Easing.quad) }));
+  }, [progress, width]);
+  const fillStyle = useAnimatedStyle(() => ({ width: `${width.value}%` }));
+
+  return (
+    <View style={styles.progressBlock}>
+      <View style={styles.track}>
+        <Animated.View style={[styles.fill, fillStyle]} />
+        {progress >= 0.97 ? <View pointerEvents="none" style={styles.goldTip} /> : null}
+      </View>
+      <Text style={styles.progressNum}>{cleared}/{total}</Text>
+    </View>
+  );
+});
 
 function HouseGlyph() {
   return (
@@ -90,31 +106,23 @@ const styles = StyleSheet.create({
     height: GAMEPLAY.hudHeight,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    gap: 10,
-    backgroundColor: homeAlpha(homeV2.deepNavy, 0.94),
-  },
-  litEdge: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: homeAlpha(homeV2.cyan, 0.45),
+    paddingHorizontal: 10,
+    gap: 8,
+    backgroundColor: NEON.inkDeep,
   },
   medallion: {
     width: GAMEPLAY.hudMedallion,
     height: GAMEPLAY.hudMedallion,
-    borderRadius: 10,
-    backgroundColor: homeV2.navy,
-    borderWidth: 1.5,
-    borderColor: homeV2.yellow,
+    borderRadius: GAMEPLAY.hudMedallion / 2,
+    backgroundColor: NEON.surface,
+    borderWidth: 2,
+    borderColor: NEON.cyan,
     alignItems: 'center',
     justifyContent: 'center',
   },
   medallionNum: {
-    color: homeV2.white,
-    fontSize: 16,
+    color: NEON.cyanPale,
+    fontSize: 15,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
@@ -122,42 +130,42 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   track: {
     flex: 1,
     height: GAMEPLAY.hudProgressHeight,
     borderRadius: GAMEPLAY.hudProgressHeight / 2,
-    backgroundColor: homeV2.navy,
+    backgroundColor: NEON.surface,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: homeAlpha(homeV2.cyan, 0.22),
+    borderColor: neonAlpha(NEON.cyan, 0.18),
   },
   fill: {
     height: '100%',
     borderRadius: GAMEPLAY.hudProgressHeight / 2,
-    backgroundColor: homeV2.cyan,
+    backgroundColor: NEON.cyan,
   },
   progressNum: {
-    color: homeAlpha(homeV2.white, 0.78),
-    fontSize: 12,
+    color: neonAlpha(NEON.cyanPale, 0.7),
+    fontSize: 11,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
-    minWidth: 48,
+    minWidth: 42,
     textAlign: 'right',
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   btn: {
     width: BTN,
     height: BTN,
-    borderRadius: 11,
-    backgroundColor: homeV2.navy,
+    borderRadius: BTN / 2,
+    backgroundColor: NEON.surface,
     borderWidth: 1.5,
-    borderColor: homeAlpha(homeV2.cyan, 0.5),
+    borderColor: neonAlpha(NEON.cyan, 0.3),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -167,36 +175,36 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 6,
-    backgroundColor: homeV2.yellow,
+    backgroundColor: NEON.gold,
   },
   btnPressed: {
     opacity: 0.85,
     transform: [{ scale: 0.94 }],
-    borderColor: homeV2.cyan,
-    backgroundColor: homeAlpha(homeV2.cyan, 0.12),
+    borderColor: NEON.cyan,
+    backgroundColor: neonAlpha(NEON.cyan, 0.12),
   },
-  restartGlyph: { color: homeAlpha(homeV2.white, 0.85), fontSize: 20, fontWeight: '700' },
+  restartGlyph: { color: neonAlpha(NEON.cyanPale, 0.85), fontSize: 18, fontWeight: '700' },
   house: {
-    width: 16,
-    height: 16,
+    width: 14,
+    height: 14,
     alignItems: 'center',
     justifyContent: 'flex-end',
   },
   houseRoof: {
     width: 0,
     height: 0,
-    borderLeftWidth: 8,
-    borderRightWidth: 8,
-    borderBottomWidth: 7,
+    borderLeftWidth: 7,
+    borderRightWidth: 7,
+    borderBottomWidth: 6,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderBottomColor: homeAlpha(homeV2.white, 0.88),
+    borderBottomColor: neonAlpha(NEON.cyanPale, 0.88),
     marginBottom: -1,
   },
   houseBody: {
-    width: 11,
-    height: 8,
-    backgroundColor: homeAlpha(homeV2.white, 0.88),
+    width: 10,
+    height: 7,
+    backgroundColor: neonAlpha(NEON.cyanPale, 0.88),
     borderBottomLeftRadius: 1,
     borderBottomRightRadius: 1,
   },

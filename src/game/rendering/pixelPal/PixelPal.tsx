@@ -1,7 +1,11 @@
-import { memo } from 'react';
-import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { memo, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
-  useAnimatedProps, useAnimatedStyle, useDerivedValue, type SharedValue,
+  runOnJS,
+  useAnimatedReaction,
+  useAnimatedStyle,
+  useDerivedValue,
+  type SharedValue,
 } from 'react-native-reanimated';
 
 import type { FlightPass } from '@/game/presentation/events';
@@ -10,9 +14,7 @@ import { orbColors } from '@/theme/colors';
 import { homeAlpha } from '@/theme/homeV2';
 import type { BoardGeometry } from '../boardGeometry';
 import { flightPose } from '../flightGeometry';
-import { palBadgeNumeralStyle, PixelPalBadge, PixelPalShell, PixelPalVisor } from './PixelPalFace';
-
-const Counter = Animated.createAnimatedComponent(TextInput);
+import { PixelPalBadge, PixelPalShell, PixelPalVisor } from './PixelPalFace';
 
 /** How long after launch the wind-up squash reads (ms). */
 const LAUNCH_SQUASH_MS = 160;
@@ -87,10 +89,17 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
     };
   });
 
-  const count = useAnimatedProps(() => {
-    const text = String(capacityAt(pass, clock.value));
-    return { text, defaultValue: text } as TextInputProps & { text: string };
-  });
+  const [capacity, setCapacity] = useState(pass.charge.capacity);
+
+  useAnimatedReaction(
+    () => capacityAt(pass, clock.value),
+    (current, previous) => {
+      if (current !== previous) {
+        runOnJS(setCapacity)(current);
+      }
+    },
+    [pass],
+  );
 
   return (
     <>
@@ -116,18 +125,7 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
         style={[styles.wrap, { width: size, height: size, overflow: 'visible' }, visorStyle]}
       >
         <PixelPalVisor size={size} mood="focused" />
-        <PixelPalBadge palSize={size} color={pass.charge.color} text={String(pass.charge.capacity)}>
-          <Counter
-            editable={false}
-            caretHidden
-            accessible={false}
-            pointerEvents="none"
-            underlineColorAndroid="transparent"
-            defaultValue={String(pass.charge.capacity)}
-            animatedProps={count}
-            style={palBadgeNumeralStyle(size)}
-          />
-        </PixelPalBadge>
+        <PixelPalBadge palSize={size} color={pass.charge.color} text={String(capacity)} />
       </Animated.View>
     </>
   );
