@@ -1,7 +1,7 @@
 import { pickDirectionalEncounter } from './directionalTargeting';
 import { isLinkedPrimed, resolveBoardHit } from './linked';
 import { orbitFraction } from './orbit';
-import { clearOrder, reachablePixels } from './pixels';
+import { firstInClearOrder, reachablePixels } from './pixels';
 import { isCoreV2 } from './ruleset';
 import type { Charge, GameState, OrbColor, Pixel } from './types';
 
@@ -63,12 +63,8 @@ export function pickLegacyEncounter(
 ): EncounterPick | null {
   const candidates = reachable
     .filter((p) => p.color === color && !isLinkedPrimed(p) && !(exclude?.has(p.id)));
-  if (candidates.length === 0) return null;
-
-  const currentAngle = orbitFraction(fromProgress);
-  candidates.sort(clearOrder(size, currentAngle));
-  const target = candidates[0]!;
-  return { pixelId: target.id, progress: fromProgress };
+  const target = firstInClearOrder(size, candidates, orbitFraction(fromProgress));
+  return target ? { pixelId: target.id, progress: fromProgress } : null;
 }
 
 /**

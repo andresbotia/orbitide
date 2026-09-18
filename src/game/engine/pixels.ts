@@ -194,19 +194,49 @@ export function clearOrder(
   state: Pick<GameState, 'width' | 'height'>,
   entryFraction = ORBIT_ENTRY_FRACTION,
 ): (a: Pixel, b: Pixel) => number {
-  const { cx, cy } = pictureCenter(state);
-  const angleOf = (p: Pixel) => clockwiseGap(entryFraction, pixelEncounterFraction(state, p, entryFraction));
-  const radiusSq = (p: Pixel) => (p.x - cx) ** 2 + (p.y - cy) ** 2;
+  const keyOf = clearKeyer(state, entryFraction);
+  return (a, b) => compareClearKeys(a, keyOf(a), b, keyOf(b));
+}
 
-  return (a, b) => {
-    const da = angleOf(a);
-    const db = angleOf(b);
-    if (Math.abs(da - db) > 1e-9) return da - db;
-    const ra = radiusSq(a);
-    const rb = radiusSq(b);
-    if (Math.abs(ra - rb) > 1e-9) return rb - ra;
-    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-  };
+/**
+ * The first of `pixels` in {@link clearOrder}, in one pass with one key per
+ * pixel — the same answer as sorting and taking `[0]`. `clearOrder` is a strict
+ * total order on distinct grid pixels (distinct lattice directions differ in
+ * angle by far more than its 1e-9 tolerance, collinear pixels by radius), so
+ * the minimum is unique.
+ */
+export function firstInClearOrder(
+  state: Pick<GameState, 'width' | 'height'>,
+  pixels: readonly Pixel[],
+  entryFraction = ORBIT_ENTRY_FRACTION,
+): Pixel | undefined {
+  const keyOf = clearKeyer(state, entryFraction);
+  let first: Pixel | undefined;
+  let firstKey: ClearKey | undefined;
+  for (const p of pixels) {
+    const key = keyOf(p);
+    if (first === undefined || compareClearKeys(p, key, first, firstKey!) < 0) {
+      first = p;
+      firstKey = key;
+    }
+  }
+  return first;
+}
+
+interface ClearKey { gap: number; radiusSq: number }
+
+function clearKeyer(state: Pick<GameState, 'width' | 'height'>, entryFraction: number): (p: Pixel) => ClearKey {
+  const { cx, cy } = pictureCenter(state);
+  return (p) => ({
+    gap: clockwiseGap(entryFraction, pixelEncounterFraction(state, p, entryFraction)),
+    radiusSq: (p.x - cx) ** 2 + (p.y - cy) ** 2,
+  });
+}
+
+function compareClearKeys(a: Pixel, ka: ClearKey, b: Pixel, kb: ClearKey): number {
+  if (Math.abs(ka.gap - kb.gap) > 1e-9) return ka.gap - kb.gap;
+  if (Math.abs(ka.radiusSq - kb.radiusSq) > 1e-9) return kb.radiusSq - ka.radiusSq;
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
 
 /**

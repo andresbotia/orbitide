@@ -1,16 +1,36 @@
 /**
- * Level 7 "BLUE-2 disappears" — exact regression.
+ * Level 7 "BLUE-2 disappears" — presentation regression at the video cadence.
  *
  * Launches at the video's times (1.0 / 2.0 / 2.8 / 4.0 / 7.4s): blue26, cyan18,
  * cyan13, blue10 ("BLUE-2"), green14. Every launch after the first joins the
- * open epoch, and each join re-resolves the earlier charges. Engine truth:
- * blue26 consumed, Holding [cyan18:2, cyan13:8, blue10:2], green14 overflows.
+ * open epoch.
+ *
+ * The original bug: a join re-resolved the earlier charges, BLUE-2 lost the
+ * presented slot it had reserved, took an off-screen fallback and vanished;
+ * `settleAll` then snapped the tray back to truth. This file keeps that cadence
+ * and guards the presentation contract under joins: every Pal reaches exactly
+ * one explicit terminal that matches engine truth, presented Holding never
+ * contradicts truth, no presented event is ever rewritten, and the view
+ * converges BEFORE `settleAll` — so `settleAll` is never what makes it correct.
+ *
+ * Nothing overflows at this cadence. It used to — the tray filled and green14
+ * was rejected — but that outcome was produced by a Core V2 engine bug (a
+ * joining Pal lost every attack line an earlier Pal had already used; see
+ * `join-settle-equivalence.test.ts`). The overflow → reject-at-GateTerminal
+ * regression now lives on a synthetic fixture in
+ * `session.concurrent-stress.test.ts`, independent of campaign content.
+ *
+ * CONTENT-COUPLED: this drives real Level 7 content. Terminals, Holding and
+ * convergence are derived from engine truth; "no Pal rejects" and "status
+ * playing" are facts of the current authoring. If a re-author changes them,
+ * re-derive or retire this file — never bend the engine to keep it green.
  */
 import { createGame } from '@/game/engine/createGame';
 import { epochHasCapacity } from '@/game/engine/epoch';
 import { resolveAction } from '@/game/engine/resolveLaunch';
 import { requireLevel } from '@/game/levels/levels';
-import { drive, expectConverged, mountSession, SLOT_POINTS, terminalOf, type DriveLog } from './sessionDriver';
+import type { GameState } from '@/game/engine/types';
+import { drive, expectConverged, mountSession, SLOT_POINTS, type DriveLog, type TerminalView } from './sessionDriver';
 
 jest.mock('react-native', () => ({ AppState: { addEventListener: jest.fn(() => ({ remove: jest.fn() })) } }));
 jest.mock('@/game/feedback', () => ({ feedback: { emit: jest.fn(), cancelPending: jest.fn() } }));
@@ -30,25 +50,32 @@ const VIDEO = [
   { at: 7400, tunnel: 'tunnel-2' },
 ];
 
+/** The one terminal truth implies for a charge — the same rule `terminalFor` uses. */
+function expectedTerminal(truth: GameState, chargeId: string): TerminalView {
+  const slot = truth.holding.findIndex((c) => c.id === chargeId);
+  if (slot >= 0) return { kind: 'toHolding', slot, target: SLOT_POINTS[slot] };
+  const charge = truth.activeCharges.find((c) => c.id === chargeId);
+  return charge && charge.remainingCapacity > 0 ? { kind: 'reject' } : { kind: 'consumed' };
+}
+
 beforeEach(() => {
   jest.useFakeTimers({ now: 0 });
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 afterEach(() => { jest.useRealTimers(); });
 
-test('engine truth after launch 5: green is the overflow Pal, BLUE-2 is a legitimate occupant', () => {
+test('engine truth at the video cadence: every later launch joins, and every Pal that needs a slot gets one', () => {
   let truth = createGame(requireLevel(7));
   for (const [n, id] of ['tunnel-0', 'tunnel-1', 'tunnel-1', 'tunnel-0', 'tunnel-2'].entries()) {
     const out = resolveAction(truth, { kind: 'tunnel', id, join: n > 0 && epochHasCapacity(truth) });
     expect(out.accepted).toBe(true);
+    expect(out.joinedEpoch).toBe(n > 0);
     truth = out.state;
   }
-  expect(truth.holding.map((c) => [c.id, c.capacity])).toEqual([[CYAN18, 2], [CYAN13, 8], [BLUE10, 2]]);
-  expect(truth.status).toBe('lost');
-  const charges = new Map(truth.activeCharges.map((c) => [c.id, c]));
-  expect(charges.get(BLUE26)!.landed).toBe('consumed');
-  expect(charges.get(GREEN14)!.landed).toBe('holding');
-  expect(truth.holding.some((c) => c.id === GREEN14)).toBe(false);
+  expect(truth.status).toBe('playing');
+  for (const c of truth.activeCharges.filter((a) => a.landed === 'holding')) {
+    expect({ id: c.id, kept: truth.holding.some((h) => h.id === c.id) }).toEqual({ id: c.id, kept: true });
+  }
 });
 
 describe('Level 7 video cadence through the real session', () => {
@@ -64,66 +91,56 @@ describe('Level 7 video cadence through the real session', () => {
     finalView = s.get().state;
     finalTruth = s.get().engineState;
     s.unmount();
-    // §5 evidence: the pure observable-history comparison at each join.
-    console.log(`[L7 observable-history audit] ${log.divergences.length === 0 ? 'no presented event changed'
-      : log.divergences.map((d) => `${d.chargeId}@${d.atMs}ms(t=${d.presentedMs}): ${d.detail}`).join('\n')}`);
   });
 
-  test('1. truth after launch 5', () => {
+  test('1. all five Pals launch at the video cadence, into one epoch', () => {
     expect(log.launched).toEqual([BLUE26, CYAN18, CYAN13, BLUE10, GREEN14]);
-    expect(finalTruth.holding.map((c) => [c.id, c.capacity])).toEqual([[CYAN18, 2], [CYAN13, 8], [BLUE10, 2]]);
-    expect(finalTruth.status).toBe('lost');
+    expect(finalTruth.epoch?.launches.map((l) => l.chargeId)).toEqual(log.launched);
   });
 
-  test('2. only GREEN rejects; BLUE-2 is toHolding with a valid slot', () => {
-    const rejects = [...log.terminals].filter(([, ts]) => ts.some((t) => t.kind === 'reject')).map(([id]) => id);
-    expect(rejects).toEqual([GREEN14]);
-    const blue2 = log.terminals.get(BLUE10)!;
-    expect(blue2).toEqual([{ kind: 'toHolding', slot: 2, target: SLOT_POINTS[2] }]);
-  });
-
-  test('3. every launched Pal terminates exactly once as consumed / toHolding / reject', () => {
+  test('2. every launched Pal reaches exactly one terminal, and it is the one engine truth implies', () => {
     for (const id of log.launched) {
       expect({ id, n: log.terminals.get(id)?.length ?? 0 }).toEqual({ id, n: 1 });
+      expect({ id, terminal: log.terminals.get(id)![0] })
+        .toEqual({ id, terminal: expectedTerminal(finalTruth, id) });
     }
-    expect(log.terminals.get(BLUE26)).toEqual([{ kind: 'consumed' }]);
-    expect(log.terminals.get(CYAN18)).toEqual([{ kind: 'toHolding', slot: 0, target: SLOT_POINTS[0] }]);
-    expect(log.terminals.get(CYAN13)).toEqual([{ kind: 'toHolding', slot: 1, target: SLOT_POINTS[1] }]);
   });
 
-  test('4+5. no slotless / shared-slot / fallback flights; presented Holding never contradicts truth', () => {
+  test('3. no Pal rejects at this cadence, and the final status is playing', () => {
+    const rejects = [...log.terminals].filter(([, ts]) => ts.some((t) => t.kind === 'reject')).map(([id]) => id);
+    expect(rejects).toEqual([]);
+    expect(finalTruth.status).toBe('playing');
+    expect(finalView.status).toBe('playing');
+    expect(log.statusAtMs).toBeUndefined();
+  });
+
+  test('4. Holding matches truth: no slotless / shared-slot / fallback flight, nothing shown that truth does not keep', () => {
+    // The driver flags slotless, shared-slot and off-slot-point flights and any
+    // presented Holding that is not a prefix of truth, while flights are live.
     expect(log.violations).toEqual([]);
-    // blue26 must never be shown landing (with 3 or anything else).
-    for (const snap of log.holdingTimeline) expect(snap.view.some((l) => l.startsWith(BLUE26))).toBe(false);
+    const kept = new Set(finalTruth.holding.map((c) => c.id));
+    for (const snap of log.holdingTimeline) {
+      for (const shown of snap.view) {
+        expect({ shown, kept: kept.has(shown.split(':')[0]!) }).toEqual({ shown, kept: true });
+      }
+    }
+    expect(finalView.holding.map((c) => [c.id, c.capacity])).toEqual(finalTruth.holding.map((c) => [c.id, c.capacity]));
   });
 
-  test('6. the reject completes a full lap, bursts at GateTerminal, Holding unchanged across the burst', () => {
-    const green = log.lastPass.get(GREEN14)!;
-    expect(terminalOf(green).kind).toBe('reject');
-    expect(green.endProgress).toBe(1);
-    const burst = log.rejectHolding.get(GREEN14)!;
-    expect(burst.after).toEqual(burst.before);
-  });
-
-  test('7. presented status stays playing until the reject fail event', () => {
-    const green = log.lastPass.get(GREEN14)!;
-    const fail = green.events.find((e) => e.kind === 'fail')!;
-    expect(fail).toBeDefined();
-    expect(fail.at).toBeGreaterThanOrEqual(green.orbitEndAt);
-    expect(log.statusAtMs).toBeGreaterThanOrEqual(7400 + fail.at);
-  });
-
-  test('8. converged at quiescence BEFORE settleAll — no tray flip, no pixel jump at the modal', () => {
-    expect(log.preSettle).toBeDefined();
-    expectConverged(log.preSettle!.view, log.preSettle!.truth);
-    expectConverged(finalView, finalTruth);
-  });
-
-  test('9. observable-history audit (evidence): no already-presented event changes at the video cadence', () => {
+  test('5. no already-presented event changes at the video cadence', () => {
     expect(log.divergences).toEqual([]);
   });
 
-  test('DEV lifecycle asserts stay silent (no slotless, vanished, deferred or untruthful landings)', () => {
+  test('6. DEV lifecycle asserts stay silent (no slotless, vanished, deferred or untruthful landings)', () => {
     expect(log.devMessages).toEqual([]);
+  });
+
+  test('7. converged BEFORE settleAll, and settleAll changes nothing observable', () => {
+    expect(log.preSettle).toBeDefined();
+    expectConverged(log.preSettle!.view, log.preSettle!.truth);
+    expectConverged(finalView, finalTruth);
+    // `settleAll` ran after the last flight completed; if it had to fix
+    // anything, the view it left would differ from the pre-settle view.
+    expectConverged(log.preSettle!.view, finalView);
   });
 });

@@ -1,9 +1,9 @@
 import { actionRejection, type GameAction, type Rejection } from './actions';
 import {
-  flushEpoch,
+  commitLaunch,
   launchedResolution,
   planLaunch,
-  simulateEpoch,
+  resolveEpochLaunch,
   type EpochResolution,
 } from './epoch';
 import type { ChargePass, Encounter } from './pass';
@@ -78,8 +78,15 @@ export function resolveAction(state: GameState, action: GameAction): LaunchOutco
     launchSequence: state.movesApplied,
   };
   const plan = planLaunch(state, spec, action.join === true);
-  const resolution = simulateEpoch(plan.baseline, plan.launches);
-  const flushed = flushEpoch(plan, resolution);
+  // FIRST LAUNCHED, FIRST SERVED: the charges already on the rail were resolved
+  // when they launched and never change. Resolve only the new one, against the
+  // board they left (= this committed state).
+  const own = resolveEpochLaunch(state, plan.launches[plan.launches.length - 1]!);
+  const resolution: EpochResolution = {
+    pixels: own.pixels,
+    charges: plan.joined ? [...state.activeCharges, own.charge] : [own.charge],
+  };
+  const flushed = commitLaunch(state, plan, resolution);
   flushed.status = computeStatus(flushed);
   if (flushed.status !== 'won') {
     const parkedIds = resolution.charges

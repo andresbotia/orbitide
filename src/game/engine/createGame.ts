@@ -6,7 +6,7 @@ import {
   LEGACY_TUNNEL_COUNT,
   resolveRuleset,
 } from './ruleset';
-import type { Charge, GameState, LevelDefinition, TunnelState } from './types';
+import type { Charge, GameState, LevelDefinition, Pixel, TunnelState } from './types';
 
 /** Legacy V1 tunnel count. Prefer {@link expectedTunnelCount} for ruleset-aware code. */
 export const TUNNEL_COUNT = LEGACY_TUNNEL_COUNT;
@@ -32,6 +32,39 @@ function assertUniqueChargeIds(levelId: number, tunnels: TunnelState[]): void {
       seen.set(charge.id, here);
     });
   });
+}
+
+/**
+ * A 64-bit FNV-1a digest (two independently seeded 32-bit passes) of the
+ * authored board. Hashed rather than stored verbatim so it stays short: it is
+ * compared on every launch, because SIM_CACHE holds one board at a time
+ * (engine/epoch.ts).
+ */
+function digest(input: string): string {
+  let a = 0x811c9dc5;
+  let b = 0x01000193;
+  for (let i = 0; i < input.length; i += 1) {
+    const c = input.charCodeAt(i);
+    a = Math.imul(a ^ c, 0x01000193) >>> 0;
+    b = Math.imul(b ^ c, 0x85ebca6b) >>> 0;
+  }
+  return (a.toString(36) + '-' + b.toString(36));
+}
+
+/**
+ * Identity of the authored picture — everything a simulation result depends on
+ * that never changes as the level is played. `levelId` alone is NOT enough: two
+ * synthetic fixtures or two unsaved Level Studio drafts can share an id while
+ * painting different boards, and reusing one's physics for the other is a
+ * correctness bug (a blue charge "clearing" yellow pixels).
+ */
+function computeBoardIdentity(levelId: number, width: number, height: number, pixels: readonly Pixel[]): string {
+  const cells = pixels.map((p) => {
+    const m = p.modifier;
+    const mod = m ? `!${m.kind}:${m.level ?? ''}:${m.group ?? m.linkId ?? ''}` : '';
+    return `${p.x},${p.y},${p.color}${mod}`;
+  }).join(';');
+  return `L${levelId}/${width}x${height}/${digest(cells)}`;
 }
 
 /**
@@ -68,6 +101,7 @@ export function createGame(level: LevelDefinition): GameState {
 
   return {
     levelId: level.id,
+    boardIdentity: computeBoardIdentity(level.id, width, height, pixels),
     holdingCapacity: resolveHoldingCapacity(level),
     width,
     height,

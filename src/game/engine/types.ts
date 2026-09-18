@@ -273,6 +273,15 @@ export interface TunnelState {
  */
 export interface GameState {
   levelId: number;
+  /**
+   * Immutable identity of the *authored* board: dimensions, and every cell's
+   * coordinate, colour and authored modifier. Two in-memory levels that share a
+   * `levelId` (synthetic fixtures, an unsaved Level Studio playtest) but paint
+   * different pictures have different identities here, so a memoized simulation
+   * can never be reused across them. Unlike `boardFingerprint`, this does NOT
+   * change as pixels clear — it is the level, not the progress.
+   */
+  boardIdentity: string;
   holdingCapacity: number;
   /** Grid width in cells. */
   width: number;

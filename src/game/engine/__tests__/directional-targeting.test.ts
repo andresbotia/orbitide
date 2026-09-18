@@ -251,21 +251,17 @@ describe('concurrency', () => {
     { id: 8220 },
   );
 
-  test('same-line race: winner takes the front; loser does not chain to the rear', () => {
+  test('same line: one shot per line per lap; a later Pal takes the rear a lap later', () => {
+    // A (launched first) clears the front red on b:1 and does NOT chain into the
+    // rear on the same line in the same lap — one shot per attack line per pass.
+    // B owns the next lap (FIRST LAUNCHED, FIRST SERVED) and meets b:1 with the
+    // rear red now exposed.
     const base = createGame(stacked);
-    const a: EpochLaunch = {
-      chargeId: 'c0', source: 'tunnel', originId: 'tunnel-0', color: 'red', capacity: 2,
-      insertionTime: 0, launchSequence: 0,
-    };
-    const b: EpochLaunch = {
-      chargeId: 'c1', source: 'tunnel', originId: 'tunnel-1', color: 'red', capacity: 2,
-      insertionTime: 0, launchSequence: 1,
-    };
-    const res = simulateEpoch(base, [a, b]);
+    const res = simulateEpoch(base, [raw('red', 2, 0), raw('red', 2, 1)]);
     expect(res.charges[0]!.encounters.map((e) => e.pixelId)).toEqual(['L8220-p1-2']);
-    expect(res.charges[1]!.encounters.map((e) => e.pixelId)).toEqual([]);
-    expect(res.charges[1]!.remainingCapacity).toBe(2);
-    expect(res.pixels.find((p) => p.id === 'L8220-p1-1')!.cleared).toBe(false);
+    expect(res.charges[0]!.remainingCapacity).toBe(1);
+    expect(res.charges[1]!.encounters.map((e) => e.pixelId)).toEqual(['L8220-p1-1']);
+    expect(res.charges[1]!.remainingCapacity).toBe(1);
   });
 
   test('different-line: two colours on different columns both resolve in one epoch', () => {

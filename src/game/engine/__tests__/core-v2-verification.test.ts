@@ -4,6 +4,7 @@
  * Dedicated verification tests covering all Priority Edge Cases 1–13,
  * deadlock reproduction, and engine/session consistency.
  */
+import { LAUNCH_SPACING } from '../concurrency';
 import { createGame } from '../createGame';
 import { activeSlotCount, simulateEpoch } from '../epoch';
 import { iceLayers, shieldLayers } from '../frozen';
@@ -45,10 +46,11 @@ const J = (i: number) => T(i, true);
 describe('M5.2E Verification — Priority Edge Cases', () => {
   // ── 1. Same-line concurrency ──────────────────────────────────────────────
   describe('1. Same-line concurrency', () => {
-    test('deterministic winner hits RED A, loser spends no capacity at that bin, does not drill-through to RED B, and continues to RED C', () => {
+    test('the earlier Pal takes the front of a shared line; the later one, a lap later, takes the pixel it exposed', () => {
       // Column 1 has RED B (1, 1) behind RED A (1, 2).
       // Column 0 has RED C (0, 2).
-      // Both orbs start at insertion time 0.
+      // FIRST LAUNCHED, FIRST SERVED: A owns lap [0, 1], B owns lap [1, 2] — two
+      // Pals never contest the same instant, so there is no same-time race.
       const def = v2(
         ['BBB', 'BRB', 'RRB'],
         [
@@ -66,24 +68,25 @@ describe('M5.2E Verification — Priority Edge Cases', () => {
       };
       const launchB: EpochLaunch = {
         chargeId: 'c1', source: 'tunnel', originId: 'tunnel-1', color: 'red', capacity: 1,
-        insertionTime: 0, launchSequence: 1,
+        insertionTime: LAUNCH_SPACING, launchSequence: 1,
       };
 
       const res = simulateEpoch(base, [launchA, launchB]);
       const chargeA = res.charges[0]!;
       const chargeB = res.charges[1]!;
 
-      // Winner A hits RED A at (1, 2) and spends 1 capacity (0 remaining)
+      // A hits RED A at (1, 2) and spends its 1 capacity.
       expect(chargeA.encounters.map((e) => e.pixelId)).toEqual(['L9001-p1-2']);
       expect(chargeA.remainingCapacity).toBe(0);
 
-      // Loser B does NOT hit RED B at (1, 1) from bin b:1;
-      // instead it spends no capacity at b:1, continues to bin b:0, and hits RED C at (0, 2)
-      expect(chargeB.encounters.map((e) => e.pixelId)).toEqual(['L9001-p0-2']);
+      // B reaches the same line (b:1) a lap later, where A's clear has exposed
+      // RED B — forward help, never the reverse.
+      expect(chargeB.encounters.map((e) => e.pixelId)).toEqual(['L9001-p1-1']);
+      expect(chargeB.encounters[0]!.progress).toBe(chargeA.encounters[0]!.progress);
       expect(chargeB.remainingCapacity).toBe(0);
 
-      // RED B at (1, 1) remains untouched
-      expect(res.pixels.find((p) => p.id === 'L9001-p1-1')!.cleared).toBe(false);
+      // RED C at (0, 2) is left for a later Pal.
+      expect(res.pixels.find((p) => p.id === 'L9001-p0-2')!.cleared).toBe(false);
     });
   });
 
@@ -107,7 +110,7 @@ describe('M5.2E Verification — Priority Edge Cases', () => {
       };
       const launchBlue: EpochLaunch = {
         chargeId: 'cBlue', source: 'tunnel', originId: 'tunnel-1', color: 'blue', capacity: 2,
-        insertionTime: 0.18, launchSequence: 1,
+        insertionTime: LAUNCH_SPACING, launchSequence: 1,
       };
 
       const res = simulateEpoch(base, [launchRed, launchBlue]);

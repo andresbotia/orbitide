@@ -95,12 +95,13 @@ describe('target competition', () => {
   const oneTarget = createGame(level(['.W.', '...', '...'],
     [[{ color: 'white', capacity: 1 }], [{ color: 'white', capacity: 1 }], [{ color: 'white', capacity: 1 }]]));
 
-  test('identical encounter time is broken by launch sequence', () => {
+  test('overlapping launch windows are refused — every launch owns one full lap', () => {
+    // Under FIRST LAUNCHED, FIRST SERVED two launches never share logical time
+    // (LAUNCH_SPACING is one lap), so there is no same-instant tie to break: a
+    // list that overlaps is a caller bug and is rejected outright.
     const a: EpochLaunch = { ...launch('white', 1, 0), insertionTime: 0, launchSequence: 0 };
     const b: EpochLaunch = { ...launch('white', 1, 1), insertionTime: 0, launchSequence: 1 };
-    const res = simulateEpoch(oneTarget, [a, b]);
-    expect(res.charges[0]!.encounters).toHaveLength(1);
-    expect(res.charges[1]!.encounters).toHaveLength(0);
+    expect(() => simulateEpoch(oneTarget, [a, b])).toThrow(/overlap/);
   });
 
   test('a target cleared before the second charge arrives is simply gone', () => {

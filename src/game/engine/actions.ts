@@ -75,7 +75,7 @@ export function actionRejection(
 
   // Full Holding must not pre-empt a legal tunnel tap. The player may launch;
   // overflow is a LOSS after the pass if this Pal (or a joined peer) still
-  // needs a slot. See flushEpoch / resolveAction.
+  // needs a slot. See commitLaunch / resolveAction.
 
   return null;
 }

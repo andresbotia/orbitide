@@ -1,12 +1,15 @@
 /**
- * M4A.2 — deadlock detection is join-aware.
+ * Deadlock detection.
  *
- * `isLost` must not declare a loss while an admitted player action — including
- * a `join: true` launch onto an open epoch — can still change the board.
+ * `isLost` must not declare a loss while an admitted player action can still
+ * change the board. `legalActions(state)` is the one shared runtime deadlock
+ * predicate; every action it returns is progress-making (see winState.ts), so
+ * "a legal action exists" ≡ "the board can still change".
  *
- * `legalActions(state, { includeJoin: !!state.epoch })` is the one shared
- * runtime deadlock predicate; every action it returns is progress-making (see
- * winState.ts), so "a legal action exists" ≡ "the board can still change".
+ * Joins used to need a separate look (M4A.2). They no longer do: a `join: true`
+ * launch is only ever offered next to its settle-first twin and never admitted
+ * where that twin is refused, so it cannot change whether any move exists —
+ * pinned below as a property over whole reachable graphs.
  */
 import { candidateActions, legalActions, type GameAction } from '../actions';
 import { MAX_ACTIVE_CHARGES } from '../concurrency';
@@ -15,7 +18,7 @@ import { iceLayers } from '../frozen';
 import { reachablePixels, remainingPixelCount } from '../pixels';
 import { resolveAction } from '../resolveLaunch';
 import { enumerateActions, solve, stateKey } from '../solver';
-import { computeStatus, isLost, isWon } from '../winState';
+import { isLost, isWon } from '../winState';
 import type { GameState, LevelDefinition } from '../types';
 import { LEVEL_DEFINITIONS } from '../../levels/levelDefinitions';
 
@@ -57,30 +60,43 @@ function drive(level: LevelDefinition, actions: GameAction[]): GameState {
   return s;
 }
 
-// ── the repro ──────────────────────────────────────────────────────────────
+/** A small Core V2 board with joins available from the first launch on. */
+const OPEN_V2: LevelDefinition = {
+  id: 9824, title: 'Open V2', themeId: 'fixture', difficulty: 'easy', holdingCapacity: 3, ruleset: 'coreV2',
+  pixelArt: ['BWB', 'WYW', 'BWB'],
+  tunnels: [
+    [{ color: 'white', capacity: 2 }, { color: 'blue', capacity: 2 }],
+    [{ color: 'blue', capacity: 3 }],
+    [{ color: 'yellow', capacity: 1 }, { color: 'white', capacity: 2 }],
+    [{ color: 'white', capacity: 1 }],
+  ],
+};
 
-test('M4A.2 repro — a join-only escape is NOT a deadlock (fails before the fix)', () => {
-  const s = drive(JOIN_ONLY, [T(0), T(0), T(0)]);
+// ── the predicate ──────────────────────────────────────────────────────────
 
-  // The board is untouched and the tray is full.
-  expect(remainingPixelCount(s)).toBe(24);
-  expect(s.holding).toHaveLength(3);
-  expect(s.epoch).not.toBeNull();
-
-  // No plain launch is available…
-  expect(legalActions(s)).toHaveLength(0);
-
-  // THE FIX — before it, `computeStatus` (plain-only) marked this state 'lost'
-  // as the third cyan launch flushed, and `isLost` still agreed:
-  expect(s.status).toBe('playing');
-  expect(computeStatus(s)).toBe('playing');
-  expect(isLost(s)).toBe(false);
-
-  // …because a join into the open epoch is legal and makes real progress.
-  const joinLaunch: GameAction = { ...T(0), join: true };
-  const out = resolveAction(s, joinLaunch);
-  expect(out.accepted).toBe(true);
-  expect(remainingPixelCount(out.state)).toBeLessThan(24);
+test('a join never changes whether any move exists, over whole reachable graphs', () => {
+  const key = (a: GameAction) => `${a.kind}:${a.id}`;
+  for (const def of [JOIN_ONLY, OPEN_V2]) {
+    const seen = new Set<string>();
+    const stack: GameState[] = [createGame(def)];
+    let states = 0;
+    while (stack.length && states < 5000) {
+      const s = stack.pop()!;
+      const k = stateKey(s);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      states += 1;
+      const plain = legalActions({ ...s, status: 'playing' });
+      const withJoin = legalActions({ ...s, status: 'playing' }, { includeJoin: true });
+      expect({ k, anyMove: plain.length > 0 }).toEqual({ k, anyMove: withJoin.length > 0 });
+      // every admitted join has its settle-first twin admitted too
+      for (const j of withJoin.filter((a) => a.join)) expect(plain.map(key)).toContain(key(j));
+      if (s.status !== 'playing') continue;
+      for (const a of legalActions(s, { includeJoin: true })) stack.push(resolveAction(s, a).state);
+    }
+    expect({ level: def.id, exhausted: stack.length === 0 }).toEqual({ level: def.id, exhausted: true });
+    expect(states).toBeGreaterThan(10);
+  }
 });
 
 // ── test matrix A–J ────────────────────────────────────────────────────────
@@ -92,17 +108,17 @@ test('A · open epoch + only a join can progress → NOT lost', () => {
 });
 
 test('B · a genuine deadlock (nothing — plain or join — can progress) → lost', () => {
-  // The real campaign fail witness for the World-1 Hard finale ends in a
-  // deadlock: an open epoch, pixels left, and no admitted move of any kind.
-  const level = LEVEL_DEFINITIONS[9]!; // Ring Nebula
-  const fail = solve(level).failPath;
-  expect(fail).not.toBeNull();
-  const s = drive(level, fail!);
+  // White clears its pixel; the blue one has no charge left anywhere. The epoch
+  // is open, pixels remain, and no move of any kind is admitted.
+  const level: LevelDefinition = {
+    id: 9825, title: 'Stranded Blue', themeId: 'fixture', difficulty: 'easy', holdingCapacity: 3,
+    pixelArt: ['WB'], tunnels: [[{ color: 'white', capacity: 1 }], [], []],
+  };
+  const s = drive(level, [T(0)]);
+  expect(s.epoch).not.toBeNull();
+  expect(remainingPixelCount(s)).toBe(1);
+  expect(legalActions({ ...s, status: 'playing' }, { includeJoin: true })).toHaveLength(0);
   expect(s.status).toBe('lost');
-  expect(remainingPixelCount(s)).toBeGreaterThan(0);
-  // join-aware, there is still nothing to do — this is a true loss.
-  const alive = legalActions({ ...s, status: 'playing' }, { includeJoin: s.epoch !== null });
-  expect(alive).toHaveLength(0);
   expect(isLost(s)).toBe(true);
 });
 
@@ -215,15 +231,47 @@ test('J · the final pixel cleared mid-epoch → won, never lost', () => {
   expect(s.status).toBe('won');
 });
 
-test('sequential-compat is unchanged: a join-only escape is a dead end, not a crash', () => {
-  // JOIN_ONLY is winnable only by joining the epoch. `sequential-compat`
-  // ignores joins, so it dead-ends — it must NOT throw "Runtime failed to mark
-  // a deadlock", and the concurrent solve still wins.
+test('sequential-compat dead-ends on JOIN_ONLY without crashing', () => {
+  // `sequential-compat` ignores joins and dead-ends here. The property under
+  // test is that it does so cleanly — it must NOT throw "Runtime failed to mark
+  // a deadlock".
   expect(() => solve(JOIN_ONLY, { mode: 'sequential-compat' })).not.toThrow();
   expect(solve(JOIN_ONLY, { mode: 'sequential-compat' }).solved).toBe(false);
+});
+
+/**
+ * JOIN_ONLY's escape was retroactive, and is gone on purpose.
+ *
+ * This fixture used to be winnable ONLY by joining: white16 joined the open
+ * epoch, cleared the frame, and a cyan charge that was already on the rail —
+ * and had already resolved zero hits — retroactively gained two, clearing
+ * enough of the ring to expose the buried centre white so white could spend its
+ * 16th capacity. That is precisely the rewrite of an earlier Pal's history that
+ * FIRST LAUNCHED, FIRST SERVED forbids.
+ *
+ * Under the new rule white's lap runs alone: it clears the 15 frame whites, the
+ * centre is still buried, and its leftover capacity has no free tray slot (the
+ * three stranded cyans filled it) — so the epoch overflows and the level is
+ * lost. The level is genuinely unsolvable now, and deliberately NOT special
+ * cased. It is kept as a fixture because the deadlock predicates above still
+ * need a state where the tray is full and every queue is stuck.
+ */
+test('JOIN_ONLY is unsolvable under first-launched-first-served, and runtime agrees', () => {
   const con = solve(JOIN_ONLY, { mode: 'metrics' });
-  expect(con.solved).toBe(true);
-  expect(con.moves.some((m) => m.join)).toBe(true);
+  expect(con.solved).toBe(false);
+  expect(con.complete).toBe(true);
+
+  // Solver and runtime must agree — an unsolvable level is not a crash, and the
+  // runtime must reach a state it marks lost rather than stranding the player.
+  let s = createGame(JOIN_ONLY);
+  for (const a of con.failPath ?? []) {
+    const out = resolveAction(s, a);
+    expect(out.accepted).toBe(true);
+    s = out.state;
+  }
+  expect(s.status).toBe('lost');
+  expect(isLost(s)).toBe(true);
+  expect(legalActions(s, { includeJoin: s.epoch !== null })).toHaveLength(0);
 });
 
 // ── solver / runtime consistency ───────────────────────────────────────────

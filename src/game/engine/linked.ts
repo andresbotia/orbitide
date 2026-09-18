@@ -24,7 +24,9 @@ export interface BoardHitResult {
 
 /** Resolve one matching hit against the complete board, including atomic links. */
 export function resolveBoardHit(pixels: readonly Pixel[], pixelId: string): BoardHitResult {
-  const target = pixels.find((pixel) => pixel.id === pixelId);
+  let index = 0;
+  while (index < pixels.length && pixels[index]!.id !== pixelId) index += 1;
+  const target = pixels[index];
   if (!target) throw new Error(`Cannot hit missing pixel ${pixelId}`);
 
   const groupId = linkedGroupId(target);
@@ -72,8 +74,11 @@ export function resolveBoardHit(pixels: readonly Pixel[], pixelId: string): Boar
   }
 
   const resolved = resolveMatchingHit(target);
+  // Pixel ids are unique, so only `index` changes: copy the array, swap one slot.
+  const next = pixels.slice();
+  next[index] = resolved.pixel;
   return {
-    pixels: pixels.map((pixel) => pixel.id === pixelId ? resolved.pixel : pixel),
+    pixels: next,
     clearedPixelIds: resolved.cleared ? [pixelId] : [],
     frozenBreak: resolved.frozenBreak,
     shieldBreak: resolved.shieldBreak,

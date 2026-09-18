@@ -13,7 +13,7 @@ import {
   type RoundedPerimeterBounds,
   type RoundedPerimeterGeometry,
 } from '@/game/geometry/roundedPerimeter';
-import { firstOccupiedOnRay, occupiedCellsOnRay } from './gridRay';
+import { walkRayCells } from './gridRay';
 import { isLinkedPrimed } from './linked';
 import type { GameState, OrbColor, Pixel } from './types';
 
@@ -31,6 +31,7 @@ export interface DirectionalPick {
 
 const BIN_CACHE = new Map<string, AttackBin[]>();
 const GEOM_CACHE = new Map<string, RoundedPerimeterGeometry>();
+const RAY_CACHE = new Map<string, Int32Array[]>();
 
 /** One-cell moat around the artwork so rays start outside the grid. */
 const PAD = 1;
@@ -141,12 +142,44 @@ export function isEligibleDirectionalTarget(pixel: Pixel, color: OrbColor): bool
   return !pixel.cleared && pixel.color === color && !isLinkedPrimed(pixel);
 }
 
-function occupancyAt(state: GameState): (x: number, y: number) => Pixel | undefined {
-  const map = new Map<string, Pixel>();
-  for (const p of state.pixels) {
-    if (!p.cleared) map.set(`${p.x},${p.y}`, p);
+/**
+ * The in-bounds cells a bin's ray visits, in ray order, as flat `y * width + x`
+ * indices — the same origin, inward normal and DDA for every caller.
+ */
+function rayCells(width: number, height: number, passProgress: number): Int32Array {
+  const geom = targetingPerimeter(width, height);
+  const geometryProgress = normalizePerimeterProgress(ROUNDED_PERIMETER_BOTTOM_CENTER_PROGRESS + passProgress);
+  const cells: number[] = [];
+  walkRayCells(geom.pointAt(geometryProgress), geom.inwardNormalAt(geometryProgress), width, height, (cell) => {
+    cells.push(cell.y * width + cell.x);
+    return true;
+  });
+  return Int32Array.from(cells);
+}
+
+/**
+ * Every bin's ray, parallel to {@link listAttackBins}. A ray is pure geometry —
+ * only occupancy changes from shot to shot — so it is walked once per board
+ * size instead of once per shot.
+ */
+function binRays(width: number, height: number): Int32Array[] {
+  const key = cacheKey(width, height);
+  const cached = RAY_CACHE.get(key);
+  if (cached) return cached;
+  const rays = listAttackBins(width, height).map((bin) => rayCells(width, height, bin.passProgress));
+  RAY_CACHE.set(key, rays);
+  return rays;
+}
+
+/** Cell index → 1 + index of the uncleared pixel standing there (0 = empty). */
+function occupancy(state: GameState): Int32Array {
+  const grid = new Int32Array(state.width * state.height);
+  const pixels = state.pixels;
+  for (let i = 0; i < pixels.length; i += 1) {
+    const p = pixels[i]!;
+    if (!p.cleared) grid[p.y * state.width + p.x] = i + 1;
   }
-  return (x, y) => map.get(`${x},${y}`);
+  return grid;
 }
 
 export function pickDirectionalEncounter(
@@ -156,30 +189,23 @@ export function pickDirectionalEncounter(
   consumedBins: ReadonlySet<string>,
 ): DirectionalPick | null {
   const bins = listAttackBins(state.width, state.height);
-  const occupier = occupancyAt(state);
-  const geom = targetingPerimeter(state.width, state.height);
+  const rays = binRays(state.width, state.height);
+  const grid = occupancy(state);
   const start = fromProgress <= 0 ? 0 : fromProgress;
 
-  for (const bin of bins) {
+  for (let b = 0; b < bins.length; b += 1) {
+    const bin = bins[b]!;
     if (bin.passProgress < start - 1e-12) continue;
     if (bin.passProgress >= 1 - 1e-12) continue;
     if (consumedBins.has(bin.id)) continue;
 
-    const geometryProgress = normalizePerimeterProgress(
-      ROUNDED_PERIMETER_BOTTOM_CENTER_PROGRESS + bin.passProgress,
-    );
-    const origin = geom.pointAt(geometryProgress);
-    const dir = geom.inwardNormalAt(geometryProgress);
-    const cell = firstOccupiedOnRay(
-      origin,
-      dir,
-      state.width,
-      state.height,
-      (x, y) => occupier(x, y) !== undefined,
-    );
-    if (!cell) continue;
-    const pixel = occupier(cell.x, cell.y);
-    if (!pixel || !isEligibleDirectionalTarget(pixel, color)) continue;
+    // First occupied cell on the ray blocks everything behind it.
+    const ray = rays[b]!;
+    let front = 0;
+    for (let i = 0; i < ray.length && front === 0; i += 1) front = grid[ray[i]!]!;
+    if (front === 0) continue;
+    const pixel = state.pixels[front - 1]!;
+    if (!isEligibleDirectionalTarget(pixel, color)) continue;
     return { pixelId: pixel.id, progress: bin.passProgress, binId: bin.id };
   }
   return null;
@@ -199,24 +225,10 @@ export function attackBinFamily(binId: string): string {
  * first). Reuses the same origin, inward normal, and DDA as targeting.
  */
 export function occupiedPixelsAlongBin(state: GameState, bin: AttackBin): Pixel[] {
-  const occupier = occupancyAt(state);
-  const geom = targetingPerimeter(state.width, state.height);
-  const geometryProgress = normalizePerimeterProgress(
-    ROUNDED_PERIMETER_BOTTOM_CENTER_PROGRESS + bin.passProgress,
-  );
-  const origin = geom.pointAt(geometryProgress);
-  const dir = geom.inwardNormalAt(geometryProgress);
-  const cells = occupiedCellsOnRay(
-    origin,
-    dir,
-    state.width,
-    state.height,
-    (x, y) => occupier(x, y) !== undefined,
-  );
+  const grid = occupancy(state);
   const pixels: Pixel[] = [];
-  for (const cell of cells) {
-    const pixel = occupier(cell.x, cell.y);
-    if (pixel) pixels.push(pixel);
+  for (const cell of rayCells(state.width, state.height, bin.passProgress)) {
+    if (grid[cell]) pixels.push(state.pixels[grid[cell]! - 1]!);
   }
   return pixels;
 }

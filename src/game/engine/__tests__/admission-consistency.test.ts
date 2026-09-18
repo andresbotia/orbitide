@@ -137,7 +137,8 @@ test('M4A repro — the reverse: an enumerated join is never one resolveAction r
   const seen = new Set<string>();
   const stack: GameState[] = [s];
   let checked = 0;
-  while (stack.length && checked < 400) {
+  const CAP = 400;
+  while (stack.length && checked < CAP) {
     s = stack.pop()!;
     const k = stateKey(s);
     if (seen.has(k)) continue;
@@ -150,7 +151,14 @@ test('M4A repro — the reverse: an enumerated join is never one resolveAction r
       if (out.accepted && stack.length < 300) stack.push(out.state);
     }
   }
-  expect(checked).toBeGreaterThan(5);
+  // The whole reachable subtree must be checked, not merely "some of it" — so
+  // assert the search EXHAUSTED rather than hit the cap. Under FIRST LAUNCHED,
+  // FIRST SERVED this subtree is small (the full tray reaches its overflow loss
+  // in a few moves, and a join no longer opens a distinct future), which is why
+  // a fixed ">N states" floor is the wrong guard here.
+  expect({ exhausted: stack.length === 0, capped: checked >= CAP })
+    .toEqual({ exhausted: true, capped: false });
+  expect(checked).toBeGreaterThan(1);
 });
 
 // ── parameterized coverage across representative states ─────────────────────

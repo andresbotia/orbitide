@@ -1,4 +1,4 @@
-import { DEFAULT_ACTIVE_CAPACITY, ENCOUNTER_EPSILON, LAUNCH_SPACING } from './concurrency';
+import { DEFAULT_ACTIVE_CAPACITY, LAUNCH_SPACING } from './concurrency';
 import { boardFingerprint } from './frozen';
 import { resolveBoardHit } from './linked';
 import { pickEncounter } from './pass';
@@ -12,18 +12,24 @@ import type {
 } from './types';
 
 /**
- * M2B concurrent-orbit engine.
- *
- * An **epoch** is a batch of launches whose laps overlap in logical time,
- * resolved as one deterministic discrete-event timeline. The board mutation, the
- * clockwise clear order and the dynamic exposure recompute are all identical to
- * M1 — the only new thing is that up to five charges share the timeline and the
- * engine (never a render callback) decides who reaches which pixel first.
+ * FIRST LAUNCHED, FIRST SERVED launch resolution.
  *
  * Logical time is measured in **laps**. A charge inserted at `insertionTime`
- * reaches lap-progress `t - insertionTime` at logical time `t`, and does at most
- * one lap per launch (leftover capacity parks in Holding; targets exposed behind
- * it wait for a manual relaunch — the M1 rule).
+ * reaches lap-progress `t - insertionTime` at logical time `t` and flies at most
+ * one lap (leftover capacity parks in Holding; targets exposed behind it wait
+ * for a manual relaunch — the M1 rule).
+ *
+ * Because {@link LAUNCH_SPACING} is one full lap, launch `i` owns logical time
+ * `[i, i+1]` and is finished before launch `i+1` can act. So every launch is
+ * resolved exactly once, the moment it launches, against the board the earlier
+ * launches left — nothing is ever re-simulated, and a later Pal can never
+ * rewrite an earlier Pal's history.
+ *
+ * An **epoch** is the run of launches currently sharing the rail. It is
+ * bookkeeping, not physics: which launches occupy Active slots, the clock that
+ * times the next insertion, and every charge's resolution for the presentation.
+ * Whether a launch joins the epoch or starts a fresh one never changes its
+ * logical outcome — only these bookkeeping fields.
  */
 
 export interface EpochResolution {
@@ -33,204 +39,192 @@ export interface EpochResolution {
   charges: ActiveCharge[];
 }
 
-interface Cursor {
-  launch: EpochLaunch;
-  remaining: number;
-  /** Absolute logical time of the last event (starts at insertion). */
-  cursorTime: number;
-  /** Lap-progress so far (`cursorTime - insertionTime`). */
-  progress: number;
-  encounters: ActiveCharge['encounters'];
-  phase: ActiveCharge['phase'];
-  finishTime: number;
-  /** Pixel ids this cursor has already met this lap (Frozen re-hit guard, legacy V1). */
-  hitPixelIds: Set<string>;
-  /** Core V2 attack-line bins this cursor has already resolved this pass. */
-  consumedBins: Set<string>;
+/** One launch resolved against a board. */
+export interface LaunchResolution {
+  /** The board after this launch. */
+  pixels: Pixel[];
+  charge: ActiveCharge;
 }
 
 /**
- * A `(baseline, launches)` pair fully determines the resolution, and the solver
- * re-simulates the same pairs constantly (admission look-ahead, deadlock check,
- * then the actual apply), so memoize. Bounded; cleared wholesale when full.
+ * Memo of single-launch resolutions for ONE board at a time — the level being
+ * played or solved. Resolving a launch on a different board (`boardIdentity`
+ * changes: a level switch, another Studio draft) empties it, and it is an LRU
+ * capped at {@link SIM_CACHE_LIMIT} entries, so it can never grow without bound.
+ *
+ * Measured: live play reuses ≤ 2% of entries (retries of the same level), while
+ * a solve reuses 40–78% — and a 20k-entry LRU keeps nearly all of that. An entry
+ * is ~2–4 KB on Core V2 boards and ~7–10 KB on the largest Legacy boards.
  */
-const SIM_CACHE = new Map<string, EpochResolution>();
-const SIM_CACHE_LIMIT = 250_000;
+const SIM_CACHE = new Map<string, LaunchResolution>();
+export const SIM_CACHE_LIMIT = 20_000;
+let simCacheBoard = '';
 
-function simKey(baseline: GameState, launches: EpochLaunch[]): string {
-  // Insertion time is `index * LAUNCH_SPACING` and only the relative launch order
-  // (= array order) affects the tie-break, so neither needs to be in the key.
-  const cleared = boardFingerprint(baseline.pixels);
-  const launchList = launches
-    .map((l) => `${l.source[0]}${l.originId}:${l.color}:${l.capacity}`)
-    .join(',');
-  return `${baseline.levelId}:${baseline.ruleset}:${baseline.activeCapacity}:${cleared}//${launchList}`;
+/** Entries currently memoized (for tests / diagnostics). */
+export function simCacheSize(): number {
+  return SIM_CACHE.size;
 }
 
-export function simulateEpoch(baseline: GameState, launches: EpochLaunch[]): EpochResolution {
-  const key = simKey(baseline, launches);
-  const cached = SIM_CACHE.get(key);
-  const physics = cached ?? simulateEpochUncached(baseline, launches);
-  if (!cached) {
-    if (SIM_CACHE.size >= SIM_CACHE_LIMIT) SIM_CACHE.clear();
+function simKey(board: GameState, launch: EpochLaunch): string {
+  // Only what the physics reads. The board identity is implied — the cache only
+  // ever holds one board — and `boardFingerprint` supplies per-cell progress
+  // (cleared / iced / shielded / primed). The ruleset is not part of the
+  // identity, so it is keyed here. A launch's source, origin, sequence and the
+  // Active capacity never affect its own lap, so identical Pals share an entry.
+  return `${board.ruleset}:${boardFingerprint(board.pixels)}//${launch.color}:${launch.capacity}@${launch.insertionTime}`;
+}
+
+/** Resolve one launch against `board` (its pixels are the board the launch meets). */
+export function resolveEpochLaunch(board: GameState, launch: EpochLaunch): LaunchResolution {
+  if (board.boardIdentity !== simCacheBoard) {
+    SIM_CACHE.clear();
+    simCacheBoard = board.boardIdentity;
+  }
+  const key = simKey(board, launch);
+  let physics = SIM_CACHE.get(key);
+  if (physics) {
+    // Most recently used goes to the back of the Map's insertion order.
+    SIM_CACHE.delete(key);
+    SIM_CACHE.set(key, physics);
+  } else {
+    physics = resolveEpochLaunchUncached(board, launch);
+    if (SIM_CACHE.size >= SIM_CACHE_LIMIT) SIM_CACHE.delete(SIM_CACHE.keys().next().value!);
     SIM_CACHE.set(key, physics);
   }
   // The key deliberately ignores charge identity (two charges of the same colour
   // and capacity resolve identically), so re-label the cached physics with this
-  // call's actual launch identities before handing it back.
+  // call's actual launch identity before handing it back.
   return {
     pixels: physics.pixels,
-    charges: physics.charges.map((c, i) => ({
-      ...c,
-      id: launches[i]!.chargeId,
-      source: launches[i]!.source,
-      originId: launches[i]!.originId,
-      insertionTime: launches[i]!.insertionTime,
-      launchSequence: launches[i]!.launchSequence,
-    })),
+    charge: {
+      ...physics.charge,
+      id: launch.chargeId,
+      source: launch.source,
+      originId: launch.originId,
+      insertionTime: launch.insertionTime,
+      launchSequence: launch.launchSequence,
+    },
   };
 }
 
 /**
- * Resolve a whole epoch deterministically.
- *
- * Ordering of simultaneous / near-simultaneous encounters:
- *   1. smallest logical encounter time (within {@link ENCOUNTER_EPSILON})
- *   2. smaller launch sequence
- *   3. smaller target pixel id
- * After each resolved clear the board is mutated and every still-orbiting charge
- * re-queries exposure, so a clear by one charge can expose a target another
- * charge reaches later in the same lap.
+ * Resolve a list of launches in order, each against the board the previous ones
+ * left. Launch windows must not overlap: every launch owns one full lap, which
+ * is what makes this sequential fold the whole truth.
  */
-function simulateEpochUncached(baseline: GameState, launches: EpochLaunch[]): EpochResolution {
-  // Structural sharing: only the pixels that clear are replaced.
+export function simulateEpoch(baseline: GameState, launches: EpochLaunch[]): EpochResolution {
   let pixels = baseline.pixels;
-  const boardView = (): GameState => ({ ...baseline, pixels });
+  const charges: ActiveCharge[] = [];
+  launches.forEach((launch, i) => {
+    const previous = launches[i - 1];
+    if (previous && launch.insertionTime < previous.insertionTime + LAUNCH_SPACING) {
+      throw new Error(`Launch windows overlap: ${launch.chargeId} at ${launch.insertionTime} starts before `
+        + `${previous.chargeId} at ${previous.insertionTime} has flown its lap (LAUNCH_SPACING ${LAUNCH_SPACING}).`);
+    }
+    const own = resolveEpochLaunch(pixels === baseline.pixels ? baseline : { ...baseline, pixels }, launch);
+    charges.push(own.charge);
+    pixels = own.pixels;
+  });
+  return { pixels, charges };
+}
 
-  const cursors: Cursor[] = launches.map((launch) => ({
-    launch,
-    remaining: launch.capacity,
-    cursorTime: launch.insertionTime,
-    progress: 0,
-    encounters: [],
-    phase: 'orbiting',
-    finishTime: launch.insertionTime + 1,
-    hitPixelIds: new Set<string>(),
-    consumedBins: new Set<string>(),
-  }));
+/**
+ * One charge's lap. It advances along the rail from its insertion point; after
+ * each resolved hit the board is mutated and exposure is re-queried, so a clear
+ * can expose a target the charge reaches later in the same lap.
+ */
+function resolveEpochLaunchUncached(from: GameState, launch: EpochLaunch): LaunchResolution {
+  // Structural sharing: only the pixels that change are replaced.
+  let pixels = from.pixels;
+  // One board view, re-pointed at the current pixels each step (targeting reads
+  // only size, ruleset and pixels, and retains nothing).
+  const board: GameState = { ...from };
 
-  // Logical time reached so far. While the sim advances, every still-orbiting
-  // charge keeps flying, so a charge that has not hit anything is nonetheless at
-  // lap-progress `simTime - insertionTime` — a target exposed late is met there,
-  // not back where the charge was when it launched.
+  let remaining = launch.capacity;
+  let progress = 0;
+  let finished = false;
+  let finishTime = launch.insertionTime + 1;
+  // Logical time reached so far.
   let simTime = 0;
+  const encounters: ActiveCharge['encounters'] = [];
+  /** Pixel ids already met this lap (Frozen re-hit guard, legacy V1). */
+  const hitPixelIds = new Set<string>();
+  /** Core V2 attack-line bins already resolved this lap: one shot per line. */
+  const consumedBins = new Set<string>();
 
-  // Each step resolves exactly one clear or finishes at least one cursor, so the
-  // loop is bounded by (clears + cursor finishes).
+  // Each step resolves exactly one hit or ends the lap. A hit clears a pixel,
+  // cracks one ice / shield layer or primes a linked pixel, so the loop is
+  // bounded well inside this.
   const modifierHits = pixels.reduce((n, p) => {
     if (p.cleared || (p.modifier?.kind !== 'frozen' && p.modifier?.kind !== 'shielded')) return n;
     return n + Math.max(0, Math.trunc(p.modifier.level ?? 1));
   }, 0);
-  const maxSteps = pixels.length + modifierHits + cursors.length * 2 + 4;
+  const maxSteps = pixels.length + modifierHits + 6;
   for (let step = 0; step < maxSteps; step += 1) {
-    const board = boardView();
-    type Candidate = {
-      cursor: Cursor;
-      pixelId: string;
-      time: number;
-      progress: number;
-      binId?: string;
-    };
-    let best: Candidate | null = null;
-    const picks: Candidate[] = [];
-
-    for (const c of cursors) {
-      if (c.phase === 'finished' || c.remaining <= 0) continue;
-      const fromProgress = Math.max(c.progress, simTime - c.launch.insertionTime);
+    board.pixels = pixels;
+    let hit: ReturnType<typeof pickEncounter> = null;
+    if (!finished && remaining > 0) {
+      const fromProgress = Math.max(progress, simTime - launch.insertionTime);
       if (fromProgress >= 1) {
-        // The charge has flown a full lap. Targets exposed behind it now wait for
-        // a manual relaunch — the M1 rule.
-        c.phase = 'finished';
-        c.progress = 1;
-        c.finishTime = c.launch.insertionTime + 1;
-        continue;
+        // A full lap flown. Targets exposed behind it now wait for a manual
+        // relaunch — the M1 rule.
+        finished = true;
+        progress = 1;
+        finishTime = launch.insertionTime + 1;
+      } else {
+        hit = pickEncounter(board, launch.color, fromProgress, hitPixelIds, consumedBins);
       }
-      // No reachable target ahead *right now* is not the end of the lap — another
-      // charge's clear may expose one before this charge comes around. Keep flying.
-      const hit = pickEncounter(board, c.launch.color, fromProgress, c.hitPixelIds, c.consumedBins);
-      if (!hit) continue;
-      const time = c.launch.insertionTime + hit.progress;
-      const cand: Candidate = {
-        cursor: c, pixelId: hit.pixelId, time, progress: hit.progress, binId: hit.binId,
-      };
-      picks.push(cand);
-      const better = best === null
-        || time < best.time - ENCOUNTER_EPSILON
-        || (Math.abs(time - best.time) <= ENCOUNTER_EPSILON && (
-          c.launch.launchSequence < best.cursor.launch.launchSequence
-          || (c.launch.launchSequence === best.cursor.launch.launchSequence && hit.pixelId < best.pixelId)
-        ));
-      if (better) best = cand;
     }
-
-    if (!best) {
-      // Nothing more can be resolved: every still-orbiting charge coasts to the
-      // end of its lap with capacity to spare.
-      for (const c of cursors) {
-        if (c.phase === 'finished') continue;
-        c.phase = 'finished';
-        c.progress = 1;
-        c.finishTime = c.launch.insertionTime + 1;
+    if (!hit) {
+      // Nothing more to meet: the charge coasts to the end of its lap.
+      if (!finished) {
+        finished = true;
+        progress = 1;
+        finishTime = launch.insertionTime + 1;
       }
       break;
     }
 
-    simTime = Math.max(simTime, best.time);
-    const resolved = resolveBoardHit(pixels, best.pixelId);
+    const time = launch.insertionTime + hit.progress;
+    simTime = Math.max(simTime, time);
+    const resolved = resolveBoardHit(pixels, hit.pixelId);
     pixels = resolved.pixels;
-    const c = best.cursor;
-    c.remaining -= 1;
-    c.cursorTime = best.time;
-    c.progress = best.progress;
-    c.hitPixelIds.add(best.pixelId);
-    // Core V2: every charge that nominated this attack-line bin this step has
-    // used its one shot opportunity on that line — losers do not chain into
-    // the newly exposed rear pixel.
-    if (best.binId) {
-      for (const pick of picks) {
-        if (pick.binId === best.binId) pick.cursor.consumedBins.add(best.binId);
-      }
-    }
-    c.encounters.push({ pixelId: best.pixelId, time: best.time, progress: best.progress, remaining: c.remaining,
-      ...(resolved.frozenBreak ? { frozenBreak: true } : {}),
-      ...(resolved.shieldBreak ? { shieldBreak: true } : {}),
-      ...(resolved.linkedPrime ? { linkedPrime: true } : {}),
-      ...(resolved.linkedGroupClear ? { linkedGroupClear: true } : {}),
-      ...(resolved.linkedGroupId ? { linkedGroupId: resolved.linkedGroupId } : {}),
-      ...(resolved.linkedGroupClear ? { linkedClearedPixelIds: resolved.clearedPixelIds } : {}) });
-    if (c.remaining === 0) {
-      c.phase = 'finished';
-      c.finishTime = best.time;
+    remaining -= 1;
+    progress = hit.progress;
+    hitPixelIds.add(hit.pixelId);
+    if (hit.binId) consumedBins.add(hit.binId);
+    const encounter: ActiveCharge['encounters'][number] = { pixelId: hit.pixelId, time, progress: hit.progress, remaining };
+    if (resolved.frozenBreak) encounter.frozenBreak = true;
+    if (resolved.shieldBreak) encounter.shieldBreak = true;
+    if (resolved.linkedPrime) encounter.linkedPrime = true;
+    if (resolved.linkedGroupClear) encounter.linkedGroupClear = true;
+    if (resolved.linkedGroupId) encounter.linkedGroupId = resolved.linkedGroupId;
+    if (resolved.linkedGroupClear) encounter.linkedClearedPixelIds = resolved.clearedPixelIds;
+    encounters.push(encounter);
+    if (remaining === 0) {
+      finished = true;
+      finishTime = time;
     }
   }
 
-  const charges: ActiveCharge[] = cursors.map((c) => ({
-    id: c.launch.chargeId,
-    source: c.launch.source,
-    originId: c.launch.originId,
-    color: c.launch.color,
-    capacity: c.launch.capacity,
-    remainingCapacity: c.remaining,
-    insertionTime: c.launch.insertionTime,
-    launchSequence: c.launch.launchSequence,
-    passCount: c.encounters.length > 0 || c.progress >= 1 ? 1 : 0,
-    phase: 'finished',
-    encounters: c.encounters,
-    finishTime: c.finishTime,
-    landed: c.remaining > 0 ? 'holding' : 'consumed',
-  }));
-
-  return { pixels, charges };
+  return {
+    pixels,
+    charge: {
+      id: launch.chargeId,
+      source: launch.source,
+      originId: launch.originId,
+      color: launch.color,
+      capacity: launch.capacity,
+      remainingCapacity: remaining,
+      insertionTime: launch.insertionTime,
+      launchSequence: launch.launchSequence,
+      passCount: encounters.length > 0 || progress >= 1 ? 1 : 0,
+      phase: 'finished',
+      encounters,
+      finishTime,
+      landed: remaining > 0 ? 'holding' : 'consumed',
+    },
+  };
 }
 
 /** The committed truth an epoch builds on: strip the epoch view off a state. */
@@ -238,12 +232,6 @@ export function committedBaseline(state: GameState): GameState {
   return { ...state, epoch: null, activeCharges: [] };
 }
 
-/**
- * Would a launch accepted right now **join** the open epoch (rather than start a
- * fresh one)? True only while a distinct earlier charge is still mid-lap at the
- * insertion point the new launch would use. A pause long enough for every charge
- * to finish its lap closes the epoch, so unhurried play resolves exactly like M1.
- */
 /**
  * Whether a launch of `chargeId` is even *able* to join the open epoch. Whether
  * it actually does is the player's coarse timing choice, carried on the action
@@ -273,7 +261,9 @@ export function epochHasCapacity(state: GameState): boolean {
 }
 
 export interface EpochPlan {
+  /** Committed state the epoch started from (the current one when not joining). */
   baseline: GameState;
+  /** Every launch in the epoch after this one, in launch order. */
   launches: EpochLaunch[];
   /** Insertion time assigned to the new launch. */
   insertionTime: number;
@@ -283,9 +273,9 @@ export interface EpochPlan {
 }
 
 /**
- * Produce the launch list to simulate. `wantsJoin` is the player's coarse timing
- * choice (from the action's `join` flag); the launch actually joins only if the
- * open epoch can still take it.
+ * Place a launch in the epoch. `wantsJoin` is the player's coarse timing choice
+ * (from the action's `join` flag); the launch actually joins only if the open
+ * epoch can still take it.
  */
 export function planLaunch(
   state: GameState,
@@ -307,53 +297,42 @@ export function planLaunch(
 }
 
 /**
- * Fold a resolved epoch back into a committed {@link GameState}: apply the board,
- * consume the launched tunnel fronts / held charges, park leftovers in Holding,
- * and keep the epoch attached so the next launch can join it.
+ * Commit the plan's newest launch to `state`: apply its board, consume its
+ * tunnel front / held charge, park its leftover capacity in Holding (when there
+ * is room), and record it in the epoch so the next launch can join.
+ * `resolution.charges` is every charge on the rail, the new one last.
  */
-export function flushEpoch(plan: EpochPlan, resolution: EpochResolution): GameState {
-  const { baseline, launches } = plan;
+export function commitLaunch(state: GameState, plan: EpochPlan, resolution: EpochResolution): GameState {
+  const launch = plan.launches[plan.launches.length - 1]!;
+  const charge = resolution.charges[resolution.charges.length - 1]!;
 
-  // Rebuild only the tunnels a launch was taken from; untouched tunnels keep
+  // Rebuild only the tunnel the launch was taken from; untouched tunnels keep
   // their identity (structural sharing the M1 tests rely on).
-  const tunnelLaunchCount = new Map<string, number>();
-  const launchedHoldingIds = new Set<string>();
-  for (const launch of launches) {
-    if (launch.source === 'tunnel') {
-      tunnelLaunchCount.set(launch.originId, (tunnelLaunchCount.get(launch.originId) ?? 0) + 1);
-    } else {
-      launchedHoldingIds.add(launch.originId);
-    }
-  }
+  const tunnels = launch.source === 'tunnel'
+    ? state.tunnels.map((t) => (t.id === launch.originId ? { ...t, queue: t.queue.slice(1) } : t))
+    : state.tunnels;
 
-  const tunnels = tunnelLaunchCount.size === 0
-    ? baseline.tunnels
-    : baseline.tunnels.map((t) => {
-      const taken = tunnelLaunchCount.get(t.id);
-      return taken ? { ...t, queue: t.queue.slice(taken) } : t;
-    });
-
-  const parked: Charge[] = resolution.charges
-    .filter((c) => c.landed === 'holding')
-    .map((c) => ({ id: c.id, color: c.color, capacity: c.remainingCapacity }));
-
-  const keep = baseline.holding.filter((c) => !launchedHoldingIds.has(c.id));
-  const room = Math.max(0, baseline.holdingCapacity - keep.length);
-  const holding: Charge[] = launchedHoldingIds.size === 0 && parked.length === 0
-    ? baseline.holding
+  const fromHolding = launch.source === 'holding';
+  const parked: Charge[] = charge.landed === 'holding'
+    ? [{ id: charge.id, color: charge.color, capacity: charge.remainingCapacity }]
+    : [];
+  const keep = fromHolding ? state.holding.filter((c) => c.id !== launch.originId) : state.holding;
+  const room = Math.max(0, state.holdingCapacity - keep.length);
+  const holding: Charge[] = !fromHolding && parked.length === 0
+    ? state.holding
     : [...keep, ...parked.slice(0, room)];
 
-  const epoch: EpochState = { baseline, launches, clock: plan.clock };
+  const epoch: EpochState = { baseline: plan.baseline, launches: plan.launches, clock: plan.clock };
 
   return {
-    ...baseline,
+    ...state,
     pixels: resolution.pixels,
     tunnels,
     holding,
-    movesApplied: baseline.movesApplied + launches.length,
+    movesApplied: state.movesApplied + 1,
     activeCharges: resolution.charges,
     epoch,
-    status: baseline.status,
+    status: state.status,
   };
 }
 

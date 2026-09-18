@@ -9,9 +9,11 @@ export function isWon(state: GameState): boolean { return remainingPixelCount(st
  * Runtime deadlock: the picture is not cleared and there is no admitted player
  * action left that can still change it.
  *
- * While an epoch is open a `join: true` launch onto the running rail is a real
- * option, so it is considered too — the game must never declare a loss while a
- * legal join can still progress the board (M4A.2).
+ * Joins need no separate look: `candidateActions` only ever offers a
+ * `join: true` launch next to its settle-first twin, and `actionRejection`
+ * never admits a join whose twin it refuses — so a join cannot change whether
+ * *any* move exists. (Under FIRST LAUNCHED, FIRST SERVED it cannot change the
+ * outcome either: a join resolves exactly like launching after the rail settles.)
  *
  * Every action `legalActions` returns is progress-making, so "a legal action
  * exists" and "the board can still change" are the same test here:
@@ -32,8 +34,7 @@ export function isLost(state: GameState): boolean {
   if (state.status === 'lost') return true;
   if (isWon(state)) return false;
   const playing: GameState = { ...state, status: 'playing' };
-  const actions = legalActions(playing, { includeJoin: playing.epoch !== null });
-  if (actions.length === 0) return true;
+  if (legalActions(playing).length === 0) return true;
 
   if (
     isCoreV2(state.ruleset)

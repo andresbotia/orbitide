@@ -1,15 +1,21 @@
 /**
- * Synthetic retroactive join (Test B): a LATER join flips an EARLIER in-flight
- * Pal's fate. Board (coreV2):
+ * Synthetic retroactive join: a LATER join must not touch an EARLIER in-flight
+ * Pal. Board (coreV2):
  *
  *   B W Y      Pal A = blue4 (tunnel-0), Pal B = yellow2 (tunnel-1).
- *   Y B B      Alone, A hits p0-2, p0-0, p2-1 and parks with 1: blue p1-1 is
- *   B Y Y      hidden behind yellow p1-2. B (logical insertion 0.18) clears
- *              p1-2, exposing p1-1 to A at progress 0.25 → A is consumed.
+ *   Y B B      A hits p0-2, p0-0, p2-1 and parks with 1: blue p1-1 is hidden
+ *   B Y Y      behind yellow p1-2, and A never reaches it.
  *
- * BEFORE: B joins while A is still short of 0.25 → presentation can reconcile.
- * AFTER:  B joins once A has visibly passed 0.25 (and shown p0-0 with 2 left)
- *         → the join rewrites presented history.
+ * Under the OLD 0.18 launch spacing the laps interleaved, so B's clear of p1-2
+ * exposed p1-1 to A *retroactively* — the engine inserted a blue hit at logical
+ * progress 0.25 and flipped A from parks-with-1 to consumed. When the player
+ * joined late, A was already visibly past 0.25 (at 0.398, having shown p0-0
+ * with 2 left), so that hit could never be presented honestly.
+ *
+ * Under FIRST LAUNCHED, FIRST SERVED (`LAUNCH_SPACING` = one lap) A's lap is
+ * fully resolved before B's begins, so A is identical no matter when B joins.
+ * The two cadences below therefore assert the SAME outcome — that equality is
+ * the point: the result cannot depend on how fast the player taps.
  */
 import { createGame } from '@/game/engine/createGame';
 import { resolveAction } from '@/game/engine/resolveLaunch';
@@ -34,27 +40,34 @@ const A = 'L9720-t0-c0';
 const B = 'L9720-t1-c0';
 const px = (x: number, y: number) => `L9720-p${x}-${y}`;
 
+/** A's lap, resolved the moment it launches. Nothing may change this later. */
+const A_HISTORY = [px(0, 2), px(0, 0), px(2, 1)];
+
 beforeEach(() => {
   jest.useFakeTimers({ now: 0 });
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 afterEach(() => { jest.useRealTimers(); });
 
-test('engine: the join changes A from parks-with-1 to consumed (hit inserted at progress 0.25)', () => {
+test('engine: a later join leaves A exactly as it launched', () => {
   const s0 = createGame(LEVEL);
   const k = resolveAction(s0, { kind: 'tunnel', id: 'tunnel-0' });
   const a1 = k.epochCharges!.find((c) => c.id === A)!;
   expect(a1.landed).toBe('holding');
   expect(a1.remainingCapacity).toBe(1);
-  expect(a1.encounters.map((e) => e.pixelId)).toEqual([px(0, 2), px(0, 0), px(2, 1)]);
+  expect(a1.encounters.map((e) => e.pixelId)).toEqual(A_HISTORY);
 
   const k1 = resolveAction(k.state, { kind: 'tunnel', id: 'tunnel-1', join: true });
   expect(k1.joinedEpoch).toBe(true);
+
   const a2 = k1.epochCharges!.find((c) => c.id === A)!;
-  expect(a2.landed).toBe('consumed');
-  expect(a2.encounters.map((e) => e.pixelId)).toEqual([px(0, 2), px(1, 1), px(0, 0), px(2, 1)]);
-  expect(a2.encounters[1]!.progress).toBeCloseTo(0.25, 2);
-  expect(k1.state.holding).toEqual([]);
+  expect(a2.encounters.map((e) => e.pixelId)).toEqual(A_HISTORY);
+  expect(a2.landed).toBe('holding');
+  expect(a2.remainingCapacity).toBe(1);
+  // The specific rewrite the old engine performed: a hit on p1-1 at progress
+  // 0.25, inserted behind A's second shot. It must never reappear.
+  expect(a2.encounters.map((e) => e.pixelId)).not.toContain(px(1, 1));
+  expect(k1.state.holding.map((c) => c.id)).toEqual([A]);
   expect(k1.state.status).toBe('playing');
 });
 
@@ -66,40 +79,36 @@ function run(joinAt: number): { log: DriveLog; view: ReturnType<ReturnType<typeo
   return out;
 }
 
-describe('BEFORE: B joins before A visibly reaches the affected encounter', () => {
-  test('no presented event changes; A is re-scripted to consumed; converged before settle', () => {
-    const { log, view, truth } = run(1000);
+// `1000` joins while A is short of the old 0.25 boundary; `3000` joins once A
+// has visibly passed it (rail at 0.398). Both must behave identically.
+describe.each([['early join (1000ms)', 1000], ['late join (3000ms)', 3000]])('%s', (_label, joinAt) => {
+  test('no presented history is contradicted, and view converges before settle', () => {
+    const { log, view, truth } = run(joinAt as number);
+
     expect(log.divergences).toEqual([]);
-    expect(log.terminals.get(A)).toEqual([{ kind: 'consumed' }]);
-    expect(log.terminals.get(B)).toEqual([{ kind: 'consumed' }]);
     expect(log.violations).toEqual([]);
-    for (const snap of log.holdingTimeline) expect(snap.view).toEqual([]);
+    expect(log.devMessages).toEqual([]);
+
+    // A parks with its leftover capacity; B is spent.
+    expect(log.terminals.get(A)).toEqual([{ kind: 'toHolding', slot: 0, target: { x: 101, y: 901 } }]);
+    expect(log.terminals.get(B)).toEqual([{ kind: 'consumed' }]);
+
     expect(log.preSettle).toBeDefined();
     expectConverged(log.preSettle!.view, log.preSettle!.truth);
     expectConverged(view, truth);
-    expect(log.devMessages).toEqual([]);
   });
 });
 
-describe('AFTER: B joins once A has visibly passed the affected encounter', () => {
-  test('audit evidence: the join rewrites already-presented history for A', () => {
-    const { log } = run(3000);
-    console.log(`[synthetic AFTER audit]\n${log.divergences.map((d) => `${d.chargeId}@${d.atMs}ms(t=${d.presentedMs}): ${d.detail}`).join('\n')}`);
-    expect(log.divergences.some((d) => d.chargeId === A)).toBe(true);
-    // The session flags it in DEV too (one line, at the join).
-    expect(log.devMessages.filter((m) => m.startsWith('[PA_HISTORY]'))).toHaveLength(1);
-  });
+test('cadence independence: joining early and joining late give the same result', () => {
+  const early = run(1000);
+  const late = run(3000);
 
-  // KNOWN FAILURE pending an engine-rule decision (§5): the join clears p1-1
-  // with A at logical progress 0.25 while A is visibly at 0.40 — no
-  // presentation-only change can show that hit. Flip to `test` once the
-  // engine freezes presented history.
-  test.failing('presentation converges to truth without contradicting what was shown', () => {
-    const { log } = run(3000);
-    expect(log.violations).toEqual([]);
-    expect(log.preSettle).toBeDefined();
-    expectConverged(log.preSettle!.view, log.preSettle!.truth);
-  });
+  expect(late.truth.holding).toEqual(early.truth.holding);
+  expect(late.truth.status).toEqual(early.truth.status);
+  expect(late.truth.pixels.map((p) => p.cleared)).toEqual(early.truth.pixels.map((p) => p.cleared));
+  for (const id of [A, B]) {
+    expect(late.log.terminals.get(id)).toEqual(early.log.terminals.get(id));
+  }
 });
 
 describe('Holding relaunch while another Pal is flying toward Holding', () => {
