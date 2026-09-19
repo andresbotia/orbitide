@@ -52,3 +52,20 @@ export const FEEL = {
  * dense sweeps without touching engine truth.
  */
 export const ENCOUNTER_SCALE = 1;
+
+/**
+ * Holding handoff (presentation only). The flying Pal stays drawn at its slot
+ * for HOLDING_HANDOFF_MS after `holdingLanded` so the tray's own Pal — which
+ * needs a React commit to appear — takes over underneath instead of the slot
+ * blinking empty. Fully visible for HOLDING_HANDOFF_HOLD_MS, then fades out.
+ * Engine Holding timing and the logical landing beat are unchanged.
+ */
+export const HOLDING_HANDOFF_MS = 120;
+export const HOLDING_HANDOFF_HOLD_MS = 50;
+
+/**
+ * Gate → Holding retarget (presentation only). If a landing Pal's slot moves
+ * mid-flight it re-aims from where it visibly is; the new leg is never shorter
+ * than this, so a late retarget glides instead of snapping.
+ */
+export const HOLDING_RETARGET_MIN_MS = 100;

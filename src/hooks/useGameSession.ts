@@ -12,6 +12,7 @@ import { cancelHits, registerHit } from '@/game/hapticArbiter';
 import { requireLevel } from '@/game/levels/levels';
 import { buildLaunchScript } from '@/game/presentation/buildScript';
 import type { FlightPass, Point } from '@/game/presentation/events';
+import { HOLDING_HANDOFF_MS } from '@/game/presentation/constants';
 import { commitLandings, holdingSlotFor, terminalProblem } from '@/game/presentation/holdingSlot';
 import { assignResult, reconcileFlights } from '@/game/presentation/reconcile';
 import {
@@ -64,10 +65,20 @@ function lifecycleProblem(message: string): void {
   if (isDev()) console.error('[PA_LIFECYCLE]', message);
 }
 
+/** Why a tap was refused. Presentation reads this; it never re-derives rules. */
+export type LaunchDenialReason = 'activeFull' | 'noTargets' | 'unavailable' | 'inFlight' | 'tutorial';
+export interface LaunchDenial { reason: LaunchDenialReason; /** Increments per denied tap. */ seq: number }
+
 export interface GameSession {
   state: GameState; engineState: GameState; locked: boolean;
   /** Every charge currently on the rail. */
   flights: FlightPass[];
+  /**
+   * Presentation only: toHolding Pals that already completed and are drawn at
+   * their slot for the Holding handoff. Never counted as occupancy, never
+   * reconciled; render them in the same keyed list as `flights`.
+   */
+  landingFlights: FlightPass[];
   /** Back-compat single-flight accessor — the most recent launch. */
   flightPass: FlightPass | null;
   /** Whether another launch would be accepted right now. */
@@ -77,6 +88,8 @@ export interface GameSession {
   /** Engine concurrent-pass capacity (for ACTIVE X/Y). */
   activeCapacity: number;
   message: string;
+  /** The most recent refused tap and why (`null` until one happens). */
+  lastDenial: LaunchDenial | null;
   /** M5.4B UI contract. Presentation-only consumers must not drive engine truth. */
   tutorial: TutorialView;
   /** Returns whether the tap was accepted — the tapped element uses this for local denied feedback. */
@@ -94,11 +107,16 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
   const [state, setState] = useState(() => createGame(level));
   const [engineState, setEngineState] = useState(state);
   const [flights, setFlights] = useState<FlightPass[]>([]);
+  const [landingFlights, setLandingFlights] = useState<FlightPass[]>([]);
   const [message, setMessage] = useState('');
+  const [lastDenial, setLastDenial] = useState<LaunchDenial | null>(null);
+  const denialSeq = useRef(0);
   const truth = useRef(state);
   const view = useRef(state);
   const serial = useRef(0);
   const active = useRef(new Map<number, ActiveFlight>());
+  /** Completed toHolding passes still drawn through the Holding handoff (see `landingFlights`). */
+  const landing = useRef(new Map<number, FlightPass>());
   /** Pals that reached their slot but wait for a lower slot's Pal to land first. */
   const landedIds = useRef(new Set<string>());
   const optionsRef = useRef(options);
@@ -135,6 +153,16 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     setFlights([...active.current.values()].map((f) => f.pass));
   }, []);
 
+  const publishLanding = useCallback(() => {
+    setLandingFlights(landing.current.size ? [...landing.current.values()] : []);
+  }, []);
+
+  const clearLanding = useCallback(() => {
+    if (!landing.current.size) return;
+    landing.current.clear();
+    setLandingFlights([]);
+  }, []);
+
   const reportResult = useCallback(() => {
     if (reported.current || truth.current.status === 'playing') return;
     reported.current = true;
@@ -156,11 +184,12 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
 
   useEffect(() => {
     const flights = active.current;
+    const lingering = landing.current;
     const sub = AppState.addEventListener('change', (next) => {
-      if (next !== 'active') { feedback.cancelPending(); cancelHits(); if (flights.size) settleAll(); }
+      if (next !== 'active') { feedback.cancelPending(); cancelHits(); clearLanding(); if (flights.size) settleAll(); }
     });
-    return () => { sub.remove(); flights.clear(); feedback.cancelPending(); cancelHits(); };
-  }, [settleAll]);
+    return () => { sub.remove(); flights.clear(); lingering.clear(); feedback.cancelPending(); cancelHits(); };
+  }, [settleAll, clearLanding]);
 
   const holdingSlotsRef = useRef<(Point | undefined)[]>([]);
   /** Coalesce multi-flight `presentThrough` commits so 5 Pals clearing in
@@ -186,10 +215,17 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     return committed;
   }, []);
 
+  const deny = useCallback((reason: LaunchDenialReason) => {
+    // Rail full gets its own, longer error cue; everything else the light "not now".
+    feedback.emit(reason === 'activeFull' ? 'activeFull' : 'denied');
+    denialSeq.current += 1;
+    setLastDenial({ reason, seq: denialSeq.current });
+  }, []);
+
   const perform = useCallback((action: GameAction, from?: Point, holdingSlots?: (Point | undefined)[]): boolean => {
     if (truth.current.status !== 'playing') return false;
     if (!isTutorialActionAllowed(tutorialRef.current, action)) {
-      feedback.emit('denied');
+      deny('tutorial');
       return false;
     }
     const cap = truth.current.activeCapacity || DEFAULT_ACTIVE_CAPACITY;
@@ -197,14 +233,14 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     if (action.kind === 'holding') {
       for (const flight of active.current.values()) {
         if (flight.pass.charge.id === action.id && !hasPresentedHoldingLanding(flight)) {
-          feedback.emit('denied');
+          deny('inFlight');
           return false;
         }
       }
     }
     if (active.current.size >= cap) {
       setMessage('Rail is full — wait for a Pal to land.');
-      feedback.emit('denied');
+      deny('activeFull');
       return false;
     }
     const joining = active.current.size > 0 && epochHasCapacity(truth.current);
@@ -213,12 +249,14 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     if (!outcome.accepted) {
       if (outcome.rejection === 'activeSlotsFull') {
         setMessage('Rail is full — wait for a Pal to land.');
+        deny('activeFull');
       } else if (outcome.rejection === 'noTargets') {
         setMessage('No exposed matching pixels yet.');
+        deny('noTargets');
       } else {
         setMessage('That Pal is no longer available.');
+        deny('unavailable');
       }
-      feedback.emit('denied');
       return false;
     }
     setMessage('');
@@ -239,6 +277,9 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     let presentedHolding = view.current.holding;
     if (action.kind === 'holding') {
       presentedHolding = presentedHolding.filter((charge) => charge.id !== action.id);
+      // The tray compacts, so a lingering handoff Pal would no longer sit on its
+      // tray twin (or would duplicate the Pal being relaunched).
+      clearLanding();
     }
     const now = Date.now();
     const fresh: FlightPass = { ...buildLaunchScript(outcome, before, ++serial.current, from).pass, launchedAtMs: now };
@@ -276,11 +317,15 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     setState(view.current);
     publishFlights();
     return true;
-  }, [publishFlights, advanceTutorial, commitHolding]);
+  }, [publishFlights, advanceTutorial, commitHolding, clearLanding, deny]);
 
   const presentThrough = useCallback((passId: number, count: number) => {
     const flight = active.current.get(passId);
-    if (!flight) return;
+    if (!flight) {
+      // The UI clock of a lingering Holding Pal ran out: its handoff is over.
+      if (count === Number.MAX_SAFE_INTEGER && landing.current.delete(passId)) publishLanding();
+      return;
+    }
     const end = Math.min(count, flight.pass.events.length);
     let nextPixels = view.current.pixels;
     let pixelsDirty = false;
@@ -336,6 +381,17 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
           lifecycleProblem(`${id} completed toHolding but is in neither Holding nor its landing queue`);
         }
         active.current.delete(passId);
+        // Logically done; keep drawing it at its slot through the handoff unless
+        // its clock already ran out (the end-of-clock call presents everything).
+        if (flight.pass.terminal.kind === 'toHolding' && count !== Number.MAX_SAFE_INTEGER) {
+          const now = Date.now();
+          for (const [lingerId, pass] of landing.current) {
+            // Safety net for a clock that never reported its end.
+            if (now - pass.launchedAtMs > pass.landingAt + HOLDING_HANDOFF_MS + 1000) landing.current.delete(lingerId);
+          }
+          landing.current.set(passId, flight.pass);
+          publishLanding();
+        }
         if (active.current.size === 0) { settleAll(); return; }
         publishFlights();
         continue;
@@ -359,19 +415,26 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
         feedback.emit('linkPrime', { haptic: !replacedImpact, voice: 'shot' });
       } else if (event.kind === 'linkGroupClear') {
         feedback.emit(event.final ? 'finalClear' : 'linkClear', { haptic: !replacedImpact, voice: 'shot' });
+      } else if (event.kind === 'chargeConsumed' && flight.pass.terminal.kind === 'reject') {
+        // The visible GateTerminal burst starts on this beat: its own cue, not a
+        // routine consumed Pal.
+        feedback.emit('reject');
       } else {
         const soundEvent = event.kind === 'holdingLanded' ? 'holdingLand' : event.kind;
-        feedback.emit(soundEvent, { haptic: event.kind === 'win' ? false : !replacedImpact });
+        // A launch already had its one beat at the tap; rail entry is sound-only.
+        const silent = event.kind === 'win' || event.kind === 'orbitEnter';
+        feedback.emit(soundEvent, { haptic: silent ? false : !replacedImpact });
       }
     }
     if (pixelsDirty) {
       view.current = { ...view.current, pixels: nextPixels };
     }
     queueViewFlush();
-  }, [reportResult, settleAll, publishFlights, advanceTutorial, queueViewFlush, commitHolding]);
+  }, [reportResult, settleAll, publishFlights, publishLanding, advanceTutorial, queueViewFlush, commitHolding]);
 
   const restart = useCallback(() => {
     active.current.clear();
+    clearLanding();
     landedIds.current.clear();
     feedback.cancelPending();
     cancelHits();
@@ -383,7 +446,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
         ? tutorialRef.current
         : createTutorial(level, optionsRef.current.completedTutorials),
     );
-  }, [level, commitTutorial]);
+  }, [level, commitTutorial, clearLanding]);
 
   const launch = useCallback((id: string, from?: Point, holdingSlots?: (Point | undefined)[]) => {
     return perform({ kind: 'tunnel', id }, from, holdingSlots);
@@ -392,15 +455,19 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     return perform({ kind: 'holding', id }, from, holdingSlots);
   }, [perform]);
 
+  // Stable identity per tutorial state: consumers memo on `tutorial`, and a
+  // fresh object every render re-rendered the whole control deck per hit.
+  const tutorialView = useMemo(() => toTutorialView(tutorial), [tutorial]);
   const cap = engineState.activeCapacity || DEFAULT_ACTIVE_CAPACITY;
   return {
     state, engineState, locked: flights.length >= cap,
-    flights, flightPass: flights[flights.length - 1] ?? null,
+    flights, landingFlights, flightPass: flights[flights.length - 1] ?? null,
     canLaunch: state.status === 'playing' && truth.current.status === 'playing' && flights.length < cap,
     activeCount: flights.length,
     activeCapacity: cap,
     message,
-    tutorial: toTutorialView(tutorial),
+    lastDenial,
+    tutorial: tutorialView,
     launch,
     launchHeld,
     presentThrough, restart,

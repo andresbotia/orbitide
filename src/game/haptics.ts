@@ -42,11 +42,13 @@ function successThenHeavyBloom() {
  * no event below is rewired to any new UI this milestone).
  *
  *   micro     select, orbitEnter, denied            — navigation/selection ticks
+ *   refusal   activeFull                             — tap refused, ACTIVE full (Error notification)
  *   light     iceCrack, shieldBreak                  — small, frequent board events
  *   medium    heldRelaunch, pixelPop, pixelCombo,     — routine confirmed actions
  *             chargeConsumed, holdingLand, linkPrime,
  *             nextPress, gateLock
  *   warning   holdingCritical, holdingFull, fail      — near-danger / failure states
+ *   reject    reject                                  — heavy thud on the GateTerminal burst
  *   success   win, discoveryResolve, finalClear,      — level-complete family
  *             linkClear, pixelBurst
  *   special/  capstoneWin                             — reserved for a world-capstone
@@ -59,9 +61,14 @@ function successThenHeavyBloom() {
  */
 export const haptics = {
   select: () => throttled('press', 80, () => impact(Haptics.ImpactFeedbackStyle.Medium)),
-  heldRelaunch: () => throttled('press', 80, () => impact(Haptics.ImpactFeedbackStyle.Rigid)),
+  // Own throttle key: a tunnel tap must never swallow a Holding relaunch (or vice versa).
+  heldRelaunch: () => throttled('held', 80, () => impact(Haptics.ImpactFeedbackStyle.Rigid)),
   // Rail full — a light, restrained "not now" tap (spec §19).
   denied: () => throttled('denied', 200, () => impact(Haptics.ImpactFeedbackStyle.Light)),
+  // Tap refused because ACTIVE is full: the longer Error notification, on its own
+  // key so it is never swallowed by other cues, throttled so tap-mashing a full
+  // rail cannot buzz continuously.
+  activeFull: () => throttled('activeFull', 400, () => notification(Haptics.NotificationFeedbackType.Error)),
   orbitEnter: () => impact(Haptics.ImpactFeedbackStyle.Light),
   // One crisp short pulse, rather than stacking impacts to fake intensity.
   pixelPop: () => throttled('pixel', 90, () => impact(Haptics.ImpactFeedbackStyle.Rigid)),
@@ -74,6 +81,9 @@ export const haptics = {
   linkPrime: () => throttled('link', 70, () => impact(Haptics.ImpactFeedbackStyle.Rigid)),
   linkClear: () => throttled('link', 70, () => impact(Haptics.ImpactFeedbackStyle.Heavy)),
   chargeConsumed: () => impact(Haptics.ImpactFeedbackStyle.Medium),
+  // GateTerminal reject burst — one heavy thud on the burst beat, distinct from
+  // a consumed Pal; the Error notification stays on the presented loss (`fail`).
+  reject: () => throttled('reject', 150, () => impact(Haptics.ImpactFeedbackStyle.Heavy)),
   holdingLand: () => impact(Haptics.ImpactFeedbackStyle.Rigid),
   holdingCritical: () => throttled('warning', 600, () => notification(Haptics.NotificationFeedbackType.Warning)),
   holdingFull: () => throttled('error', 180, () => notification(Haptics.NotificationFeedbackType.Error)),

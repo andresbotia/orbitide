@@ -77,6 +77,10 @@ export const HoldingTray = memo(function HoldingTray({
     else setArrivedIds((current) => (current.size > 0 ? new Set() : current));
   }, [holding]);
 
+  // A refused tap shakes that Pal (a rare React update, only on refusal).
+  const [shake, setShake] = useState<{ id: string; seq: number }>({ id: '', seq: 0 });
+  const onDenied = useCallback((id: string) => setShake((current) => ({ id, seq: current.seq + 1 })), []);
+
 
   // Pure gameplay-pressure ladder — a function of occupancy only, never of
   // win/loss status. "danger" means the tray is literally full, whether or
@@ -121,28 +125,45 @@ export const HoldingTray = memo(function HoldingTray({
         </Text>
       </Animated.View>
       <View style={styles.slots}>
-        {Array.from({ length: capacity }, (_, index) => {
-          const charge = holding[index];
-          const useful = !!charge && usefulIds.has(charge.id);
-          return (
-            <Slot
-              key={charge ? `slot-${index}-${charge.id}` : `slot-${index}-empty`}
-              index={index}
-              charge={charge}
-              useful={useful}
-              disabled={disabled}
-              colorAssist={colorAssist}
-              justArrived={!!charge && arrivedIds.has(charge.id)}
-              reducedMotion={reducedMotion}
-              pixelPal={!!pixelPal}
-              onLaunch={onLaunch}
-              onSourceLayout={onSourceLayout}
-              layoutVersion={layoutVersion}
-              highlighted={!!charge && !!tutorial && isHeldChargeHighlighted(tutorial, charge.id)}
-              subdued={!!charge && !!tutorial && isHeldChargeSubdued(tutorial, charge.id)}
-            />
-          );
-        })}
+        <View style={styles.wells}>
+          {Array.from({ length: capacity }, (_, index) => {
+            const charge = holding[index];
+            return (
+              <Well
+                key={`well-${index}`}
+                index={index}
+                charge={charge}
+                useful={!!charge && usefulIds.has(charge.id)}
+                disabled={disabled}
+                reducedMotion={reducedMotion}
+                onLaunch={onLaunch}
+                onDenied={onDenied}
+                onSourceLayout={onSourceLayout}
+                layoutVersion={layoutVersion}
+                highlighted={!!charge && !!tutorial && isHeldChargeHighlighted(tutorial, charge.id)}
+                subdued={!!charge && !!tutorial && isHeldChargeSubdued(tutorial, charge.id)}
+              />
+            );
+          })}
+          {/* Held Pals ride above the wells, keyed by Pal: when slot ownership
+              changes they slide to their new well instead of remounting. */}
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            {holding.slice(0, capacity).map((charge, index) => (
+              <HeldPal
+                key={charge.id}
+                charge={charge}
+                index={index}
+                useful={usefulIds.has(charge.id)}
+                colorAssist={colorAssist}
+                pixelPal={!!pixelPal}
+                justArrived={arrivedIds.has(charge.id)}
+                reducedMotion={reducedMotion}
+                subdued={!!tutorial && isHeldChargeSubdued(tutorial, charge.id)}
+                shakeSeq={shake.id === charge.id ? shake.seq : 0}
+              />
+            ))}
+          </View>
+        </View>
 
         {boosterSlot ? (
           <View style={[styles.socket, styles.boosterSlot]}>
@@ -169,19 +190,32 @@ export const HoldingTray = memo(function HoldingTray({
 const SOCKET = GAMEPLAY.holdingWell;
 const PAL = GAMEPLAY.holdingPal;
 
-const Slot = memo(function Slot({
-  index, charge, useful, disabled, colorAssist, justArrived, reducedMotion, pixelPal, onLaunch, onSourceLayout, layoutVersion,
-  highlighted, subdued,
+/** Horizontal gap between wells (also the tray row gap). */
+const WELL_GAP = 10;
+/** TUNABLE — how long a held Pal takes to slide to its new well. Quick, not a show. */
+const RESHUFFLE_MS = 160;
+
+/** Held Pal's top-left inside the wells row, centred in well `index`. */
+function palX(index: number): number {
+  return index * (SOCKET + WELL_GAP) + (SOCKET - PAL) / 2;
+}
+const PAL_Y = (SOCKET - PAL) / 2;
+
+/**
+ * A physical Holding well: fixed position (keyed by index), owns the press,
+ * the slot measurement Holding landings aim at, and the tutorial spotlight.
+ * The Pal it holds is drawn by {@link HeldPal} above it.
+ */
+const Well = memo(function Well({
+  index, charge, useful, disabled, reducedMotion, onLaunch, onDenied, onSourceLayout, layoutVersion, highlighted, subdued,
 }: {
   index: number;
   charge: Charge | undefined;
   useful: boolean;
   disabled: boolean;
-  colorAssist?: boolean;
-  justArrived: boolean;
   reducedMotion: boolean;
-  pixelPal: boolean;
   onLaunch: (id: string) => boolean;
+  onDenied: (id: string) => void;
   onSourceLayout: (key: string, point: Point) => void;
   layoutVersion: number;
   highlighted: boolean;
@@ -195,39 +229,6 @@ const Slot = memo(function Slot({
       onSourceLayout(key, { x: x + width / 2, y: y + height / 2 }));
   }, [onSourceLayout, key]);
   useEffect(() => { measure(); }, [layoutVersion, measure]);
-
-  const arrival = useSharedValue(0);
-  useEffect(() => {
-    if (!justArrived) return;
-    cancelAnimation(arrival);
-    if (reducedMotion) {
-      arrival.set(withSequence(withTiming(1, { duration: 60 }), withTiming(0, { duration: 200 })));
-    } else {
-      arrival.set(withSequence(
-        withTiming(1, { duration: 90, easing: Easing.out(Easing.cubic) }),
-        withSpring(0, { damping: 13, stiffness: 220 }),
-      ));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [justArrived]);
-
-  // One-shot rejection shake — never a standing state, distinct from the
-  // arrival bounce above (which fires when a Pal actually lands here).
-  const shakeX = useSharedValue(0);
-  const triggerDeniedShake = useCallback(() => {
-    cancelAnimation(shakeX);
-    shakeX.set(withSequence(
-      withTiming(-4, { duration: 35 }), withTiming(4, { duration: 60 }),
-      withTiming(-3, { duration: 60 }), withTiming(0, { duration: 50 }),
-    ));
-  }, [shakeX]);
-
-  const arrivalStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: reducedMotion ? 1 : 1 + arrival.value * 0.1 },
-      { translateX: shakeX.value },
-    ],
-  }));
 
   const spotlight = useSharedValue(0);
   const wasHighlighted = useRef(false);
@@ -248,20 +249,13 @@ const Slot = memo(function Slot({
     transform: [{ scale: 1 + spotlight.value * 0.04 }],
   }));
 
-  // Removed per-slot idle bob animation. It was a subtle floating motion that
-  // ran an infinite withRepeat per slot — 3-4 concurrent animation loops just
-  // for visual ambience. The Pal character already has expression/blink, making
-  // the bob redundant and expensive (3+ UI-thread worklets running permanently).
-
-  const ink = charge ? markContrast(charge.color) : null;
-
   return (
     <Pressable
       ref={slotRef}
       collapsable={false}
       onLayout={measure}
       disabled={disabled || !charge}
-      onPressIn={() => { if (charge && !onLaunch(charge.id)) triggerDeniedShake(); }}
+      onPressIn={() => { if (charge && !onLaunch(charge.id)) onDenied(charge.id); }}
       accessibilityRole="button"
       accessibilityState={{ disabled: disabled || !charge }}
       accessibilityLabel={charge
@@ -278,43 +272,110 @@ const Slot = memo(function Slot({
       {highlighted ? (
         <Animated.View pointerEvents="none" style={[styles.spotlightRing, spotlightStyle]} />
       ) : null}
-      {charge ? (
-        <Animated.View style={[styles.orbWrap, arrivalStyle]}>
-          {pixelPal ? (
-            <View style={{ opacity: useful ? 1 : 0.65 }}>
-              <PixelPalFace
-                color={charge.color}
-                size={PAL}
-                colorAssist={colorAssist}
-                mood="calm"
-                capacity={charge.capacity}
-                selected={useful}
-              />
-            </View>
-          ) : (
-            <View style={[styles.orb, { backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color], opacity: useful ? 1 : 0.65 }]}>
-              <View style={styles.orbGloss} />
-              <Text
-                style={[
-                  styles.count,
-                  { color: ink?.fill },
-                  ink?.halo ? { textShadowColor: ink.halo, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } } : null,
-                ]}
-              >
-                {charge.capacity}
-              </Text>
-              {colorAssist ? (
-                <View style={styles.assist} pointerEvents="none">
-                  <ColorAssistMark color={charge.color} size={16} etched />
-                </View>
-              ) : null}
-            </View>
-          )}
-        </Animated.View>
-      ) : (
-        <View style={styles.socketWell} />
-      )}
+      {charge ? null : <View style={styles.socketWell} />}
     </Pressable>
+  );
+});
+
+/**
+ * One held Pal, keyed by the Pal (never by slot). Its horizontal position is a
+ * UI-thread value: when truth moves it to another well it slides there — the
+ * React commit only changes the target, so there is no snap and no remount.
+ */
+const HeldPal = memo(function HeldPal({
+  charge, index, useful, colorAssist, pixelPal, justArrived, reducedMotion, subdued, shakeSeq,
+}: {
+  charge: Charge;
+  index: number;
+  useful: boolean;
+  colorAssist?: boolean;
+  pixelPal: boolean;
+  justArrived: boolean;
+  reducedMotion: boolean;
+  subdued: boolean;
+  /** Bumped when a tap on this Pal's well was refused. */
+  shakeSeq: number;
+}) {
+  const x = useSharedValue(palX(index));
+  const placedAt = useRef(index);
+  useEffect(() => {
+    if (placedAt.current === index) return;
+    placedAt.current = index;
+    x.set(reducedMotion
+      ? palX(index)
+      : withTiming(palX(index), { duration: RESHUFFLE_MS, easing: Easing.out(Easing.cubic) }));
+  }, [index, reducedMotion, x]);
+
+  const arrival = useSharedValue(0);
+  useEffect(() => {
+    if (!justArrived) return;
+    cancelAnimation(arrival);
+    if (reducedMotion) {
+      arrival.set(withSequence(withTiming(1, { duration: 60 }), withTiming(0, { duration: 200 })));
+    } else {
+      arrival.set(withSequence(
+        withTiming(1, { duration: 90, easing: Easing.out(Easing.cubic) }),
+        withSpring(0, { damping: 13, stiffness: 220 }),
+      ));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [justArrived]);
+
+  // One-shot rejection shake — never a standing state, distinct from the
+  // arrival bounce above (which fires when a Pal actually lands here).
+  const shakeX = useSharedValue(0);
+  useEffect(() => {
+    if (!shakeSeq) return;
+    cancelAnimation(shakeX);
+    shakeX.set(withSequence(
+      withTiming(-4, { duration: 35 }), withTiming(4, { duration: 60 }),
+      withTiming(-3, { duration: 60 }), withTiming(0, { duration: 50 }),
+    ));
+  }, [shakeSeq, shakeX]);
+
+  const style = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: x.value + shakeX.value },
+      { translateY: PAL_Y },
+      { scale: reducedMotion ? 1 : 1 + arrival.value * 0.1 },
+    ],
+  }));
+
+  const ink = markContrast(charge.color);
+
+  return (
+    <Animated.View style={[styles.heldPal, subdued && styles.socketSubdued, style]}>
+      {pixelPal ? (
+        <View style={{ opacity: useful ? 1 : 0.65 }}>
+          <PixelPalFace
+            color={charge.color}
+            size={PAL}
+            colorAssist={colorAssist}
+            mood="calm"
+            capacity={charge.capacity}
+            selected={useful}
+          />
+        </View>
+      ) : (
+        <View style={[styles.orb, { backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color], opacity: useful ? 1 : 0.65 }]}>
+          <View style={styles.orbGloss} />
+          <Text
+            style={[
+              styles.count,
+              { color: ink.fill },
+              ink.halo ? { textShadowColor: ink.halo, textShadowRadius: 3, textShadowOffset: { width: 0, height: 0 } } : null,
+            ]}
+          >
+            {charge.capacity}
+          </Text>
+          {colorAssist ? (
+            <View style={styles.assist} pointerEvents="none">
+              <ColorAssistMark color={charge.color} size={16} etched />
+            </View>
+          ) : null}
+        </View>
+      )}
+    </Animated.View>
   );
 });
 
@@ -349,7 +410,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 10,
+    gap: WELL_GAP,
   },
   // Dark ink well + a single neon ring — Home's socket/pill language, not the
   // old two-tone bevel-pair hardware trick.
@@ -387,7 +448,8 @@ const styles = StyleSheet.create({
     borderColor: NEON.cyan,
     backgroundColor: 'transparent',
   },
-  orbWrap: { alignItems: 'center', justifyContent: 'center' },
+  wells: { flexDirection: 'row', gap: WELL_GAP },
+  heldPal: { position: 'absolute', left: 0, top: 0, width: PAL, height: PAL, alignItems: 'center', justifyContent: 'center' },
   orb: {
     width: PAL,
     height: PAL,

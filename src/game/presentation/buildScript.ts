@@ -77,7 +77,10 @@ export function finalizePass(pass: Omit<FlightPass, 'events' | 'totalMs'>): Flig
   if (landsInHolding && pass.holdingCue === 'full') events.push({ kind: 'holdingFull', at: pass.landingAt });
   const resultAt = pass.landingAt + (pass.result === 'win' ? FEEL.WIN_DELAY : FEEL.FAIL_DELAY);
   if (pass.result) events.push({ kind: pass.result, at: resultAt });
-  const totalMs = (pass.result ? resultAt : pass.landingAt) + 20;
+  // A result carrier completes ON its result beat (pushed after it, so it is
+  // presented after it): the UI clock delivers both in one frame, so the result
+  // and the settle are one React commit, not two heavy commits ~20 ms apart.
+  const totalMs = pass.result ? resultAt : pass.landingAt + 20;
   events.push({ kind: 'complete', at: totalMs });
   events.sort((a, b) => a.at - b.at);
   return { ...pass, events, totalMs };

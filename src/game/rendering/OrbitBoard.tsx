@@ -1,15 +1,18 @@
 import { Canvas, Group, RadialGradient, Rect, vec } from '@shopify/react-native-skia';
-import { memo, useEffect, useMemo } from 'react';
-import { AppState, StyleSheet, View } from 'react-native';
-import { cancelAnimation, Easing, runOnJS, useAnimatedReaction, useSharedValue, withTiming } from 'react-native-reanimated';
+import { memo, useMemo, useRef } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { runOnJS, useAnimatedReaction } from 'react-native-reanimated';
 
 import type { GameState, ModifierInstance } from '@/game/engine/types';
 import type { FlightPass } from '@/game/presentation/events';
-import { eventCountAt } from '@/game/presentation/motion';
+import { eventCountAt, presentationEndMs } from '@/game/presentation/motion';
 import { material } from '@/theme/material';
 import { BoardActors } from './BoardActors';
 import { EnergyShot } from './EnergyShot';
 import { cellCenter, computeBoardGeometry, type BoardGeometry } from './boardGeometry';
+import { assignLaneSlots, laneOffset } from './laneAssignment';
+import { RejectPulse } from './RejectPulse';
+import { usePassClock, usePresentationClock, type PresentationClock } from './usePresentationClock';
 import { OrbitingCharge } from './OrbitingCharge';
 import { OrbitRail, LaunchHubMarker } from './OrbitRail';
 import { Pixel } from './Pixel';
@@ -24,16 +27,12 @@ interface OrbitBoardProps {
   state: GameState;
   /** Every charge currently on the rail. */
   flights: FlightPass[];
+  /** Completed toHolding Pals still drawn at their slot for the Holding handoff. */
+  landingFlights?: FlightPass[];
   presentThrough: (passId: number, count: number) => void;
   colorAssist?: boolean;
   reducedMotion?: boolean;
   modifiers?: Record<string, ModifierInstance>;
-}
-
-/** Symmetric lane nudge by launch order: … −2, 0, +2, −2, 0 … */
-function laneOffset(index: number): number {
-  const step = Math.ceil(index / 2);
-  return (index % 2 === 0 ? -step : step) * LANE_OFFSET_PX;
 }
 
 /**
@@ -45,7 +44,7 @@ function laneOffset(index: number): number {
  * clock, so up to five charges animate independently off one shared board
  * without a singleton anywhere.
  */
-export const OrbitBoard = memo(function OrbitBoard({ size, state, flights, presentThrough, colorAssist, reducedMotion, modifiers }: OrbitBoardProps) {
+export const OrbitBoard = memo(function OrbitBoard({ size, state, flights, landingFlights, presentThrough, colorAssist, reducedMotion, modifiers }: OrbitBoardProps) {
   const geo = useMemo(
     () => computeBoardGeometry(size, state.width, state.height),
     [size, state.width, state.height],
@@ -62,6 +61,21 @@ export const OrbitBoard = memo(function OrbitBoard({ size, state, flights, prese
   );
   const calm = flights.length >= CALM_TRAILS_AT;
 
+  // One keyed list, so a Pal moving from the rail into its Holding handoff
+  // keeps its actor (and its UI clock) instead of remounting. Lanes are fixed
+  // per Pal at launch, never re-derived from list position.
+  const actors = useMemo(
+    () => (landingFlights?.length ? [...flights, ...landingFlights] : flights),
+    [flights, landingFlights],
+  );
+  const laneSlots = useRef<ReadonlyMap<number, number>>(new Map());
+  const lanes = useMemo(() => {
+    laneSlots.current = assignLaneSlots(laneSlots.current, actors.map((pass) => pass.passId));
+    return laneSlots.current;
+  }, [actors]);
+  // One UI-thread time source for every Pal; runs only while a Pal is shown.
+  const boardClock = usePresentationClock(actors.length > 0);
+
   return (
     <View style={{ width: size, height: size, overflow: 'visible' }}>
       <OrbitField geo={geo} size={size} />
@@ -75,14 +89,15 @@ export const OrbitBoard = memo(function OrbitBoard({ size, state, flights, prese
         shotPixelIds={shotPixelIds}
       />
 
-      {flights.map((pass, i) => (
+      {actors.map((pass) => (
         <FlightActor
           key={pass.passId}
           pass={pass}
+          boardClock={boardClock}
           geo={geo}
           presentThrough={presentThrough}
           colorAssist={!!colorAssist}
-          laneOffset={laneOffset(i)}
+          laneOffset={laneOffset(lanes.get(pass.passId) ?? 0, LANE_OFFSET_PX)}
           calm={calm}
         />
       ))}
@@ -114,43 +129,29 @@ const OrbitField = memo(function OrbitField({ geo, size }: { geo: BoardGeometry;
  * animated-reaction bridge that commits engine events at their scheduled beats,
  * the pop of the pixels it clears, its projectile streak and its orbiting token.
  */
-const FlightActor = memo(function FlightActor({ pass, geo, presentThrough, colorAssist, laneOffset: lane, calm }: {
+const FlightActor = memo(function FlightActor({ pass, boardClock, geo, presentThrough, colorAssist, laneOffset: lane, calm }: {
   pass: FlightPass;
+  boardClock: PresentationClock;
   geo: BoardGeometry;
   presentThrough: (passId: number, count: number) => void;
   colorAssist: boolean;
   laneOffset: number;
   calm: boolean;
 }) {
-  const clock = useSharedValue(0);
+  // Pass time from the board's shared clock. A join that re-scripts this pass
+  // changes what it does next, never where its time is — nothing re-anchors.
+  // A toHolding Pal's time runs on through the Holding handoff.
+  const endMs = presentationEndMs(pass);
+  const clock = usePassClock(boardClock, pass.launchedAtMs, endMs);
 
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (next) => {
-      if (next !== 'active') cancelAnimation(clock);
-    });
-    return () => { cancelAnimation(clock); sub.remove(); };
-  }, [pass.passId, clock]);
-
-  // Anchored to the pass's launch time: when a join re-scripts this pass's
-  // unplayed tail (new totalMs), the clock carries on instead of restarting.
-  const { passId, totalMs, launchedAtMs } = pass;
-  useEffect(() => {
-    const elapsed = Math.min(totalMs, Math.max(0, Date.now() - launchedAtMs));
-    clock.set(elapsed);
-    clock.set(
-      withTiming(totalMs, { duration: totalMs - elapsed, easing: Easing.linear }, (finished) => {
-        // Present everything: the event list may have grown since this started.
-        if (finished) runOnJS(presentThrough)(passId, Number.MAX_SAFE_INTEGER);
-      }),
-    );
-  }, [passId, totalMs, launchedAtMs, clock, presentThrough]);
-
+  // Commits engine events at their scheduled beats; at the end of its time the
+  // pass presents everything (the event list may have grown since launch).
   useAnimatedReaction(
-    () => eventCountAt(pass, clock.value),
+    () => (clock.value >= endMs ? Number.MAX_SAFE_INTEGER : eventCountAt(pass, clock.value)),
     (count, previous) => {
       if (count > 0 && count !== previous) runOnJS(presentThrough)(pass.passId, count);
     },
-    [pass, presentThrough],
+    [pass, presentThrough, endMs],
   );
 
   return (
@@ -178,6 +179,7 @@ const FlightActor = memo(function FlightActor({ pass, geo, presentThrough, color
       </View>
       <EnergyShot pass={pass} layout={geo} clock={clock} laneOffset={lane} calm={calm} />
       <OrbitingCharge pass={pass} layout={geo} clock={clock} colorAssist={colorAssist} laneOffset={lane} dim={calm} />
+      {pass.terminal.kind === 'reject' ? <RejectPulse clock={clock} at={pass.orbitEndAt} /> : null}
     </>
   );
 });

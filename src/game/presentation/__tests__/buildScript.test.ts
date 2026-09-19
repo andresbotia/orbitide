@@ -152,7 +152,9 @@ test('an unresolved Pal overflowing full holding completes full lap to terminal 
 
   const completeEvent = pass.events.find((e) => e.kind === 'complete');
   expect(completeEvent).toBeDefined();
-  expect(completeEvent!.at).toBe(failEvent!.at + 20);
+  // Completes on the result beat itself (one commit), presented after it.
+  expect(completeEvent!.at).toBe(failEvent!.at);
+  expect(pass.events.indexOf(completeEvent!)).toBeGreaterThan(pass.events.indexOf(failEvent!));
 });
 
 test('an unresolved Pal with hits that overflows Holding still completes full lap to terminal point without cutting orbit short', () => {

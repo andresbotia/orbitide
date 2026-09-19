@@ -18,6 +18,10 @@ interface ControlDeckProps {
   activeCapacity: number;
   layoutVersion: number;
   disabled: boolean;
+  /** Rail full: controls stay pressable (so a refused tap can explain itself) but read as blocked. */
+  blocked: boolean;
+  /** Bumped per tap refused because ACTIVE is full (drives the ACTIVE flash). */
+  capacityRefusalSeq: number;
   usefulIds: Set<string>;
   colorAssist?: boolean;
   pixelPal: boolean;
@@ -53,6 +57,8 @@ export const ControlDeck = memo(function ControlDeck({
   activeCapacity,
   layoutVersion,
   disabled,
+  blocked,
+  capacityRefusalSeq,
   usefulIds,
   colorAssist,
   pixelPal,
@@ -71,7 +77,7 @@ export const ControlDeck = memo(function ControlDeck({
       <View pointerEvents="none" style={styles.litEdge} />
 
       {activeCapacity > 0 ? (
-        <ActiveStatus count={activeCount} capacity={activeCapacity} embedded />
+        <ActiveStatus count={activeCount} capacity={activeCapacity} refusalSeq={capacityRefusalSeq} embedded />
       ) : null}
 
       {/* Holding sits above tunnels — the hierarchy is Board → Active → Holding → Tunnels → Items */}
@@ -97,6 +103,7 @@ export const ControlDeck = memo(function ControlDeck({
         layoutVersion={layoutVersion}
         state={state}
         disabled={disabled}
+        blocked={blocked}
         colorAssist={colorAssist}
         onSourceLayout={onSourceLayout}
         onLaunch={onLaunchTunnel}
@@ -116,6 +123,8 @@ export const ControlDeck = memo(function ControlDeck({
   && prev.activeCapacity === next.activeCapacity
   && prev.layoutVersion === next.layoutVersion
   && prev.disabled === next.disabled
+  && prev.blocked === next.blocked
+  && prev.capacityRefusalSeq === next.capacityRefusalSeq
   && prev.colorAssist === next.colorAssist
   && prev.pixelPal === next.pixelPal
   && prev.onSourceLayout === next.onSourceLayout

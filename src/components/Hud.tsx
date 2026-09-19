@@ -1,5 +1,5 @@
 import { memo, useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { type LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { remainingPixelCount } from '@/game/engine/pixels';
@@ -18,6 +18,7 @@ interface HudProps {
 }
 
 const BTN = GAMEPLAY.hudButton;
+const TRACK_BORDER = 1;
 const HIT = GAMEPLAY.hudButtonHit;
 
 /**
@@ -75,15 +76,24 @@ export const Hud = memo(function Hud({
 const ProgressBar = memo(function ProgressBar({ progress, cleared, total }: {
   progress: number; cleared: number; total: number;
 }) {
-  const width = useSharedValue(progress * 100);
+  // Compositor-only: a full-width fill slid left by (1 - progress) of the
+  // track, clipped by the track's rounded overflow. Animating `width` re-ran
+  // layout on every frame of every clear.
+  const fill = useSharedValue(progress);
+  const trackW = useSharedValue(0);
   useEffect(() => {
-    width.set(withTiming(progress * 100, { duration: 220, easing: Easing.out(Easing.quad) }));
-  }, [progress, width]);
-  const fillStyle = useAnimatedStyle(() => ({ width: `${width.value}%` }));
+    fill.set(withTiming(progress, { duration: 220, easing: Easing.out(Easing.quad) }));
+  }, [progress, fill]);
+  const fillStyle = useAnimatedStyle(() => ({
+    opacity: trackW.value > 0 ? 1 : 0,
+    transform: [{ translateX: (fill.value - 1) * trackW.value }],
+  }));
+  // Inner width (inside the 1px border) — what the old `width: N%` fill measured against.
+  const onTrackLayout = (e: LayoutChangeEvent) => trackW.set(Math.max(0, e.nativeEvent.layout.width - TRACK_BORDER * 2));
 
   return (
     <View style={styles.progressBlock}>
-      <View style={styles.track}>
+      <View style={styles.track} onLayout={onTrackLayout}>
         <Animated.View style={[styles.fill, fillStyle]} />
         {progress >= 0.97 ? <View pointerEvents="none" style={styles.goldTip} /> : null}
       </View>
@@ -138,10 +148,11 @@ const styles = StyleSheet.create({
     borderRadius: GAMEPLAY.hudProgressHeight / 2,
     backgroundColor: NEON.surface,
     overflow: 'hidden',
-    borderWidth: 1,
+    borderWidth: TRACK_BORDER,
     borderColor: neonAlpha(NEON.cyan, 0.18),
   },
   fill: {
+    width: '100%',
     height: '100%',
     borderRadius: GAMEPLAY.hudProgressHeight / 2,
     backgroundColor: NEON.cyan,

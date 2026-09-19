@@ -4,11 +4,11 @@ import { StyleSheet, Text, type TextStyle, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
-  runOnJS,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withDelay,
+  withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
@@ -35,6 +35,9 @@ const DETAIL_FLOOR = 28;
 /** Full count plate at this size and above; numeral-only below; hidden at {@link BADGE_HIDE}. */
 const BADGE_PLATE = 34;
 const BADGE_HIDE = 22;
+/** Active (in-flight) badge floor: always plated, never smaller than this (pt). */
+const ACTIVE_BADGE_MIN_HEIGHT = 14;
+const ACTIVE_BADGE_MIN_FONT = 9.5;
 const BADGE_FILL = 'rgba(0, 23, 66, 0.92)';
 
 export const PixelPalShell = memo(function PixelPalShell({ color, size, colorAssist }: { color: OrbColor; size: number; colorAssist?: boolean }) {
@@ -195,22 +198,22 @@ export const PixelPalVisor = memo(function PixelPalVisor({ size, mood = 'calm', 
 
   useEffect(() => {
     if (!animate || reducedMotion || !detailed) { cancelAnimation(blink); blink.set(0); return; }
-    let alive = true;
-    const focusedNow = () => mood === 'focused';
-    const scheduleBlink = () => {
-      if (!alive) return;
-      const gap = (focusedNow() ? 1400 : 2200) + Math.random() * (focusedNow() ? 1600 : 2600);
-      blink.set(withDelay(gap, withSequence(
+    // Entirely on the UI thread: this Pal's own few random gaps, cycled forever.
+    // Irregular enough to read as natural, and each Pal draws its own gaps, so
+    // Pals never blink in unison. (The old loop re-armed itself through a JS
+    // round-trip after every blink.)
+    const focused = mood === 'focused';
+    const blinkAfter = () => withDelay(
+      (focused ? 1400 : 2200) + Math.random() * (focused ? 1600 : 2600),
+      withSequence(
         withTiming(1, { duration: 65, easing: Easing.out(Easing.quad) }),
-        withTiming(0, { duration: 90, easing: Easing.in(Easing.quad) }, (finished) => {
-          if (finished) runOnJS(scheduleBlink)();
-        }),
-      )));
-    };
-    scheduleBlink();
-    return () => { alive = false; cancelAnimation(blink); };
+        withTiming(0, { duration: 90, easing: Easing.in(Easing.quad) }),
+      ),
+    );
+    blink.set(withRepeat(withSequence(blinkAfter(), blinkAfter(), blinkAfter(), blinkAfter()), -1, false));
+    return () => cancelAnimation(blink);
     // `mood` intentionally excluded — a mood change should not restart the
-    // in-flight blink timer, only the NEXT scheduled gap reads it fresh.
+    // running blink cycle; the next mount/enable reads it fresh.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animate, reducedMotion, detailed, blink]);
 
@@ -253,10 +256,22 @@ export const PixelPalVisor = memo(function PixelPalVisor({ size, mood = 'calm', 
   );
 });
 
-export function palBadgeNumeralStyle(palSize: number): TextStyle {
-  const plate = palSize > BADGE_PLATE;
+/**
+ * Badge geometry. Resting Pals (tunnel, tray) follow the size ladder; an
+ * `active` Pal on the rail always gets a compact plate — over a busy pixel
+ * board a bare outlined numeral at ~8pt is effectively unreadable.
+ */
+function badgeMetrics(palSize: number, active: boolean): { plate: boolean; height: number; fontSize: number } {
+  if (active) {
+    const height = Math.max(ACTIVE_BADGE_MIN_HEIGHT, palSize * 0.4);
+    return { plate: true, height, fontSize: Math.max(ACTIVE_BADGE_MIN_FONT, height * 0.66) };
+  }
   const height = palSize * 0.34;
-  const fontSize = Math.max(8, height * 0.62);
+  return { plate: palSize > BADGE_PLATE, height, fontSize: Math.max(8, height * 0.62) };
+}
+
+export function palBadgeNumeralStyle(palSize: number, active = false): TextStyle {
+  const { plate, fontSize } = badgeMetrics(palSize, active);
   return {
     color: '#FFFFFF',
     fontWeight: '800',
@@ -278,21 +293,22 @@ interface PixelPalBadgeProps {
   color: OrbColor;
   text?: string;
   children?: ReactNode;
+  /** In-flight Pal: always the compact plate (see {@link badgeMetrics}). */
+  active?: boolean;
 }
 
 /**
  * Remaining-count badge, mounted at the Pal's lower-right. Never drawn in the visor.
- * ≤34pt: numeral only with a navy outline. ≤22pt: hidden (color carries identity).
+ * Resting: ≤34pt numeral only with a navy outline, ≤22pt hidden (color carries
+ * identity). Active (on the rail): always a compact plate, at any size.
  */
-export const PixelPalBadge = memo(function PixelPalBadge({ palSize, color, text, children }: PixelPalBadgeProps) {
-  if (palSize <= BADGE_HIDE) return null;
-  const plate = palSize > BADGE_PLATE;
-  const height = palSize * 0.34;
-  const fontSize = Math.max(8, height * 0.62);
+export const PixelPalBadge = memo(function PixelPalBadge({ palSize, color, text, children, active = false }: PixelPalBadgeProps) {
+  if (!active && palSize <= BADGE_HIDE) return null;
+  const { plate, height, fontSize } = badgeMetrics(palSize, active);
   const digits = text?.length ?? 2;
   const width = Math.max(height, fontSize * Math.max(1, digits) * 0.7 + (plate ? 8 : 0));
   const overlap = width * 0.2;
-  const numeralStyle = palBadgeNumeralStyle(palSize);
+  const numeralStyle = palBadgeNumeralStyle(palSize, active);
   const numeral = children ?? (text !== undefined ? <Text style={numeralStyle}>{text}</Text> : null);
 
   if (!plate) {

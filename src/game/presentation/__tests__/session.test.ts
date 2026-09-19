@@ -84,11 +84,51 @@ test('the rail caps at five flights; a sixth launch is denied cleanly', () => {
   expectLifecycleValid(session);
   expect(session.engineState.status).toBe('playing');
   const applied = session.engineState.movesApplied;
+  const before = session.flights;
+  (feedback.emit as jest.Mock).mockClear();
   act(() => { session.launch('tunnel-1'); });
   expect(session.engineState.movesApplied).toBe(applied); // no queue / state mutation
-  expect(session.flights).toHaveLength(5);
-  expect(feedback.emit).toHaveBeenCalledWith('denied');
+  expect(session.flights).toBe(before); // existing Pals untouched
+  // A typed reason drives the ACTIVE flash; its own error cue, not the light "denied".
+  expect(session.lastDenial).toEqual({ reason: 'activeFull', seq: 1 });
+  expect(feedback.emit).toHaveBeenCalledWith('activeFull');
+  expect(feedback.emit).not.toHaveBeenCalledWith('denied');
   expect(session.message).toContain('Rail is full');
+  // Every refused tap is reported (the haptic module throttles the buzz itself).
+  act(() => { session.launch('tunnel-1'); });
+  act(() => { session.launch('tunnel-2'); });
+  expect(session.lastDenial).toEqual({ reason: 'activeFull', seq: 3 });
+  act(() => root.unmount());
+});
+
+test('at 4/5 a legal tap launches normally with no refusal', () => {
+  const root = mount(8400, slotLevel());
+  for (const t of ['tunnel-0', 'tunnel-0', 'tunnel-0', 'tunnel-1']) {
+    act(() => { session.launch(t); });
+  }
+  expect(session.activeCount).toBe(4);
+  let accepted = false;
+  act(() => { accepted = session.launch('tunnel-2'); });
+  expect(accepted).toBe(true);
+  expect(session.activeCount).toBe(5);
+  expect(session.lastDenial).toBeNull();
+  expect(feedback.emit).not.toHaveBeenCalledWith('activeFull');
+  act(() => root.unmount());
+});
+
+test('a refusal for another reason is not reported as capacity-full', () => {
+  const level: LevelDefinition = {
+    id: 8403, title: 'NoTarget', themeId: 'test', difficulty: 'easy', holdingCapacity: 3,
+    pixelArt: ['WWW', 'WBW', 'WWW'],
+    tunnels: [[{ color: 'blue', capacity: 1 }], [{ color: 'white', capacity: 8 }], []],
+  };
+  const root = mount(8403, level);
+  act(() => session.launch('tunnel-0')); finish();
+  const held = session.state.holding[0]!;
+  act(() => { session.launchHeld(held.id); });
+  expect(session.lastDenial?.reason).toBe('noTargets');
+  expect(feedback.emit).toHaveBeenCalledWith('denied');
+  expect(feedback.emit).not.toHaveBeenCalledWith('activeFull');
   act(() => root.unmount());
 });
 

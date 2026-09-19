@@ -1,19 +1,22 @@
 import { Canvas, Group, LinearGradient, RadialGradient, Rect, vec } from '@shopify/react-native-skia';
-import { memo, useEffect, useMemo } from 'react';
-import { AppState, StyleSheet, View } from 'react-native';
+import { memo, useMemo, useRef } from 'react';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
-  cancelAnimation, Easing, runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, withTiming,
+  runOnJS, useAnimatedReaction, useAnimatedStyle,
   type SharedValue,
 } from 'react-native-reanimated';
 
 import type { GameState, ModifierInstance } from '@/game/engine/types';
 import type { FlightPass } from '@/game/presentation/events';
-import { eventCountAt } from '@/game/presentation/motion';
+import { eventCountAt, presentationEndMs } from '@/game/presentation/motion';
 import { coreV2Board } from '@/theme/coreV2Board';
 import { NEON } from '@/theme/neon';
 import { BoardActors } from './BoardActors';
 import { EnergyShot } from './EnergyShot';
 import { cellCenter, computeBoardGeometry, type BoardGeometry } from './boardGeometry';
+import { assignLaneSlots, laneOffset } from './laneAssignment';
+import { RejectPulse } from './RejectPulse';
+import { usePassClock, usePresentationClock, type PresentationClock } from './usePresentationClock';
 import { RoundedLauncherGate, RoundedRail } from './RoundedRail';
 import { Pixel } from './Pixel';
 import { PixelPal } from './pixelPal/PixelPal';
@@ -36,16 +39,12 @@ interface CoreV2BoardProps {
   state: GameState;
   /** Every charge currently on the rail. */
   flights: FlightPass[];
+  /** Completed toHolding Pals still drawn at their slot for the Holding handoff. */
+  landingFlights?: FlightPass[];
   presentThrough: (passId: number, count: number) => void;
   colorAssist?: boolean;
   reducedMotion?: boolean;
   modifiers?: Record<string, ModifierInstance>;
-}
-
-/** Symmetric lane nudge by launch order: … −3, 0, +3, −3, 0 … */
-function laneOffset(index: number): number {
-  const step = Math.ceil(index / 2);
-  return (index % 2 === 0 ? -step : step) * LANE_OFFSET_PX;
 }
 
 /**
@@ -57,7 +56,7 @@ function laneOffset(index: number): number {
  * since neither depends on the rail's shape; only the rail paint and the
  * traveling character are new.
  */
-export const CoreV2Board = memo(function CoreV2Board({ size, width, height, state, flights, presentThrough, colorAssist, reducedMotion, modifiers }: CoreV2BoardProps) {
+export const CoreV2Board = memo(function CoreV2Board({ size, width, height, state, flights, landingFlights, presentThrough, colorAssist, reducedMotion, modifiers }: CoreV2BoardProps) {
   const availW = width ?? size;
   const availH = height ?? size;
   const geo = useMemo(
@@ -81,6 +80,21 @@ export const CoreV2Board = memo(function CoreV2Board({ size, width, height, stat
   );
   const calm = flights.length >= CALM_TRAILS_AT;
 
+  // One keyed list, so a Pal moving from the rail into its Holding handoff
+  // keeps its actor (and its UI clock) instead of remounting. Lanes are fixed
+  // per Pal at launch, never re-derived from list position.
+  const actors = useMemo(
+    () => (landingFlights?.length ? [...flights, ...landingFlights] : flights),
+    [flights, landingFlights],
+  );
+  const laneSlots = useRef<ReadonlyMap<number, number>>(new Map());
+  const lanes = useMemo(() => {
+    laneSlots.current = assignLaneSlots(laneSlots.current, actors.map((pass) => pass.passId));
+    return laneSlots.current;
+  }, [actors]);
+  // One UI-thread time source for every Pal; runs only while a Pal is shown.
+  const boardClock = usePresentationClock(actors.length > 0);
+
   return (
     <View style={{ width: canvasW, height: canvasH, overflow: 'visible' }}>
       <CoreV2Field geo={geo} width={canvasW} height={canvasH} />
@@ -94,14 +108,15 @@ export const CoreV2Board = memo(function CoreV2Board({ size, width, height, stat
         shotPixelIds={shotPixelIds}
       />
 
-      {flights.map((pass, i) => (
+      {actors.map((pass) => (
         <CoreV2FlightActor
           key={pass.passId}
           pass={pass}
+          boardClock={boardClock}
           geo={geo}
           presentThrough={presentThrough}
           colorAssist={!!colorAssist}
-          laneOffset={laneOffset(i)}
+          laneOffset={laneOffset(lanes.get(pass.passId) ?? 0, LANE_OFFSET_PX)}
           calm={calm}
         />
       ))}
@@ -142,43 +157,29 @@ const CoreV2Field = memo(function CoreV2Field({ geo, width, height }: { geo: Boa
  * traveling creature. Structurally identical to `OrbitBoard`'s
  * `FlightActor` — only the traveling-character component differs.
  */
-const CoreV2FlightActor = memo(function CoreV2FlightActor({ pass, geo, presentThrough, colorAssist, laneOffset: lane, calm }: {
+const CoreV2FlightActor = memo(function CoreV2FlightActor({ pass, boardClock, geo, presentThrough, colorAssist, laneOffset: lane, calm }: {
   pass: FlightPass;
+  boardClock: PresentationClock;
   geo: BoardGeometry;
   presentThrough: (passId: number, count: number) => void;
   colorAssist: boolean;
   laneOffset: number;
   calm: boolean;
 }) {
-  const clock = useSharedValue(0);
+  // Pass time from the board's shared clock. A join that re-scripts this pass
+  // changes what it does next, never where its time is — nothing re-anchors.
+  // A toHolding Pal's time runs on through the Holding handoff.
+  const endMs = presentationEndMs(pass);
+  const clock = usePassClock(boardClock, pass.launchedAtMs, endMs);
 
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (next) => {
-      if (next !== 'active') cancelAnimation(clock);
-    });
-    return () => { cancelAnimation(clock); sub.remove(); };
-  }, [pass.passId, clock]);
-
-  // Anchored to the pass's launch time: when a join re-scripts this pass's
-  // unplayed tail (new totalMs), the clock carries on instead of restarting.
-  const { passId, totalMs, launchedAtMs } = pass;
-  useEffect(() => {
-    const elapsed = Math.min(totalMs, Math.max(0, Date.now() - launchedAtMs));
-    clock.set(elapsed);
-    clock.set(
-      withTiming(totalMs, { duration: totalMs - elapsed, easing: Easing.linear }, (finished) => {
-        // Present everything: the event list may have grown since this started.
-        if (finished) runOnJS(presentThrough)(passId, Number.MAX_SAFE_INTEGER);
-      }),
-    );
-  }, [passId, totalMs, launchedAtMs, clock, presentThrough]);
-
+  // Commits engine events at their scheduled beats; at the end of its time the
+  // pass presents everything (the event list may have grown since launch).
   useAnimatedReaction(
-    () => eventCountAt(pass, clock.value),
+    () => (clock.value >= endMs ? Number.MAX_SAFE_INTEGER : eventCountAt(pass, clock.value)),
     (count, previous) => {
       if (count > 0 && count !== previous) runOnJS(presentThrough)(pass.passId, count);
     },
-    [pass, presentThrough],
+    [pass, presentThrough, endMs],
   );
 
   return (
@@ -206,6 +207,7 @@ const CoreV2FlightActor = memo(function CoreV2FlightActor({ pass, geo, presentTh
       </View>
       <EnergyShot pass={pass} layout={geo} clock={clock} laneOffset={lane} calm={calm} />
       <PixelPal layout={geo} pass={pass} clock={clock} colorAssist={colorAssist} laneOffset={lane} dim={calm} />
+      {pass.terminal.kind === 'reject' ? <RejectPulse clock={clock} at={pass.orbitEndAt} /> : null}
       {pass.finalClearPixelId ? (
         <FinalClearFlash
           clock={clock}

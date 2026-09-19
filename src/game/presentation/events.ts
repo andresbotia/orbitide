@@ -35,8 +35,15 @@ export interface PlaybackEvent { kind: PlaybackKind; at: number; pixelId?: strin
  */
 export type FlightTerminal =
   | { kind: 'consumed' }
-  | { kind: 'toHolding'; slot: number; target?: Point }
+  | { kind: 'toHolding'; slot: number; target?: Point; retargets?: HoldingRetarget[] }
   | { kind: 'reject' };
+
+/**
+ * Presentation only: a Holding target this Pal was already flying toward when
+ * its slot moved (`at` is pass time). The landing re-aims from where the Pal
+ * visibly was at `at`, so the path stays continuous.
+ */
+export interface HoldingRetarget { at: number; target?: Point }
 
 /** One independent charge's script and its UI-thread clock form one playback unit. */
 export interface FlightPass {

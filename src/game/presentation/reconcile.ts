@@ -168,8 +168,14 @@ export function reconcileFlights(input: ReconcileInput): ReconcileResult {
     // it flies to may follow truth order.
     if (t >= pass.orbitEndAt) {
       frozen.add(pass.passId);
-      out.push(terminal.kind === 'toHolding' && pass.terminal.kind === 'toHolding' && !sameTerminal(terminal, pass.terminal)
-        ? { ...pass, terminal } : pass);
+      if (terminal.kind === 'toHolding' && pass.terminal.kind === 'toHolding' && !sameTerminal(terminal, pass.terminal)) {
+        // Mid-flight to its slot: re-aim from where it visibly is at `t`
+        // (presentation continuity only; slot ownership follows truth).
+        const retargets = [...(pass.terminal.retargets ?? []), { at: t, target: pass.terminal.target }];
+        out.push({ ...pass, terminal: { ...terminal, retargets } });
+      } else {
+        out.push(pass);
+      }
       continue;
     }
     const leader = input.convoy ? pickLeader(out, pass) : undefined;

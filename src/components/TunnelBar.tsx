@@ -30,6 +30,8 @@ interface TunnelBarProps {
   state: GameState;
   layoutVersion: number;
   disabled: boolean;
+  /** Rail full: look blocked but stay pressable, so a tap can explain the refusal. */
+  blocked?: boolean;
   colorAssist?: boolean;
   onLaunch: (tunnelId: string) => boolean;
   onSourceLayout: (key: string, point: Point) => void;
@@ -44,7 +46,7 @@ interface TunnelBarProps {
  * bounded upcoming preview; the hidden queue tail stays in engine state.
  * Physical launcher mouths — front Pal clearly ready, next/next+1 behind.
  */
-export const TunnelBar = memo(function TunnelBar({ state, disabled, colorAssist, onLaunch, onSourceLayout, layoutVersion, tutorial }: TunnelBarProps) {
+export const TunnelBar = memo(function TunnelBar({ state, disabled, blocked = false, colorAssist, onLaunch, onSourceLayout, layoutVersion, tutorial }: TunnelBarProps) {
   const charges = visibleCharges(state);
   const upcoming = upcomingPreviewCount(state.ruleset);
   const pixelPal = isCoreV2(state.ruleset);
@@ -69,6 +71,7 @@ export const TunnelBar = memo(function TunnelBar({ state, disabled, colorAssist,
           tunnel={state.tunnels[index]}
           upcoming={upcoming}
           disabled={disabled}
+          blocked={blocked}
           colorAssist={colorAssist}
           pixelPal={pixelPal}
           readySize={readySize}
@@ -86,6 +89,7 @@ export const TunnelBar = memo(function TunnelBar({ state, disabled, colorAssist,
   prev.state.tunnels === next.state.tunnels
   && prev.state.ruleset === next.state.ruleset
   && prev.disabled === next.disabled
+  && prev.blocked === next.blocked
   && prev.layoutVersion === next.layoutVersion
   && prev.colorAssist === next.colorAssist
   && prev.onLaunch === next.onLaunch
@@ -94,7 +98,7 @@ export const TunnelBar = memo(function TunnelBar({ state, disabled, colorAssist,
 ));
 
 const Tunnel = memo(function Tunnel({
-  index, tunnelId, charge, tunnel, upcoming, disabled, colorAssist, pixelPal, readySize, queueSize,
+  index, tunnelId, charge, tunnel, upcoming, disabled, blocked, colorAssist, pixelPal, readySize, queueSize,
   onLaunch, onSourceLayout, layoutVersion, highlighted, subdued,
 }: {
   index: number;
@@ -103,6 +107,7 @@ const Tunnel = memo(function Tunnel({
   tunnel: TunnelState | undefined;
   upcoming: number;
   disabled: boolean;
+  blocked: boolean;
   colorAssist?: boolean;
   pixelPal: boolean;
   readySize: number;
@@ -115,7 +120,7 @@ const Tunnel = memo(function Tunnel({
 }) {
   const empty = !charge;
   const reducedMotion = useReducedMotion();
-  const ready = !empty && !disabled;
+  const ready = !empty && !disabled && !blocked;
   const sourceRef = useRef<View | null>(null);
   const mounted = useRef(false);
 
@@ -177,7 +182,7 @@ const Tunnel = memo(function Tunnel({
 
   return (
     <Animated.View
-      style={[styles.tunnel, empty && styles.tunnelEmpty, !empty && disabled && styles.tunnelBlocked, subdued && styles.tunnelSubdued, housingStyle]}
+      style={[styles.tunnel, empty && styles.tunnelEmpty, !empty && (disabled || blocked) && styles.tunnelBlocked, subdued && styles.tunnelSubdued, housingStyle]}
       accessibilityLabel={highlighted ? 'Tutorial: launch this tunnel' : undefined}
     >
       <Pressable

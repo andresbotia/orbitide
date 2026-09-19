@@ -1,4 +1,4 @@
-import { FEEL } from './constants';
+import { FEEL, HOLDING_HANDOFF_HOLD_MS, HOLDING_HANDOFF_MS, HOLDING_RETARGET_MIN_MS } from './constants';
 import type { FlightPass } from './events';
 /** Shared by the token and projectile. No independent timers or angle guesses. */
 export function progressAt(pass: FlightPass, time: number): number {
@@ -53,4 +53,38 @@ export function eventCountAt(pass: FlightPass, time: number): number {
   let count = 0;
   for (const event of pass.events) { if (event.at <= time) count++; else break; }
   return count;
+}
+/**
+ * When a toHolding Pal visibly reaches its slot: the logical `landingAt`, or
+ * later when a late retarget needs its minimum glide. Logical Holding timing
+ * (`holdingLanded`) never moves.
+ */
+export function landingArrivalAt(pass: FlightPass): number {
+  'worklet';
+  if (pass.terminal.kind !== 'toHolding') return pass.landingAt;
+  const retargets = pass.terminal.retargets;
+  if (retargets === undefined || retargets.length === 0) return pass.landingAt;
+  return Math.max(pass.landingAt, retargets[retargets.length - 1]!.at + HOLDING_RETARGET_MIN_MS);
+}
+/**
+ * When a flight's UI clock stops. A toHolding Pal keeps presenting through the
+ * Holding handoff window; everything else stops at its script's end.
+ */
+export function presentationEndMs(pass: FlightPass): number {
+  return pass.terminal.kind === 'toHolding'
+    ? Math.max(pass.totalMs, landingArrivalAt(pass) + HOLDING_HANDOFF_MS)
+    : pass.totalMs;
+}
+/** Opacity of a landed toHolding Pal across the Holding handoff (1 before arrival). */
+export function holdingHandoffOpacity(pass: FlightPass, time: number): number {
+  'worklet';
+  // Same as `landingArrivalAt`, inlined: worklets here only call imported worklets.
+  let arrival = pass.landingAt;
+  const retargets = pass.terminal.kind === 'toHolding' ? pass.terminal.retargets : undefined;
+  if (retargets !== undefined && retargets.length > 0) {
+    arrival = Math.max(arrival, retargets[retargets.length - 1]!.at + HOLDING_RETARGET_MIN_MS);
+  }
+  const since = time - arrival;
+  if (since < HOLDING_HANDOFF_HOLD_MS) return 1;
+  return Math.max(0, 1 - (since - HOLDING_HANDOFF_HOLD_MS) / (HOLDING_HANDOFF_MS - HOLDING_HANDOFF_HOLD_MS));
 }

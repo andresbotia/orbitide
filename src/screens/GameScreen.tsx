@@ -1,13 +1,13 @@
 import { createGame } from '@/game/engine/createGame';
 import { iceLayers, shieldLayers } from '@/game/engine/frozen';
 import { linkedGroupId } from '@/game/engine/linked';
-import { reachablePixels } from '@/game/engine/pixels';
+import { isPixelReachable, renderExteriorMask } from '@/game/engine/pixels';
 import type { Point } from '@/game/rendering/boardGeometry';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
-  Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming,
+  Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming,
 } from 'react-native-reanimated';
 
 import { ControlDeck } from '@/components/gameplay/ControlDeck';
@@ -16,7 +16,7 @@ import { GameplayEnvironment } from '@/components/gameplay/GameplayEnvironment';
 import { DebugOverlay } from '@/components/DebugOverlay';
 import { DiscoveryOverlay } from '@/components/DiscoveryOverlay';
 import { Hud } from '@/components/Hud';
-import { ResultOverlay } from '@/components/ResultOverlay';
+import { RESULT_BEAT_MS, ResultOverlay } from '@/components/ResultOverlay';
 import { TutorialCoach } from '@/components/TutorialCoach';
 import { CoreV2Board } from '@/game/rendering/CoreV2Board';
 import { DiscoveryReveal } from '@/game/rendering/DiscoveryReveal';
@@ -174,19 +174,18 @@ export function GameScreen({
     }));
   }, [won, reducedMotion, tier, revealProgress]);
 
-  // A brief warning-edge pulse on failure — local to this screen, not a
-  // `BoardFrame` prop (that channel is reserved for the warm win handoff and
-  // would be the wrong color language for a danger state). One quick flash,
-  // not a shake and not a persistent dim — retry stays immediate.
+  // Failure beat: the danger-edge pulse fires on the reject burst itself (the
+  // rejecting Pal's clock, `RejectPulse`). When the loss is presented the board
+  // dims over the same beat `ResultOverlay` waits before entering, so the modal
+  // arrives on a settled, dimmed board — never on top of motion.
   const lost = state.status === 'lost';
-  const failPulse = useSharedValue(0);
+  const failDim = useSharedValue(0);
   useEffect(() => {
-    if (!lost) { failPulse.set(0); return; }
-    failPulse.set(reducedMotion
-      ? withTiming(0.5, { duration: 120 })
-      : withSequence(withTiming(1, { duration: 90 }), withTiming(0, { duration: 420 })));
-  }, [lost, reducedMotion, failPulse]);
-  const failPulseStyle = useAnimatedStyle(() => ({ opacity: failPulse.value * 0.7 }));
+    failDim.set(lost
+      ? withTiming(1, { duration: reducedMotion ? 120 : RESULT_BEAT_MS, easing: Easing.out(Easing.quad) })
+      : 0);
+  }, [lost, reducedMotion, failDim]);
+  const failDimStyle = useAnimatedStyle(() => ({ opacity: failDim.value * 0.5 }));
 
   // Gameplay -> Results (UI-R7): controls used to hard-cut opacity 1 -> 0 the
   // instant `won` flipped. A quick cross-fade instead — short enough not to
@@ -252,7 +251,9 @@ export function GameScreen({
       }
       return new Set(holding.filter((c) => colors.has(c.color)).map((c) => c.id));
     }
-    const colors = new Set(reachablePixels(state).map((p) => p.color));
+    // Render-only reachability: presented states must not fill the engine's shape cache.
+    const mask = renderExteriorMask(state);
+    const colors = new Set(state.pixels.filter((p) => !p.cleared && isPixelReachable(mask, p)).map((p) => p.color));
     return new Set(holding.filter((c) => colors.has(c.color)).map((c) => c.id));
   // View state is a new object on every shot; pixels/holding are the inputs that matter.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -263,9 +264,13 @@ export function GameScreen({
   ) || readyTimedOut;
   const introVisible = !introDone;
   const handleIntroDone = useCallback(() => setIntroDone(true), []);
-  // M2B: launching is allowed while charges orbit — only the full rail or a
-  // finished level closes the controls.
-  const controlsLocked = !session.canLaunch;
+  // M2B: launching is allowed while charges orbit. Only a finished level
+  // (presented or already decided in truth) disables the controls; a full rail
+  // only makes them LOOK blocked, so a tap there reaches the session and gets
+  // its "rail is full" refusal feedback instead of silently doing nothing.
+  const controlsLocked = state.status !== 'playing' || session.engineState.status !== 'playing';
+  const railFull = !controlsLocked && !session.canLaunch;
+  const capacityRefusalSeq = session.lastDenial?.reason === 'activeFull' ? session.lastDenial.seq : 0;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -307,6 +312,7 @@ export function GameScreen({
                   height={boardBox.height}
                   state={state}
                   flights={session.flights}
+                  landingFlights={session.landingFlights}
                   presentThrough={session.presentThrough}
                   colorAssist={colorAssist}
                   reducedMotion={reducedMotion}
@@ -316,6 +322,7 @@ export function GameScreen({
                   size={boardSize}
                   state={state}
                   flights={session.flights}
+                  landingFlights={session.landingFlights}
                   presentThrough={session.presentThrough}
                   colorAssist={colorAssist}
                   reducedMotion={reducedMotion}
@@ -335,7 +342,7 @@ export function GameScreen({
                   />
                 </View>
               ) : null}
-              <Animated.View pointerEvents="none" style={[styles.failRing, failPulseStyle]} />
+              <Animated.View pointerEvents="none" style={[styles.failDim, failDimStyle]} />
             </View>
           </View>
         ) : null}
@@ -354,6 +361,8 @@ export function GameScreen({
           activeCapacity={isCoreV2(state.ruleset) ? session.activeCapacity : 0}
           layoutVersion={boardBox.width + boardBox.height}
           disabled={controlsLocked}
+          blocked={railFull}
+          capacityRefusalSeq={capacityRefusalSeq}
           usefulIds={usefulIds}
           colorAssist={colorAssist}
           pixelPal={isCoreV2(state.ruleset)}
@@ -429,12 +438,11 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'stretch',
   },
-  failRing: {
+  failDim: {
     position: 'absolute',
     top: -2, left: -2, right: -2, bottom: -2,
     borderRadius: 18,
-    borderWidth: 2,
-    borderColor: material.danger,
+    backgroundColor: NEON.inkDeep,
   },
   tutorial: {
     position: 'absolute',

@@ -261,6 +261,9 @@ export function drive(get: () => GameSession, launches: DriveLaunch[], opts: { s
     }
     record(now);
     if (get().flights.length > 0) checkInvariants(now);
+    // A result carrier completes on its result beat, so the presented loss/win
+    // can arrive in the same step that retires the last flight.
+    if (get().state.status !== 'playing' && log.statusAtMs === undefined) log.statusAtMs = now;
     if (pending.length === 0 && get().flights.length === 0) break;
   }
   }

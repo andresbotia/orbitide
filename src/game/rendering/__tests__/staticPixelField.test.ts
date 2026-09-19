@@ -107,3 +107,25 @@ test('member indices stay ascending, so membership compares cheaply', () => {
     }
   }
 });
+
+describe('render-only exterior mask', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { exteriorMask, renderExteriorMask, isPixelReachable } = require('../../engine/pixels') as typeof import('../../engine/pixels');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { createGame } = require('../../engine/createGame') as typeof import('../../engine/createGame');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { requireLevel } = require('../../levels/levels') as typeof import('../../levels/levels');
+
+  test('gives exactly the engine mask\'s reachability on every presented state', () => {
+    const start = createGame(requireLevel(10));
+    let pixels = start.pixels;
+    for (let i = 0; i < pixels.length; i += 3) {
+      pixels = pixels.map((p, j) => (j === i ? { ...p, cleared: true } : p));
+      const state = { ...start, pixels };
+      const render = renderExteriorMask(state);
+      expect(renderExteriorMask(state)).toBe(render); // memoized per pixels array
+      const engine = exteriorMask({ ...state, pixels: [...pixels] });
+      for (const p of pixels) expect(isPixelReachable(render, p)).toBe(isPixelReachable(engine, p));
+    }
+  });
+});

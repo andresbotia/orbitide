@@ -10,17 +10,27 @@ import {
   poseAtMeasuredPerimeterProgress,
 } from '@/game/geometry/roundedPerimeter';
 import type { BoardGeometry, Point } from './boardGeometry';
+import { entryWaitEndAt, landingPose, railPoint } from './railPath';
 
 /** TUNABLE — presentation-only corner-lean cap for {@link flightBankDegrees}. */
 const MAX_BANK_DEG = 9;
 /** Small forward/back progress step used to sense curvature (corner vs straight). */
 const BANK_SAMPLE_DELTA = 0.006;
+/**
+ * TUNABLE — pass time at which the shell starts turning from upright toward
+ * its rail heading; the turn eases in-out and completes exactly at `liftMs`.
+ */
+const LIFT_TURN_START_MS = LAUNCH_HUB.APPROACH / 2;
+/** Progress step used to sample the rail velocity a Pal carries off the gate. */
+const GATE_VELOCITY_DP = 0.002;
 
 export interface FlightPose {
   x: number;
   y: number;
   heading: number;
   bank: number;
+  /** 0 → 1 across the Gate → Holding flight; 0 everywhere else. */
+  landing?: number;
 }
 
 /**
@@ -43,17 +53,63 @@ export function flightPose(
     const from = pass.from ?? { x: layout.center.x + (pass.sourceIndex - 1) * 80, y: layout.size + 50 };
     const seatStart = LAUNCH_HUB.APPROACH;
     const insertionStart = LAUNCH_HUB.APPROACH + LAUNCH_HUB.SEAT;
+    // The rail pose this Pal takes when the lift ends: its own lane (so the lift
+    // lands exactly where the rail picks it up) and the rail heading the shell
+    // turns toward during the lift instead of snapping to on the first rail frame.
+    // A staged Pal (rail origin still occupied) enters upstream instead — see
+    // `entryWaitEndAt` — so it never lands on the Pal ahead.
+    const lifted = layout.perimeterMetrics;
+    const entryAt = lifted ? entryWaitEndAt(pass) : pass.liftMs;
+    const staged = entryAt > pass.liftMs;
+    let entryX = insertion.x;
+    let entryY = insertion.y;
+    let entryHeading = 0;
+    if (lifted) {
+      const q = (pass.liftMs - entryAt) / pass.orbitDurationMs;
+      const entry = poseAtMeasuredPerimeterProgress(lifted, normalizePerimeterProgress(orbitFraction(q)), radialOffset);
+      if (radialOffset !== 0 || staged) { entryX = entry.x; entryY = entry.y; }
+      // Rail headings live in (-π, π]; a bottom-edge entry is π. Turning to −π
+      // instead is the same pose and makes the up-then-left turn anticlockwise.
+      entryHeading = entry.heading > Math.PI - 1e-3 ? entry.heading - Math.PI * 2 : entry.heading;
+    } else if (radialOffset !== 0) {
+      const angle = orbitFraction(0) * Math.PI * 2 - Math.PI / 2;
+      entryX = layout.center.x + Math.cos(angle) * (layout.orbit[0]!.rx + radialOffset);
+      entryY = layout.center.y + Math.sin(angle) * (layout.orbit[0]!.ry + radialOffset);
+    }
+    const turnP = Math.max(0, Math.min(1, (time - LIFT_TURN_START_MS) / (pass.liftMs - LIFT_TURN_START_MS)));
+    const heading = entryHeading * ((1 - Math.cos(Math.PI * turnP)) / 2);
+    // A staged Pal approaches its upstream entry directly (the shared hub IS the
+    // occupied origin on Core V2) and seats there; otherwise unchanged.
+    const aimX = staged ? entryX : hub.x;
+    const aimY = staged ? entryY : hub.y;
     if (time <= seatStart) {
+      // Ease-in-out: the UI clock is anchored to the tap, so the first painted
+      // frame lands a commit's worth of ms in — an ease-out start skipped a
+      // large, visible chunk of the path there.
       const p = Math.max(0, time / LAUNCH_HUB.APPROACH);
-      const e = 1 - (1 - p) ** 2;
-      return { x: from.x + (hub.x - from.x) * e, y: from.y + (hub.y - from.y) * e, heading: 0, bank: 0 };
+      const e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
+      return { x: from.x + (aimX - from.x) * e, y: from.y + (aimY - from.y) * e, heading, bank: 0 };
     }
     if (time <= insertionStart) {
-      return { x: hub.x, y: hub.y, heading: 0, bank: 0 };
+      return { x: aimX, y: aimY, heading, bank: 0 };
     }
     const p = Math.max(0, Math.min(1, (time - insertionStart) / LAUNCH_HUB.TO_INSERTION));
     const e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
-    return { x: hub.x + (insertion.x - hub.x) * e, y: hub.y + (insertion.y - hub.y) * e, heading: 0, bank: 0 };
+    return { x: aimX + (entryX - aimX) * e, y: aimY + (entryY - aimY) * e, heading, bank: 0 };
+  }
+
+  const metricsForEntry = layout.perimeterMetrics;
+  if (metricsForEntry) {
+    const entryAt = entryWaitEndAt(pass);
+    if (time < entryAt) {
+      // Staged: riding in upstream at rail speed, reaching the origin at `entryAt`.
+      const pose = poseAtMeasuredPerimeterProgress(
+        metricsForEntry,
+        normalizePerimeterProgress(orbitFraction((time - entryAt) / pass.orbitDurationMs)),
+        radialOffset,
+      );
+      return { x: pose.x, y: pose.y, heading: pose.heading, bank: pose.bank };
+    }
   }
 
   const progress = progressAt(pass, time);
@@ -81,16 +137,15 @@ export function flightPose(
       return { x, y, heading, bank };
     }
     // GateTerminal -> exactly this Pal's slot. An unmeasured slot point keeps
-    // the Pal at GateTerminal; there is no off-screen fallback target.
-    const from = metrics ? layout.gateTerminal : { x, y };
-    const to = pass.terminal.target ?? from;
-    const p = Math.min(1, (time - pass.orbitEndAt) / Math.max(1, pass.landingAt - pass.orbitEndAt));
-    return {
-      x: from.x + (to.x - from.x) * p,
-      y: from.y + (to.y - from.y) * p,
-      heading,
-      bank,
-    };
+    // the Pal at GateTerminal; there is no off-screen fallback target. A laned
+    // Pal leaves from its own lane's gate point, where the rail left it, with
+    // the rail's velocity, and the shell turns upright as it arrives.
+    const from = metrics && radialOffset === 0 ? layout.gateTerminal : { x, y };
+    const behind = railPoint(layout, pass.endProgress - GATE_VELOCITY_DP, radialOffset);
+    const perMs = 1 / (GATE_VELOCITY_DP * pass.orbitDurationMs);
+    const land = landingPose(pass, time, from.x, from.y, (from.x - behind.x) * perMs, (from.y - behind.y) * perMs);
+    const e = land.s < 0.5 ? 2 * land.s * land.s : 1 - (-2 * land.s + 2) ** 2 / 2;
+    return { x: land.x, y: land.y, heading: heading * (1 - e), bank: bank * (1 - e), landing: land.s };
   }
   return { x, y, heading, bank };
 }
@@ -99,7 +154,7 @@ export function flightPose(
  * The single position function used by the rendered charge AND every projectile.
  *
  * Lift is split into the shared launch-hub choreography:
- *   source -> LAUNCH_HUB (APPROACH, ease-out)
+ *   source -> LAUNCH_HUB (APPROACH, ease-in-out)
  *          -> seat at LAUNCH_HUB (SEAT, held)
  *          -> ORBIT_INSERTION (TO_INSERTION, ease-in-out, radial)
  * then the orbit proper begins at ORBIT_INSERTION exactly at `time === liftMs`.
@@ -120,17 +175,45 @@ export function flightPosition(
     const from = pass.from ?? { x: layout.center.x + (pass.sourceIndex - 1) * 80, y: layout.size + 50 };
     const seatStart = LAUNCH_HUB.APPROACH;
     const insertionStart = LAUNCH_HUB.APPROACH + LAUNCH_HUB.SEAT;
+    // Same lane-true (and, when staged, upstream) rail entry as `flightPose`.
+    const lifted = layout.perimeterMetrics;
+    const entryAt = lifted ? entryWaitEndAt(pass) : pass.liftMs;
+    const staged = entryAt > pass.liftMs;
+    let entryX = insertion.x;
+    let entryY = insertion.y;
+    if (radialOffset !== 0 || staged) {
+      if (lifted) {
+        const q = (pass.liftMs - entryAt) / pass.orbitDurationMs;
+        const entry = poseAtMeasuredPerimeterProgress(lifted, normalizePerimeterProgress(orbitFraction(q)), radialOffset);
+        entryX = entry.x;
+        entryY = entry.y;
+      } else {
+        const angle = orbitFraction(0) * Math.PI * 2 - Math.PI / 2;
+        entryX = layout.center.x + Math.cos(angle) * (layout.orbit[0]!.rx + radialOffset);
+        entryY = layout.center.y + Math.sin(angle) * (layout.orbit[0]!.ry + radialOffset);
+      }
+    }
+    const aimX = staged ? entryX : hub.x;
+    const aimY = staged ? entryY : hub.y;
     if (time <= seatStart) {
       const p = Math.max(0, time / LAUNCH_HUB.APPROACH);
-      const e = 1 - (1 - p) ** 2;
-      return { x: from.x + (hub.x - from.x) * e, y: from.y + (hub.y - from.y) * e };
+      const e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
+      return { x: from.x + (aimX - from.x) * e, y: from.y + (aimY - from.y) * e };
     }
     if (time <= insertionStart) {
-      return { x: hub.x, y: hub.y };
+      return { x: aimX, y: aimY };
     }
     const p = Math.max(0, Math.min(1, (time - insertionStart) / LAUNCH_HUB.TO_INSERTION));
     const e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
-    return { x: hub.x + (insertion.x - hub.x) * e, y: hub.y + (insertion.y - hub.y) * e };
+    return { x: aimX + (entryX - aimX) * e, y: aimY + (entryY - aimY) * e };
+  }
+
+  if (layout.perimeterMetrics) {
+    const entryAt = entryWaitEndAt(pass);
+    if (time < entryAt) {
+      const upstream = railPoint(layout, (time - entryAt) / pass.orbitDurationMs, radialOffset);
+      return { x: upstream.x, y: upstream.y };
+    }
   }
 
   const progress = progressAt(pass, time);
@@ -157,10 +240,11 @@ export function flightPosition(
 
   if (time > pass.orbitEndAt && pass.terminal.kind === 'toHolding') {
     if (metrics && progress < pass.endProgress - 1e-6) return { x, y };
-    const from = metrics ? layout.gateTerminal : { x, y };
-    const to = pass.terminal.target ?? from;
-    const p = Math.min(1, (time - pass.orbitEndAt) / Math.max(1, pass.landingAt - pass.orbitEndAt));
-    return { x: from.x + (to.x - from.x) * p, y: from.y + (to.y - from.y) * p };
+    const from = metrics && radialOffset === 0 ? layout.gateTerminal : { x, y };
+    const behind = railPoint(layout, pass.endProgress - GATE_VELOCITY_DP, radialOffset);
+    const perMs = 1 / (GATE_VELOCITY_DP * pass.orbitDurationMs);
+    const land = landingPose(pass, time, from.x, from.y, (from.x - behind.x) * perMs, (from.y - behind.y) * perMs);
+    return { x: land.x, y: land.y };
   }
   return { x, y };
 }

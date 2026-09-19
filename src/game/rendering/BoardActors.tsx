@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo } from 'react';
 
-import { exteriorMask, isPixelReachable } from '@/game/engine/pixels';
+import { isPixelReachable, renderExteriorMask } from '@/game/engine/pixels';
 import type { GameState, ModifierInstance, Pixel as BoardPixel } from '@/game/engine/types';
 import { type BoardGeometry } from './boardGeometry';
 import { SpecialPixelLayer, type SpecialPixelInput } from './SpecialPixelLayer';
@@ -34,11 +34,12 @@ export const BoardActors = memo(function BoardActors({ state, geo, colorAssist, 
 }) {
   const mods = modifiers ?? EMPTY;
 
-  // The exterior flood fill, memoized in the engine by `state.pixels` identity.
+  // The exterior flood fill for this pixels array — render-only memo, so the
+  // presentation's per-clear arrays never land in the engine's shape cache.
   // Handing the field a predicate instead of a `Set` of ids keeps one array and
   // one Set per clear off the heap on a 770-cell board.
   const mask = useMemo(
-    () => exteriorMask(state),
+    () => renderExteriorMask(state),
     // Reachability keys off pixels + board size, not the rest of GameState.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [state.pixels, state.width, state.height],

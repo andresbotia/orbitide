@@ -9,6 +9,12 @@ import { radius, spacing, typography } from '@/theme/spacing';
 
 export type FailureReason = 'holdingFull' | 'noMoves';
 
+/**
+ * TUNABLE — presentation beat between the presented loss (board dim begins)
+ * and the LEVEL FAILED card. A UI-thread entering delay, not a JS timer.
+ */
+export const RESULT_BEAT_MS = 300;
+
 interface ResultOverlayProps {
   /** Win is owned by DiscoveryOverlay/DiscoveryReveal — this handles fail only. */
   visible: boolean;
@@ -36,12 +42,12 @@ export const ResultOverlay = memo(function ResultOverlay({ visible, reason = 'ho
 
   return (
     <Animated.View
-      entering={FadeIn.duration(200)}
+      entering={FadeIn.duration(200).delay(RESULT_BEAT_MS)}
       style={styles.backdrop}
       pointerEvents="auto"
     >
       <Animated.View 
-        entering={ZoomIn.springify().damping(16).mass(0.9).stiffness(120)} 
+        entering={ZoomIn.delay(RESULT_BEAT_MS).springify().damping(16).mass(0.9).stiffness(120)} 
         style={styles.card}
       >
         <View style={styles.palIcon}>

@@ -147,6 +147,30 @@ function cachedExteriorCells(state: GameState): ExteriorMask {
   return result;
 }
 
+/**
+ * Render-path memo, keyed only by `state.pixels` identity and collected with it.
+ * The presentation layer builds a fresh pixels array per presented clear; each
+ * one used to be written into the long-lived shape cache above (~1.2 MB per 10
+ * level plays, never released, until the 20k cap). Rendering needs no shape
+ * reuse, so it keeps its own weak memo and never writes that cache.
+ */
+const RENDER_MASK_WEAK_CACHE = new WeakMap<readonly Pixel[], ExteriorMask>();
+
+/**
+ * The same exterior mask as {@link exteriorMask}, for renderers: reuses any
+ * mask already computed for this exact pixels array, otherwise floods without
+ * touching the engine's long-lived shape cache. Gameplay semantics unchanged.
+ */
+export function renderExteriorMask(state: GameState): ExteriorMask {
+  const engineHit = EXTERIOR_WEAK_CACHE.get(state.pixels);
+  if (engineHit) return engineHit;
+  const hit = RENDER_MASK_WEAK_CACHE.get(state.pixels);
+  if (hit) return hit;
+  const mask = floodExterior(solidCells(state));
+  RENDER_MASK_WEAK_CACHE.set(state.pixels, mask);
+  return mask;
+}
+
 /** Whether the cell at grid coordinates `x, y` is exterior-connected empty space. */
 function isExterior(mask: ExteriorMask, x: number, y: number): boolean {
   const index = (y + 1) * mask.stride + (x + 1);

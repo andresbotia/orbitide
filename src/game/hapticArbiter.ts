@@ -1,71 +1,88 @@
 import { haptics } from './haptics';
 
 /**
- * M2B haptic arbitration (spec §16).
+ * M2B haptic arbitration (spec §16), leading-edge.
  *
  * With up to five charges on the rail, routine pixel impacts can arrive in a
- * tight cluster. Firing one buzz per hit turns the phone into a rattle, so this
- * layer coalesces the cluster into a single, appropriately-sized pulse:
+ * tight cluster. One buzz per hit turns the phone into a rattle, but waiting for
+ * a quiet gap before buzzing (a trailing debounce) made every hit late and
+ * could stay silent through an entire dense burst. So:
  *
- *   1 hit              → normal pixel impact
- *   2 within ~40 ms    → one slightly stronger impact
- *   3+ within ~60 ms   → one capped stronger pulse
+ *   - A hit with no group open fires IMMEDIATELY (same beat as the pixel pop)
+ *     and opens a {@link GROUP_WINDOW_MS} group.
+ *   - Further hits inside the group are counted, not fired. When the group
+ *     closes on its fixed schedule (never extended), the count becomes ONE
+ *     pulse — 1 → pop, 2 → combo, 3+ → capped burst — and a new group opens.
+ *     A group with no extra hits simply closes.
+ *   - A winning final clear always fires at once (heavy) and absorbs the group.
  *
- * A winning final clear always wins the cluster (heavy). High-priority cues
- * (Holding land, warning, win, fail) are NOT routed through here — call them
- * directly so they are never swallowed.
- *
- * The flush is debounced by {@link COALESCE_WINDOW_MS}; that is the only latency
- * added to a routine hit, and it is deliberately below human "same beat"
- * perception (~60 ms).
+ * Net effect: routine pulses are ≥ GROUP_WINDOW_MS apart (≤ 10/s even with five
+ * Pals firing), a lone hit is never delayed, and a dense burst is never silent.
+ * High-priority cues (Holding land, warning, reject, win, fail) are NOT routed
+ * through here — they are called directly so they are never swallowed.
  */
 
-/** TUNABLE. The cluster window; also the routine-hit latency ceiling. */
-export const COALESCE_WINDOW_MS = 45;
+/** TUNABLE. Group length: the minimum spacing of routine hit pulses. */
+export const GROUP_WINDOW_MS = 100;
 
-interface Pending {
-  count: number;
-  final: boolean;
-  timer: ReturnType<typeof setTimeout> | undefined;
+interface Group {
+  /** Hits counted after the one that opened the group. */
+  extra: number;
+  /** A final clear already fired in this group: drop the rest. */
+  finalFired: boolean;
+  timer: ReturnType<typeof setTimeout>;
 }
 
-let pending: Pending | null = null;
+let group: Group | null = null;
 
-function flush(): void {
-  if (!pending) return;
-  const { count, final } = pending;
-  pending = null;
-  if (final) {
-    haptics.finalClear();
+function open(finalFired: boolean): void {
+  group = { extra: 0, finalFired, timer: setTimeout(close, GROUP_WINDOW_MS) };
+}
+
+function close(): void {
+  if (!group) return;
+  const { extra, finalFired } = group;
+  group = null;
+  if (finalFired || extra === 0) return;
+  if (extra === 1) haptics.pixelPop();
+  else if (extra === 2) haptics.pixelCombo();
+  else haptics.pixelBurst();
+  // Hits are still arriving: keep the cadence instead of re-firing on the next one.
+  open(false);
+}
+
+/** Register one pixel-impact haptic (see module doc for the grouping rules). */
+export function registerHit(options: { final?: boolean } = {}): void {
+  const final = options.final === true;
+  if (!group) {
+    if (final) haptics.finalClear();
+    else haptics.pixelPop();
+    open(final);
     return;
   }
-  if (count <= 1) haptics.pixelPop();
-  else if (count === 2) haptics.pixelCombo();
-  else haptics.pixelBurst();
-}
-
-/**
- * Register one pixel-impact haptic. Impacts registered within
- * {@link COALESCE_WINDOW_MS} of each other fire as a single pulse.
- */
-export function registerHit(options: { final?: boolean } = {}): void {
-  if (!pending) {
-    pending = { count: 0, final: false, timer: undefined };
+  if (group.finalFired) return;
+  if (final) {
+    haptics.finalClear();
+    group.finalFired = true;
+    return;
   }
-  pending.count += 1;
-  pending.final = pending.final || options.final === true;
-  if (pending.timer !== undefined) clearTimeout(pending.timer);
-  pending.timer = setTimeout(flush, COALESCE_WINDOW_MS);
+  group.extra += 1;
 }
 
-/** Drop any buffered pulse (app backgrounded, level restarted, pass retired). */
+/** Drop any open group and its pending pulse (app backgrounded, level restarted, pass retired). */
 export function cancelHits(): void {
-  if (pending?.timer !== undefined) clearTimeout(pending.timer);
-  pending = null;
+  if (group) clearTimeout(group.timer);
+  group = null;
 }
 
-/** Fire immediately without waiting for the window — for tests and teardown. */
+/** Fire an open group's pending pulse now and close it — for tests and teardown. */
 export function flushHitsNow(): void {
-  if (pending?.timer !== undefined) clearTimeout(pending.timer);
-  flush();
+  if (!group) return;
+  clearTimeout(group.timer);
+  const pending = group;
+  group = null;
+  if (pending.finalFired || pending.extra === 0) return;
+  if (pending.extra === 1) haptics.pixelPop();
+  else if (pending.extra === 2) haptics.pixelCombo();
+  else haptics.pixelBurst();
 }
