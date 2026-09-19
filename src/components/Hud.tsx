@@ -1,115 +1,119 @@
-import { memo, useEffect } from 'react';
+import { memo, useEffect, type ReactNode } from 'react';
 import { type LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, {
+  Easing, interpolateColor, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming,
+} from 'react-native-reanimated';
 
-import { remainingPixelCount } from '@/game/engine/pixels';
-import type { GameState, LevelDifficulty } from '@/game/engine/types';
+import { flash, usePressDepth } from '@/components/gameplay/motionKit';
+import { HomeGlyph, RestartGlyph } from '@/components/gameplay/glyphs';
 import { GAMEPLAY } from '@/theme/gameplayLayout';
-import { NEON, neonAlpha } from '@/theme/neon';
+import { GP, GP_DISPLAY_FONT, GP_RADIUS, GP_TYPE } from '@/theme/gameplayUi';
 
 interface HudProps {
-  state: GameState;
-  title?: string;
-  difficulty?: LevelDifficulty;
+  levelId: number;
+  /** Presented cleared pixels / total — the only values the HUD re-renders on. */
+  cleared: number;
+  total: number;
   onRestart: () => void;
   onHome: () => void;
-  /** Placeholder for M2's settings screen — presentation-only in M2A. */
-  onSettings?: () => void;
 }
 
 const BTN = GAMEPLAY.hudButton;
 const TRACK_BORDER = 1;
 const HIT = GAMEPLAY.hudButtonHit;
+const TRACK_H = 8;
 
 /**
- * Compact arcade HUD strip: level medallion, progress, Home + Restart.
- * Level name and difficulty stay on Home — they are not repeated here.
- * Memoized to prevent rerenders from unrelated board/deck changes.
+ * Compact arcade status bar: level chip, board progress, Home + Restart.
+ * ACTIVE/HOLDING pressure lives in the deck's status strip, directly above the
+ * controls that change it. Only `ProgressBar` re-renders per presented clear;
+ * the chip and buttons are memoized on stable props.
  */
-export const Hud = memo(function Hud({
-  state, onRestart, onHome,
-}: HudProps) {
-  const remaining = remainingPixelCount(state);
-  const total = state.pixels.length;
-  const cleared = total - remaining;
+export const Hud = memo(function Hud({ levelId, cleared, total, onRestart, onHome }: HudProps) {
   const progress = total === 0 ? 0 : cleared / total;
-  const slop = Math.max(0, Math.ceil((HIT - BTN) / 2));
-
   return (
     <View style={styles.container}>
-      <View
-        accessible
-        accessibilityRole="text"
-        accessibilityLabel={`Level ${state.levelId}`}
-        style={styles.medallion}
-      >
-        <Text style={styles.medallionNum}>{state.levelId}</Text>
-      </View>
-
-      <ProgressBar progress={progress} cleared={cleared} total={total} />
-
+      <LevelChip levelId={levelId} />
+      <ProgressBar progress={progress} />
       <View style={styles.actions}>
-        <Pressable
-          onPress={onHome}
-          accessibilityRole="button"
-          accessibilityLabel="Home"
-          hitSlop={slop}
-          style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
-        >
-          <HouseGlyph />
-        </Pressable>
-        <Pressable
-          onPress={onRestart}
-          accessibilityRole="button"
-          accessibilityLabel="Restart level"
-          hitSlop={slop}
-          style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
-        >
-          <Text style={styles.restartGlyph}>↺</Text>
-        </Pressable>
+        <HudButton onPress={onHome} accessibilityLabel="Home"><HomeGlyph /></HudButton>
+        <HudButton onPress={onRestart} accessibilityLabel="Restart level"><RestartGlyph /></HudButton>
       </View>
     </View>
   );
 });
 
-/** Memoized progress bar — only rerenders when cleared/total actually change. */
-const ProgressBar = memo(function ProgressBar({ progress, cleared, total }: {
-  progress: number; cleared: number; total: number;
+const LevelChip = memo(function LevelChip({ levelId }: { levelId: number }) {
+  return (
+    <View accessible accessibilityRole="text" accessibilityLabel={`Level ${levelId}`} style={styles.chip}>
+      <Text style={styles.chipLabel}>LV</Text>
+      <Text style={styles.chipNum}>{levelId}</Text>
+    </View>
+  );
+});
+
+const HudButton = memo(function HudButton({ onPress, accessibilityLabel, children }: {
+  onPress: () => void; accessibilityLabel: string; children: ReactNode;
 }) {
-  // Compositor-only: a full-width fill slid left by (1 - progress) of the
-  // track, clipped by the track's rounded overflow. Animating `width` re-ran
-  // layout on every frame of every clear.
+  const { depth, pressIn, pressOut } = usePressDepth();
+  const style = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 - depth.value * 0.08 }],
+    borderColor: interpolateColor(depth.value, [0, 1], [GP.hairlineStrong, GP.cyan]),
+    backgroundColor: interpolateColor(depth.value, [0, 1], [GP.panel, GP.well]),
+  }));
+  const slop = Math.max(0, Math.ceil((HIT - BTN) / 2));
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={pressIn}
+      onPressOut={pressOut}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      hitSlop={slop}
+    >
+      <Animated.View style={[styles.btn, style]}>{children}</Animated.View>
+    </Pressable>
+  );
+});
+
+/**
+ * Board progress. Compositor-only: a full-width fill slid left by
+ * (1 - progress), clipped by the track (animating `width` re-ran layout on
+ * every clear). Each advance flashes the leading edge; completion turns the
+ * fill gold — the HUD's half of the win beat.
+ */
+const ProgressBar = memo(function ProgressBar({ progress }: { progress: number }) {
+  const reducedMotion = useReducedMotion();
   const fill = useSharedValue(progress);
   const trackW = useSharedValue(0);
+  const edge = useSharedValue(0);
+  const done = useSharedValue(progress >= 1 ? 1 : 0);
   useEffect(() => {
-    fill.set(withTiming(progress, { duration: 220, easing: Easing.out(Easing.quad) }));
-  }, [progress, fill]);
+    fill.set(withTiming(progress, { duration: reducedMotion ? 0 : 220, easing: Easing.out(Easing.quad) }));
+    if (progress > 0 && !reducedMotion) flash(edge, 40, 240);
+    done.set(withTiming(progress >= 1 ? 1 : 0, { duration: progress >= 1 ? 320 : 0 }));
+  }, [progress, reducedMotion, fill, edge, done]);
+
   const fillStyle = useAnimatedStyle(() => ({
     opacity: trackW.value > 0 ? 1 : 0,
+    backgroundColor: interpolateColor(done.value, [0, 1], [GP.cyan, GP.gold]),
     transform: [{ translateX: (fill.value - 1) * trackW.value }],
   }));
-  // Inner width (inside the 1px border) — what the old `width: N%` fill measured against.
+  const edgeStyle = useAnimatedStyle(() => ({ opacity: 0.55 + edge.value * 0.45 }));
   const onTrackLayout = (e: LayoutChangeEvent) => trackW.set(Math.max(0, e.nativeEvent.layout.width - TRACK_BORDER * 2));
+  const pct = Math.floor(progress * 100);
 
   return (
-    <View style={styles.progressBlock}>
+    <View style={styles.progressBlock} accessible accessibilityRole="progressbar" accessibilityLabel={`Board ${pct} percent cleared`}>
       <View style={styles.track} onLayout={onTrackLayout}>
-        <Animated.View style={[styles.fill, fillStyle]} />
-        {progress >= 0.97 ? <View pointerEvents="none" style={styles.goldTip} /> : null}
+        <Animated.View style={[styles.fill, fillStyle]}>
+          <Animated.View style={[styles.fillEdge, edgeStyle]} />
+        </Animated.View>
       </View>
-      <Text style={styles.progressNum}>{cleared}/{total}</Text>
+      <Text style={[styles.pct, progress >= 1 && styles.pctDone]}>{pct}%</Text>
     </View>
   );
 });
-
-function HouseGlyph() {
-  return (
-    <View style={styles.house} accessibilityElementsHidden>
-      <View style={styles.houseRoof} />
-      <View style={styles.houseBody} />
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
   container: {
@@ -117,106 +121,77 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
-    gap: 8,
-    backgroundColor: NEON.inkDeep,
+    gap: 10,
+    backgroundColor: GP.canvas,
   },
-  medallion: {
-    width: GAMEPLAY.hudMedallion,
-    height: GAMEPLAY.hudMedallion,
-    borderRadius: GAMEPLAY.hudMedallion / 2,
-    backgroundColor: NEON.surface,
-    borderWidth: 2,
-    borderColor: NEON.cyan,
+  chip: {
+    height: 30,
+    minWidth: 52,
+    paddingHorizontal: 8,
+    borderRadius: GP_RADIUS.control,
+    backgroundColor: GP.panel,
+    borderWidth: 1,
+    borderColor: GP.hairlineStrong,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 4,
   },
-  medallionNum: {
-    color: NEON.cyanPale,
-    fontSize: 15,
-    fontWeight: '800',
+  chipLabel: { ...GP_TYPE.label, fontSize: 9, color: GP.gold, marginTop: 1 },
+  chipNum: {
+    color: GP.text,
+    fontFamily: GP_DISPLAY_FONT,
+    fontSize: 16,
     fontVariant: ['tabular-nums'],
   },
   progressBlock: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   track: {
     flex: 1,
-    height: GAMEPLAY.hudProgressHeight,
-    borderRadius: GAMEPLAY.hudProgressHeight / 2,
-    backgroundColor: NEON.surface,
+    height: TRACK_H,
+    borderRadius: TRACK_H / 2,
+    backgroundColor: GP.wellDeep,
     overflow: 'hidden',
     borderWidth: TRACK_BORDER,
-    borderColor: neonAlpha(NEON.cyan, 0.18),
+    borderColor: GP.hairline,
   },
   fill: {
     width: '100%',
     height: '100%',
-    borderRadius: GAMEPLAY.hudProgressHeight / 2,
-    backgroundColor: NEON.cyan,
+    borderRadius: TRACK_H / 2,
   },
-  progressNum: {
-    color: neonAlpha(NEON.cyanPale, 0.7),
-    fontSize: 11,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-    minWidth: 42,
-    textAlign: 'right',
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  btn: {
-    width: BTN,
-    height: BTN,
-    borderRadius: BTN / 2,
-    backgroundColor: NEON.surface,
-    borderWidth: 1.5,
-    borderColor: neonAlpha(NEON.cyan, 0.3),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  goldTip: {
+  fillEdge: {
     position: 'absolute',
     right: 0,
     top: 0,
     bottom: 0,
-    width: 6,
-    backgroundColor: NEON.gold,
+    width: 4,
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
   },
-  btnPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.94 }],
-    borderColor: NEON.cyan,
-    backgroundColor: neonAlpha(NEON.cyan, 0.12),
+  pct: {
+    ...GP_TYPE.numeral,
+    fontSize: 12,
+    color: GP.textSecondary,
+    minWidth: 38,
+    textAlign: 'right',
   },
-  restartGlyph: { color: neonAlpha(NEON.cyanPale, 0.85), fontSize: 18, fontWeight: '700' },
-  house: {
-    width: 14,
-    height: 14,
+  pctDone: { color: GP.gold },
+  actions: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    gap: 8,
   },
-  houseRoof: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 7,
-    borderRightWidth: 7,
-    borderBottomWidth: 6,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: neonAlpha(NEON.cyanPale, 0.88),
-    marginBottom: -1,
-  },
-  houseBody: {
-    width: 10,
-    height: 7,
-    backgroundColor: neonAlpha(NEON.cyanPale, 0.88),
-    borderBottomLeftRadius: 1,
-    borderBottomRightRadius: 1,
+  btn: {
+    width: BTN,
+    height: BTN,
+    borderRadius: GP_RADIUS.control,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

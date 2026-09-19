@@ -19,7 +19,11 @@ describe('gameplay screen cabinet redesign contracts', () => {
 
   it('wires Home through the existing exit navigation', () => {
     expect(screen).toMatch(/onHome=\{onExit\}/);
-    expect(screen).toMatch(/onRestart=\{session\.restart\}/);
+    // Restart goes through the session's restart, then re-arms the board (M5.8B).
+    expect(screen).toMatch(/const \{ restart \} = session;/);
+    expect(screen).toMatch(/restart\(\);\s*armBoard\(\);/);
+    expect(screen).toMatch(/onRestart=\{handleRestart\}/);
+    expect(screen).toMatch(/onRetry=\{handleRestart\}/);
   });
 
   it('does not restyle the Expo development gear', () => {

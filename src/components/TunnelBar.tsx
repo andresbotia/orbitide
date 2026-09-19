@@ -3,18 +3,18 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import Animated, {
   cancelAnimation,
   Easing,
-  FadeIn,
+  interpolateColor,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withRepeat,
-  withSequence,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
 import type { Point } from '@/game/rendering/boardGeometry';
 import { ColorAssistMark } from '@/components/ColorAssistMark';
+import { flash, kick, shake, usePressDepth } from '@/components/gameplay/motionKit';
 import { PixelPalFace } from '@/game/rendering/pixelPal/PixelPalFace';
 import { upcomingPreviewCount, visibleCharges } from '@/game/engine/selectors';
 import { isCoreV2 } from '@/game/engine/ruleset';
@@ -24,7 +24,8 @@ import type { TutorialView } from '@/game/tutorial';
 import { markContrast } from '@/theme/colorAssist';
 import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
 import { GAMEPLAY } from '@/theme/gameplayLayout';
-import { NEON, neonAlpha } from '@/theme/neon';
+import { GP, GP_RADIUS, gpAlpha } from '@/theme/gameplayUi';
+import { GP_MOTION } from '@/theme/gameplayMotion';
 
 interface TunnelBarProps {
   state: GameState;
@@ -36,15 +37,26 @@ interface TunnelBarProps {
   onLaunch: (tunnelId: string) => boolean;
   onSourceLayout: (key: string, point: Point) => void;
   tutorial?: TutorialView;
-  /** Recessed mouths in the control deck — no cards, T-labels, or ghost circles. */
+  /** Kept for call-site compatibility — tunnels always render as deck bays. */
   embedded?: boolean;
 }
 
+/** Bay padding around the ready Pal (pt). */
+const BAY_PAD = 7;
+/** How far queue chips tuck up under the bay / the chip in front (× queue size). */
+const TUCK_FIRST = 0.38;
+const TUCK_NEXT = 0.48;
+
 /**
  * Launch tunnels — presentation only. Renders however many tunnels the state
- * has (Legacy V1: 3, Core V2: 4). Each magazine shows the loaded front plus a
- * bounded upcoming preview; the hidden queue tail stays in engine state.
- * Physical launcher mouths — front Pal clearly ready, next/next+1 behind.
+ * has (Legacy V1: 3, Core V2: 4). Each is a recessed launch **bay** holding the
+ * ready Pal, with the next Pals feeding in below it; the hidden queue tail
+ * stays in engine state.
+ *
+ * Interaction (all UI thread): touch-down compresses the bay; an accepted
+ * launch flashes the bay's cyan lip, the bay rebounds and the next Pal slides
+ * up into the seat while the queue slides up behind it; a refusal shakes the
+ * bay — firmly with a danger lip when the rail is full, softly otherwise.
  */
 export const TunnelBar = memo(function TunnelBar({ state, disabled, blocked = false, colorAssist, onLaunch, onSourceLayout, layoutVersion, tutorial }: TunnelBarProps) {
   const charges = visibleCharges(state);
@@ -121,8 +133,9 @@ const Tunnel = memo(function Tunnel({
   const empty = !charge;
   const reducedMotion = useReducedMotion();
   const ready = !empty && !disabled && !blocked;
-  const sourceRef = useRef<View | null>(null);
-  const mounted = useRef(false);
+  // The bay never moves with its contents, so it is the launch origin: the
+  // ready Pal is always centred in it, including mid-slide.
+  const bayRef = useRef<View | null>(null);
 
   const spotlight = useSharedValue(0);
   useEffect(() => {
@@ -134,60 +147,84 @@ const Tunnel = memo(function Tunnel({
   }, [highlighted, reducedMotion, spotlight]);
   const spotlightStyle = useAnimatedStyle(() => ({
     opacity: 0.4 + spotlight.value * 0.6,
-    transform: [{ scale: 1 + spotlight.value * 0.05 }],
+    transform: [{ scale: 1 + spotlight.value * 0.035 }],
   }));
 
   const measure = useCallback(() => {
-    sourceRef.current?.measureInWindow((x, y, width, height) =>
+    bayRef.current?.measureInWindow((x, y, width, height) =>
       onSourceLayout(tunnelId, { x: x + width / 2, y: y + height / 2 }));
   }, [onSourceLayout, tunnelId]);
   useEffect(() => { measure(); }, [layoutVersion, measure]);
 
-  const recoil = useSharedValue(0);
+  // Accepted launch → the front charge changes: rebound the bay.
+  const rebound = useSharedValue(0);
+  const seenCharge = useRef<string | null>(charge?.id ?? null);
+  const advanced = seenCharge.current !== null && seenCharge.current !== (charge?.id ?? null);
   useEffect(() => {
-    if (!mounted.current) { mounted.current = true; return; }
-    cancelAnimation(recoil);
-    if (reducedMotion) {
-      recoil.set(withSequence(withTiming(1, { duration: 60 }), withTiming(0, { duration: 160 })));
-    } else {
-      recoil.set(withSequence(
-        withTiming(1, { duration: 70, easing: Easing.out(Easing.cubic) }),
-        withSpring(0, { damping: 14, stiffness: 260 }),
-      ));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [charge?.id]);
+    const id = charge?.id ?? null;
+    if (seenCharge.current !== null && seenCharge.current !== id && !reducedMotion) kick(rebound, 1);
+    seenCharge.current = id;
+  }, [charge?.id, rebound, reducedMotion]);
 
-  // One-shot rejection shake — never a standing state, distinct from the
-  // launch recoil above (which fires on every accepted launch).
+  const { depth, pressIn, pressOut } = usePressDepth();
+  const lip = useSharedValue(0);
+  /** 0 = accepted (cyan), 1 = refused, rail full (danger), 2 = refused, other (muted). */
+  const lipKind = useSharedValue(0);
   const shakeX = useSharedValue(0);
-  const triggerDeniedShake = useCallback(() => {
-    cancelAnimation(shakeX);
-    shakeX.set(withSequence(
-      withTiming(-4, { duration: 35 }), withTiming(4, { duration: 60 }),
-      withTiming(-3, { duration: 60 }), withTiming(0, { duration: 50 }),
-    ));
-  }, [shakeX]);
+  const onPressIn = () => {
+    pressIn();
+    if (onLaunch(tunnelId)) {
+      lipKind.set(0);
+      flash(lip);
+      return;
+    }
+    lipKind.set(blocked ? 1 : 2);
+    flash(lip, GP_MOTION.lipRiseMs, 300);
+    if (!reducedMotion) shake(shakeX, blocked ? GP_MOTION.shakeFirm : GP_MOTION.shakeSoft);
+  };
 
-  const housingStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: reducedMotion ? 0 : -recoil.value * 2.5 },
-      { scale: 1 - recoil.value * 0.03 },
-      { translateX: shakeX.value },
-    ],
+  const housingStyle = useAnimatedStyle(() => {
+    const press = reducedMotion ? depth.value * 0.5 : depth.value;
+    return {
+      transform: [
+        { translateX: shakeX.value },
+        { translateY: press * 1.5 - rebound.value * 3 },
+        { scale: 1 - press * 0.05 },
+      ],
+    };
+  });
+  const lipStyle = useAnimatedStyle(() => {
+    const k = lipKind.value;
+    const hot = k === 0 ? GP.cyan : k === 1 ? GP.danger : GP.cyanPale;
+    return {
+      backgroundColor: interpolateColor(lip.value, [0, 1], [ready ? gpAlpha(GP.cyan, 0.42) : GP.textFaint, hot]),
+      transform: [{ scaleX: 1 + lip.value * 0.12 }],
+    };
+  });
+  const washStyle = useAnimatedStyle(() => ({
+    opacity: lipKind.value === 2 ? lip.value * 0.05 : lip.value * 0.14,
+    backgroundColor: lipKind.value === 1 ? GP.danger : GP.cyan,
   }));
+
+  // After the first commit, any chip that mounts is a new arrival in the preview.
+  const settled = useRef(false);
+  useEffect(() => { settled.current = true; }, []);
 
   const ink = charge ? markContrast(charge.color) : null;
   const queue = Array.from({ length: upcoming }, (_, previewIdx) => tunnel?.queue[previewIdx + 1] ?? null);
+  const bayH = readySize + BAY_PAD * 2;
+  // Distance from the first queue chip's centre up to the seat's centre.
+  const feedShift = bayH / 2 + queueSize * (0.5 - TUCK_FIRST) + 4;
 
   return (
     <Animated.View
-      style={[styles.tunnel, empty && styles.tunnelEmpty, !empty && (disabled || blocked) && styles.tunnelBlocked, subdued && styles.tunnelSubdued, housingStyle]}
+      style={[styles.tunnel, empty && styles.tunnelEmpty, subdued && styles.tunnelSubdued, housingStyle]}
       accessibilityLabel={highlighted ? 'Tutorial: launch this tunnel' : undefined}
     >
       <Pressable
         disabled={disabled || empty}
-        onPressIn={() => { if (!onLaunch(tunnelId)) triggerDeniedShake(); }}
+        onPressIn={onPressIn}
+        onPressOut={pressOut}
         accessibilityState={{ disabled: disabled || empty }}
         accessibilityRole="button"
         accessibilityLabel={
@@ -196,98 +233,209 @@ const Tunnel = memo(function Tunnel({
             : `Tunnel ${index + 1} empty`
         }
         hitSlop={6}
-        style={({ pressed }) => [styles.pressable, pressed && !empty && styles.tunnelPressed]}
+        style={styles.pressable}
       >
-        {/* Launcher mouth — recessed physical port */}
-        <View style={[styles.mouth, { minHeight: readySize + 8 }]}>
+        <View
+          ref={bayRef}
+          collapsable={false}
+          onLayout={measure}
+          style={[styles.bay, { height: bayH }, !empty && (disabled || blocked) && styles.bayBlocked]}
+        >
+          <Animated.View pointerEvents="none" style={[styles.wash, washStyle]} />
+          <Animated.View pointerEvents="none" style={[styles.lip, lipStyle]} />
           {highlighted ? (
-            <Animated.View pointerEvents="none" style={[styles.spotlightRing, { width: readySize + 14, height: readySize + 14, borderRadius: (readySize + 14) / 2 }, spotlightStyle]} />
+            <Animated.View pointerEvents="none" style={[styles.spotlightRing, spotlightStyle]} />
           ) : null}
 
           {charge ? (
-            <Animated.View
+            <ReadySeat
               key={charge.id}
-              entering={reducedMotion ? FadeIn.duration(90) : FadeIn.duration(130).springify().damping(16)}
-              ref={sourceRef}
-              onLayout={measure}
-              collapsable={false}
-              style={styles.readySeat}
-            >
-              {/* Subtle color pedestal — no bloom, simpler than before */}
-              <View
-                pointerEvents="none"
-                style={[
-                  styles.pedestal,
-                  {
-                    width: readySize * 0.88,
-                    height: readySize * 0.26,
-                    borderRadius: readySize * 0.13,
-                    backgroundColor: neonAlpha(orbColors[charge.color], 0.18),
-                  },
-                ]}
-              />
-              {pixelPal ? (
-                <PixelPalFace color={charge.color} size={readySize} colorAssist={colorAssist} mood={ready ? 'focused' : 'calm'} capacity={charge.capacity} />
-              ) : (
-                <View style={[styles.charge, { width: readySize, height: readySize, borderRadius: readySize / 2, backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color] }]}>
-                  <Text style={[styles.capacity, { color: ink?.fill, fontSize: readySize * 0.34 }]}>{charge.capacity}</Text>
-                  {colorAssist ? (
-                    <View style={styles.assist} pointerEvents="none">
-                      <ColorAssistMark color={charge.color} size={15} etched />
-                    </View>
-                  ) : null}
-                </View>
-              )}
-            </Animated.View>
+              charge={charge}
+              size={readySize}
+              from={queueSize / readySize}
+              shift={feedShift}
+              animateIn={advanced}
+              reducedMotion={reducedMotion}
+              colorAssist={colorAssist}
+              pixelPal={pixelPal}
+              ready={ready}
+              ink={ink?.fill}
+            />
           ) : (
-            <View style={[styles.emptyMouth, { width: readySize, height: readySize, borderRadius: readySize * 0.32 }]} />
+            <View style={[styles.emptyMouth, { width: readySize * 0.62, height: readySize * 0.62, borderRadius: readySize * 0.2 }]} />
           )}
         </View>
 
         <View style={styles.queue}>
-          {queue.map((nextCharge, previewIdx) => {
-            if (!nextCharge) return null;
-            const depthOpacity = previewIdx === 0 ? 0.82 : 0.65;
-            return (
-              <View
-                key={nextCharge.id}
-                style={[
-                  styles.queued,
-                  {
-                    marginTop: -queueSize * (previewIdx === 0 ? 0.38 : 0.48),
-                    zIndex: upcoming - previewIdx,
-                    opacity: depthOpacity,
-                  },
-                ]}
-              >
-                {pixelPal ? (
-                  <PixelPalFace color={nextCharge.color} size={queueSize} capacity={nextCharge.capacity} animate={false} />
-                ) : (
-                  <View
-                    style={[
-                      styles.charge,
-                      {
-                        width: queueSize,
-                        height: queueSize,
-                        borderRadius: queueSize / 2,
-                        backgroundColor: orbColors[nextCharge.color],
-                        borderColor: orbGlow[nextCharge.color],
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.capacity, { color: markContrast(nextCharge.color).fill, fontSize: queueSize * 0.34 }]}>
-                      {nextCharge.capacity}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            );
-          })}
+          {queue.map((nextCharge, previewIdx) => (nextCharge ? (
+            <QueueChip
+              key={nextCharge.id}
+              charge={nextCharge}
+              previewIdx={previewIdx}
+              arriving={settled.current}
+              upcoming={upcoming}
+              size={queueSize}
+              pixelPal={pixelPal}
+              reducedMotion={reducedMotion}
+            />
+          ) : null))}
         </View>
       </Pressable>
     </Animated.View>
   );
 });
+
+/**
+ * The ready Pal. Keyed by charge, so a new front charge is a fresh mount: when
+ * it replaced a launched Pal it slides up out of the queue (queue scale →
+ * ready scale) instead of popping in. Reduced motion: a short fade.
+ */
+const ReadySeat = memo(function ReadySeat({
+  charge, size, from, shift, animateIn, reducedMotion, colorAssist, pixelPal, ready, ink,
+}: {
+  charge: Charge;
+  size: number;
+  /** Queue-chip scale relative to the ready size. */
+  from: number;
+  /** Distance (pt) from the first queue slot up to the seat. */
+  shift: number;
+  animateIn: boolean;
+  reducedMotion: boolean;
+  colorAssist?: boolean;
+  pixelPal: boolean;
+  ready: boolean;
+  ink?: string;
+}) {
+  const t = useSharedValue(animateIn ? 0 : 1);
+  useEffect(() => {
+    if (!animateIn) return;
+    t.set(reducedMotion
+      ? withTiming(1, { duration: GP_MOTION.queueAdvanceReducedMs })
+      : withSpring(1, GP_MOTION.queueAdvanceSpring));
+    // Mount-only: the seat animates in once per charge.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const style = useAnimatedStyle(() => {
+    if (reducedMotion) return { opacity: t.value };
+    const p = t.value;
+    return {
+      transform: [
+        { translateY: (1 - p) * shift },
+        { scale: from + (1 - from) * p },
+      ],
+    };
+  });
+
+  return (
+    <Animated.View style={[styles.readySeat, style]}>
+      <View
+        pointerEvents="none"
+        style={[
+          styles.pedestal,
+          {
+            width: size * 0.8,
+            height: size * 0.22,
+            borderRadius: size * 0.11,
+            backgroundColor: gpAlpha(orbColors[charge.color], 0.16),
+          },
+        ]}
+      />
+      {pixelPal ? (
+        <PixelPalFace color={charge.color} size={size} colorAssist={colorAssist} mood={ready ? 'focused' : 'calm'} capacity={charge.capacity} />
+      ) : (
+        <View style={[styles.charge, { width: size, height: size, borderRadius: size / 2, backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color] }]}>
+          <Text style={[styles.capacity, { color: ink, fontSize: size * 0.34 }]}>{charge.capacity}</Text>
+          {colorAssist ? (
+            <View style={styles.assist} pointerEvents="none">
+              <ColorAssistMark color={charge.color} size={15} etched />
+            </View>
+          ) : null}
+        </View>
+      )}
+    </Animated.View>
+  );
+});
+
+/**
+ * One upcoming Pal. Keyed by charge, so when the queue advances the same chip
+ * moves up a slot: it slides from where it was instead of snapping. A chip
+ * that newly enters the visible preview scales/fades in.
+ */
+const QueueChip = memo(function QueueChip({ charge, previewIdx, arriving, upcoming, size, pixelPal, reducedMotion }: {
+  charge: Charge;
+  previewIdx: number;
+  /** Mounted after the tunnel's first commit, i.e. it just entered the preview. */
+  arriving: boolean;
+  upcoming: number;
+  size: number;
+  pixelPal: boolean;
+  reducedMotion: boolean;
+}) {
+  const offset = useSharedValue(0);
+  const enter = useSharedValue(arriving && !reducedMotion ? 0 : 1);
+  const placedAt = useRef<number | null>(null);
+  useEffect(() => {
+    const prev = placedAt.current;
+    placedAt.current = previewIdx;
+    if (reducedMotion) return;
+    if (prev === null) {
+      if (arriving) enter.set(withSpring(1, GP_MOTION.queueAdvanceSpring));
+    } else if (prev !== previewIdx) {
+      offset.set(slotY(prev, size) - slotY(previewIdx, size));
+      offset.set(withSpring(0, GP_MOTION.queueAdvanceSpring));
+    }
+    // `arriving` is read at mount only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewIdx, size, reducedMotion, offset, enter]);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: enter.value,
+    transform: [{ translateY: offset.value }, { scale: 0.85 + enter.value * 0.15 }],
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        styles.queued,
+        {
+          marginTop: -size * (previewIdx === 0 ? TUCK_FIRST : TUCK_NEXT),
+          zIndex: upcoming - previewIdx,
+          opacity: previewIdx === 0 ? 0.84 : 0.62,
+        },
+      ]}
+    >
+      <Animated.View style={style}>
+        {pixelPal ? (
+          <PixelPalFace color={charge.color} size={size} capacity={charge.capacity} animate={false} />
+        ) : (
+          <View
+            style={[
+              styles.charge,
+              {
+                width: size,
+                height: size,
+                borderRadius: size / 2,
+                backgroundColor: orbColors[charge.color],
+                borderColor: orbGlow[charge.color],
+              },
+            ]}
+          >
+            <Text style={[styles.capacity, { color: markContrast(charge.color).fill, fontSize: size * 0.34 }]}>
+              {charge.capacity}
+            </Text>
+          </View>
+        )}
+      </Animated.View>
+    </Animated.View>
+  );
+});
+
+/** Top of queue slot `i` inside the queue column (matches the tuck margins). */
+function slotY(i: number, size: number): number {
+  let y = -size * TUCK_FIRST;
+  for (let k = 1; k <= i; k++) y += size - size * TUCK_NEXT;
+  return y;
+}
 
 const styles = StyleSheet.create({
   row: {
@@ -299,40 +447,65 @@ const styles = StyleSheet.create({
   tunnel: { flex: 1, maxWidth: 100, alignItems: 'center' },
   pressable: { alignItems: 'center', width: '100%' },
   tunnelEmpty: { opacity: 0.4 },
-  tunnelBlocked: { opacity: 0.7 },
   tunnelSubdued: { opacity: 0.55 },
-  tunnelPressed: { transform: [{ translateY: 1 }, { scale: 0.97 }] },
-  mouth: {
+  bay: {
+    width: '100%',
+    borderRadius: GP_RADIUS.bay,
+    backgroundColor: GP.well,
+    borderWidth: 1,
+    borderColor: GP.hairline,
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    minHeight: 64,
+    justifyContent: 'center',
+    overflow: 'visible',
+  },
+  bayBlocked: { opacity: 0.78 },
+  lip: {
+    position: 'absolute',
+    top: -1,
+    left: 14,
+    right: 14,
+    height: 2,
+    borderRadius: 1,
+  },
+  wash: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '55%',
+    borderTopLeftRadius: GP_RADIUS.bay,
+    borderTopRightRadius: GP_RADIUS.bay,
   },
   readySeat: {
     zIndex: 4,
-    marginBottom: 4,
     alignItems: 'center',
   },
   pedestal: {
     position: 'absolute',
-    bottom: -4,
-    height: 8,
+    bottom: -5,
     zIndex: 0,
   },
   emptyMouth: {
-    backgroundColor: neonAlpha(NEON.ink, 0.5),
+    backgroundColor: GP.wellDeep,
     borderWidth: 1,
-    borderColor: neonAlpha(NEON.cyan, 0.12),
+    borderColor: GP.hairline,
   },
   spotlightRing: {
     position: 'absolute',
-    borderWidth: 1.5,
-    borderColor: NEON.cyan,
+    top: -5,
+    left: -5,
+    right: -5,
+    bottom: -5,
+    borderRadius: GP_RADIUS.bay + 5,
+    borderWidth: 2,
+    borderColor: GP.cyan,
     backgroundColor: 'transparent',
     zIndex: 5,
   },
   queue: {
     alignItems: 'center',
-    marginTop: -3,
+    marginTop: 4,
+    zIndex: 5,
   },
   queued: {
     alignItems: 'center',

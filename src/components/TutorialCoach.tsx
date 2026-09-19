@@ -1,10 +1,9 @@
-import { StyleSheet, Text } from 'react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import { StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown, FadeOut, useReducedMotion } from 'react-native-reanimated';
 
 import { tutorialCoachText } from '@/game/presentation/tutorialCoach';
 import type { TutorialView } from '@/game/tutorial';
-import { material } from '@/theme/material';
-import { spacing } from '@/theme/spacing';
+import { GP, GP_RADIUS, GP_TYPE } from '@/theme/gameplayUi';
 
 interface TutorialCoachProps {
   tutorial: TutorialView;
@@ -16,18 +15,24 @@ interface TutorialCoachProps {
  * `TunnelBar`/`HoldingTray` resolve their own spotlight from the same view.
  * Renders nothing outside `launch`/`relaunchHeld` (see `tutorialCoachText`),
  * so `freePlay` and `completed` fall out of this naturally.
+ *
+ * M5.8B: a callout in the gameplay panel material (lit cyan edge, 12pt copy)
+ * that drops in 6pt — one-shot, never a modal.
  */
 export function TutorialCoach({ tutorial }: TutorialCoachProps) {
+  const reducedMotion = useReducedMotion();
   const text = tutorialCoachText(tutorial);
   if (!text) return null;
 
   return (
     <Animated.View
-      entering={FadeIn.duration(160)}
+      key={text}
+      entering={reducedMotion ? FadeIn.duration(120) : FadeInDown.duration(200).withInitialValues({ transform: [{ translateY: -6 }] })}
       exiting={FadeOut.duration(120)}
       style={styles.wrap}
       pointerEvents="none"
     >
+      <View style={styles.edge} />
       <Text style={styles.text}>{text}</Text>
     </Animated.View>
   );
@@ -36,22 +41,29 @@ export function TutorialCoach({ tutorial }: TutorialCoachProps) {
 const styles = StyleSheet.create({
   wrap: {
     position: 'absolute',
-    top: spacing.sm,
+    top: 8,
     alignSelf: 'center',
-    maxWidth: '96%',
+    maxWidth: '94%',
     zIndex: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    backgroundColor: material.overlay,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: GP_RADIUS.control,
+    backgroundColor: GP.panel,
     borderWidth: 1,
-    borderColor: 'rgba(77,225,255,0.35)',
+    borderColor: GP.hairlineStrong,
+  },
+  edge: {
+    position: 'absolute',
+    top: -1,
+    left: 16,
+    right: 16,
+    height: 1.5,
+    borderRadius: 1,
+    backgroundColor: GP.cyan,
   },
   text: {
-    color: material.textPrimary,
-    fontSize: 10.5,
-    fontWeight: '600',
-    letterSpacing: -0.1,
+    ...GP_TYPE.body,
+    color: GP.text,
     textAlign: 'center',
   },
 });

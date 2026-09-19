@@ -5,10 +5,12 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { PixelPalFace } from '@/game/rendering/pixelPal/PixelPalFace';
-import { NEON, neonAlpha } from '@/theme/neon';
+import { GP, GP_DISPLAY_FONT, GP_TYPE, gpAlpha } from '@/theme/gameplayUi';
 
 /** TUNABLE — how long the card takes to fade out once gameplay is ready. */
 const FADE_MS = 200;
+/** TUNABLE — content entrance (rise + fade) on the already-opaque field. */
+const ENTER_MS = 160;
 /**
  * TUNABLE — the shortest time the card is allowed to be on screen. This is a
  * flicker guard, not a wait: readiness is what dismisses the card, and on a
@@ -27,22 +29,27 @@ interface LevelIntroProps {
 }
 
 /**
- * The card shown between Home and gameplay.
+ * The card shown between Home (or the previous level's NEXT) and gameplay.
  *
  * It exists because `GameScreen` cannot render its board until layout has
  * resolved `boardBox`, so the first committed frame is the HUD and control deck
- * over an empty board area — the deck visibly landing ~a second before the
- * board. Rather than animate that away, the card covers the mount entirely and
- * lifts only when the board has actually painted.
+ * over an empty board area. The navy field is opaque from the first frame —
+ * the board can never be seen assembling — and lifts only when the board has
+ * actually painted. Only the content animates in (rise + fade, inside the
+ * minimum on-screen time), so the intro never adds a wait.
  *
- * Deliberately cheap: plain views and text, one opacity/scale animation driven
- * on the UI thread, no Skia canvas, no blur, no particles. The Pal is the same
- * component the deck already renders, with its blink worklet off.
+ * Deliberately cheap: plain views and text, UI-thread opacity/transform only,
+ * no Skia canvas, no blur, no particles.
  */
 export const LevelIntro = memo(function LevelIntro({
   levelId, title, ready, reducedMotion, onDone,
 }: LevelIntroProps) {
   const fade = useSharedValue(1);
+  const enter = useSharedValue(reducedMotion ? 1 : 0);
+
+  useEffect(() => {
+    if (!reducedMotion) enter.set(withTiming(1, { duration: ENTER_MS, easing: Easing.out(Easing.cubic) }));
+  }, [enter, reducedMotion]);
 
   useEffect(() => {
     if (!ready) return;
@@ -56,26 +63,27 @@ export const LevelIntro = memo(function LevelIntro({
     }));
   }, [ready, reducedMotion, fade, onDone]);
 
-  const style = useAnimatedStyle(() => ({
-    opacity: fade.value,
-    transform: [{ scale: reducedMotion ? 1 : 1 + (1 - fade.value) * 0.04 }],
+  const rootStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
+  const cardStyle = useAnimatedStyle(() => ({
+    opacity: enter.value,
+    transform: [{ translateY: reducedMotion ? 0 : (1 - enter.value) * 8 - (1 - fade.value) * 6 }],
   }));
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, styles.root, style]} pointerEvents="none">
-      <View style={styles.card}>
+    <Animated.View style={[StyleSheet.absoluteFill, styles.root, rootStyle]} pointerEvents="none">
+      <Animated.View style={[styles.card, cardStyle]}>
         <Text style={styles.eyebrow}>LEVEL {levelId}</Text>
         <Text style={styles.title} numberOfLines={2}>{title}</Text>
         <View style={styles.rule} />
         <PixelPalFace color="cyan" size={44} mood="focused" animate={false} />
-      </View>
+      </Animated.View>
     </Animated.View>
   );
 });
 
 const styles = StyleSheet.create({
   root: {
-    backgroundColor: NEON.inkDeep,
+    backgroundColor: GP.canvas,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 100,
@@ -86,16 +94,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   eyebrow: {
-    color: NEON.gold,
+    ...GP_TYPE.label,
     fontSize: 13,
-    fontWeight: '700',
+    color: GP.gold,
     letterSpacing: 3,
   },
   title: {
-    color: NEON.cyanPale,
-    fontSize: 26,
-    fontWeight: '700',
-    letterSpacing: -0.3,
+    color: GP.text,
+    fontFamily: GP_DISPLAY_FONT,
+    fontSize: 28,
+    letterSpacing: 0.5,
     textAlign: 'center',
   },
   rule: {
@@ -104,6 +112,6 @@ const styles = StyleSheet.create({
     borderRadius: 1,
     marginTop: 2,
     marginBottom: 6,
-    backgroundColor: neonAlpha(NEON.cyan, 0.55),
+    backgroundColor: gpAlpha(GP.cyan, 0.55),
   },
 });

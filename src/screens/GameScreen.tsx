@@ -1,13 +1,13 @@
 import { createGame } from '@/game/engine/createGame';
 import { iceLayers, shieldLayers } from '@/game/engine/frozen';
 import { linkedGroupId } from '@/game/engine/linked';
-import { isPixelReachable, renderExteriorMask } from '@/game/engine/pixels';
+import { isPixelReachable, remainingPixelCount, renderExteriorMask } from '@/game/engine/pixels';
 import type { Point } from '@/game/rendering/boardGeometry';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
-  Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming,
+  Easing, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming,
 } from 'react-native-reanimated';
 
 import { ControlDeck } from '@/components/gameplay/ControlDeck';
@@ -31,8 +31,8 @@ import { useColorAssist } from '@/hooks/useColorAssist';
 import { useGameSession } from '@/hooks/useGameSession';
 import { useTutorialCompletion } from '@/hooks/useTutorialCompletion';
 import { GAMEPLAY } from '@/theme/gameplayLayout';
-import { material } from '@/theme/material';
-import { NEON, neonAlpha } from '@/theme/neon';
+import { GP, GP_RADIUS, GP_TYPE } from '@/theme/gameplayUi';
+import { GP_MOTION } from '@/theme/gameplayMotion';
 import { worldSkin } from '@/theme/worldSkins';
 
 interface GameScreenProps {
@@ -183,7 +183,7 @@ export function GameScreen({
   useEffect(() => {
     failDim.set(lost
       ? withTiming(1, { duration: reducedMotion ? 120 : RESULT_BEAT_MS, easing: Easing.out(Easing.quad) })
-      : 0);
+      : withTiming(0, { duration: reducedMotion ? 0 : 160 }));
   }, [lost, reducedMotion, failDim]);
   const failDimStyle = useAnimatedStyle(() => ({ opacity: failDim.value * 0.5 }));
 
@@ -196,6 +196,30 @@ export function GameScreen({
     controlsFade.set(withTiming(won ? 0 : 1, { duration: reducedMotion ? 90 : 180 }));
   }, [won, reducedMotion, controlsFade]);
   const controlsFadeStyle = useAnimatedStyle(() => ({ opacity: controlsFade.value }));
+
+  // Board (re)entry: settles in as the intro lifts and re-arms on retry.
+  // Opacity only — a transform here would skew `boardWrap`'s measured origin,
+  // which launch and Holding coordinates are converted against.
+  const boardEntry = useSharedValue(0);
+  const armBoard = useCallback(() => {
+    boardEntry.set(0);
+    boardEntry.set(withTiming(1, {
+      duration: reducedMotion ? GP_MOTION.reducedFadeMs : GP_MOTION.boardEntryMs,
+      easing: Easing.out(Easing.quad),
+    }));
+  }, [boardEntry, reducedMotion]);
+  const boardEntryStyle = useAnimatedStyle(() => ({ opacity: 0.45 + boardEntry.value * 0.55 }));
+  const { restart } = session;
+  const handleRestart = useCallback(() => {
+    restart();
+    armBoard();
+  }, [restart, armBoard]);
+
+  // NEXT fades the whole screen to the intro's navy BEFORE navigating, so
+  // win -> next level's intro -> board reads as one continuous field.
+  const exitFade = useSharedValue(0);
+  const leaving = useRef(false);
+  const exitStyle = useAnimatedStyle(() => ({ opacity: exitFade.value }));
 
   const onBoardArea = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
@@ -264,6 +288,22 @@ export function GameScreen({
   ) || readyTimedOut;
   const introVisible = !introDone;
   const handleIntroDone = useCallback(() => setIntroDone(true), []);
+  const introLifting = gameplayReady && minIntroElapsed;
+  useEffect(() => {
+    if (introLifting) armBoard();
+  }, [introLifting, armBoard]);
+  const handleNext = useCallback(() => {
+    if (next === undefined || leaving.current) return;
+    leaving.current = true;
+    exitFade.set(withTiming(1, {
+      duration: reducedMotion ? GP_MOTION.reducedFadeMs : GP_MOTION.exitFadeMs,
+      easing: Easing.in(Easing.quad),
+    }, (finished) => {
+      if (finished) runOnJS(onAdvance)(next);
+    }));
+  }, [next, onAdvance, exitFade, reducedMotion]);
+  const total = state.pixels.length;
+  const cleared = total - remainingPixelCount(state);
   // M2B: launching is allowed while charges orbit. Only a finished level
   // (presented or already decided in truth) disables the controls; a full rail
   // only makes them LOOK blocked, so a tap there reaches the session and gets
@@ -283,10 +323,10 @@ export function GameScreen({
       />
 
       <Hud
-        state={state}
-        title={level.title}
-        difficulty={level.difficulty}
-        onRestart={session.restart}
+        levelId={state.levelId}
+        cleared={cleared}
+        total={total}
+        onRestart={handleRestart}
         onHome={onExit}
       />
 
@@ -298,7 +338,8 @@ export function GameScreen({
           // coordinates) is unchanged and has no padding of its own; this is a
           // new, uninvolved parent, so `boardOrigin` still measures the
           // board's own true position.
-          <View style={styles.boardFrame}>
+          <Animated.View style={[styles.boardFrame, boardEntryStyle]}>
+            <View pointerEvents="none" style={styles.boardLitEdge} />
             <View
               ref={boardWrap}
               collapsable={false}
@@ -344,10 +385,11 @@ export function GameScreen({
               ) : null}
               <Animated.View pointerEvents="none" style={[styles.failDim, failDimStyle]} />
             </View>
-          </View>
+          </Animated.View>
         ) : null}
         {showTutorial ? (
           <View style={styles.tutorial} pointerEvents="none">
+            <View style={styles.tutorialEdge} />
             <Text style={styles.tutorialText}>{tutorialIcon}  {level.tutorial}</Text>
           </View>
         ) : null}
@@ -369,7 +411,7 @@ export function GameScreen({
           onSourceLayout={onSourceLayout}
           onLaunchTunnel={launchTunnelPal}
           onLaunchHeld={launchHeldPal}
-          message={session.message}
+          denial={session.lastDenial}
           tutorial={session.tutorial}
         />
       </Animated.View>
@@ -384,7 +426,7 @@ export function GameScreen({
           hasNext={next !== undefined}
           progress={revealProgress}
           reducedMotion={reducedMotion}
-          onNext={() => next !== undefined && onAdvance(next)}
+          onNext={handleNext}
           onHome={onExit}
         />
       ) : null}
@@ -392,7 +434,7 @@ export function GameScreen({
       <ResultOverlay
         visible={lost}
         reason={state.holding.length >= state.holdingCapacity ? 'holdingFull' : 'noMoves'}
-        onRetry={session.restart}
+        onRetry={handleRestart}
         onHome={onExit}
       />
 
@@ -411,12 +453,14 @@ export function GameScreen({
           onDone={handleIntroDone}
         />
       ) : null}
+
+      <Animated.View pointerEvents="none" style={[styles.exitFade, exitStyle]} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: NEON.inkDeep, overflow: 'hidden' },
+  safe: { flex: 1, backgroundColor: GP.canvas, overflow: 'hidden' },
   boardArea: {
     flex: 1,
     zIndex: 1,
@@ -425,14 +469,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: GAMEPLAY.boardSidePad,
     paddingBottom: GAMEPLAY.boardDeckGap,
   },
-  // One thin ink panel + hairline border — not a cabinet. Plain RN View
-  // styling only, no shadow/blur, so it costs nothing per frame.
+  // One thin ink panel + hairline + a lit top edge — the same "lit edge"
+  // motif as the deck and panels, not a cabinet. No shadow/blur: free per frame.
   boardFrame: {
     padding: 2,
-    borderRadius: 20,
-    backgroundColor: neonAlpha(NEON.ink, 0.35),
+    borderRadius: GP_RADIUS.panel,
+    backgroundColor: GP.wellDeep,
     borderWidth: 1,
-    borderColor: neonAlpha(NEON.cyan, 0.2),
+    borderColor: GP.hairline,
+  },
+  boardLitEdge: {
+    position: 'absolute',
+    top: -1,
+    left: 28,
+    right: 28,
+    height: 1.5,
+    borderRadius: 1,
+    backgroundColor: GP.litEdge,
   },
   controls: {
     width: '100%',
@@ -442,26 +495,39 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -2, left: -2, right: -2, bottom: -2,
     borderRadius: 18,
-    backgroundColor: NEON.inkDeep,
+    backgroundColor: GP.canvas,
+  },
+  exitFade: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: GP.canvas,
+    zIndex: 200,
   },
   tutorial: {
     position: 'absolute',
     top: 8,
     alignSelf: 'center',
-    maxWidth: '96%',
+    maxWidth: '94%',
     zIndex: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 12,
-    backgroundColor: material.overlay,
+    backgroundColor: GP.panel,
     borderWidth: 1,
-    borderColor: neonAlpha(NEON.cyan, 0.35),
+    borderColor: GP.hairlineStrong,
+  },
+  tutorialEdge: {
+    position: 'absolute',
+    top: -1,
+    left: 16,
+    right: 16,
+    height: 1.5,
+    borderRadius: 1,
+    backgroundColor: GP.cyan,
   },
   tutorialText: {
-    color: material.textPrimary,
-    fontSize: 10.5,
-    fontWeight: '600',
-    letterSpacing: -0.1,
+    ...GP_TYPE.body,
+    color: GP.text,
     textAlign: 'center',
   },
 });

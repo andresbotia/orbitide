@@ -1,84 +1,115 @@
 import { memo, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
-  cancelAnimation, interpolateColor, useAnimatedStyle, useSharedValue, withSequence, withTiming,
+  cancelAnimation, interpolateColor, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming,
+  type SharedValue,
 } from 'react-native-reanimated';
 
-import { material } from '@/theme/material';
-import { NEON, neonAlpha } from '@/theme/neon';
-
-/** TUNABLE — capacity-refusal flash: rise, then settle back to the normal readout. */
-const REFUSAL_RISE_MS = 70;
-const REFUSAL_FALL_MS = 430;
+import { flash } from '@/components/gameplay/motionKit';
+import { GP, GP_TYPE } from '@/theme/gameplayUi';
+import { GP_MOTION } from '@/theme/gameplayMotion';
 
 /**
- * Compact Core V2 active-occupancy readout. Capacity is passed in; never hardcoded.
- * When `embedded`, this is an inline label on the control deck — no pill, no border.
+ * Core V2 ACTIVE occupancy: label, one pip per rail slot, and `n/cap`.
+ * Capacity is passed in; never hardcoded. Pips fill cyan as Pals launch and
+ * the whole meter warms to gold at capacity (pressure, not failure).
+ *
+ * Capacity refusal (a tap while ACTIVE is full) is one restrained danger flash
+ * of this readout with a ~1.14× pulse — never the screen. `refusalSeq` bumps
+ * once per refused tap; the Error haptic and its throttle live in the session.
  */
 export const ActiveStatus = memo(function ActiveStatus({
-  count, capacity, embedded = false, refusalSeq = 0,
+  count, capacity, refusalSeq = 0,
 }: {
   count: number;
   capacity: number;
-  embedded?: boolean;
   /** Bumped by the session each time a tap is refused because ACTIVE is full. */
   refusalSeq?: number;
 }) {
+  const reducedMotion = useReducedMotion();
   const full = capacity > 0 && count >= capacity;
   const wasFull = useRef(full);
-  const pulse = useSharedValue(0);
+  const pop = useSharedValue(0);
+  const warm = useSharedValue(full ? 1 : 0);
   useEffect(() => {
-    // One-shot pop only on the transition into full — never a standing/looping state.
-    if (full && !wasFull.current) {
-      cancelAnimation(pulse);
-      pulse.set(withSequence(withTiming(1, { duration: 90 }), withTiming(0, { duration: 220 })));
-    }
+    warm.set(withTiming(full ? 1 : 0, { duration: 160 }));
+    // One-shot pop only on the transition into full — never a standing state.
+    if (full && !wasFull.current && !reducedMotion) flash(pop, 90, 220);
     wasFull.current = full;
-  }, [full, pulse]);
-  // Capacity refusal: one restrained danger-red flash of the readout itself.
+  }, [full, pop, warm, reducedMotion]);
+
   const alarm = useSharedValue(0);
   useEffect(() => {
     if (!refusalSeq) return;
     cancelAnimation(alarm);
-    alarm.set(withSequence(withTiming(1, { duration: REFUSAL_RISE_MS }), withTiming(0, { duration: REFUSAL_FALL_MS })));
+    alarm.set(withSequence(
+      withTiming(1, { duration: GP_MOTION.capacityRiseMs }),
+      withTiming(0, { duration: GP_MOTION.capacityFallMs }),
+    ));
   }, [refusalSeq, alarm]);
 
-  const pulseStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(alarm.value, [0, 1], [NEON.cyan, material.danger]),
-    transform: [{ scale: 1 + Math.max(pulse.value * 0.16, alarm.value * 0.14) }],
+  const meterStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: reducedMotion ? 1 : 1 + Math.max(pop.value * 0.1, alarm.value * GP_MOTION.capacityScale) }],
   }));
   const labelStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(alarm.value, [0, 1], [neonAlpha(NEON.cyanPale, 0.75), material.danger]),
+    color: interpolateColor(alarm.value, [0, 1], [GP.textSecondary, GP.danger]),
   }));
+  const numStyle = useAnimatedStyle(() => {
+    const base = interpolateColor(warm.value, [0, 1], [GP.cyan, GP.gold]);
+    return { color: interpolateColor(alarm.value, [0, 1], [base, GP.danger]) };
+  });
 
   if (capacity <= 0) return null;
   return (
     <View
       accessible
       accessibilityRole="text"
-      accessibilityLabel={`Active ${count} of ${capacity}`}
+      accessibilityLabel={`Active ${count} of ${capacity}${full ? ', full' : ''}`}
       accessibilityLiveRegion="polite"
-      style={embedded ? styles.inline : styles.wrap}
+      style={styles.row}
     >
-      <Animated.Text style={[styles.label, labelStyle]}>ACTIVE </Animated.Text>
-      <Animated.Text style={[styles.num, pulseStyle]}>{count}/{capacity}</Animated.Text>
+      <Animated.Text style={[styles.label, labelStyle]}>ACTIVE</Animated.Text>
+      <Animated.View style={[styles.meter, meterStyle]}>
+        <View style={styles.pips}>
+          {Array.from({ length: capacity }, (_, i) => (
+            <Pip key={i} on={i < count} warm={warm} alarm={alarm} reducedMotion={reducedMotion} />
+          ))}
+        </View>
+        <Animated.Text style={[styles.num, numStyle]}>{count}/{capacity}</Animated.Text>
+      </Animated.View>
     </View>
   );
 });
 
+const Pip = memo(function Pip({ on, warm, alarm, reducedMotion }: {
+  on: boolean; warm: SharedValue<number>; alarm: SharedValue<number>; reducedMotion: boolean;
+}) {
+  const fill = useSharedValue(on ? 1 : 0);
+  useEffect(() => {
+    fill.set(withTiming(on ? 1 : 0, { duration: reducedMotion ? 0 : 140 }));
+  }, [on, fill, reducedMotion]);
+  const style = useAnimatedStyle(() => {
+    const lit = interpolateColor(warm.value, [0, 1], [GP.cyan, GP.gold]);
+    const body = interpolateColor(fill.value, [0, 1], [GP.wellDeep, lit]);
+    return {
+      backgroundColor: interpolateColor(alarm.value, [0, 1], [body, GP.danger]),
+      borderColor: fill.value > 0.5 ? 'transparent' : GP.hairlineStrong,
+      transform: [{ scaleY: reducedMotion ? 1 : 0.7 + fill.value * 0.3 }],
+    };
+  });
+  return <Animated.View style={[styles.pip, style]} />;
+});
+
 const styles = StyleSheet.create({
-  wrap: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'baseline' },
-  inline: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'baseline', height: 20 },
-  label: {
-    color: neonAlpha(NEON.cyanPale, 0.75),
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: 0.4,
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 18 },
+  label: { ...GP_TYPE.label, color: GP.textSecondary },
+  meter: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  pips: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  pip: {
+    width: 11,
+    height: 8,
+    borderRadius: 2.5,
+    borderWidth: 1,
   },
-  num: {
-    color: NEON.cyan,
-    fontSize: 13,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-  },
+  num: { ...GP_TYPE.numeral, color: GP.cyan, minWidth: 26 },
 });

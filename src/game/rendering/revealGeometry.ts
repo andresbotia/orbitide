@@ -120,7 +120,14 @@ export function resolveReveal(level: LevelDefinition): ResolvedReveal {
 // ---------------------------------------------------------------------------
 
 export interface RevealTimeline {
-  /** Micro-pause / board settle before the transformation. */
+  /**
+   * M5.8B — the finished artwork is restored (wiped in bottom → top behind a
+   * gold scanline; a fade under reduced motion) and fully visible by here.
+   */
+  restoreMs: number;
+  /** Gold board-edge completion pulse starts. */
+  edgeMs: number;
+  /** Board settle: the restored picture is complete and held before any text. */
   settleMs: number;
   nodesStartMs: number;
   nodesEndMs: number;
@@ -137,29 +144,35 @@ export interface RevealTimeline {
   tailMs: number;
 }
 
+// The artwork gets ~0.45 s of its own before the restoration trace starts and
+// ~0.9 s before any text; NEXT stays inside its approved 1.2–1.4 s window.
 const FULL: RevealTimeline = {
-  settleMs: 150,
-  nodesStartMs: 220,
-  nodesEndMs: 720,
-  linesStartMs: 480,
-  linesEndMs: 1000,
-  titleMs: 780,
-  titleEndMs: 1080,
-  nextVisibleMs: 1000,
-  nextInteractiveMs: 1320,
+  restoreMs: 440,
+  edgeMs: 380,
+  settleMs: 440,
+  nodesStartMs: 560,
+  nodesEndMs: 960,
+  linesStartMs: 700,
+  linesEndMs: 1180,
+  titleMs: 900,
+  titleEndMs: 1200,
+  nextVisibleMs: 1150,
+  nextInteractiveMs: 1380,
   tailMs: 3200,
 };
 
 const REDUCED: RevealTimeline = {
-  settleMs: 60,
-  nodesStartMs: 80,
-  nodesEndMs: 240,
-  linesStartMs: 180,
-  linesEndMs: 360,
-  titleMs: 300,
+  restoreMs: 160,
+  edgeMs: 120,
+  settleMs: 160,
+  nodesStartMs: 180,
+  nodesEndMs: 300,
+  linesStartMs: 220,
+  linesEndMs: 380,
+  titleMs: 320,
   titleEndMs: 520,
-  nextVisibleMs: 360,
-  nextInteractiveMs: 560,
+  nextVisibleMs: 380,
+  nextInteractiveMs: 580,
   tailMs: 900,
 };
 

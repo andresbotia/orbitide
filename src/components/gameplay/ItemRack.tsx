@@ -1,5 +1,8 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  interpolateColor, useAnimatedStyle, useReducedMotion, useSharedValue,
+} from 'react-native-reanimated';
 
 import {
   ENABLE_GAMEPLAY_ITEM_PLACEHOLDERS,
@@ -8,13 +11,17 @@ import {
   type GameplayItemId,
 } from '@/game/presentation/itemPlaceholders';
 import { GAMEPLAY } from '@/theme/gameplayLayout';
-import { NEON, neonAlpha } from '@/theme/neon';
+import { GP, GP_RADIUS, GP_TYPE, gpAlpha } from '@/theme/gameplayUi';
+import { GP_MOTION } from '@/theme/gameplayMotion';
+import { BombGlyph, SlotGlyph, UndoGlyph } from './glyphs';
+import { flash, shake, usePressDepth } from './motionKit';
 
 const SIZE = GAMEPLAY.itemButton;
 
 /**
- * Placeholder item dock. Pressed state only — no gameplay, economy, or solver.
- * Icons are drawn locally; the supplied illustrated PNGs are not used here.
+ * Placeholder booster deck: Undo, Extra Slot, Bomb. Press/activation
+ * feedback only — no gameplay, economy, or solver. Glyphs are drawn locally;
+ * the illustrated PNGs are not used here.
  */
 export const ItemRack = memo(function ItemRack() {
   if (!ENABLE_GAMEPLAY_ITEM_PLACEHOLDERS) return null;
@@ -27,6 +34,11 @@ export const ItemRack = memo(function ItemRack() {
   );
 });
 
+/**
+ * One booster bay. Touch-down depth + brighter rim (UI thread); release plays
+ * a cyan activation ring. An empty booster has a dashed rim and a faint glyph
+ * and answers a tap with a soft shake instead — no haptic, nothing implied.
+ */
 const ItemButton = memo(function ItemButton({
   id, label, count,
 }: {
@@ -35,164 +47,108 @@ const ItemButton = memo(function ItemButton({
   count: number;
 }) {
   const empty = count <= 0;
+  const reducedMotion = useReducedMotion();
+  const { depth, pressIn, pressOut } = usePressDepth();
+  const ring = useSharedValue(0);
+  const shakeX = useSharedValue(0);
+
+  const onPressOut = () => {
+    pressOut();
+    if (empty) {
+      if (!reducedMotion) shake(shakeX, GP_MOTION.shakeSoft);
+    } else {
+      flash(ring, 40, 280);
+    }
+  };
+
+  const bayStyle = useAnimatedStyle(() => ({
+    borderColor: empty ? GP.hairline : interpolateColor(depth.value, [0, 1], [GP.hairlineStrong, GP.cyan]),
+    transform: [
+      { translateX: shakeX.value },
+      { scale: 1 - depth.value * (reducedMotion ? 0.04 : 0.08) },
+    ],
+  }));
+  const ringStyle = useAnimatedStyle(() => ({
+    opacity: ring.value * 0.9,
+    transform: [{ scale: reducedMotion ? 1 : 1 + (1 - ring.value) * 0.18 }],
+  }));
+
+  const ink = empty ? GP.textFaint : GP.cyan;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${label}, ${count}`}
       accessibilityState={{ disabled: empty }}
       hitSlop={4}
-      style={({ pressed }) => [
-        styles.btn,
-        empty && styles.btnEmpty,
-        pressed && !empty && styles.btnPressed,
-      ]}
+      onPressIn={pressIn}
+      onPressOut={onPressOut}
     >
-      <ItemGlyph id={id} empty={empty} />
-      {count > 0 ? (
-        <View style={styles.badge} pointerEvents="none">
-          <Text style={styles.badgeNum}>{count}</Text>
-        </View>
-      ) : null}
+      <Animated.View style={[styles.btn, empty && styles.btnEmpty, bayStyle]}>
+        {id === 'undo' ? <UndoGlyph color={ink} /> : null}
+        {id === 'extraSlot' ? <SlotGlyph color={ink} /> : null}
+        {id === 'bomb' ? <BombGlyph color={ink} spark={empty ? GP.textFaint : GP.gold} /> : null}
+        <Animated.View pointerEvents="none" style={[styles.ring, ringStyle]} />
+        {count > 0 ? (
+          <View style={styles.badge} pointerEvents="none">
+            <Text style={styles.badgeNum}>{count}</Text>
+          </View>
+        ) : null}
+      </Animated.View>
     </Pressable>
   );
 });
-
-function ItemGlyph({ id, empty }: { id: GameplayItemId; empty: boolean }) {
-  const ink = empty ? neonAlpha(NEON.cyan, 0.4) : NEON.cyan;
-  
-  if (id === 'undo') {
-    return (
-      <View style={styles.glyph}>
-        <View style={[styles.undoArc, { borderColor: ink, borderRightColor: 'transparent', borderBottomColor: 'transparent' }]} />
-        <View style={[styles.undoArrow, { borderBottomColor: ink }]} />
-      </View>
-    );
-  }
-  
-  if (id === 'scanner') {
-    return (
-      <View style={styles.glyph}>
-        <View style={[styles.scannerCircle, { borderColor: ink }]} />
-        <View style={[styles.scannerCrossH, { backgroundColor: ink }]} />
-        <View style={[styles.scannerCrossV, { backgroundColor: ink }]} />
-      </View>
-    );
-  }
-
-  // extraSlot
-  return (
-    <View style={styles.glyph}>
-      <View style={[styles.slotWell, { borderColor: ink }]} />
-      <View style={[styles.plusH, { backgroundColor: ink }]} />
-      <View style={[styles.plusV, { backgroundColor: ink }]} />
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 14,
     alignSelf: 'center',
-    paddingTop: 8,
+    paddingTop: 6,
   },
-  // Same ink-well + single neon ring language as Holding/Tunnels — one
-  // control-deck material, no bevel-pair hardware, no drop shadows.
+  // Same well material as Holding and the tunnel bays.
   btn: {
     width: SIZE,
     height: SIZE,
-    borderRadius: 14,
-    backgroundColor: neonAlpha(NEON.ink, 0.55),
+    borderRadius: GP_RADIUS.bay,
+    backgroundColor: GP.well,
     borderWidth: 1.5,
-    borderColor: neonAlpha(NEON.cyan, 0.25),
     alignItems: 'center',
     justifyContent: 'center',
   },
   btnEmpty: {
     borderStyle: 'dashed',
-    borderColor: neonAlpha(NEON.cyan, 0.18),
-    opacity: 0.6,
-    backgroundColor: 'transparent',
+    backgroundColor: gpAlpha(GP.well, 0.4),
   },
-  btnPressed: {
-    transform: [{ scale: 0.94 }],
-    backgroundColor: neonAlpha(NEON.ink, 0.85),
-    borderColor: NEON.cyan,
+  ring: {
+    position: 'absolute',
+    top: -3,
+    left: -3,
+    right: -3,
+    bottom: -3,
+    borderRadius: GP_RADIUS.bay + 3,
+    borderWidth: 2,
+    borderColor: GP.cyan,
   },
-  // Slightly bigger/higher-contrast than a generic badge — this number is
-  // how the player judges whether a booster is worth tapping.
+  // This number is how the player judges whether a booster is worth tapping.
   badge: {
     position: 'absolute',
-    right: -5,
-    bottom: -5,
-    minWidth: 23,
-    height: 23,
+    right: -6,
+    bottom: -6,
+    minWidth: 22,
+    height: 22,
     paddingHorizontal: 4,
-    borderRadius: 12,
-    backgroundColor: NEON.inkDeep,
+    borderRadius: 11,
+    backgroundColor: GP.canvas,
     borderWidth: 2,
-    borderColor: NEON.gold,
+    borderColor: GP.gold,
     alignItems: 'center',
     justifyContent: 'center',
   },
   badgeNum: {
-    color: NEON.cyanPale,
-    fontSize: 13,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
+    ...GP_TYPE.numeral,
+    color: GP.text,
     lineHeight: 15,
   },
-  glyph: {
-    width: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  undoArc: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2.5,
-    transform: [{ rotate: '-45deg' }],
-  },
-  undoArrow: {
-    position: 'absolute',
-    top: 2,
-    left: 2,
-    width: 0,
-    height: 0,
-    borderLeftWidth: 5,
-    borderRightWidth: 5,
-    borderBottomWidth: 7,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    transform: [{ rotate: '-45deg' }],
-  },
-  scannerCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-  },
-  scannerCrossH: {
-    position: 'absolute',
-    width: 26,
-    height: 2,
-  },
-  scannerCrossV: {
-    position: 'absolute',
-    width: 2,
-    height: 26,
-  },
-  slotWell: {
-    position: 'absolute',
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-  },
-  plusH: { position: 'absolute', width: 10, height: 2, borderRadius: 1 },
-  plusV: { position: 'absolute', width: 2, height: 10, borderRadius: 1 },
 });

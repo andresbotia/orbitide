@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useDerivedValue, type SharedValue } from 'react-native-reanimated';
 
 import type { FlightPass, Shot } from '@/game/presentation/events';
@@ -135,7 +135,10 @@ const ActiveEnergyShot = memo(function ActiveEnergyShot({ pass, layout, clock, l
       <Animated.View
         pointerEvents="none"
         style={[styles.streak, { width: length, height: 5, borderRadius: 2.5, backgroundColor: color }, streak]}
-      />
+      >
+        {/* Bright leading head: reads as energy, not a coloured stick. */}
+        <View style={styles.head} />
+      </Animated.View>
       <Animated.View
         pointerEvents="none"
         style={[
@@ -164,7 +167,8 @@ const ActiveEnergyShot = memo(function ActiveEnergyShot({ pass, layout, clock, l
 });
 
 const styles = StyleSheet.create({
-  streak: { position: 'absolute', left: 0, top: 0 },
+  streak: { position: 'absolute', left: 0, top: 0, overflow: 'hidden' },
+  head: { position: 'absolute', right: 0, top: 1, bottom: 1, width: '45%', borderRadius: 2, backgroundColor: '#FFFFFF', opacity: 0.85 },
   core: { position: 'absolute', left: 0, top: 0 },
   flash: { position: 'absolute', left: 0, top: 0 },
 });

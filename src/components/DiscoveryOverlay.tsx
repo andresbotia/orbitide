@@ -11,8 +11,7 @@ import Animated, {
 import { PlayButton } from '@/components/PlayButton';
 import { feedback } from '@/game/feedback';
 import { revealTimeline, type CelebrationTier, type RevealSource } from '@/game/rendering/revealGeometry';
-import { NEON, neonAlpha } from '@/theme/neon';
-import { typography } from '@/theme/spacing';
+import { GP, GP_DISPLAY_FONT, GP_TYPE, gpAlpha } from '@/theme/gameplayUi';
 
 interface DiscoveryOverlayProps {
   name: string;
@@ -62,6 +61,14 @@ export function DiscoveryOverlay({
     [tl.nextInteractiveMs, tl.titleEndMs, markResolved],
   );
 
+  // The panel rises into the space the controls just left, once the artwork
+  // has been restored — never over the picture.
+  const panelStyle = useAnimatedStyle(() => {
+    const e = progress.value * tl.tailMs;
+    const p = interpolate(e, [tl.settleMs - 80, tl.settleMs + 220], [0, 1], 'clamp');
+    return { opacity: p, transform: [{ translateY: reducedMotion ? 0 : (1 - p) * 24 }] };
+  });
+
   const titleStyle = useAnimatedStyle(() => {
     const e = progress.value * tl.tailMs;
     const p = interpolate(e, [tl.titleMs, tl.titleEndMs], [0, 1], 'clamp');
@@ -89,9 +96,9 @@ export function DiscoveryOverlay({
 
   return (
     <View style={styles.root} pointerEvents="box-none">
-      <View style={styles.scrim} pointerEvents="none" />
+      <Animated.View style={[styles.scrim, panelStyle]} pointerEvents="none" />
 
-      <View style={styles.panel}>
+      <Animated.View style={[styles.panel, panelStyle]}>
         <View pointerEvents="none" style={styles.panelEdge} />
         <Animated.View style={[styles.titleWrap, titleStyle]} pointerEvents="none">
           <View style={styles.kickerRow}>
@@ -119,7 +126,7 @@ export function DiscoveryOverlay({
         <Pressable onPress={onHome} hitSlop={12} accessibilityRole="button">
           <Text style={styles.home}>Home</Text>
         </Pressable>
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -140,7 +147,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: neonAlpha(NEON.ink, 0.5),
+    backgroundColor: gpAlpha(GP.canvas, 0.5),
   },
   panel: {
     width: '100%',
@@ -149,18 +156,19 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 8,
     paddingHorizontal: 20,
-    backgroundColor: neonAlpha(NEON.inkDeep, 0.96),
+    backgroundColor: gpAlpha(GP.canvas, 0.96),
     borderTopWidth: 1,
-    borderTopColor: neonAlpha(NEON.cyan, 0.28),
+    borderTopColor: GP.hairline,
   },
   panelEdge: {
     position: 'absolute',
-    top: 0,
-    left: 16,
-    right: 16,
-    height: 2,
+    top: -1,
+    left: 24,
+    right: 24,
+    height: 1.5,
     borderRadius: 1,
-    backgroundColor: neonAlpha(NEON.cyan, 0.7),
+    backgroundColor: GP.gold,
+    opacity: 0.8,
   },
   titleWrap: { alignItems: 'center', gap: 6 },
   kickerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -168,15 +176,15 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 1,
-    backgroundColor: NEON.gold,
+    backgroundColor: GP.gold,
   },
-  kicker: { ...typography.label, color: NEON.cyan, fontSize: 10, letterSpacing: 4 },
-  kickerFinale: { color: NEON.gold },
+  kicker: { ...GP_TYPE.label, color: GP.cyan, letterSpacing: 4 },
+  kickerFinale: { color: GP.gold },
   name: {
-    ...typography.title,
-    color: NEON.cyanPale,
+    color: GP.text,
+    fontFamily: GP_DISPLAY_FONT,
     fontSize: 22,
-    letterSpacing: 3,
+    letterSpacing: 2,
     textAlign: 'center',
     paddingHorizontal: 24,
   },
@@ -185,9 +193,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderWidth: 1,
-    borderColor: neonAlpha(NEON.cyan, 0.4),
-    backgroundColor: NEON.surface,
+    borderColor: GP.hairlineStrong,
+    backgroundColor: GP.panel,
   },
-  infoText: { color: neonAlpha(NEON.cyanPale, 0.78), fontSize: 10, letterSpacing: 1.5, fontWeight: '700' },
-  home: { color: neonAlpha(NEON.cyanPale, 0.55), fontSize: 13, letterSpacing: 1, paddingTop: 2 },
+  infoText: { ...GP_TYPE.label, color: GP.textSecondary, letterSpacing: 1.5 },
+  home: { ...GP_TYPE.body, color: GP.textMuted, fontSize: 13, letterSpacing: 1, paddingTop: 2 },
 });

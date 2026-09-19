@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
-import { material } from '@/theme/material';
+import { GP } from '@/theme/gameplayUi';
 
 /** TUNABLE — ring rise at the reject burst (ms). */
 export const REJECT_RING_RISE_MS = 80;
@@ -37,6 +37,6 @@ const styles = StyleSheet.create({
     top: -2, left: -2, right: -2, bottom: -2,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: material.danger,
+    borderColor: GP.danger,
   },
 });

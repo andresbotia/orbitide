@@ -1,7 +1,8 @@
 import { memo, type ReactNode } from 'react';
 import { useEffect } from 'react';
-import { StyleSheet, Text, type TextStyle, View } from 'react-native';
+import { StyleSheet, Text, type TextStyle, View, type ViewStyle } from 'react-native';
 import Animated, {
+  type AnimatedStyle,
   cancelAnimation,
   Easing,
   useAnimatedStyle,
@@ -21,8 +22,9 @@ import { orbColors } from '@/theme/colors';
  * three cheap states, never a full animation framework:
  *  - calm: default round eyes (idle, resting/held)
  *  - focused: narrower eyes, faster blink (ready-to-launch / in flight)
- *  - happy: round eyes + a small smile (celebration contexts) */
-export type PixelPalMood = 'calm' | 'focused' | 'happy';
+ *  - happy: round eyes + a small smile (celebration contexts)
+ *  - down: flat, lowered eyes — the loss card only, sympathetic not punitive */
+export type PixelPalMood = 'calm' | 'focused' | 'happy' | 'down';
 
 /**
  * The single Pixel Pal body used everywhere a Core V2 charge appears.
@@ -219,7 +221,9 @@ export const PixelPalVisor = memo(function PixelPalVisor({ size, mood = 'calm', 
 
   const eyeStyle = useAnimatedStyle(() => ({ transform: [{ scaleY: 1 - blink.value * 0.86 }] }));
   const focused = mood === 'focused';
+  const down = mood === 'down';
   const eyeSize = focused ? size * 0.14 : size * 0.16;
+  const eyeH = down ? Math.max(1.5, eyeSize * 0.34) : eyeSize;
 
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }} pointerEvents="none">
@@ -237,9 +241,9 @@ export const PixelPalVisor = memo(function PixelPalVisor({ size, mood = 'calm', 
             backgroundColor: '#FFFFFF', opacity: 0.2,
           }}
         />
-        <Animated.View style={[{ flexDirection: 'row', gap: size * (focused ? 0.12 : 0.14) }, eyeStyle]}>
-          <View style={{ width: eyeSize, height: eyeSize, borderRadius: eyeSize / 2, backgroundColor: '#EEF8FF' }} />
-          <View style={{ width: eyeSize, height: eyeSize, borderRadius: eyeSize / 2, backgroundColor: '#EEF8FF' }} />
+        <Animated.View style={[{ flexDirection: 'row', gap: size * (focused ? 0.12 : 0.14), marginTop: down ? size * 0.06 : 0 }, eyeStyle]}>
+          <View style={{ width: eyeSize, height: eyeH, borderRadius: eyeSize / 2, backgroundColor: '#EEF8FF' }} />
+          <View style={{ width: eyeSize, height: eyeH, borderRadius: eyeSize / 2, backgroundColor: '#EEF8FF' }} />
         </Animated.View>
         {mood === 'happy' && detailed ? (
           <View
@@ -295,6 +299,8 @@ interface PixelPalBadgeProps {
   children?: ReactNode;
   /** In-flight Pal: always the compact plate (see {@link badgeMetrics}). */
   active?: boolean;
+  /** UI-thread style (the in-flight count tick). */
+  animatedStyle?: AnimatedStyle<ViewStyle>;
 }
 
 /**
@@ -302,7 +308,7 @@ interface PixelPalBadgeProps {
  * Resting: ≤34pt numeral only with a navy outline, ≤22pt hidden (color carries
  * identity). Active (on the rail): always a compact plate, at any size.
  */
-export const PixelPalBadge = memo(function PixelPalBadge({ palSize, color, text, children, active = false }: PixelPalBadgeProps) {
+export const PixelPalBadge = memo(function PixelPalBadge({ palSize, color, text, children, active = false, animatedStyle }: PixelPalBadgeProps) {
   if (!active && palSize <= BADGE_HIDE) return null;
   const { plate, height, fontSize } = badgeMetrics(palSize, active);
   const digits = text?.length ?? 2;
@@ -329,9 +335,9 @@ export const PixelPalBadge = memo(function PixelPalBadge({ palSize, color, text,
   }
 
   return (
-    <View
+    <Animated.View
       pointerEvents="none"
-      style={{
+      style={[{
         position: 'absolute',
         right: -overlap,
         bottom: -height * 0.12,
@@ -344,10 +350,10 @@ export const PixelPalBadge = memo(function PixelPalBadge({ palSize, color, text,
         borderColor: orbColors[color],
         alignItems: 'center',
         justifyContent: 'center',
-      }}
+      }, animatedStyle]}
     >
       {numeral}
-    </View>
+    </Animated.View>
   );
 });
 

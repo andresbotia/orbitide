@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useDerivedValue,
+  useReducedMotion,
   type SharedValue,
 } from 'react-native-reanimated';
 
@@ -10,6 +11,7 @@ import type { FlightPass } from '@/game/presentation/events';
 import { holdingHandoffOpacity } from '@/game/presentation/motion';
 import { orbColors } from '@/theme/colors';
 import { GAMEPLAY } from '@/theme/gameplayLayout';
+import { GP_MOTION } from '@/theme/gameplayMotion';
 import { homeAlpha } from '@/theme/homeV2';
 import type { BoardGeometry } from '../boardGeometry';
 import { flightPose } from '../flightGeometry';
@@ -23,6 +25,10 @@ const LAUNCH_SQUASH_MS = 160;
  * Core V2 traveling Pixel Pal. Shell banks with travel; visor + count badge
  * stay upright so the face and remaining-count never read upside down.
  * No halo — silhouette, shell material, and a contact shadow do the separation.
+ *
+ * Everything below is one derived value off the pass clock (no React state,
+ * no per-hit render): lift squash + a short launch trail until rail entry,
+ * shot recoil, the count badge's tick on each hit, and the terminal pop/fade.
  */
 export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssist, laneOffset = 0 }: {
   layout: BoardGeometry; pass: FlightPass; clock: SharedValue<number>; colorAssist?: boolean;
@@ -36,6 +42,7 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
   // Grows to the tray Pal's size on the way into Holding so the handoff is a
   // continuation, not a swap between two different-sized Pals.
   const trayScale = GAMEPLAY.holdingPal / size;
+  const reducedMotion = useReducedMotion();
 
   const motionState = useDerivedValue(() => {
     const t = clock.value;
@@ -47,10 +54,16 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
     const launchSquash = t < pass.liftMs ? Math.sin(launchP * Math.PI) * 0.12 : 0;
 
     let recoil = 0;
+    let tick = 0;
     for (const shot of pass.shots) {
-      if (t >= shot.fireAt && t <= shot.impactAt + 40) { recoil = 0.14; break; }
       if (t < shot.fireAt) break;
+      if (t <= shot.impactAt + 40) recoil = 0.14;
+      const since = t - shot.clearAt;
+      if (since >= 0 && since < GP_MOTION.badgeTickMs) tick = 1 - since / GP_MOTION.badgeTickMs;
     }
+    const trailSpan = pass.liftMs - GP_MOTION.trailStartMs;
+    const trailP = (t - GP_MOTION.trailStartMs) / Math.max(1, trailSpan);
+    const trail = trailP > 0 && trailP < 1 ? Math.sin(trailP * Math.PI) : 0;
 
     const tail = Math.max(0, Math.min(1, (t - pass.orbitEndAt) / Math.max(1, pass.landingAt - pass.orbitEndAt)));
     // consumed bursts at its last hit; reject bursts in place at GateTerminal.
@@ -67,6 +80,8 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
       scaleX: (1 - launchSquash - recoil) * popScale * grow,
       scaleY: (1 + launchSquash + recoil * 0.6) * popScale * grow,
       opacity,
+      tick,
+      trail,
     };
   });
 
@@ -97,9 +112,30 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
     };
   });
 
+  const trailStyle = useAnimatedStyle(() => {
+    const v = reducedMotion ? 0 : motionState.value.trail;
+    return { opacity: v * 0.5, transform: [{ scaleY: 0.4 + v * 0.6 }] };
+  });
+  const badgeStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: reducedMotion ? 1 : 1 + motionState.value.tick * GP_MOTION.badgeTickScale }],
+  }));
+
   return (
     <>
       <Animated.View pointerEvents="none" style={[styles.wrap, { width: size, height: size }, shellStyle]}>
+        {/* Launch trail: behind the shell (its local "down") until rail entry. */}
+        <Animated.View
+          pointerEvents="none"
+          style={[{
+            position: 'absolute',
+            left: size * 0.32,
+            top: size * 0.62,
+            width: size * 0.36,
+            height: size * 0.9,
+            borderRadius: size * 0.18,
+            backgroundColor: orbColors[pass.charge.color],
+          }, trailStyle]}
+        />
         <View
           pointerEvents="none"
           style={{
@@ -122,7 +158,7 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
       >
         <PixelPalVisor size={size} mood="focused" />
         {/* Sized for the launch count (it only falls); the digits run on the UI thread. */}
-        <PixelPalBadge palSize={size} color={pass.charge.color} text={String(pass.charge.capacity)} active>
+        <PixelPalBadge palSize={size} color={pass.charge.color} text={String(pass.charge.capacity)} active animatedStyle={badgeStyle}>
           <AnimatedCount palSize={size} pass={pass} clock={clock} active />
         </PixelPalBadge>
       </Animated.View>

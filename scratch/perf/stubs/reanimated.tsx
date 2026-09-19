@@ -22,3 +22,12 @@ const A: any = (p: any) => React.createElement('AnimatedView', p, p.children);
 A.View = View; A.Text = Text;
 A.createAnimatedComponent = (c: any) => c;
 export default A;
+// Layout-animation builders (FadeIn.duration(120).springify()...) — chainable no-ops.
+const builder: any = new Proxy(function () {}, { get: (_t, k) => (k === 'build' ? () => ({}) : () => builder), apply: () => builder });
+export const FadeIn = builder; export const FadeOut = builder; export const ZoomIn = builder; export const ZoomOut = builder;
+export const FadeInDown = builder; export const FadeInUp = builder; export const FadeOutDown = builder; export const SlideInDown = builder;
+export const LinearTransition = builder;
+export const measure = () => null;
+export const useAnimatedRef = () => React.useRef(null);
+export const makeMutable = (v: any) => sv(v);
+export const ReduceMotion = { System: 0, Always: 1, Never: 2 };

@@ -48,6 +48,13 @@ export function capacityAt(pass: FlightPass, time: number): number {
   }
   return remaining;
 }
+/** How many of this pass's shots have landed (cleared/cracked) by . */
+export function shotsClearedAt(pass: FlightPass, time: number): number {
+  'worklet';
+  let count = 0;
+  for (const shot of pass.shots) { if (shot.clearAt <= time) count++; else break; }
+  return count;
+}
 export function eventCountAt(pass: FlightPass, time: number): number {
   'worklet';
   let count = 0;

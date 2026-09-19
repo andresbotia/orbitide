@@ -1,15 +1,19 @@
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  cancelAnimation, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming,
+} from 'react-native-reanimated';
 
 import { ActiveStatus } from '@/components/ActiveStatus';
 import { ItemRack } from '@/components/gameplay/ItemRack';
-import { HoldingTray } from '@/components/HoldingTray';
+import { HoldingStatus, HoldingTray } from '@/components/HoldingTray';
 import { TunnelBar } from '@/components/TunnelBar';
 import type { Charge, GameState } from '@/game/engine/types';
 import type { Point } from '@/game/rendering/boardGeometry';
 import type { TutorialView } from '@/game/tutorial';
+import type { LaunchDenial, LaunchDenialReason } from '@/hooks/useGameSession';
 import { GAMEPLAY } from '@/theme/gameplayLayout';
-import { NEON, neonAlpha } from '@/theme/neon';
+import { GP, GP_TYPE } from '@/theme/gameplayUi';
 
 
 interface ControlDeckProps {
@@ -28,15 +32,24 @@ interface ControlDeckProps {
   onSourceLayout: (key: string, point: Point) => void;
   onLaunchTunnel: (id: string) => boolean;
   onLaunchHeld: (id: string) => boolean;
-  message: string;
+  /** The most recent refused tap; drives the one-line notice over the status strip. */
+  denial: LaunchDenial | null;
   tutorial?: TutorialView;
 }
 
-function isTransientStatus(message: string): boolean {
-  if (!message.trim()) return false;
-  if (/tap a held/i.test(message)) return false;
-  return true;
-}
+/**
+ * Why a tap did nothing, in the deck's own words. ACTIVE-full needs no text —
+ * the ACTIVE meter itself flashes — and tutorial refusals are the coach's job.
+ */
+const DENIAL_NOTICE: Record<LaunchDenialReason, string> = {
+  activeFull: '',
+  tutorial: '',
+  noTargets: 'NO EXPOSED MATCH YET',
+  unavailable: 'PAL NOT AVAILABLE',
+  inFlight: 'PAL STILL IN FLIGHT',
+};
+/** TUNABLE — how long a refusal notice holds over the strip. */
+const NOTICE_HOLD_MS = 1300;
 
 function setsEqual(a: Set<string>, b: Set<string>): boolean {
   if (a === b) return true;
@@ -46,10 +59,11 @@ function setsEqual(a: Set<string>, b: Set<string>): boolean {
 }
 
 /**
- * Single gameplay control surface: Active, ready Pals, Holding, item dock.
- * Material matches Home's nav deck. Slot count follows engine capacity.
- * Holding sits ABOVE tunnels in the visual stack:
- *   ACTIVE/STATUS → HOLDING → TUNNELS → ITEMS
+ * Single gameplay control surface. Slot count follows engine capacity.
+ * Visual stack, top to bottom:
+ *   STATUS STRIP (ACTIVE · HOLDING) → HOLDING WELLS → TUNNELS → ITEMS
+ * Both pressure readouts share one strip directly above the controls that
+ * change them, so the deck spends one row on status instead of two.
  */
 export const ControlDeck = memo(function ControlDeck({
   state,
@@ -65,10 +79,9 @@ export const ControlDeck = memo(function ControlDeck({
   onSourceLayout,
   onLaunchTunnel,
   onLaunchHeld,
-  message,
+  denial,
   tutorial,
 }: ControlDeckProps) {
-  const status = isTransientStatus(message) ? message : '';
   const holding: Charge[] = state.holding;
 
   return (
@@ -76,11 +89,15 @@ export const ControlDeck = memo(function ControlDeck({
       {/* Subtle lit edge along the top — hardware seam */}
       <View pointerEvents="none" style={styles.litEdge} />
 
-      {activeCapacity > 0 ? (
-        <ActiveStatus count={activeCount} capacity={activeCapacity} refusalSeq={capacityRefusalSeq} embedded />
-      ) : null}
+      <View style={styles.strip}>
+        {activeCapacity > 0 ? (
+          <ActiveStatus count={activeCount} capacity={activeCapacity} refusalSeq={capacityRefusalSeq} />
+        ) : <View />}
+        <HoldingStatus count={holding.length} capacity={state.holdingCapacity} />
+        <DeckNotice denial={denial} />
+      </View>
 
-      {/* Holding sits above tunnels — the hierarchy is Board → Active → Holding → Tunnels → Items */}
+      {/* Holding sits above tunnels — the hierarchy is Board → Status → Holding → Tunnels → Items */}
       <HoldingTray
         layoutVersion={layoutVersion}
         holding={holding}
@@ -112,10 +129,6 @@ export const ControlDeck = memo(function ControlDeck({
       />
 
       <ItemRack />
-
-      {status ? (
-        <Text accessibilityLiveRegion="polite" style={styles.status}>{status}</Text>
-      ) : null}
     </View>
   );
 }, (prev, next) => (
@@ -130,7 +143,7 @@ export const ControlDeck = memo(function ControlDeck({
   && prev.onSourceLayout === next.onSourceLayout
   && prev.onLaunchTunnel === next.onLaunchTunnel
   && prev.onLaunchHeld === next.onLaunchHeld
-  && prev.message === next.message
+  && prev.denial === next.denial
   && prev.tutorial === next.tutorial
   && setsEqual(prev.usefulIds, next.usefulIds)
   && prev.state.holding === next.state.holding
@@ -139,39 +152,71 @@ export const ControlDeck = memo(function ControlDeck({
   && prev.state.ruleset === next.state.ruleset
 ));
 
+/**
+ * A refusal notice that crossfades over the status strip for ~1.3 s. Fixed
+ * height and absolutely positioned: it never adds a row, so it can never
+ * re-measure (and resize) the board the way the old status line did.
+ */
+const DeckNotice = memo(function DeckNotice({ denial }: { denial: LaunchDenial | null }) {
+  const text = denial ? DENIAL_NOTICE[denial.reason] : '';
+  const shown = useSharedValue(0);
+  useEffect(() => {
+    if (!text) return;
+    cancelAnimation(shown);
+    shown.set(withSequence(
+      withTiming(1, { duration: 120 }),
+      withDelay(NOTICE_HOLD_MS, withTiming(0, { duration: 260 })),
+    ));
+  }, [denial, text, shown]);
+  const style = useAnimatedStyle(() => ({ opacity: shown.value }));
+  if (!text) return null;
+  return (
+    <Animated.View pointerEvents="none" style={[styles.notice, style]}>
+      <Text accessibilityLiveRegion="polite" style={styles.noticeText}>{text}</Text>
+    </Animated.View>
+  );
+});
+
 const styles = StyleSheet.create({
   deck: {
     width: '100%',
-    // Same ink-panel + cyan-trim language as Home's bottom nav — the deck
-    // reads as one control surface, not stacked components.
-    backgroundColor: neonAlpha(NEON.ink, 0.92),
+    // One ink control surface with a lit top edge — sections, never cards.
+    backgroundColor: GP.deck,
     paddingTop: GAMEPLAY.deckPadTop,
     paddingHorizontal: GAMEPLAY.deckPadX,
     paddingBottom: GAMEPLAY.deckPadBottom,
     gap: GAMEPLAY.deckGap,
     borderTopWidth: 1,
-    borderTopColor: neonAlpha(NEON.cyan, 0.35),
+    borderTopColor: GP.hairline,
   },
   litEdge: {
     position: 'absolute',
-    top: 0,
-    left: 16,
-    right: 16,
+    top: -1,
+    left: 24,
+    right: 24,
     height: 1.5,
     borderRadius: 1,
-    backgroundColor: neonAlpha(NEON.cyan, 0.5),
+    backgroundColor: GP.litEdge,
+  },
+  strip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
   },
   // Deliberately a hairline, not a card border — Holding/Tunnels/Items are
   // one deck with sections, never separately-framed cards.
   separator: {
     height: 1,
     marginHorizontal: 8,
-    backgroundColor: neonAlpha(NEON.cyan, 0.08),
+    backgroundColor: GP.hairline,
+    opacity: 0.6,
   },
-  status: {
-    color: neonAlpha(NEON.cyanPale, 0.6),
-    fontSize: 11,
-    textAlign: 'center',
-    marginTop: -2,
+  notice: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: GP.deck,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  noticeText: { ...GP_TYPE.label, color: GP.cyanPale },
 });

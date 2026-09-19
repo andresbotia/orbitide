@@ -14,3 +14,5 @@ export const Dimensions = { get: () => ({ width: 390, height: 844 }) };
 export const Animated = { View, Text, createAnimatedComponent: (c: any) => c };
 export const Easing = {};
 export const InteractionManager = { runAfterInteractions: (f: any) => { f(); return { cancel() {} }; } };
+export const useWindowDimensions = () => ({ width: 390, height: 844, scale: 3, fontScale: 1 });
+export const PixelRatio = { get: () => 3, roundToNearestPixel: (v: number) => v };
