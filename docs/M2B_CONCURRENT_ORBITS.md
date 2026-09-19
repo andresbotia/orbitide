@@ -1,118 +1,126 @@
-# M2B — Five simultaneous active orbits + shared board arbitration
+# M2B — Five simultaneous active orbits
 
-Branch `milestone/1-core-prototype`. Commits:
-`4d9435f` (M2B.1 engine) · `b057f17` (M2B.2 solver) · M2B.3 presentation (this
-commit). Builds on M2A.4 `b8efb67`. **Not merged, not pushed.**
+Branch `milestone/1-core-prototype`. Original commits:
+`4d9435f` (M2B.1 engine) · `b057f17` (M2B.2 solver) · `9f780b7` (M2B.3
+presentation). Builds on M2A.4 `b8efb67`.
 
-This is the first M2 pass allowed to change active-charge runtime behaviour. The
-visual system, special-pixel mechanics, backend / monetization / economy are all
-untouched.
+> **Engine model superseded — this doc reflects the current engine.** The
+> original M2B engine resolved concurrent launches with multi-Pal logical
+> arbitration (overlapping laps, re-simulation on join). That was replaced by
+> **FIRST LAUNCHED, FIRST SERVED** in `ef8b240` (engine) and `7ca8c75` (solver /
+> Studio canonicalisation). §2, §3, §8, §11 and §12 describe the current engine;
+> the presentation, haptic and audio sections (§4–§6) are unchanged from M2B.
+
+The visual system, special-pixel mechanics, backend / monetization / economy are
+all untouched by M2B.
 
 ---
 
-## 1. What the player can now do
+## 1. What the player can do
 
 Launch another tunnel or Holding charge while charges are already orbiting, up to
-`MAX_ACTIVE_CHARGES = 5`. All charges share one board centre, one LAUNCH_HUB
-waypoint, one bottom ORBIT_INSERTION, one canonical direction
-(bottom → left → top → right → bottom) and one rail. They never collide.
+`MAX_ACTIVE_CHARGES = 5` (per level: `GameState.activeCapacity`). All charges
+share one board centre, one LAUNCH_HUB waypoint, one bottom ORBIT_INSERTION, one
+canonical direction (bottom → left → top → right → bottom) and one rail. They
+never collide.
 
-A launch fired while charges are still on the rail **joins the running epoch** and
-arbitrates against them. A launch fired after the board has settled starts a
-**fresh epoch** and resolves exactly like M1. That "now vs after it settles" is
-the only way launch timing affects the outcome — there is no reflex timing.
+Several Pals can be **on the rail at once** — that is presentation and game feel
+(visual pacing, convoy presentation, Active-slot pressure, Holding arrival
+timing). It is **not** a separate logical rule: a launch made while Pals are
+still flying resolves exactly like the same launch made after the rail settles.
+Launch timing never affects the outcome — only launch **order** matters. There is
+no reflex timing.
 
 ---
 
-## 2. Engine concurrency model (`src/game/engine/`)
+## 2. Engine model — FIRST LAUNCHED, FIRST SERVED (`src/game/engine/`)
+
+### The rule
+- Each Pal is logically resolved **exactly once, when it launches**.
+- A later Pal resolves against the **committed board** left by earlier launches.
+- A later launch may **never rewrite** an earlier Pal's logical history.
+
+Consequences, all deliberate:
+- an earlier Pal can expose targets for a later one (forward help);
+- a later Pal never helps an earlier one (that would be a rewrite);
+- a contested pixel always goes to the earlier launch.
 
 ### Logical time
 One shared logical clock, unit = **orbit laps**. `1 lap == FEEL.ORBIT_DURATION`
-(1800 ms) is presentation only — the engine never reads wall-clock time. A charge
-inserted at `insertionTime` is at lap-progress `t - insertionTime` at logical
-time `t`, and still does **at most one lap per launch** (leftover capacity parks
-in Holding; targets exposed *behind* a charge wait for a manual relaunch — the M1
-rule, preserved).
+is presentation only — the engine never reads wall-clock time. A charge inserted
+at `insertionTime` is at lap-progress `t - insertionTime` at logical time `t`,
+and does **at most one lap per launch** (leftover capacity parks in Holding;
+targets exposed *behind* a charge wait for a manual relaunch — the M1 rule).
 
-### Launch-timing semantics — deterministic action sequencing (spec §7 B)
-Each accepted launch gets:
-- `launchSequence` — global monotonic order (`= movesApplied` at acceptance);
-- `insertionTime = index * LAUNCH_SPACING` within its epoch (`LAUNCH_SPACING =
-  0.18` lap). Five rapid launches insert at `0, 0.18, 0.36, 0.54, 0.72` —
-  evenly spread around the ring. **Real tap timing is never read**; only launch
-  order, count, and the coarse join/settle choice matter, so the solver
-  reproduces every outcome.
+### Launch spacing — non-overlapping windows (`concurrency.ts`)
+`LAUNCH_SPACING = 1` lap. Within an epoch, launch `i` gets
+`insertionTime = i * LAUNCH_SPACING`, so it owns the logical window `[i, i+1]`
+and has flown its whole lap before launch `i+1` acts. Every event of launch `i`
+strictly precedes every event of launch `i+1`; earlier launches are fully
+resolved before later launches logically act. `simulateEpoch` throws on
+overlapping windows.
 
-### Epoch = arbitration container (`epoch.ts`)
-`GameState` gains `activeCharges: ActiveCharge[]` and `epoch: EpochState | null`.
-`EpochState = { baseline: GameState, launches: EpochLaunch[], clock }` — replaying
-`launches` against `baseline` reproduces the current state exactly.
+Do not lower `LAUNCH_SPACING` to "restore concurrency" — the old `0.18` value
+interleaved laps and let a join insert a clear *behind* a Pal the player was
+already watching (`session.retroactive-join.test.ts` pins the regression).
 
-`resolveAction(state, action)`:
-1. admit (`actionRejection`) — the engine always accepts a launch; a sixth just
-   opens a fresh epoch. Holding-full look-ahead projects the whole epoch.
+### Epoch = bookkeeping, not physics (`epoch.ts`)
+`GameState` carries `activeCharges: ActiveCharge[]` and
+`epoch: { launches: EpochLaunch[], clock } | null`. The epoch is the run of
+launches currently sharing the rail: which launches occupy Active slots, the
+clock that times the next insertion, and each charge's resolution for the
+presentation. Whether a launch joins the open epoch or starts a fresh one never
+changes its logical outcome — only those bookkeeping fields.
+
+`resolveAction(state, action)` (`resolveLaunch.ts`):
+1. admit (`actionRejection`);
 2. `planLaunch` — join the open epoch iff `action.join === true` **and**
-   `canJoinEpoch` (epoch exists, < 5 launches, this charge not already in it);
-   otherwise fresh, `baseline = committedBaseline(state)`, `insertionTime = 0`.
-3. `simulateEpoch(baseline, launches)` — deterministic discrete-event resolution.
-4. `flushEpoch` — apply the board, consume the launched tunnel fronts / held
-   charges, park leftovers in Holding, keep the epoch attached, recompute status.
+   `canJoinEpoch` (epoch exists, below `activeCapacity`, this charge not already
+   in it); otherwise a fresh epoch at `insertionTime = 0`;
+3. `resolveEpochLaunch(state, newLaunch)` — simulate **only the newly appended
+   launch**, against the committed board. Joined launches reuse the
+   already-resolved `state.activeCharges`; nothing earlier is re-simulated;
+4. `commitLaunch` — apply the board, consume the tunnel front / held charge, park
+   leftover capacity in Holding (a parked charge with no Holding room is a loss),
+   record the launch in the epoch, recompute status.
+
+`simulateEpoch(baseline, launches)` still exists as a sequential fold (each
+launch against the board the previous ones left) for tests and tools; it is not
+the live resolution path.
 
 `LaunchOutcome` keeps the M1-shaped `pass` (the launched charge's own resolution)
-for the single-flight presentation path and adds `epochCharges` + `joinedEpoch`.
+and adds `epochCharges` (every charge on the rail, new one last) + `joinedEpoch`.
 
-### Arbitration algorithm — `simulateEpoch`
-Pure discrete-event simulation over the epoch's charges:
-- One cursor per charge (`cursorTime`, `progress`, `remaining`).
-- `simTime` = logical time reached. Every still-orbiting charge keeps flying, so a
-  charge that has not hit anything is nonetheless at lap-progress
-  `simTime - insertionTime` — a target exposed late is met there, not back where
-  the charge was when it launched.
-- Each step: for every not-finished charge compute its next **EncounterCandidate**
-  against the *current* board — reused verbatim from M1 (`pickEncounter`:
-  reachable matching pixels, nearest angular gap ahead, outer radius then id).
-  `candidateTime = insertionTime + gap`.
-- **Select the next global encounter:** smallest `candidateTime`
-  (± `ENCOUNTER_EPSILON = 1e-6` lap), then smaller `launchSequence`, then smaller
-  target pixel id.
-- Resolve one clear: mutate the board, decrement **only that charge**, record the
-  encounter, `remaining == 0` → finished.
-- **Exposure recompute is implicit** — the next step's candidates read the
-  mutated board, so a clear by Blue that exposes a Red pixel is picked up by Red
-  later in the same lap.
-- Terminates: each step clears one pixel or finishes ≥1 cursor.
-
-`pickEncounter` was factored out of M1's `advancePass`; a lone fresh launch's
-`simulateEpoch` result is byte-identical to `resolvePass` (asserted).
-
-### Target claiming / invalidation
-No explicit reservation state: `simulateEpoch` resolves one encounter fully
-before computing the next, so two charges can never clear the same pixel, and a
-candidate whose target was just cleared by another charge is simply not offered
-next step (the charge re-evaluates, no capacity spent).
-
-### Re-simulation on join
-A join re-runs `simulateEpoch` for the whole epoch from `baseline`. This is fully
-deterministic (same inputs → same output) and can, in rare cases, revise a
-not-yet-presented encounter of an earlier charge (a later charge reaching a
-shared target sooner in logical time). `LAUNCH_SPACING` keeps an epoch short
-(≤ ~1.9 laps ≈ 3.4 s), so any such revision lands before the player has seen it;
-the presentation's per-flight `settle()` reconciles `view` to `truth` regardless.
+### Per-launch simulation
+`resolveEpochLaunch` walks one charge's lap: `pickEncounter` (reachable matching
+pixels, nearest angular gap ahead, outer radius then id) → resolve one hit →
+mutate the board → re-query exposure, so a clear can expose a target the same
+charge reaches later in its lap. Terminates when capacity is spent or the lap is
+flown. There is no cross-Pal encounter selection or tie-breaking — a single
+launch is simulated at a time.
 
 ### Win / fail / deadlock
-- **Win** the instant `simulateEpoch` clears the last pixel, even mid-epoch;
-  further launches are refused; presentation lets the other flights settle and
-  the existing Discovery Reveal fires off `status === 'won'` unchanged.
-- **Deadlock** unchanged — a resolved epoch already parks its leftovers, so the
-  flushed state reads like M1 and `isLost` / `legalActions` apply directly. The
-  five-charge cap is a presentation gate only, never a loss condition.
+- **Win** the instant the last pixel clears; further launches are refused;
+  presentation lets other flights settle and the Discovery Reveal fires off
+  `status === 'won'`.
+- **Deadlock** — the committed state reads like M1, so `isLost` /
+  `legalActions` apply directly. The five-charge cap is a presentation / slot
+  gate, never a loss condition by itself.
 
 ### Caches
-`reachablePixels` (exterior flood fill) and `simulateEpoch` (epoch physics) are
-memoized by board shape / `(baseline, launches)` — the concurrent engine and the
-solver hit the same shapes thousands of times. Bounded, cleared wholesale when
-full; the sim cache stores colour/capacity-only physics and re-labels charge
-identity per call.
+- **`SIM_CACHE`** (`epoch.ts`) — memoizes single-launch resolutions.
+  - **Board-scoped:** it holds one authored board at a time; when
+    `boardIdentity` changes (level switch, another Studio draft) it is cleared,
+    so unrelated boards never share simulation physics.
+  - **Bounded LRU:** `SIM_CACHE_LIMIT = 20_000` entries, least-recently-used
+    evicted. It is not an unbounded module-global accumulation across campaign
+    play.
+  - **Physics-only key:** ruleset + `boardFingerprint` (per-cell progress) +
+    launch colour / capacity / `insertionTime`. Source, origin, sequence and
+    Active capacity do not affect a launch's own lap, so identical Pals share an
+    entry; the cached result is re-labelled with the caller's charge identity.
+- **Exterior flood-fill cache** (`pixels.ts`) — keyed by grid size + solid-cell
+  occupancy, bounded at 20 000 entries with batch eviction.
 
 ---
 
@@ -123,31 +131,37 @@ ActiveCharge {
   id  source  originId  color
   capacity  remainingCapacity
   insertionTime  launchSequence  passCount
-  phase           // 'orbiting' | 'finished' (always 'finished' post-sim)
-  encounters[]    // { pixelId, time, progress, remaining }
+  phase           // always 'finished' — resolved at launch
+  encounters[]    // { pixelId, time, progress, remaining, …modifier flags }
   finishTime      // last encounter, or insertionTime + 1 for a full lap
   landed          // 'consumed' | 'holding'
 }
 ```
 
 No global "current target", "current pass timer" or "projectile" — each charge is
-fully self-describing.
+fully self-describing, and its record never changes after it launches.
 
 ### Active-slot lifecycle (spec §20)
 A slot is occupied from **launch acceptance** (not insertion — closes the
 "launch six before insertion" exploit) until the presentation flight's `complete`
 fires. `epoch.launches.length` is the engine's slot count; a fresh epoch resets
-it to 1. Presentation additionally denies a launch while five flights are still
-visibly airborne.
+it to 1. Presentation additionally denies a launch while `activeCapacity`
+flights are still visibly airborne. `activeCharges` / epoch data exist to drive
+this slot behaviour and the presentation — not logical arbitration.
 
 ### Holding with active charges
 Holding stays fully manual. A held charge may be relaunched into a running epoch
-(`join: true`) as long as it is not already in that epoch; otherwise the relaunch
-starts fresh. A full tray plus a still-useful launch is never a loss.
+(`join: true`) as long as it is not already in that epoch; either way it resolves
+against the committed board. When its leftover parks back in Holding is a
+presentation matter (arrival timing); the logical Holding contents are committed
+at launch.
 
 ---
 
 ## 4. Presentation (`src/hooks`, `src/game/rendering`, `src/game/presentation`)
+
+Presentation may overlap Pals on the rail even though logical resolution is
+ordered. Visual concurrency is not logical arbitration.
 
 ### Per-charge flight, one clock each (spec §28 decision)
 Kept the M2A per-pass UI-thread clock and multiplied it: `useGameSession` holds a
@@ -155,13 +169,12 @@ Kept the M2A per-pass UI-thread clock and multiplied it: `useGameSession` holds 
 `OrbitBoard` renders one `<FlightActor>` per flight, each owning its own linear
 `withTiming(0 → totalMs)` clock and its own animated-reaction bridge to
 `presentThrough`. A shared epoch clock was evaluated and rejected: a joined
-charge's lift choreography begins at the tap, not at its normalized logical
-insertion, so independent clocks are the *more* correct choice and avoid
-re-timing running flights on every join.
+charge's lift choreography begins at the tap, not at its logical insertion, so
+independent clocks are the *more* correct choice and avoid re-timing running
+flights on every join.
 
-`buildLaunchScript` is unchanged and reused for both fresh and joined launches —
-each flight scripts only the launched charge's own encounters, in its own
-0-based timeline.
+`buildLaunchScript` is reused for both fresh and joined launches — each flight
+scripts only the launched charge's own encounters, in its own 0-based timeline.
 
 - `OrbitBoard` → static `<BoardActors>` (pixels / special shells / Color Assist,
   no clock) + `flights.map(<FlightActor>)`. Pixels an active flight will pop are
@@ -177,23 +190,23 @@ each flight scripts only the launched charge's own encounters, in its own
   engine event dropped.
 
 ### Session flow
-`perform`: deny if `activeCount >= 5` (message + `denied` haptic, no mutation);
-otherwise resolve with `join = activeCount > 0`, build the flight, add to the
-map. `presentThrough(passId, count)` walks that flight's events, mutates `view`,
-routes routine pixel haptics through the arbiter and per-shot sound hooks; on the
-flight's `complete` it retires; when the last flight retires it settles `view` to
-`truth` and reports the result once. `restart` / background / unmount retire every
-flight and cancel pending haptics + buffered pulses.
+`perform`: deny if the Active slots are full (message + `denied` haptic, no
+mutation); otherwise resolve with `join = activeCount > 0`, build the flight, add
+to the map. `presentThrough(passId, count)` walks that flight's events, mutates
+`view`, routes routine pixel haptics through the arbiter and per-shot sound
+hooks; on the flight's `complete` it retires; when the last flight retires it
+settles `view` to `truth` and reports the result once. `restart` / background /
+unmount retire every flight and cancel pending haptics + buffered pulses.
 
-`GameSession` now exposes `flights`, `flightPass` (last, back-compat),
-`canLaunch`, `activeCount`. `GameScreen` keeps the controls **open** while
-charges orbit — `controlsLocked = !session.canLaunch`.
+`GameSession` exposes `flights`, `flightPass` (last, back-compat), `canLaunch`,
+`activeCount`. `GameScreen` keeps the controls **open** while charges orbit —
+`controlsLocked = !session.canLaunch`.
 
 ---
 
 ## 5. Haptic arbitration (`src/game/hapticArbiter.ts`, spec §16)
 
-Routine pixel impacts from concurrent charges are coalesced:
+Routine pixel impacts from concurrently *presented* charges are coalesced:
 
 | cluster within `COALESCE_WINDOW_MS = 45` | pulse |
 |---|---|
@@ -221,71 +234,72 @@ it exists, must:
   a short window duck / merge into the existing transient bed;
 - let distinct per-shot transients overlap otherwise.
 
-This resolves the M2 spec's open "5-charge audio ceiling" question.
-
 ---
 
 ## 7. Dev overlay (spec §31)
 
-`DebugOverlay` (`__DEV__` only) gains `active N/5`, `epoch clock`, and per-charge
+`DebugOverlay` (`__DEV__` only) shows `active N/5`, `epoch clock`, and per-charge
 lines: `#seq colour remaining/capacity @insertionTime → finishTime landed`.
 
 ---
 
-## 8. Solver (`src/game/engine/__tests__/solver.ts`)
+## 8. Solver (`src/game/engine/solver.ts`)
 
-- `stateKey` gains an epoch-residue segment (`epochResidueKey`) so equivalent
-  boards with different epochs never memoize together; reduces to the M1 key when
-  the rail is idle.
-- `solve(level, { mode })`:
-  - `metrics` (default) — from every epoch-open state, explore both a settle-first
-    launch and a `join: true` variant; report `maxActiveOnWitness`, `maxActive`,
-    plus all M1 metrics.
-  - `sequential-compat` — drop the join variants; reproduces M1 exactly.
-  - `solvability` — bare win proof.
-- Pruning: branching is unchanged (≤ 6 launches/step — timing is forced, not
-  branched). Node counts rise (L9 ≈ 39 k) but stay well under the 300 k cap.
-  Memoization + the two engine caches keep the campaign audit ≈ 60 s.
+`engine/__tests__/solver.ts` re-exports this module. There is **one** solver and
+**one** canonical solve per level.
 
-### Level 1–10 audit (unchanged art; no capacity/order retune was needed)
+- **Canonical logical choices.** `enumerateActions` = `legalActions(state)`: one
+  settle-first launch per tunnel front and per held charge the runtime would
+  admit. A `join: true` twin reaches the same next logical state, so joins are
+  **not** separate puzzle branches (`join-settle-equivalence.test.ts`).
+- **Memo identity = committed logical state.** `stateKey` is board progress
+  (`boardFingerprint`, including modifier layers) + tunnel queues (id / colour /
+  capacity) + Holding. Terminal status (`won` / `lost`) short-circuits before
+  keying. Open-epoch presentation residue — which Pals are still on the rail,
+  the epoch clock, insertion times — is **not** part of solver identity.
+- **No-op loops are not losses.** A move that returns to a logical state already
+  on the current search line (e.g. a Core V2 Holding relaunch that clears
+  nothing) is excluded from win, fail and loss-probability accounting — uniform
+  random play simply picks again.
+- **All-loop states are deadlocks.** If every available choice is such a no-op
+  loop, the player can never progress again: the state counts as a loss.
+- **`failPath`** is the shortest real losing continuation — it ends in a `lost`
+  state or an all-loop soft-lock — never a move that merely returns to the same
+  playing state.
+- `solve(level, { nodeCap = 300 000, partialOnCap, signal })` returns win
+  witness, `minWinningPeak`, loss probability, first-move stats and per-decision
+  stats from the memo. `findFirstWinningWitness` is the fast "is there any win"
+  DFS over the same choices.
 
-`seq` == M1. `con` = concurrent engine.
+Studio analytics use this single canonical solve. The former sequential-vs-
+concurrent comparison, `maxActive` / `maxActiveOnWitness` metrics and the
+`CONCURRENCY_TRIVIALIZES_LEVEL` / `CONCURRENCY_INCREASES_RISK` warnings are
+retired.
 
-| L | pixels | seq len / minPeak / loss / held | con len / minPeak / loss / held | maxActiveOnWitness | maxActive |
-|---|---|---|---|---|---|
-| 1 | 20 | 3 / 0 / 0 / 0 | 3 / 0 / 0 / 0 | 1 | 3 |
-| 2 | 21 | 4 / 0 / 0 / 0 | 4 / 0 / 0 / 0 | 1 | 4 |
-| 3 | 25 | 5 / 0 / 0 / 0 | 5 / 0 / 0 / 0 | 2 | 5 |
-| 4 | 25 | 5 / 1 / 0 / 1 | 5 / 1 / 0 / 1 | 1 | 4 |
-| 5 | 33 | 8 / 1 / .134 / 1 | 7 / 1 / .136 / 0 | 2 | 5 |
-| 6 | 37 | 10 / 2 / .481 / 2 | 10 / 2 / .481 / 2 | 1 | 5 |
-| 7 | 37 | 9 / 2 / .676 / 2 | 9 / 2 / .676 / 2 | 3 | 5 |
-| 8 | 37 | 11 / 2 / .741 / 3 | 10 / 2 / .741 / 2 | 3 | 5 |
-| 9 | 33 | 11 / 2 / .5 / 2 | 10 / 2 / .5 / 1 | 4 | 5 |
-| 10 | 32 | 10 / 2 / .704 / 2 | 10 / 2 / .704 / 2 | 3 | 5 |
+### Difficulty weights
+`concurrencyGap` is retired as a difficulty input (a join can no longer shorten a
+solution). The remaining weights are intentionally **not renormalised** — they
+total **0.95** and the practical score ceiling is 95. Recalibrating weights,
+saturation and tier thresholds together is deferred to a dedicated
+difficulty-model pass (`studio/analysis/difficulty.ts`).
 
-- Sequential numbers are identical to the approved M1 audit — losses, fail paths
-  (present from L5), `viableFirstMoves == 3`, Holding entering at L4.
-- Concurrency never breaks a level: every level stays winnable and, from L5,
-  loseable. It opens a few shorter / hold-lighter lines on L5, L8, L9 (an
-  alternative, not a replacement — the sequential line always survives).
-- No early level *requires* multiple active charges — the calmest winning witness
-  uses at most 2 (L3, L5) and the campaign's shortest witnesses stay ≤ 4.
-- The engine can drive a full five-charge rail on L3 and L5–L10.
+### Level audits
+The original M2B Level 1–10 sequential-vs-concurrent audit table was measured on
+the retired arbitration engine and no longer applies; it has been removed rather
+than left as stale data. Current per-level metrics come from the canonical solve
+(see the campaign docs and the Studio).
 
 ---
 
-## 9. Verification
+## 9. Verification (at M2B ship time)
 
-- `npx jest` — **175 passed / 17 suites** (was 145 / 15). New: `concurrency.test`
-  (18), `hapticArbiter.test` (7). No existing assertion weakened; `session.test`
-  and `metrics.test` re-baselined for concurrency (both still assert M1 parity
-  via `sequential-compat`).
-- `npx tsc --noEmit` (strict) — clean.
-- `npx eslint .` — clean.
-- `npx expo-doctor` — 21/21.
-- `npx expo export -p ios` / `-p android` — both succeed (`dist/m2b/`).
+- `npx jest` — 175 passed / 17 suites at the time. New then: `concurrency.test`,
+  `hapticArbiter.test`.
+- `npx tsc --noEmit` (strict), `npx eslint .`, `npx expo-doctor` (21/21),
+  `npx expo export -p ios` / `-p android` — all clean then.
 - Not run on device (no simulator here).
+
+Test counts have moved on since; see the latest milestone doc for current totals.
 
 ---
 
@@ -297,11 +311,12 @@ lines: `#seq colour remaining/capacity @insertionTime → finishTime landed`.
 - Projectiles / trails / pop pixels are all reanimated shared-value driven on the
   UI thread; each flight cleans up (`cancelAnimation`) on unmount, which happens
   deterministically when its `complete` event retires it.
-- Static board (`BoardActors`) is `memo`'d and no longer remounts per pass.
+- Static board (`BoardActors`) is `memo`'d and does not remount per pass.
+- Engine cost per launch is one single-launch simulation (cached), independent of
+  how many Pals are on the rail.
 - 5 flights = 5 clocks + 5 reactions + ≤ 5 `<OrbitingCharge>` + one
   `<EnergyShot>` each + their pop pixels. Conceptually within budget for a
-  40–100-pixel board with Color Assist on; **unverified on device** (standing
-  M2A caveat).
+  40–100-pixel board with Color Assist on; **unverified on device**.
 
 ---
 
@@ -309,27 +324,21 @@ lines: `#seq colour remaining/capacity @insertionTime → finishTime landed`.
 
 | value | where | default |
 |---|---|---|
-| `MAX_ACTIVE_CHARGES` | `engine/concurrency.ts` | 5 |
-| `LAUNCH_SPACING` | `engine/concurrency.ts` | 0.18 lap |
-| `ENCOUNTER_EPSILON` | `engine/concurrency.ts` | 1e-6 lap |
+| `MAX_ACTIVE_CHARGES` / `DEFAULT_ACTIVE_CAPACITY` | `engine/concurrency.ts` | 5 |
+| `LAUNCH_SPACING` | `engine/concurrency.ts` | 1 lap (load-bearing — do not lower) |
 | `COALESCE_WINDOW_MS` | `game/hapticArbiter.ts` | 45 ms |
 | audio identical-voice cap | doc guidance | 3 |
 | `LANE_OFFSET_PX` | `rendering/OrbitBoard.tsx` | 2 px |
 | `CALM_TRAILS_AT` | `rendering/OrbitBoard.tsx` | 3 charges |
-| solver `nodeCap` | `__tests__/solver.ts` | 300 000 |
-| cache limits | `engine/epoch.ts`, `engine/pixels.ts` | 250 000 |
+| solver `nodeCap` | `engine/solver.ts` | 300 000 |
+| `SIM_CACHE_LIMIT` | `engine/epoch.ts` | 20 000 (LRU, board-scoped) |
+| `EXTERIOR_CACHE_LIMIT` | `engine/pixels.ts` | 20 000 |
 
 ---
 
 ## 12. Known risks
 
-- **Join re-simulation** can retroactively revise a not-yet-presented encounter;
-  bounded to sub-second by `LAUNCH_SPACING`, self-healed by `settle()`. A true
-  frozen-past prefix was deferred as unnecessary for correctness.
 - **Multi-charge presentation perf** unverified on device (5 clocks + reactions).
-- **Solver time** — the concurrent audit is ~60 s; a much larger campaign would
-  want the join branch pruned harder or `sequential-compat` as the gating audit.
 - Lane offset / calm-mode thresholds are eyeballed, not device-tuned.
+- Difficulty weights total 0.95 pending a dedicated recalibration (§8).
 - `react-test-renderer` deprecation warning in `session.test` (pre-existing).
-
-**Do not merge. Do not push.**

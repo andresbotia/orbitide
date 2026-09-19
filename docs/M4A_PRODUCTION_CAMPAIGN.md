@@ -13,6 +13,17 @@ backend/ads/IAP/economy.
 Commits: `13f3168` (M4A.1 Frozen) · `a069aae` (M4A.2 World 1) · `a2416af`
 (M4A.3 World 2) · `7dd8e74` (M4A.4 World 3 + Frozen rollout) · this docs commit.
 
+> **Engine note (updated after `ef8b240` / `7ca8c75`).** M4A was authored and
+> measured on the original M2B engine, which arbitrated concurrent launches
+> logically and solved every level twice (sequential vs concurrent). That engine
+> is gone. The current engine is **FIRST LAUNCHED, FIRST SERVED**: each Pal is
+> resolved exactly once when it launches, against the board earlier launches
+> committed, and a later launch never rewrites an earlier Pal's history.
+> Concurrency is presentation only (pacing, Active-slot pressure, convoy
+> presentation, Holding arrival timing). See `M2B_CONCURRENT_ORBITS.md` §2 / §8.
+> The metric table in §2 is the **M4A ship-time snapshot** and is kept for
+> history; engine-mechanic prose below describes the current engine.
+
 ---
 
 ## 1. The three worlds
@@ -69,11 +80,17 @@ difficulty spike.
 | 29 | Snow Owl | deep-frost | 52 | 4 | **hard** | hard | 46 | 8 | 2 | 3/3 | 1 | N | 3 | 2 163 | no-fail-path(w) |
 | 30 | The Frost Crown | deep-frost | 62 | 6 | **hard** | hard | 47 | 9 | 2 | 3/3 | 1 | N | 4 | 3 241 | no-fail-path(w) |
 
-`(i)` info · `(w)` warn. All 30 are **solvable, deterministic, winnable with zero
-boosters, under both sequential-compat and concurrent play**; every winning
-witness replays through the real runtime and wins (`levelDefinitions.test.ts`,
-`metrics.test.ts`). Sequential (M1) win lengths never exceed the concurrent
-witness by more than one; the tray never exceeds 3 on any calm line.
+`(i)` info · `(w)` warn. **Snapshot caveat:** these numbers were measured at M4A
+ship time on the retired arbitration engine. The `max active` column and the
+`concurrency-trivializes` warning come from the retired sequential-vs-concurrent
+comparison and no longer exist; the current solver reports one canonical solve
+per level, and scores, node counts and fail paths may differ. Re-measure through
+the Studio / canonical `solve` rather than trusting this table.
+
+At ship time all 30 were **solvable, deterministic and winnable with zero
+boosters**, and every winning witness replayed through the real runtime and won
+(`levelDefinitions.test.ts`, `metrics.test.ts`); the tray never exceeded 3 on any
+calm line.
 
 ### World milestones (L10 / L20 / L30)
 
@@ -96,22 +113,24 @@ witness by more than one; the tray never exceeds 3 on any calm line.
 - **L6–10** — Holding is part of the intended solution (peak 1–2).
 - **L14–20** — a buried accent behind the dominant colour forces one held
   relaunch on every winning line; peak 1 typical, peak 3 on the L20 finale.
-- **L21–30** — Frozen drives Holding: cracking an iced pixel strands the charge,
-  and the cracked pixel only re-exposes a full epoch later, so it *must* be
-  cleared by a later manual relaunch (held 1–4). 3/3 saturation is never routine
+- **L21–30** — Frozen drives Holding: cracking an iced pixel spends the charge's
+  one encounter with it that lap, so the thawed pixel *must* be cleared by a
+  later launch or manual relaunch (held 1–4). 3/3 saturation is never routine
   on an Easy level.
 
-## 4. Concurrency curve (Part 7)
+## 4. Concurrency (Part 7)
 
-The 5-charge rail is a feature, not a requirement. Calm witnesses need ≤2 active
-charges on L1–4, ≤4 on the mid-campaign. The engine can still reach a full
-five-charge rail (L5–L10, L19). **No level's optimal line requires 5 active
-charges.** Concurrency shortens a few lines by one move and never breaks a level
-sequential play could solve.
+The 5-charge rail is a presentation feature, not a logical mechanic. Under FIRST
+LAUNCHED, FIRST SERVED a launch made while Pals are still orbiting resolves
+exactly like the same launch made after the rail settles, so concurrency can
+neither shorten nor break a solution. It still matters for game feel: visual
+pacing, Active-slot pressure (at most `activeCapacity` Pals airborne), convoy
+presentation and when a leftover visibly lands in Holding.
 
-Known: on single-dominant-colour subjects (World 2's garden creatures), the
-concurrent epoch resolves nested cascades in one lap, which caps their
-achievable difficulty at Medium — see §8.
+Historical: M4A originally reported that the concurrent epoch resolved nested
+single-colour cascades in one lap, capping World 2's difficulty at Medium. That
+was a property of the retired arbitration engine, not of the current one — see
+§8.
 
 ## 5. Frozen — first implemented special mechanic
 
@@ -126,18 +145,17 @@ the ice-layer count (**production durability = 1**).
 3. If no ice remains: the pixel clears normally.
 4. **One encounter per pixel per charge-pass** — a `pickEncounter` `exclude` set
    / per-cursor `hitPixelIds` stop a charge cracking then clearing on the same
-   lap. A second hit (a later launch, a manual relaunch, or another charge in the
-   same epoch) does the clear.
+   lap. A second hit (any later launch or manual relaunch) does the clear.
 5. **Exposure is unchanged** — a Frozen cell (iced or thawed) is solid until the
    pixel itself clears; the flood fill never treats it as empty.
-6. The clockwise clear order and the deterministic concurrent arbitration
-   (`simulateEpoch`) are byte-for-byte as before; no two charges ever claim the
-   same pixel.
+6. The clockwise clear order is unchanged. Each launch is resolved once, in
+   launch order, against the committed board (FIRST LAUNCHED, FIRST SERVED), so
+   no two charges ever claim the same pixel — a contested pixel goes to the
+   earlier launch.
 
-Memo keys (`solver.stateKey`, `epoch.simKey`, `epoch.epochResidueKey`) encode ice
-layers via `boardFingerprint` — an iced pixel, a thawed-Frozen pixel and a plain
-uncleared pixel are `B`/`0`/`0` respectively, so a thawed Frozen pixel and a
-normal one collapse to the same state (correct) but an iced one never does.
+Memo keys (`solver.stateKey`, `epoch.simKey`) encode modifier state via
+`boardFingerprint`: cleared `C`, iced `F<layers>`, thawed Frozen `FB` (Shielded /
+Linked have their own tokens). Iced, thawed and plain pixels never alias.
 
 ### Frozen exposure / targeting (Part 9)
 
@@ -186,17 +204,41 @@ no other level shows it and it never re-appears.
 
 ## 6. Solver metrics summary
 
-- Batch solver + analysis, all 30 levels: **all solvable, complete**, node counts
-  16 – 18 407 (L5 is the search hotspot from its long combinatorial fail tree).
-- Sequential-compat and concurrent both solve every level; `heldRelaunches` on a
-  witness always equals the count of explicit `holding` actions (no implicit
-  relaunch anywhere).
-- `NO_FAIL_PATH` fires on most Medium levels: with a generous 3-slot tray and
-  the concurrent epoch, the solver can always find a non-losing line even though
-  the level demands careful sequencing. This is an advisory info/warn, not a gate
-  failure — noted for M4B (see §8).
+Current solver model (see `M2B_CONCURRENT_ORBITS.md` §8):
+
+- One canonical solve per level over **logical player choices** — one launch per
+  tunnel front and per held charge the runtime admits. Joins are not separate
+  branches.
+- Memo identity is the committed logical state (board progress, queues,
+  Holding); open-epoch presentation residue is not part of it.
+- A held-Pal relaunch that loops back to a state already on the line is a no-op,
+  not a losing choice; a state whose every choice is such a loop is a
+  deadlock / loss. `failPath` is always a real losing continuation.
+- `heldRelaunches` on a witness equals the count of explicit `holding` actions
+  (no implicit relaunch anywhere).
+- Difficulty: `concurrencyGap` is retired; the remaining weights intentionally
+  total 0.95 and are **not** renormalised until a dedicated recalibration.
+
+At M4A ship time (retired engine): all 30 levels solvable and complete, node
+counts 16 – 18 407 (L5 the hotspot from its long fail tree), and `NO_FAIL_PATH`
+firing on most Medium levels because the generous 3-slot tray always left a
+non-losing line. That warning is advisory, not a gate — noted for M4B (§8).
 
 ## 7. Validation
+
+### Testing philosophy (current)
+
+- **Campaign levels are content, not permanent engine regression fixtures.**
+  Engine invariants (launch ordering, no retroactive rewrite, caching, solver
+  loop / deadlock handling) are pinned with small **synthetic** fixtures.
+- **New mechanics / modifiers** get targeted regression tests of their own.
+- **Normal new levels** get structural validation (`batchValidate` /
+  `validateManifest`) plus solver / witness validation: solvable, and the
+  witness replays through the real runtime to a win.
+- **Broad all-campaign sweeps** are reserved for major engine-semantic changes
+  (such as the FIRST LAUNCHED, FIRST SERVED rewrite).
+
+### M4A ship-time results
 
 - `npx jest` — **45 suites / 582 tests, all pass** (was 454 at M3.6B: +13
   `frozen.test.ts`, +1 haptics `iceCrack`, +campaign frozen test, campaign tests
@@ -219,12 +261,12 @@ no other level shows it and it never re-appears.
 
 ## 8. Known risks / M4B work
 
-1. **Concurrency compresses non-nested difficulty.** The M2B 5-charge epoch
-   resolves nested single-colour cascades in one lap, so World 2's garden
-   creatures top out at Medium; only the concentric-ring finale (L20) and Frozen
-   (World 3) reliably reach Hard. Retune with real playtest fail/retry data in
-   M4B — likely by lowering `holdingCapacity` on select levels or adding a
-   second substantial colour to the flatter subjects.
+1. **Flat single-colour subjects top out at Medium.** At M4A this was blamed on
+   the M2B epoch resolving nested cascades in one lap; that arbitration no
+   longer exists (launches now resolve one at a time, in order), so re-measure
+   World 2 on the canonical solver before retuning. If they still read Medium,
+   retune with playtest fail/retry data — e.g. lower `holdingCapacity` on select
+   levels or add a second substantial colour to the flatter subjects.
 2. **`NO_FAIL_PATH` on Medium levels.** The 3-slot tray is forgiving; several
    Mediums have no losing line under optimal play. Acceptable for a first
    campaign; M4B may tighten budgets or trays.
