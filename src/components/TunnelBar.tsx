@@ -8,13 +8,12 @@ import Animated, {
   useReducedMotion,
   useSharedValue,
   withRepeat,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
 import type { Point } from '@/game/rendering/boardGeometry';
 import { ColorAssistMark } from '@/components/ColorAssistMark';
-import { flash, kick, shake, usePressDepth } from '@/components/gameplay/motionKit';
+import { flash, shake, usePressDepth } from '@/components/gameplay/motionKit';
 import { PixelPalFace } from '@/game/rendering/pixelPal/PixelPalFace';
 import { upcomingPreviewCount, visibleCharges } from '@/game/engine/selectors';
 import { isCoreV2 } from '@/game/engine/ruleset';
@@ -23,7 +22,9 @@ import { isTunnelHighlighted, isTunnelSubdued } from '@/game/presentation/tutori
 import type { TutorialView } from '@/game/tutorial';
 import { markContrast } from '@/theme/colorAssist';
 import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
-import { GAMEPLAY } from '@/theme/gameplayLayout';
+import {
+  BAY_PAD, GAMEPLAY, QUEUE_GAP, queueSizes, queueSlotMargin, queueSlotOpacity, queueSlotY,
+} from '@/theme/gameplayLayout';
 import { GP, GP_RADIUS, gpAlpha } from '@/theme/gameplayUi';
 import { GP_MOTION } from '@/theme/gameplayMotion';
 
@@ -41,11 +42,6 @@ interface TunnelBarProps {
   embedded?: boolean;
 }
 
-/** Bay padding around the ready Pal (pt). */
-const BAY_PAD = 7;
-/** How far queue chips tuck up under the bay / the chip in front (× queue size). */
-const TUCK_FIRST = 0.38;
-const TUCK_NEXT = 0.48;
 /**
  * Resting lip colour of a ready bay. Precomputed: `gpAlpha` is a plain JS
  * helper and must never be called inside a worklet (UI runtime).
@@ -58,10 +54,11 @@ const LIP_READY = gpAlpha(GP.cyan, 0.42);
  * ready Pal, with the next Pals feeding in below it; the hidden queue tail
  * stays in engine state.
  *
- * Interaction (all UI thread): touch-down compresses the bay; an accepted
- * launch flashes the bay's cyan lip, the bay rebounds and the next Pal slides
- * up into the seat while the queue slides up behind it; a refusal shakes the
- * bay — firmly with a danger lip when the rail is full, softly otherwise.
+ * Interaction (all UI thread): touch-down compresses the bay slightly; an
+ * accepted launch flashes the bay's cyan lip and the next Pal slides up into
+ * the seat while the queue follows behind it; a refusal shakes the bay
+ * horizontally — firmly with a danger lip when the rail is full, softly
+ * otherwise. The bay never moves vertically and never rebounds.
  */
 export const TunnelBar = memo(function TunnelBar({ state, disabled, blocked = false, colorAssist, onLaunch, onSourceLayout, layoutVersion, tutorial }: TunnelBarProps) {
   const charges = visibleCharges(state);
@@ -72,10 +69,6 @@ export const TunnelBar = memo(function TunnelBar({ state, disabled, blocked = fa
   const gap = charges.length >= 4 ? 6 : 10;
   const col = (inner - gap * Math.max(0, charges.length - 1)) / Math.max(1, charges.length);
   const readySize = Math.min(GAMEPLAY.readyPalMax, Math.max(GAMEPLAY.readyPalMin, Math.floor(col - 12)));
-  const queueSize = Math.min(
-    GAMEPLAY.queuePalMax,
-    Math.max(GAMEPLAY.queuePalMin, Math.round(readySize * 0.68)),
-  );
 
   return (
     <View style={[styles.row, { gap }]}>
@@ -92,7 +85,6 @@ export const TunnelBar = memo(function TunnelBar({ state, disabled, blocked = fa
           colorAssist={colorAssist}
           pixelPal={pixelPal}
           readySize={readySize}
-          queueSize={queueSize}
           onLaunch={onLaunch}
           onSourceLayout={onSourceLayout}
           layoutVersion={layoutVersion}
@@ -115,7 +107,7 @@ export const TunnelBar = memo(function TunnelBar({ state, disabled, blocked = fa
 ));
 
 const Tunnel = memo(function Tunnel({
-  index, tunnelId, charge, tunnel, upcoming, disabled, blocked, colorAssist, pixelPal, readySize, queueSize,
+  index, tunnelId, charge, tunnel, upcoming, disabled, blocked, colorAssist, pixelPal, readySize,
   onLaunch, onSourceLayout, layoutVersion, highlighted, subdued,
 }: {
   index: number;
@@ -128,7 +120,6 @@ const Tunnel = memo(function Tunnel({
   colorAssist?: boolean;
   pixelPal: boolean;
   readySize: number;
-  queueSize: number;
   onLaunch: (tunnelId: string) => boolean;
   onSourceLayout: (key: string, point: Point) => void;
   layoutVersion: number;
@@ -161,15 +152,11 @@ const Tunnel = memo(function Tunnel({
   }, [onSourceLayout, tunnelId]);
   useEffect(() => { measure(); }, [layoutVersion, measure]);
 
-  // Accepted launch → the front charge changes: rebound the bay.
-  const rebound = useSharedValue(0);
+  // Accepted launch changes the front charge. The bay itself stays put: the
+  // response is the lip flash plus the next Pal moving into the seat.
   const seenCharge = useRef<string | null>(charge?.id ?? null);
   const advanced = seenCharge.current !== null && seenCharge.current !== (charge?.id ?? null);
-  useEffect(() => {
-    const id = charge?.id ?? null;
-    if (seenCharge.current !== null && seenCharge.current !== id && !reducedMotion) kick(rebound, 1);
-    seenCharge.current = id;
-  }, [charge?.id, rebound, reducedMotion]);
+  useEffect(() => { seenCharge.current = charge?.id ?? null; }, [charge?.id]);
 
   const { depth, pressIn, pressOut } = usePressDepth();
   const lip = useSharedValue(0);
@@ -188,13 +175,14 @@ const Tunnel = memo(function Tunnel({
     if (!reducedMotion) shake(shakeX, blocked ? GP_MOTION.shakeFirm : GP_MOTION.shakeSoft);
   };
 
+  // Touch-down compression only: no vertical travel and no rebound, so the bay
+  // reads as fixed hardware. The refusal shake is horizontal, never a bob.
   const housingStyle = useAnimatedStyle(() => {
     const press = reducedMotion ? depth.value * 0.5 : depth.value;
     return {
       transform: [
         { translateX: shakeX.value },
-        { translateY: press * 1.5 - rebound.value * 3 },
-        { scale: 1 - press * 0.05 },
+        { scale: 1 - press * 0.04 },
       ],
     };
   });
@@ -220,8 +208,9 @@ const Tunnel = memo(function Tunnel({
   const ink = charge ? markContrast(charge.color) : null;
   const queue = Array.from({ length: upcoming }, (_, previewIdx) => tunnel?.queue[previewIdx + 1] ?? null);
   const bayH = readySize + BAY_PAD * 2;
+  const chipSizes = queueSizes(readySize, upcoming);
   // Distance from the first queue chip's centre up to the seat's centre.
-  const feedShift = bayH / 2 + queueSize * (0.5 - TUCK_FIRST) + 4;
+  const feedShift = bayH / 2 + QUEUE_GAP + (chipSizes[0] ?? 0) / 2;
 
   return (
     <Animated.View
@@ -259,7 +248,7 @@ const Tunnel = memo(function Tunnel({
               key={charge.id}
               charge={charge}
               size={readySize}
-              from={queueSize / readySize}
+              from={(chipSizes[0] ?? readySize) / readySize}
               shift={feedShift}
               animateIn={advanced}
               reducedMotion={reducedMotion}
@@ -281,7 +270,8 @@ const Tunnel = memo(function Tunnel({
               previewIdx={previewIdx}
               arriving={settled.current}
               upcoming={upcoming}
-              size={queueSize}
+              size={chipSizes[previewIdx] ?? 0}
+              sizes={chipSizes}
               pixelPal={pixelPal}
               reducedMotion={reducedMotion}
             />
@@ -316,9 +306,10 @@ const ReadySeat = memo(function ReadySeat({
   const t = useSharedValue(animateIn ? 0 : 1);
   useEffect(() => {
     if (!animateIn) return;
-    t.set(reducedMotion
-      ? withTiming(1, { duration: GP_MOTION.queueAdvanceReducedMs })
-      : withSpring(1, GP_MOTION.queueAdvanceSpring));
+    t.set(withTiming(1, {
+      duration: reducedMotion ? GP_MOTION.queueAdvanceReducedMs : GP_MOTION.queueAdvanceMs,
+      easing: Easing.out(Easing.cubic),
+    }));
     // Mount-only: the seat animates in once per charge.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -368,13 +359,15 @@ const ReadySeat = memo(function ReadySeat({
  * moves up a slot: it slides from where it was instead of snapping. A chip
  * that newly enters the visible preview scales/fades in.
  */
-const QueueChip = memo(function QueueChip({ charge, previewIdx, arriving, upcoming, size, pixelPal, reducedMotion }: {
+const QueueChip = memo(function QueueChip({ charge, previewIdx, arriving, upcoming, size, sizes, pixelPal, reducedMotion }: {
   charge: Charge;
   previewIdx: number;
   /** Mounted after the tunnel's first commit, i.e. it just entered the preview. */
   arriving: boolean;
   upcoming: number;
   size: number;
+  /** Every slot's size, so a chip moving up knows how far it travels. */
+  sizes: readonly number[];
   pixelPal: boolean;
   reducedMotion: boolean;
 }) {
@@ -386,14 +379,13 @@ const QueueChip = memo(function QueueChip({ charge, previewIdx, arriving, upcomi
     placedAt.current = previewIdx;
     if (reducedMotion) return;
     if (prev === null) {
-      if (arriving) enter.set(withSpring(1, GP_MOTION.queueAdvanceSpring));
+      if (arriving) enter.set(withTiming(1, { duration: GP_MOTION.queueAdvanceMs, easing: Easing.out(Easing.cubic) }));
     } else if (prev !== previewIdx) {
-      offset.set(slotY(prev, size) - slotY(previewIdx, size));
-      offset.set(withSpring(0, GP_MOTION.queueAdvanceSpring));
+      offset.set(queueSlotY(prev, sizes) - queueSlotY(previewIdx, sizes));
+      offset.set(withTiming(0, { duration: GP_MOTION.queueAdvanceMs, easing: Easing.out(Easing.cubic) }));
     }
-    // `arriving` is read at mount only.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewIdx, size, reducedMotion, offset, enter]);
+    // `arriving` is read at mount only; `sizes` only to measure this slot's move.
+  }, [previewIdx, size, sizes, arriving, reducedMotion, offset, enter]);
 
   const style = useAnimatedStyle(() => ({
     opacity: enter.value,
@@ -405,9 +397,9 @@ const QueueChip = memo(function QueueChip({ charge, previewIdx, arriving, upcomi
       style={[
         styles.queued,
         {
-          marginTop: -size * (previewIdx === 0 ? TUCK_FIRST : TUCK_NEXT),
+          marginTop: queueSlotMargin(previewIdx, size),
           zIndex: upcoming - previewIdx,
-          opacity: previewIdx === 0 ? 0.84 : 0.62,
+          opacity: queueSlotOpacity(previewIdx),
         },
       ]}
     >
@@ -436,13 +428,6 @@ const QueueChip = memo(function QueueChip({ charge, previewIdx, arriving, upcomi
     </Animated.View>
   );
 });
-
-/** Top of queue slot `i` inside the queue column (matches the tuck margins). */
-function slotY(i: number, size: number): number {
-  let y = -size * TUCK_FIRST;
-  for (let k = 1; k <= i; k++) y += size - size * TUCK_NEXT;
-  return y;
-}
 
 const styles = StyleSheet.create({
   row: {
@@ -511,7 +496,6 @@ const styles = StyleSheet.create({
   },
   queue: {
     alignItems: 'center',
-    marginTop: 4,
     zIndex: 5,
   },
   queued: {

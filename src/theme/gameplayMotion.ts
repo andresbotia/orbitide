@@ -12,11 +12,15 @@ export const GP_MOTION = {
   pressInMs: 55,
   pressSpring: { damping: 15, stiffness: 320 },
 
-  /** Accepted tunnel launch: lip energy flash, bay rebound, queue advance. */
+  /**
+   * Accepted tunnel launch: lip energy flash, then the queue advances.
+   * Device QA — the bay itself no longer moves vertically and the advance is a
+   * plain ease-out, not a spring: springs read as bobbing on an already busy
+   * screen (ACTION -> RESPONSE -> SETTLE, never bounce-bounce-settle).
+   */
   lipRiseMs: 50,
   lipFallMs: 220,
-  bayRebound: { damping: 12, stiffness: 300 },
-  queueAdvanceSpring: { damping: 16, stiffness: 260 },
+  queueAdvanceMs: 170,
   queueAdvanceReducedMs: 90,
 
   /** Refusals. `firm` = ACTIVE full, `soft` = any other reason. */

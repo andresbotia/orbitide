@@ -11,6 +11,7 @@ beforeEach(() => { jest.useFakeTimers(); jest.setSystemTime(0); jest.clearAllMoc
 afterEach(() => { cancelPendingHaptics(); feedback.setSoundHandler(null); jest.useRealTimers(); });
 test.each([
   ['select', 'medium'], ['heldRelaunch', 'rigid'], ['denied', 'light'], ['orbitEnter', 'light'],
+  ['tunnelLaunch', 'heavy'],
   ['pixelPop', 'rigid'], ['pixelCombo', 'medium'], ['pixelBurst', 'heavy'],
   ['iceCrack', 'light'], ['shieldBreak', 'light'], ['chargeConsumed', 'medium'], ['holdingLand', 'rigid'],
   ['finalClear', 'heavy'], ['nextPress', 'medium'], ['gateLock', 'rigid'],
@@ -79,4 +80,48 @@ test('native feedback or optional sound failure cannot throw into gameplay', () 
   (Native.impactAsync as jest.Mock).mockImplementationOnce(() => { throw new Error('unavailable'); });
   feedback.setSoundHandler(() => { throw new Error('audio unavailable'); });
   expect(() => feedback.emit('select')).not.toThrow();
+});
+
+describe('tunnel launch cue (device QA)', () => {
+  test('is a stronger impact than an ordinary selection or a refusal', () => {
+    const weight = (fn: () => void) => {
+      jest.clearAllMocks();
+      jest.setSystemTime(Date.now() + 1000);
+      fn();
+      return (Native.impactAsync as jest.Mock).mock.calls[0]?.[0];
+    };
+    const order = ['light', 'soft', 'medium', 'rigid', 'heavy'];
+    const denied = weight(haptics.denied);
+    const launch = weight(haptics.tunnelLaunch);
+    const select = weight(haptics.select);
+    expect(order.indexOf(launch)).toBeGreaterThan(order.indexOf(denied));
+    expect(order.indexOf(launch)).toBeGreaterThan(order.indexOf(select));
+  });
+
+  test('ACTIVE-full refusal stays a distinct, more severe family (notification, not impact)', () => {
+    jest.clearAllMocks();
+    haptics.activeFull();
+    expect(Native.notificationAsync).toHaveBeenCalledWith('error');
+    expect(Native.impactAsync).not.toHaveBeenCalled();
+  });
+
+  test('one tap fires exactly one cue, and its own throttle stops a double-fire', () => {
+    jest.clearAllMocks();
+    haptics.tunnelLaunch();
+    haptics.tunnelLaunch();
+    expect(Native.impactAsync).toHaveBeenCalledTimes(1);
+    // A genuinely separate launch a moment later still fires.
+    jest.setSystemTime(Date.now() + 100);
+    haptics.tunnelLaunch();
+    expect(Native.impactAsync).toHaveBeenCalledTimes(2);
+  });
+
+  test('its throttle key is its own — a Holding relaunch never swallows it', () => {
+    jest.clearAllMocks();
+    haptics.heldRelaunch();
+    haptics.tunnelLaunch();
+    expect(Native.impactAsync).toHaveBeenCalledTimes(2);
+    expect(Native.impactAsync).toHaveBeenNthCalledWith(1, 'rigid');
+    expect(Native.impactAsync).toHaveBeenNthCalledWith(2, 'heavy');
+  });
 });

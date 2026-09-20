@@ -29,8 +29,11 @@ export function shake(value: SharedValue<number>, keyframes: readonly number[], 
   value.set(withSequence(first, ...rest));
 }
 
-/** Jump to `peak`, spring back to 0 — a dip/rebound. */
-export function kick(value: SharedValue<number>, peak = 1, spring: { damping: number; stiffness: number } = GP_MOTION.bayRebound): void {
+/**
+ * Jump to `peak`, spring back to 0 — a dip. Only for controls that should
+ * feel physically pushed (Holding wells); tunnels deliberately do not bob.
+ */
+export function kick(value: SharedValue<number>, peak: number, spring: { damping: number; stiffness: number }): void {
   cancelAnimation(value);
   value.set(withSequence(
     withTiming(peak, { duration: 60, easing: Easing.out(Easing.cubic) }),

@@ -42,6 +42,7 @@ function successThenHeavyBloom() {
  * no event below is rewired to any new UI this milestone).
  *
  *   micro     select, orbitEnter, denied            — navigation/selection ticks
+ *   launch    tunnelLaunch                           — accepted tunnel launch (Heavy impact)
  *   refusal   activeFull                             — tap refused, ACTIVE full (Error notification)
  *   light     iceCrack, shieldBreak                  — small, frequent board events
  *   medium    heldRelaunch, pixelPop, pixelCombo,     — routine confirmed actions
@@ -61,6 +62,16 @@ function successThenHeavyBloom() {
  */
 export const haptics = {
   select: () => throttled('press', 80, () => impact(Haptics.ImpactFeedbackStyle.Medium)),
+  /**
+   * Accepted tunnel launch — the game's signature deliberate action, so it is
+   * the strongest IMPACT cue (device QA: the shared `select` Medium read as
+   * too weak). Still below the ACTIVE-full refusal, which is the Error
+   * NOTIFICATION cue: impact vs notification keeps success and failure
+   * unmistakably different families, not just different strengths.
+   * Its own throttle key, so tapping several tunnels in a row fires each one
+   * without another cue swallowing it, and one tap can never double-fire.
+   */
+  tunnelLaunch: () => throttled('launch', 80, () => impact(Haptics.ImpactFeedbackStyle.Heavy)),
   // Own throttle key: a tunnel tap must never swallow a Holding relaunch (or vice versa).
   heldRelaunch: () => throttled('held', 80, () => impact(Haptics.ImpactFeedbackStyle.Rigid)),
   // Rail full — a light, restrained "not now" tap (spec §19).

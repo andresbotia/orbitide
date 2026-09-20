@@ -41,8 +41,13 @@ function finish(passId = session.flights[session.flights.length - 1]!.passId) {
 test('press acknowledges immediately, with no JS animation timers', () => {
   const root = mount();
   act(() => { session.launch('tunnel-0'); });
-  expect(feedback.emit).toHaveBeenCalledWith('select');
+  // One haptic cue on the tap (the dedicated tunnel-launch impact), plus the
+  // sound-only `launch` hook. Rail entry adds no second cue.
+  expect(feedback.emit).toHaveBeenCalledWith('tunnelLaunch');
   expect(feedback.emit).toHaveBeenCalledWith('launch', { haptic: false });
+  const hapticCues = (feedback.emit as jest.Mock).mock.calls
+    .filter(([, meta]) => meta === undefined || meta?.haptic !== false);
+  expect(hapticCues).toEqual([['tunnelLaunch']]);
   expect(session.engineState.movesApplied).toBe(1);
   expect(session.flights).toHaveLength(1);
   expect(jest.getTimerCount()).toBe(0);

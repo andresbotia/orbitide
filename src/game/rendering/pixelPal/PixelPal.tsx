@@ -10,25 +10,41 @@ import Animated, {
 import type { FlightPass } from '@/game/presentation/events';
 import { holdingHandoffOpacity } from '@/game/presentation/motion';
 import { orbColors } from '@/theme/colors';
-import { GAMEPLAY } from '@/theme/gameplayLayout';
+import { activePalBadge, GAMEPLAY } from '@/theme/gameplayLayout';
 import { GP_MOTION } from '@/theme/gameplayMotion';
 import { homeAlpha } from '@/theme/homeV2';
 import type { BoardGeometry } from '../boardGeometry';
 import { flightPose } from '../flightGeometry';
 import { AnimatedCount } from './AnimatedCount';
-import { PixelPalBadge, PixelPalShell, PixelPalVisor } from './PixelPalFace';
+import { PixelPalShell, PixelPalVisor } from './PixelPalFace';
+import { GP, gpAlpha } from '@/theme/gameplayUi';
 
 /** How long after launch the wind-up squash reads (ms). */
 const LAUNCH_SQUASH_MS = 160;
+/** TUNABLE — how long the count plate takes to leave once the Pal is spent. */
+const BADGE_FADE_MS = 120;
+/** Plate anchor, as a fraction of Pal size from its centre (lower-right). */
+const BADGE_AT = { x: 0.34, y: 0.3 };
+/** Draw order across every flight: badges above visors above shells. */
+const Z_SHELL = 1;
+const Z_VISOR = 2;
+const Z_BADGE = 3;
 
 /**
- * Core V2 traveling Pixel Pal. Shell banks with travel; visor + count badge
- * stay upright so the face and remaining-count never read upside down.
+ * Core V2 traveling Pixel Pal. Shell banks with travel; visor stays upright so
+ * the face never reads upside down.
  * No halo — silhouette, shell material, and a contact shadow do the separation.
+ *
+ * The remaining-count plate is its own top-level layer (device QA): it is
+ * positioned straight from board coordinates rather than riding inside the
+ * visor box, so it cannot be clipped by that box, never inherits the shell's
+ * rotation or its squash/recoil/burst scaling, and — via `zIndex` — always
+ * draws above every other Pal's shell instead of being covered by the Pal
+ * behind it in a convoy.
  *
  * Everything below is one derived value off the pass clock (no React state,
  * no per-hit render): lift squash + a short launch trail until rail entry,
- * shot recoil, the count badge's tick on each hit, and the terminal pop/fade.
+ * shot recoil, the count plate's tick on each hit, and the terminal pop/fade.
  */
 export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssist, laneOffset = 0 }: {
   layout: BoardGeometry; pass: FlightPass; clock: SharedValue<number>; colorAssist?: boolean;
@@ -43,6 +59,15 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
   // continuation, not a swap between two different-sized Pals.
   const trayScale = GAMEPLAY.holdingPal / size;
   const reducedMotion = useReducedMotion();
+
+  // Count plate geometry, resolved on the JS side (the plate only ever shrinks
+  // its value, so the launch count sizes it for the whole flight).
+  const badge = activePalBadge(size);
+  const digits = String(Math.max(0, pass.charge.capacity)).length;
+  const plateW = Math.max(badge.height, badge.fontSize * digits * 0.7 + 10);
+  const plateH = badge.height;
+  // The beat this Pal is spent: its plate leaves as the terminal burst starts.
+  const spentAt = pass.shots.find((shot) => shot.remaining <= 0)?.clearAt ?? Number.POSITIVE_INFINITY;
 
   const motionState = useDerivedValue(() => {
     const t = clock.value;
@@ -75,8 +100,13 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
     const s = pose.landing ?? 0;
     const grow = 1 + (trayScale - 1) * (s < 0.5 ? 2 * s * s : 1 - (-2 * s + 2) ** 2 / 2);
 
+    const spent = t - spentAt;
+    const badgeVis = spent < 0 ? 1 : Math.max(0, 1 - spent / BADGE_FADE_MS);
+
     return {
       x: pose.x, y: pose.y, heading, bank,
+      grow,
+      badgeVis,
       scaleX: (1 - launchSquash - recoil) * popScale * grow,
       scaleY: (1 + launchSquash + recoil * 0.6) * popScale * grow,
       opacity,
@@ -116,13 +146,23 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
     const v = reducedMotion ? 0 : motionState.value.trail;
     return { opacity: v * 0.5, transform: [{ scaleY: 0.4 + v * 0.6 }] };
   });
-  const badgeStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: reducedMotion ? 1 : 1 + motionState.value.tick * GP_MOTION.badgeTickScale }],
-  }));
+  // Upright by construction: translation + scale only, never the shell's
+  // rotation, bank, squash or burst pop.
+  const badgeStyle = useAnimatedStyle(() => {
+    const m = motionState.value;
+    return {
+      opacity: m.opacity * m.badgeVis,
+      transform: [
+        { translateX: m.x + size * BADGE_AT.x * m.grow - plateW / 2 },
+        { translateY: m.y + size * BADGE_AT.y * m.grow - plateH / 2 },
+        { scale: (reducedMotion ? 1 : 1 + m.tick * GP_MOTION.badgeTickScale) * m.grow },
+      ],
+    };
+  });
 
   return (
     <>
-      <Animated.View pointerEvents="none" style={[styles.wrap, { width: size, height: size }, shellStyle]}>
+      <Animated.View pointerEvents="none" style={[styles.wrap, { width: size, height: size, zIndex: Z_SHELL }, shellStyle]}>
         {/* Launch trail: behind the shell (its local "down") until rail entry. */}
         <Animated.View
           pointerEvents="none"
@@ -154,13 +194,43 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
         pointerEvents="none"
         accessible
         accessibilityLabel={`Pixel Pal, ${pass.charge.color} Pal, capacity ${pass.charge.capacity}`}
-        style={[styles.wrap, { width: size, height: size, overflow: 'visible' }, visorStyle]}
+        style={[styles.wrap, { width: size, height: size, overflow: 'visible', zIndex: Z_VISOR }, visorStyle]}
       >
         <PixelPalVisor size={size} mood="focused" />
-        {/* Sized for the launch count (it only falls); the digits run on the UI thread. */}
-        <PixelPalBadge palSize={size} color={pass.charge.color} text={String(pass.charge.capacity)} active animatedStyle={badgeStyle}>
-          <AnimatedCount palSize={size} pass={pass} clock={clock} active />
-        </PixelPalBadge>
+      </Animated.View>
+
+      {/* Remaining count. Own layer, upright, above every shell on the board. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.wrap,
+          {
+            width: plateW,
+            height: plateH,
+            borderRadius: Math.min(7, plateH * 0.3),
+            backgroundColor: GP.canvas,
+            borderWidth: 1.5,
+            borderColor: orbColors[pass.charge.color],
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: Z_BADGE,
+          },
+          badgeStyle,
+        ]}
+      >
+        {/* Dark keyline so the plate separates from busy pixel art. */}
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: -3.5, left: -3.5, right: -3.5, bottom: -3.5,
+            borderRadius: Math.min(7, plateH * 0.3) + 3.5,
+            borderWidth: 1.5,
+            borderColor: gpAlpha(GP.canvas, 0.85),
+          }}
+        />
+        {/* Digits run on the UI thread — no React commit per hit. */}
+        <AnimatedCount palSize={size} pass={pass} clock={clock} active />
       </Animated.View>
     </>
   );

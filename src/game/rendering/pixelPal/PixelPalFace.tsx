@@ -1,8 +1,7 @@
 import { memo, type ReactNode } from 'react';
 import { useEffect } from 'react';
-import { StyleSheet, Text, type TextStyle, View, type ViewStyle } from 'react-native';
+import { StyleSheet, Text, type TextStyle, View } from 'react-native';
 import Animated, {
-  type AnimatedStyle,
   cancelAnimation,
   Easing,
   useAnimatedStyle,
@@ -17,6 +16,7 @@ import Animated, {
 import { ColorAssistMark } from '@/components/ColorAssistMark';
 import type { OrbColor } from '@/game/engine/types';
 import { orbColors } from '@/theme/colors';
+import { activePalBadge } from '@/theme/gameplayLayout';
 
 /** North-star character pass — a Pixel Pal's momentary expression. Kept to
  * three cheap states, never a full animation framework:
@@ -37,9 +37,6 @@ const DETAIL_FLOOR = 28;
 /** Full count plate at this size and above; numeral-only below; hidden at {@link BADGE_HIDE}. */
 const BADGE_PLATE = 34;
 const BADGE_HIDE = 22;
-/** Active (in-flight) badge floor: always plated, never smaller than this (pt). */
-const ACTIVE_BADGE_MIN_HEIGHT = 14;
-const ACTIVE_BADGE_MIN_FONT = 9.5;
 const BADGE_FILL = 'rgba(0, 23, 66, 0.92)';
 
 export const PixelPalShell = memo(function PixelPalShell({ color, size, colorAssist }: { color: OrbColor; size: number; colorAssist?: boolean }) {
@@ -264,12 +261,12 @@ export const PixelPalVisor = memo(function PixelPalVisor({ size, mood = 'calm', 
  * Badge geometry. Resting Pals (tunnel, tray) follow the size ladder; an
  * `active` Pal on the rail always gets a compact plate — over a busy pixel
  * board a bare outlined numeral at ~8pt is effectively unreadable.
+ *
+ * `PixelPal` draws the active plate itself (own layer, upright, unclipped);
+ * these metrics stay the single source of truth for its size and numeral.
  */
 function badgeMetrics(palSize: number, active: boolean): { plate: boolean; height: number; fontSize: number } {
-  if (active) {
-    const height = Math.max(ACTIVE_BADGE_MIN_HEIGHT, palSize * 0.4);
-    return { plate: true, height, fontSize: Math.max(ACTIVE_BADGE_MIN_FONT, height * 0.66) };
-  }
+  if (active) return { plate: true, ...activePalBadge(palSize) };
   const height = palSize * 0.34;
   return { plate: palSize > BADGE_PLATE, height, fontSize: Math.max(8, height * 0.62) };
 }
@@ -299,8 +296,6 @@ interface PixelPalBadgeProps {
   children?: ReactNode;
   /** In-flight Pal: always the compact plate (see {@link badgeMetrics}). */
   active?: boolean;
-  /** UI-thread style (the in-flight count tick). */
-  animatedStyle?: AnimatedStyle<ViewStyle>;
 }
 
 /**
@@ -308,7 +303,7 @@ interface PixelPalBadgeProps {
  * Resting: ≤34pt numeral only with a navy outline, ≤22pt hidden (color carries
  * identity). Active (on the rail): always a compact plate, at any size.
  */
-export const PixelPalBadge = memo(function PixelPalBadge({ palSize, color, text, children, active = false, animatedStyle }: PixelPalBadgeProps) {
+export const PixelPalBadge = memo(function PixelPalBadge({ palSize, color, text, children, active = false }: PixelPalBadgeProps) {
   if (!active && palSize <= BADGE_HIDE) return null;
   const { plate, height, fontSize } = badgeMetrics(palSize, active);
   const digits = text?.length ?? 2;
@@ -335,9 +330,9 @@ export const PixelPalBadge = memo(function PixelPalBadge({ palSize, color, text,
   }
 
   return (
-    <Animated.View
+    <View
       pointerEvents="none"
-      style={[{
+      style={{
         position: 'absolute',
         right: -overlap,
         bottom: -height * 0.12,
@@ -350,10 +345,10 @@ export const PixelPalBadge = memo(function PixelPalBadge({ palSize, color, text,
         borderColor: orbColors[color],
         alignItems: 'center',
         justifyContent: 'center',
-      }, animatedStyle]}
+      }}
     >
       {numeral}
-    </Animated.View>
+    </View>
   );
 });
 

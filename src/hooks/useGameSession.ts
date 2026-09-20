@@ -260,8 +260,10 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
       return false;
     }
     setMessage('');
-    // Light/selection haptic immediately on accepted Pal interaction.
-    feedback.emit(action.kind === 'holding' ? 'heldRelaunch' : 'select');
+    // Exactly one haptic on an accepted Pal interaction, on the tap itself: a
+    // tunnel launch gets the strong dedicated cue, a Holding relaunch keeps its
+    // own. Rail entry (`orbitEnter`) stays sound-only, so there is no second buzz.
+    feedback.emit(action.kind === 'holding' ? 'heldRelaunch' : 'tunnelLaunch');
     feedback.emit('launch', { haptic: false });
     truth.current = outcome.state;
     if (holdingSlots) holdingSlotsRef.current = holdingSlots;
