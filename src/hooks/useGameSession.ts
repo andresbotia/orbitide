@@ -66,7 +66,7 @@ function lifecycleProblem(message: string): void {
 }
 
 /** Why a tap was refused. Presentation reads this; it never re-derives rules. */
-export type LaunchDenialReason = 'activeFull' | 'noTargets' | 'unavailable' | 'inFlight' | 'tutorial';
+export type LaunchDenialReason = 'activeFull' | 'unavailable' | 'inFlight' | 'tutorial' | 'gameOver';
 export interface LaunchDenial { reason: LaunchDenialReason; /** Increments per denied tap. */ seq: number }
 
 export interface GameSession {
@@ -223,7 +223,15 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
   }, []);
 
   const perform = useCallback((action: GameAction, from?: Point, holdingSlots?: (Point | undefined)[]): boolean => {
-    if (truth.current.status !== 'playing') return false;
+    // Engine truth has already decided this level (a Holding overflow decides
+    // the loss at launch time, a full lap before the rejecting Pal reaches the
+    // GateTerminal and the loss is presented). The board still LOOKS playable
+    // for that whole window, so the tap must be refused out loud — returning
+    // bare `false` here is what made taps vanish on device.
+    if (truth.current.status !== 'playing') {
+      deny('gameOver');
+      return false;
+    }
     if (!isTutorialActionAllowed(tutorialRef.current, action)) {
       deny('tutorial');
       return false;
@@ -250,9 +258,6 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
       if (outcome.rejection === 'activeSlotsFull') {
         setMessage('Rail is full — wait for a Pal to land.');
         deny('activeFull');
-      } else if (outcome.rejection === 'noTargets') {
-        setMessage('No exposed matching pixels yet.');
-        deny('noTargets');
       } else {
         setMessage('That Pal is no longer available.');
         deny('unavailable');

@@ -329,7 +329,7 @@ const Well = memo(function Well({
       accessibilityLabel={charge
         ? `Relaunch ${orbLabel[charge.color]} Pal, capacity ${charge.capacity}`
         : `Holding slot ${index + 1}, empty`}
-      accessibilityHint={useful ? 'Tap to launch again' : 'No exposed matching pixels yet'}
+      accessibilityHint={useful ? 'Tap to launch again' : 'Tap to launch again. No matching pixel is exposed yet'}
       style={subdued ? styles.socketSubdued : null}
     >
       <Animated.View style={[styles.socket, charge ? styles.socketOccupied : null, { borderColor: rimColor }, wellStyle]}>
@@ -401,10 +401,12 @@ const HeldPal = memo(function HeldPal({
 
   const ink = markContrast(charge.color);
 
+  // Every held Pal may be relaunched now, so none is drawn as disabled.
+  // `selected` is the positive hint instead: this one has an exposed match.
   return (
     <Animated.View style={[styles.heldPal, subdued && styles.socketSubdued, style]}>
       {pixelPal ? (
-        <View style={{ opacity: useful ? 1 : 0.65 }}>
+        <View>
           <PixelPalFace
             color={charge.color}
             size={PAL}
@@ -415,7 +417,7 @@ const HeldPal = memo(function HeldPal({
           />
         </View>
       ) : (
-        <View style={[styles.orb, { backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color], opacity: useful ? 1 : 0.65 }]}>
+        <View style={[styles.orb, { backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color] }]}>
           <View style={styles.orbGloss} />
           <Text
             style={[

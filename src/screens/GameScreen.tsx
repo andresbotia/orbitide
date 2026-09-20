@@ -266,22 +266,30 @@ export function GameScreen({
     });
   }, []);
 
+  // Which held Pals read as useful. This MUST be computed from engine truth,
+  // not from the presented board: admission (`actionRejection`) runs against
+  // truth, and presentation lags it by up to a full lap while Pals are in the
+  // air. Reading the presented board let the tray show a Pal as usable that the
+  // engine would refuse (and dim one it would accept) — on Legacy V1, where a
+  // held relaunch is only legal with an exposed matching target, that made the
+  // affordance an outright lie. Measured: 22 disagreements in a 1,179-tap fuzz.
+  const truthState = session.engineState;
   const usefulIds = useMemo(() => {
     if (holding.length === 0) return EMPTY_USEFUL_IDS;
-    if (isCoreV2(state.ruleset)) {
+    if (isCoreV2(truthState.ruleset)) {
       const colors = new Set<string>();
-      for (const p of state.pixels) {
+      for (const p of truthState.pixels) {
         if (!p.cleared) colors.add(p.color);
       }
       return new Set(holding.filter((c) => colors.has(c.color)).map((c) => c.id));
     }
     // Render-only reachability: presented states must not fill the engine's shape cache.
-    const mask = renderExteriorMask(state);
-    const colors = new Set(state.pixels.filter((p) => !p.cleared && isPixelReachable(mask, p)).map((p) => p.color));
+    const mask = renderExteriorMask(truthState);
+    const colors = new Set(truthState.pixels.filter((p) => !p.cleared && isPixelReachable(mask, p)).map((p) => p.color));
     return new Set(holding.filter((c) => colors.has(c.color)).map((c) => c.id));
-  // View state is a new object on every shot; pixels/holding are the inputs that matter.
+  // Truth's pixels/holding are the inputs that matter; the object identity changes per launch.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.pixels, holding, state.width, state.height, state.ruleset]);
+  }, [truthState.pixels, holding, truthState.width, truthState.height, truthState.ruleset]);
   const next = nextLevelId(levelId);
   const gameplayReady = (
     boardPainted && boardBox.width > 0 && boardSize > 0 && tutorials.ready
@@ -304,12 +312,22 @@ export function GameScreen({
   }, [next, onAdvance, exitFade, reducedMotion]);
   const total = state.pixels.length;
   const cleared = total - remainingPixelCount(state);
-  // M2B: launching is allowed while charges orbit. Only a finished level
-  // (presented or already decided in truth) disables the controls; a full rail
-  // only makes them LOOK blocked, so a tap there reaches the session and gets
-  // its "rail is full" refusal feedback instead of silently doing nothing.
-  const controlsLocked = state.status !== 'playing' || session.engineState.status !== 'playing';
-  const railFull = !controlsLocked && !session.canLaunch;
+  // M2B: launching is allowed while charges orbit. Controls are disabled only
+  // once the player can SEE the level is over; a full rail only makes them LOOK
+  // blocked, so a tap there reaches the session and gets its "rail is full"
+  // refusal instead of silently doing nothing.
+  //
+  // Device QA: this used to also lock on `engineState.status`, which is decided
+  // a full lap before the loss is presented (a Holding overflow decides at
+  // launch time). For those seconds the board looked playable but every
+  // Pressable was disabled, so taps produced nothing at all — no launch, no
+  // refusal, no haptic. The session still refuses those taps; now they reach it
+  // and are answered (`gameOver`).
+  const resultPending = state.status === 'playing' && session.engineState.status !== 'playing';
+  const controlsLocked = state.status !== 'playing';
+  // Strictly "the rail is full" — never a stand-in for any other refusal, so a
+  // pending result cannot masquerade as capacity pressure.
+  const railFull = !controlsLocked && !resultPending && session.activeCount >= session.activeCapacity;
   const capacityRefusalSeq = session.lastDenial?.reason === 'activeFull' ? session.lastDenial.seq : 0;
 
   return (

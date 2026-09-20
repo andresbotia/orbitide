@@ -1,13 +1,56 @@
-import { legalActions } from './actions';
-import { activeSlotCount } from './epoch';
-import { resolvePass } from './pass';
+import { legalActions, type GameAction } from './actions';
+import { resolveEpochLaunch } from './epoch';
 import { remainingPixelCount } from './pixels';
-import { isCoreV2 } from './ruleset';
-import type { GameState, GameStatus } from './types';
+import type { Charge, GameState, GameStatus } from './types';
+
 export function isWon(state: GameState): boolean { return remainingPixelCount(state) === 0; }
+
 /**
- * Runtime deadlock: the picture is not cleared and there is no admitted player
- * action left that can still change it.
+ * Whether an admitted action can still change the committed logical state —
+ * the board, the tunnel queues or Holding's contents. One definition for both
+ * rulesets; it is what keeps "the level is still alive" honest now that a held
+ * Pal may relaunch with nothing to hit.
+ *
+ *  - A TUNNEL launch always consumes its front charge, so a finite queue
+ *    advances toward empty. Always productive, no simulation needed.
+ *  - A HOLDING relaunch is productive only if its lap actually meets
+ *    something (a clear, an ice/shield crack, a linked prime — every one of
+ *    those changes the board fingerprint). A Pal that meets nothing parks
+ *    straight back with the same remaining capacity: same pixels, same
+ *    tunnels, same Holding contents. That is a no-op loop, and no number of
+ *    repetitions can ever make it one.
+ *
+ * Holding ORDER is deliberately not part of "changed": a no-op relaunch moves
+ * the Pal to the back of the tray, which changes nothing about what the player
+ * can do next. Committed logical state only — never presentation.
+ */
+export function isProductiveAction(state: GameState, action: GameAction): boolean {
+  if (action.kind === 'tunnel') return true;
+  const charge = state.holding.find((c) => c.id === action.id);
+  return charge !== undefined && heldRelaunchMeetsSomething(state, charge);
+}
+
+/**
+ * Resolve a settle-first relaunch of `charge` with the same function real
+ * launches use, so the deadlock check and the actual outcome can never
+ * disagree (and share its memo).
+ */
+function heldRelaunchMeetsSomething(state: GameState, charge: Charge): boolean {
+  const { charge: resolved } = resolveEpochLaunch(state, {
+    chargeId: charge.id,
+    source: 'holding',
+    originId: charge.id,
+    color: charge.color,
+    capacity: charge.capacity,
+    launchSequence: state.movesApplied,
+    insertionTime: 0,
+  });
+  return resolved.encounters.length > 0;
+}
+
+/**
+ * Runtime deadlock: the picture is not cleared and nothing the player may do
+ * can still change it.
  *
  * Joins need no separate look: `candidateActions` only ever offers a
  * `join: true` launch next to its settle-first twin, and `actionRejection`
@@ -15,44 +58,32 @@ export function isWon(state: GameState): boolean { return remainingPixelCount(st
  * *any* move exists. (Under FIRST LAUNCHED, FIRST SERVED it cannot change the
  * outcome either: a join resolves exactly like launching after the rail settles.)
  *
- * Every action `legalActions` returns is progress-making, so "a legal action
- * exists" and "the board can still change" are the same test here:
- *   - a tunnel launch always consumes the visible charge, advancing a finite
- *     queue toward emptiness (even a launch that clears nothing);
- *   - a Legacy V1 held relaunch is only admitted with a matching *reachable*
- *     target (`actionRejection`), so its pass always clears or cracks at least
- *     one pixel;
- *   - Frozen ice is finite, so crack→…→clear on any one pixel terminates.
+ * Two ways to be lost, one concept:
+ *   1. no admitted action at all;
+ *   2. every admitted action is a no-op loop ({@link isProductiveAction}).
  *
- * Core V2 terminal deadlock:
- * When ruleset === coreV2, every tunnel queue is empty, and activeCount === 0,
- * evaluate each held charge against the CURRENT board using real Core V2 pass
- * simulation. If no held charge can produce board progress (pixel clear,
- * modifier break/prime), the state is lost.
+ * (2) used to be Core V2-only, and was written so narrowly — tunnels empty AND
+ * no active slots AND no active charges — that it could not fire once a level
+ * was under way, because `commitLaunch` always leaves `activeCharges` set.
+ * Legacy V1 leaned on its held-relaunch `noTargets` admission rule instead, so
+ * that "a legal action exists" implied "the board can still change". That rule
+ * is gone (a full tray must always be escapable), so this check now carries it
+ * for BOTH rulesets, and matches how the solver already treats a move that
+ * returns to a state already on its line.
+ *
+ * Cost: while any tunnel still holds a Pal there is a productive action by
+ * construction, so the simulation below only runs on tunnel-empty states, and
+ * it reuses the launch memo when it does.
  */
 export function isLost(state: GameState): boolean {
   if (state.status === 'lost') return true;
   if (isWon(state)) return false;
   const playing: GameState = { ...state, status: 'playing' };
-  if (legalActions(playing).length === 0) return true;
-
-  if (
-    isCoreV2(state.ruleset)
-    && state.tunnels.every((t) => t.queue.length === 0)
-    && activeSlotCount(state) === 0
-    && (state.activeCharges?.length ?? 0) === 0
-  ) {
-    const hasProgressMakingHeldCharge = state.holding.some((heldCharge) => {
-      const pass = resolvePass(state, heldCharge);
-      return pass.encounters.length > 0;
-    });
-    if (!hasProgressMakingHeldCharge) {
-      return true;
-    }
-  }
-
-  return false;
+  const actions = legalActions(playing);
+  if (actions.length === 0) return true;
+  return !actions.some((action) => isProductiveAction(playing, action));
 }
+
 export function computeStatus(state: GameState): GameStatus {
   if (state.status === 'lost') return 'lost';
   return isWon(state) ? 'won' : isLost(state) ? 'lost' : 'playing';

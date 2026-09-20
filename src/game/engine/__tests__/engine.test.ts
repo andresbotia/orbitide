@@ -2,7 +2,7 @@ import { createGame, restartGame } from '../createGame';
 import { resolveLaunch, resolveAction } from '../resolveLaunch';
 import { resolveHoldingLaunch } from '../resolveHolding';
 import { legalActions, actionRejection } from '../actions';
-import { computeStatus } from '../winState';
+import { computeStatus, isProductiveAction } from '../winState';
 import { reachablePixels } from '../pixels';
 import type { GameState, LevelDefinition } from '../types';
 const level: LevelDefinition = { id: 900, title: 'Rules', themeId: 'test', difficulty: 'easy', holdingCapacity: 3,
@@ -42,12 +42,18 @@ test('buried color parks; exposure changes never auto-relaunch it', () => {
   expect(result.state.holding).toEqual([]);
   expect(result.state.status).toBe('won');
 });
-test('a held charge with no targets is rejected with clear reason and no mutation', () => {
+test('a held charge with no exposed target is admitted (it may miss this lap)', () => {
+  // Approved semantics change: a buried colour no longer traps its Pal in
+  // Holding. Relaunching is the player's way out of a full tray, and board
+  // exposure changes while a Pal travels, so "exposed at this exact frame" was
+  // never the right question. A miss simply parks the Pal again.
   const state = resolveLaunch(createGame(level), 'tunnel-1').state;
-  const result = resolveHoldingLaunch(state, state.holding[0]!.id);
-  expect(result.accepted).toBe(false);
-  expect(result.rejection).toBe('noTargets');
-  expect(result.state).toBe(state);
+  const held = state.holding[0]!;
+  const result = resolveHoldingLaunch(state, held.id);
+  expect(result.accepted).toBe(true);
+  expect(result.rejection).toBeUndefined();
+  expect(result.pass!.encounters).toEqual([]);
+  expect(result.state.holding).toEqual([{ id: held.id, color: held.color, capacity: held.capacity }]);
 });
 test('full Holding with a useful held charge remains playable', () => {
   const state = fullBoard();
@@ -103,13 +109,31 @@ test('repeated taps cannot consume the same charge twice', () => {
   expect(state.movesApplied).toBe(1);
   expect(state.holding).toHaveLength(1);
 });
-test('all admitted actions reduce tunnel count or uncleared pixel count, so solver has no cycles', () => {
+test('a PRODUCTIVE action strictly reduces rank; a no-op relaunch leaves it alone', () => {
+  // The old invariant was that every admitted action reduces this rank, which
+  // is what kept the solver cycle-free. Admission no longer guarantees it: a
+  // held Pal may relaunch with its colour buried and change nothing. The
+  // guarantee now lives in `isProductiveAction`, and `isLost` uses it to end a
+  // state whose every remaining action is such a loop.
   const state = resolveLaunch(createGame(level), 'tunnel-1').state;
+  const rank = (s: GameState) => s.tunnels.reduce((n, t) => n + t.queue.length, 0) * 100 + s.pixels.filter((p) => !p.cleared).length;
+  let sawProductive = false;
+  let sawLoop = false;
   for (const action of legalActions(state)) {
     const next = resolveAction(state, action).state;
-    const rank = (s: GameState) => s.tunnels.reduce((n, t) => n + t.queue.length, 0) * 100 + s.pixels.filter((p) => !p.cleared).length;
-    expect(rank(next)).toBeLessThan(rank(state));
+    if (isProductiveAction(state, action)) {
+      sawProductive = true;
+      expect(rank(next)).toBeLessThan(rank(state));
+    } else {
+      sawLoop = true;
+      // A no-op loop: same board, same queues, same Holding contents.
+      expect(rank(next)).toBe(rank(state));
+      expect(next.holding.map((c) => `${c.id}:${c.capacity}`).sort())
+        .toEqual(state.holding.map((c) => `${c.id}:${c.capacity}`).sort());
+    }
   }
+  expect(sawProductive).toBe(true);
+  expect(sawLoop).toBe(true);
 });
 test('restart and repeated deterministic action sequences reproduce exact state', () => {
   const run = () => {

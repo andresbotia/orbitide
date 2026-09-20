@@ -129,9 +129,9 @@ test('a refusal for another reason is not reported as capacity-full', () => {
   };
   const root = mount(8403, level);
   act(() => session.launch('tunnel-0')); finish();
-  const held = session.state.holding[0]!;
-  act(() => { session.launchHeld(held.id); });
-  expect(session.lastDenial?.reason).toBe('noTargets');
+  // A Pal that is not in Holding at all: a real refusal, but not a capacity one.
+  act(() => { session.launchHeld('no-such-pal'); });
+  expect(session.lastDenial?.reason).toBe('unavailable');
   expect(feedback.emit).toHaveBeenCalledWith('denied');
   expect(feedback.emit).not.toHaveBeenCalledWith('activeFull');
   act(() => root.unmount());
@@ -188,7 +188,7 @@ test.each(['background', 'restart', 'unmount'])('%s retires all flights and igno
   expect(remove).toHaveBeenCalledTimes(1);
 });
 
-test('Holding stays parked; useless tap explains itself; useful tap starts a manual flight', () => {
+test('Holding parks a Pal, and a buried held Pal still relaunches on demand', () => {
   const level: LevelDefinition = {
     id: 8401, title: 'Park', themeId: 'test', difficulty: 'easy', holdingCapacity: 3,
     pixelArt: ['WWW', 'WBW', 'WWW'],
@@ -198,15 +198,21 @@ test('Holding stays parked; useless tap explains itself; useful tap starts a man
   act(() => session.launch('tunnel-0')); finish();
   const held = session.state.holding[0]!;
   expect(held).toBeTruthy();
+
+  // The blue core is still buried, but the relaunch is admitted anyway: a full
+  // tray must always be escapable, and the lap may simply miss.
   act(() => session.launchHeld(held.id));
-  expect(session.flights).toHaveLength(0);
-  expect(session.message).toBe('No exposed matching pixels yet.');
-  act(() => session.launch('tunnel-1')); finish();
-  expect(session.state.holding.some((c) => c.id === held.id)).toBe(true);
-  act(() => session.launchHeld(held.id));
+  expect(session.flights).toHaveLength(1);
   expect(session.flights[0]!.origin).toBe('holding');
   expect(session.flights[0]!.charge).toEqual(held);
   expect(feedback.emit).toHaveBeenCalledWith('heldRelaunch');
+  finish();
+  // It missed, so it is parked again, ready to try once the board opens up.
+  expect(session.state.holding.some((c) => c.id === held.id)).toBe(true);
+
+  act(() => session.launch('tunnel-1')); finish();
+  act(() => session.launchHeld(held.id));
+  expect(session.flights[0]!.origin).toBe('holding');
   act(() => root.unmount());
 });
 

@@ -5,6 +5,7 @@ import { activeCapacity, activeCount } from '../selectors';
 import { resolveAction } from '../resolveLaunch';
 import { resolveHoldingLaunch } from '../resolveHolding';
 import { resolvePass } from '../pass';
+import { isProductiveAction } from '../winState';
 import type { LevelDefinition } from '../types';
 
 const v2 = (
@@ -159,12 +160,19 @@ describe('Core V2 tunnel launch with no current target', () => {
   });
 });
 
-describe('Core V2 Holding relaunch with no current target', () => {
-  test('relaunch is accepted, frees then re-parks identity and capacity', () => {
-    const def = v2(['RRR'], [[{ color: 'blue', capacity: 2 }], [], []], { id: 8309 });
+describe('Holding relaunch with no current target', () => {
+  test('is accepted while the level is still alive, and re-parks identity/capacity', () => {
+    // A second tunnel Pal keeps a productive action available, so the level is
+    // alive and the no-target relaunch is admitted (both rulesets).
+    const def = v2(
+      ['RRR'],
+      [[{ color: 'blue', capacity: 2 }], [{ color: 'red', capacity: 1 }], []],
+      { id: 8309 },
+    );
     const parked = resolveAction(createGame(def), T(0));
     const id = parked.heldCharge!.id;
     expect(parked.state.holding).toHaveLength(1);
+    expect(parked.state.status).toBe('playing');
     const relaunch = resolveHoldingLaunch(parked.state, id);
     expect(relaunch.accepted).toBe(true);
     expect(relaunch.rejection).toBeUndefined();
@@ -172,6 +180,16 @@ describe('Core V2 Holding relaunch with no current target', () => {
     expect(relaunch.pass!.encounters).toEqual([]);
     expect(relaunch.state.holding).toEqual([{ id, color: 'blue', capacity: 2 }]);
     expect(relaunch.state.holding[0]!.id).toBe(id);
+  });
+
+  test('but a tray of no-op Pals with nothing else left is a deadlock, not a loop', () => {
+    // Same board, no second tunnel Pal: once the blue parks, every remaining
+    // action is a lap that meets nothing and returns to the same logical
+    // state. That is lost, not infinitely playable.
+    const def = v2(['RRR'], [[{ color: 'blue', capacity: 2 }], [], []], { id: 8319 });
+    const parked = resolveAction(createGame(def), T(0));
+    expect(parked.state.holding).toHaveLength(1);
+    expect(parked.state.status).toBe('lost');
   });
 });
 
@@ -204,7 +222,7 @@ describe('one-pass lifecycle', () => {
 });
 
 describe('Legacy V1 compatibility', () => {
-  test('held charge with no targets is still rejected', () => {
+  test('held charge with no targets is admitted, exactly like Core V2', () => {
     const def: LevelDefinition = {
       id: 8312, title: 'V1', themeId: 'test', difficulty: 'easy', holdingCapacity: 3,
       pixelArt: ['WWW', 'WBW', 'WWW'],
@@ -212,10 +230,12 @@ describe('Legacy V1 compatibility', () => {
     };
     const state = resolveAction(createGame(def), T(1)).state;
     expect(state.ruleset).toBe('legacyV1');
+    // The blue core is buried, and tunnel-0 still holds a white Pal, so the
+    // level is alive and the held blue may take its lap anyway.
     const result = resolveHoldingLaunch(state, state.holding[0]!.id);
-    expect(result.accepted).toBe(false);
-    expect(result.rejection).toBe('noTargets');
-    expect(result.state).toBe(state);
+    expect(result.accepted).toBe(true);
+    expect(result.rejection).toBeUndefined();
+    expect(result.pass!.encounters).toEqual([]);
   });
 
   test('a sixth V1 join opens a fresh epoch instead of activeSlotsFull', () => {
@@ -233,13 +253,20 @@ describe('Legacy V1 compatibility', () => {
     expect(activeCount(sixth.state)).toBe(1);
   });
 
-  test('legalActions still lists a V1 held relaunch only when a target exists', () => {
+  test('legalActions lists a V1 held relaunch even with its colour buried', () => {
     const def: LevelDefinition = {
       id: 8314, title: 'V1hold', themeId: 'test', difficulty: 'easy', holdingCapacity: 3,
       pixelArt: ['WWW', 'WBW', 'WWW'],
       tunnels: [[{ color: 'white', capacity: 8 }], [{ color: 'blue', capacity: 1 }], []],
     };
     const parked = resolveAction(createGame(def), T(1)).state;
-    expect(legalActions(parked).some((a) => a.kind === 'holding')).toBe(false);
+    // Admission no longer depends on current exposure (either ruleset); the
+    // deadlock check, not the admission filter, decides whether such a lap is
+    // still worth anything.
+    expect(legalActions(parked).some((a) => a.kind === 'holding')).toBe(true);
+    expect(isProductiveAction(parked, { kind: 'holding', id: parked.holding[0]!.id })).toBe(false);
+    // The white tunnel Pal is what keeps this state alive.
+    expect(isProductiveAction(parked, T(0))).toBe(true);
+    expect(parked.status).toBe('playing');
   });
 });

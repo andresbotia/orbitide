@@ -13,7 +13,7 @@ import { resolveAction } from '../resolveLaunch';
 import { resolveHoldingLaunch } from '../resolveHolding';
 import { actionRejection, legalActions } from '../actions';
 import { activeCapacity, activeCount, visibleTunnelWindow, VISIBLE_TUNNEL_ENTRIES } from '../selectors';
-import { computeStatus, isLost } from '../winState';
+import { computeStatus, isLost, isProductiveAction } from '../winState';
 import type { EpochLaunch, LevelDefinition, OrbColor } from '../types';
 
 const v2 = (
@@ -266,7 +266,9 @@ describe('M5.2E Verification — Priority Edge Cases', () => {
       const def = v2(
         ['WWW', 'WWW', 'WWW'],
         [
-          [{ color: 'blue', capacity: 2 }],
+          // The spare blue keeps a productive action available, so filling the
+          // tray does not itself end the level (see the deadlock rule below).
+          [{ color: 'blue', capacity: 2 }, { color: 'blue', capacity: 2 }],
           [{ color: 'red', capacity: 3 }],
           [{ color: 'green', capacity: 4 }],
           [{ color: 'purple', capacity: 5 }],
@@ -370,10 +372,13 @@ describe('M5.2E Verification — Priority Edge Cases', () => {
     test('held charge relaunches with no current target, frees Holding slot, preserves identity/capacity, and returns to Holding after zero-hit pass', () => {
       const def = v2(
         ['RRR', 'RRR'],
-        [[{ color: 'blue', capacity: 3 }], [], [], []],
+        // A spare Pal keeps a productive action available; without it a tray of
+        // Pals that can never hit anything is a deadlock, not a relaunch loop.
+        [[{ color: 'blue', capacity: 3 }, { color: 'blue', capacity: 3 }], [], [], []],
         { id: 9009 },
       );
       const parked = resolveAction(createGame(def), T(0)).state;
+      expect(parked.status).toBe('playing');
       const heldId = parked.holding[0]!.id;
 
       const relaunch = resolveHoldingLaunch(parked, heldId);
@@ -617,9 +622,17 @@ describe('M5.2E Verification — Priority Edge Cases', () => {
         }],
       };
       expect(activeSlotCount(state)).toBe(1);
-      // Because an active orb exists on the rail, do not terminal deadlock!
-      expect(isLost(state)).toBe(false);
-      expect(computeStatus(state)).toBe('playing');
+      // The old rule kept such a state alive purely because `activeCharges` was
+      // non-empty. That guard is gone: under FIRST LAUNCHED, FIRST SERVED an
+      // active charge has ALREADY resolved and parked, so it carries no pending
+      // board change, and the guard made the deadlock check unreachable in live
+      // play (every commit leaves `activeCharges` set). What matters is whether
+      // any admitted action can still change the committed state — here the
+      // held red is buried behind blue and every tunnel is empty, so nothing can.
+      expect(legalActions(state).length).toBeGreaterThan(0);
+      expect(legalActions(state).every((a) => !isProductiveAction(state, a))).toBe(true);
+      expect(isLost(state)).toBe(true);
+      expect(computeStatus(state)).toBe('lost');
     });
 
     test('5. tunnel queue still has charges -> do not terminal-deadlock', () => {
@@ -657,7 +670,7 @@ describe('M5.2E Verification — Priority Edge Cases', () => {
       expect(computeStatus(state)).toBe('lost');
     });
 
-    test('7. Legacy V1 unchanged', () => {
+    test('7. Legacy V1 reaches the same verdict through the shared rule', () => {
       // Legacy V1 with no exposed targets
       const def: LevelDefinition = {
         id: 9107, title: 'V1Deadlock', themeId: 'test', difficulty: 'easy', holdingCapacity: 3,
@@ -671,8 +684,12 @@ describe('M5.2E Verification — Priority Edge Cases', () => {
         holding: [{ id: 'held-blue', color: 'blue', capacity: 1 }],
       };
 
-      // In Legacy V1, actionRejection denies held charge with noTargets, so legalActions is empty
-      expect(legalActions(state)).toEqual([]);
+      // Legacy V1 now behaves exactly like Core V2: the held blue IS admitted
+      // (a buried colour no longer traps its Pal), and the state is lost
+      // because that relaunch is a no-op loop rather than because admission
+      // refused it.
+      expect(legalActions(state)).toEqual([{ kind: 'holding', id: 'held-blue' }]);
+      expect(isProductiveAction(state, { kind: 'holding', id: 'held-blue' })).toBe(false);
       expect(isLost(state)).toBe(true);
       expect(computeStatus(state)).toBe('lost');
     });

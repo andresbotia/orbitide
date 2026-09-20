@@ -44,7 +44,9 @@ interface ControlDeckProps {
 const DENIAL_NOTICE: Record<LaunchDenialReason, string> = {
   activeFull: '',
   tutorial: '',
-  noTargets: 'NO EXPOSED MATCH YET',
+  // The level is already decided in truth; its result card is on its way, so
+  // the tap gets its acknowledgement without a competing message.
+  gameOver: '',
   unavailable: 'PAL NOT AVAILABLE',
   inFlight: 'PAL STILL IN FLIGHT',
 };

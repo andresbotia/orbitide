@@ -18,7 +18,7 @@ import { iceLayers } from '../frozen';
 import { reachablePixels, remainingPixelCount } from '../pixels';
 import { resolveAction } from '../resolveLaunch';
 import { enumerateActions, solve, stateKey } from '../solver';
-import { isLost, isWon } from '../winState';
+import { isLost, isProductiveAction, isWon } from '../winState';
 import type { GameState, LevelDefinition } from '../types';
 import { LEVEL_DEFINITIONS } from '../../levels/levelDefinitions';
 
@@ -137,7 +137,10 @@ test('D · no epoch + no plain action → lost', () => {
     holding: [{ id: 'h', color: 'red', capacity: 3 }], // red — no red pixels
   };
   expect(remainingPixelCount(stuck)).toBeGreaterThan(0);
-  expect(legalActions(stuck)).toHaveLength(0);
+  // The held red IS admitted now (a buried colour no longer traps its Pal);
+  // the state is lost because that lap can never change anything.
+  expect(legalActions(stuck)).toHaveLength(1);
+  expect(legalActions(stuck).every((a) => !isProductiveAction(stuck, a))).toBe(true);
   expect(isLost(stuck)).toBe(true);
 });
 
@@ -206,7 +209,9 @@ test('H · all queues exhausted + held charges useless + pixels remain → lost'
     epoch: { launches: [], clock: 0 },
   };
   expect(remainingPixelCount(stuck)).toBeGreaterThan(0);
-  expect(legalActions(stuck, { includeJoin: true })).toHaveLength(0);
+  const actions = legalActions(stuck, { includeJoin: true });
+  expect(actions.length).toBeGreaterThan(0);
+  expect(actions.every((a) => !isProductiveAction(stuck, a))).toBe(true);
   expect(isLost(stuck)).toBe(true);
 });
 
@@ -317,9 +322,10 @@ test('runtime deadlock, legalActions and the solver agree; joins add no logical 
   }
 }, 180_000);
 
-test('every admitted action makes progress — no keep-alive loop', () => {
-  // For a sample of reachable states, every accepted action changes the
-  // committed board fingerprint OR shrinks a tunnel queue OR reduces total ice.
+test('every PRODUCTIVE action makes progress; a no-op relaunch changes nothing', () => {
+  // For a sample of reachable states: a productive action changes the committed
+  // board fingerprint OR shrinks a tunnel queue OR reduces total ice, and a
+  // non-productive one changes none of them (that is what `isLost` ends).
   const fingerprint = (s: GameState) =>
     s.pixels.map((p) => (p.cleared ? '1' : iceLayers(p) > 0 ? `f${iceLayers(p)}` : '0')).join('')
     + '|' + s.tunnels.map((t) => t.queue.length).join(',');
@@ -339,7 +345,11 @@ test('every admitted action makes progress — no keep-alive loop', () => {
       for (const a of legalActions(s, { includeJoin: true })) {
         const out = resolveAction(s, a);
         if (!out.accepted) continue;
-        expect(fingerprint(out.state)).not.toBe(before); // real change every time
+        if (isProductiveAction(s, a)) {
+          expect(fingerprint(out.state)).not.toBe(before); // real change every time
+        } else {
+          expect(fingerprint(out.state)).toBe(before); // a true no-op loop
+        }
         if (stack.length < 700) stack.push(out.state);
       }
     }

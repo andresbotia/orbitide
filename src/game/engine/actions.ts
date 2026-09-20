@@ -3,8 +3,6 @@ import {
   activeSlotCount,
   canJoinEpoch,
 } from './epoch';
-import { reachablePixels } from './pixels';
-import { isLinkedPrimed } from './linked';
 import { isCoreV2 } from './ruleset';
 import type { GameState } from './types';
 
@@ -22,8 +20,11 @@ export type GameAction =
 /**
  * `activeSlotsFull` is produced by Core V2 when a join is requested at
  * `activeCapacity`. Legacy V1 still opens a fresh epoch instead of rejecting.
+ *
+ * `noTargets` is gone: a held Pal is no longer refused because its colour
+ * happens to be buried at this exact frame (see {@link actionRejection}).
  */
-export type Rejection = 'gameOver' | 'missingCharge' | 'noTargets' | 'holdingFull' | 'activeSlotsFull';
+export type Rejection = 'gameOver' | 'missingCharge' | 'holdingFull' | 'activeSlotsFull';
 
 // Reserved for a future deadlock-detection knob; no options are needed today.
 type RejectionOptions = Record<string, never>;
@@ -60,14 +61,20 @@ export function actionRejection(
   }
 
   if (action.kind === 'holding') {
-    // Legacy V1 requires a currently exposed matching target. Core V2 does not:
-    // the player may spend an Active slot even when this pass might miss.
-    if (
-      !isCoreV2(state.ruleset)
-      && !reachablePixels(state).some((p) => p.color === charge.color && !isLinkedPrimed(p))
-    ) {
-      return 'noTargets';
-    }
+    // RULESET-INDEPENDENT (approved semantics change): a held Pal may relaunch
+    // whether or not a matching target is exposed right now. The player is
+    // allowed to spend an Active slot on a Pal that may miss this lap.
+    //
+    // Legacy V1 used to require a currently reachable matching target here.
+    // With a full tray that made relaunching — the player's way OUT of a full
+    // tray — impossible whenever every held colour was buried, with free Active
+    // slots sitting unused. Board exposure also changes while a Pal travels, so
+    // "exposed at this exact frame" was never the right question.
+    //
+    // The cost of allowing it is that a relaunch can now be a no-op loop, so
+    // "a legal action exists" no longer implies "the board can still change".
+    // `isLost` carries that weight instead — see `isProductiveAction`.
+    //
     // Relaunching from Holding frees the slot it leaves, so it can never end the
     // pass over capacity (capacity only ever falls). Matches M1.
     return null;
