@@ -46,6 +46,11 @@ const BAY_PAD = 7;
 /** How far queue chips tuck up under the bay / the chip in front (× queue size). */
 const TUCK_FIRST = 0.38;
 const TUCK_NEXT = 0.48;
+/**
+ * Resting lip colour of a ready bay. Precomputed: `gpAlpha` is a plain JS
+ * helper and must never be called inside a worklet (UI runtime).
+ */
+const LIP_READY = gpAlpha(GP.cyan, 0.42);
 
 /**
  * Launch tunnels — presentation only. Renders however many tunnels the state
@@ -193,11 +198,13 @@ const Tunnel = memo(function Tunnel({
       ],
     };
   });
+  // Resolved on the JS side: the worklet below only captures the string.
+  const lipRest = ready ? LIP_READY : GP.textFaint;
   const lipStyle = useAnimatedStyle(() => {
     const k = lipKind.value;
     const hot = k === 0 ? GP.cyan : k === 1 ? GP.danger : GP.cyanPale;
     return {
-      backgroundColor: interpolateColor(lip.value, [0, 1], [ready ? gpAlpha(GP.cyan, 0.42) : GP.textFaint, hot]),
+      backgroundColor: interpolateColor(lip.value, [0, 1], [lipRest, hot]),
       transform: [{ scaleX: 1 + lip.value * 0.12 }],
     };
   });
