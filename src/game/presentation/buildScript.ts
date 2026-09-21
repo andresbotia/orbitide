@@ -10,11 +10,13 @@ import type { FlightPass, FlightTerminal, Point, PresentationScript, PlaybackEve
  * The one terminal a charge's latest resolution implies against reconciled
  * truth. `slot` is the charge's index in truth Holding — the only slot model.
  */
-export function terminalFor(chargeId: string, remainingCapacity: number, truth: Pick<GameState, 'holding'>, target?: Point): FlightTerminal {
+export function terminalFor(chargeId: string, remainingCapacity: number, truth: Pick<GameState, 'holding' | 'pendingHolding'>, target?: Point): FlightTerminal {
   if (remainingCapacity <= 0) return { kind: 'consumed' };
   const slot = truth.holding.findIndex((c) => c.id === chargeId);
-  if (slot < 0) return { kind: 'reject' };
-  return target ? { kind: 'toHolding', slot, target } : { kind: 'toHolding', slot };
+  if (slot >= 0) return target ? { kind: 'toHolding', slot, target } : { kind: 'toHolding', slot };
+  // Still queued for admission: it flies to the Gate and is decided there.
+  if (truth.pendingHolding.some((p) => p.charge.id === chargeId)) return { kind: 'pendingHolding' };
+  return { kind: 'reject' };
 }
 
 /** An untimed shot (times are filled in by the base schedule or the convoy). */
@@ -67,11 +69,18 @@ function shotEvent(s: Shot, final: boolean): PlaybackEvent {
  */
 export function finalizePass(pass: Omit<FlightPass, 'events' | 'totalMs'>): FlightPass {
   const landsInHolding = pass.terminal.kind === 'toHolding';
+  const pending = pass.terminal.kind === 'pendingHolding';
   const last = pass.shots.length - 1;
+  // A provisional Pal announces its ARRIVAL at the Gate and nothing more: the
+  // session decides there and re-scripts it into a landing or a reject, so no
+  // outcome beat is baked in ahead of the decision.
+  const terminalEvent: PlaybackEvent = pending
+    ? { kind: 'holdingArrival', at: pass.orbitEndAt }
+    : { kind: landsInHolding ? 'holdingLanded' : 'chargeConsumed', at: landsInHolding ? pass.landingAt : pass.orbitEndAt };
   const events: PlaybackEvent[] = [
     { kind: 'orbitEnter', at: pass.liftMs },
     ...pass.shots.map((s, i) => shotEvent(s, i === last && pass.finalClearPixelId === s.pixelId)),
-    { kind: landsInHolding ? 'holdingLanded' : 'chargeConsumed', at: landsInHolding ? pass.landingAt : pass.orbitEndAt },
+    terminalEvent,
   ];
   if (landsInHolding && pass.holdingCue === 'critical') events.push({ kind: 'holdingCritical', at: pass.landingAt });
   if (landsInHolding && pass.holdingCue === 'full') events.push({ kind: 'holdingFull', at: pass.landingAt });
@@ -88,6 +97,9 @@ export function finalizePass(pass: Omit<FlightPass, 'events' | 'totalMs'>): Flig
 
 /** Terminal beat after leaving the rail: travel into the slot, or burst in place. */
 export function landingDelay(terminal: FlightTerminal): number {
+  // A provisional Pal holds at the Gate for the decision beat; whichever way it
+  // goes, the re-script that follows sets its real terminal timing.
+  if (terminal.kind === 'pendingHolding') return 0;
   return terminal.kind === 'toHolding' ? FEEL.HOLDING_TRAVEL_DURATION : FEEL.BURST_DURATION;
 }
 

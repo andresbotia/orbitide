@@ -7,7 +7,7 @@ import { computeBoardGeometry } from '../boardGeometry';
 import { flightPosition, flightPose } from '../flightGeometry';
 import { createGame } from '../../engine/createGame';
 import { resolveLaunch } from '../../engine/resolveLaunch';
-import { buildLaunchScript } from '../../presentation/buildScript';
+import { buildLaunchScript, finalizePass, landingDelay } from '../../presentation/buildScript';
 import type { FlightPass } from '../../presentation/events';
 import type { LevelDefinition } from '../../engine/types';
 
@@ -55,8 +55,17 @@ test('reject completes the lap and bursts in place at GateTerminal (no slot, no 
   const state = createGame({ ...level, id: 9732, holdingCapacity: 1, tunnels: [[{ color: 'blue', capacity: 3 }], [{ color: 'red', capacity: 1 }], [], []] });
   const held = resolveLaunch(state, 'tunnel-1').state; // red misses and fills the 1-slot tray
   const out = resolveLaunch(held, 'tunnel-0');
-  const pass = buildLaunchScript(out, held).pass;
-  expect(pass.terminal).toEqual({ kind: 'reject' });
+  const provisional = buildLaunchScript(out, held).pass;
+  // A tray-full Pal is not rejected at launch any more: it flies as provisional
+  // and the Gate decides. Only once the Gate turns it away is it a reject, and
+  // that is the pass whose geometry this test pins.
+  expect(provisional.terminal).toEqual({ kind: 'pendingHolding' });
+  const terminal = { kind: 'reject' } as const;
+  const pass = finalizePass({
+    ...provisional,
+    terminal,
+    landingAt: provisional.orbitEndAt + landingDelay(terminal),
+  });
   expect(pass.endProgress).toBe(1);
   for (const t of [pass.orbitEndAt, (pass.orbitEndAt + pass.landingAt) / 2, pass.landingAt]) {
     const p = flightPosition(pass, geo, t);

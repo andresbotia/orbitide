@@ -13,6 +13,7 @@ import { resolveAction } from '../resolveLaunch';
 import { resolveHoldingLaunch } from '../resolveHolding';
 import { actionRejection, legalActions } from '../actions';
 import { activeCapacity, activeCount, visibleTunnelWindow, VISIBLE_TUNNEL_ENTRIES } from '../selectors';
+import { resolveArrival } from '../holdingArrival';
 import { computeStatus, isLost, isProductiveAction } from '../winState';
 import type { EpochLaunch, LevelDefinition, OrbColor } from '../types';
 
@@ -335,7 +336,9 @@ describe('M5.2E Verification — Priority Edge Cases', () => {
 
       const overflow = resolveAction(state, T(0));
       expect(overflow.accepted).toBe(true);
-      expect(overflow.state.status).toBe('lost');
+      // Provisional: it flies to the Gate, and with nothing freed it is the loss.
+      expect(overflow.state.status).toBe('playing');
+      expect(resolveArrival(overflow.state).state.status).toBe('lost');
       expect(overflow.state.holding).toHaveLength(4);
       expect(overflow.state.holding.map((c) => c.id)).toEqual(state.holding.map((c) => c.id));
 

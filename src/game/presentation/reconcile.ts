@@ -145,6 +145,29 @@ export function reconcileFlights(input: ReconcileInput): ReconcileResult {
     const t = passTime(pass, now);
     const fresh = pass.passId === input.freshPassId;
     const landed = pass.events.findIndex((e) => e.kind === 'holdingLanded');
+
+    // A provisional Pal is the one case where a terminal MAY be written at the
+    // terminal beat itself: reaching the Gate IS its decision. Its lap — shots,
+    // timing, endProgress — is copied over untouched, so everything already
+    // presented stays byte-identical; only what happens after the Gate is new.
+    if (pass.terminal.kind === 'pendingHolding') {
+      const resolution = byId.get(pass.charge.id);
+      const left = resolution ? resolution.remainingCapacity : pass.charge.capacity;
+      const decidedSlot = truth.holding.findIndex((c) => c.id === pass.charge.id);
+      const decided = terminalFor(pass.charge.id, left, truth, decidedSlot >= 0 ? slotPoints[decidedSlot] : undefined);
+      if (decided.kind !== 'pendingHolding') {
+        // Deliberately NOT frozen: a Pal that was just admitted still needs its
+        // Holding pressure cue, and its slot can still shift under it while it
+        // travels the last leg, exactly like any other landing Pal.
+        out.push(finalizePass({
+          ...pass,
+          terminal: decided,
+          landingAt: pass.orbitEndAt + landingDelay(decided),
+        }));
+        continue;
+      }
+    }
+
     // Its terminal beat is already on screen: nothing about it may change.
     if (t >= pass.landingAt || (landed >= 0 && cursor > landed)) {
       frozen.add(pass.passId);
@@ -194,7 +217,7 @@ export function reconcileFlights(input: ReconcileInput): ReconcileResult {
     out.push(next);
   }
 
-  gateLandingOrder(out, frozen, now);
+  gateLandingOrder(out, frozen, truth, now);
   return { passes: out.map((p) => withCueAndResult(p, frozen, truth)), divergences };
 }
 
@@ -213,8 +236,10 @@ function toResolution(pass: FlightPass): ActiveCharge {
  * Presented Holding is compact and ordered like truth, so Pals must land in
  * slot order. A Pal that would reach its slot before a lower slot's Pal waits
  * at GateTerminal (it has not left the rail yet, so nothing presented moves).
+ *
+ * Similarly, pending arrivals must reach GateTerminal in truth's FIFO queue order.
  */
-function gateLandingOrder(passes: FlightPass[], frozen: ReadonlySet<number>, now: number): void {
+function gateLandingOrder(passes: FlightPass[], frozen: ReadonlySet<number>, truth: GameState, now: number): void {
   const toHolding = passes
     .map((pass, index) => ({ pass, index }))
     .filter(({ pass }) => pass.terminal.kind === 'toHolding')
@@ -227,6 +252,26 @@ function gateLandingOrder(passes: FlightPass[], frozen: ReadonlySet<number>, now
       passes[index] = finalizePass({ ...pass, orbitEndAt: pass.orbitEndAt + need, landingAt: pass.landingAt + need });
     }
     prevLandAbs = Math.max(prevLandAbs, passes[index]!.launchedAtMs + passes[index]!.landingAt);
+  }
+
+  // Pending arrivals must reach the Gate strictly in truth's FIFO queue order.
+  // A later-queued pending Pal cannot arrive at the Gate ahead of an earlier one.
+  const pending = passes
+    .map((pass, index) => ({ pass, index }))
+    .filter(({ pass }) => pass.terminal.kind === 'pendingHolding')
+    .sort((a, b) => {
+      const ia = truth.pendingHolding.findIndex((p) => p.charge.id === a.pass.charge.id);
+      const ib = truth.pendingHolding.findIndex((p) => p.charge.id === b.pass.charge.id);
+      return (ia >= 0 ? ia : 999) - (ib >= 0 ? ib : 999);
+    });
+  let prevArrivalAbs = Number.NEGATIVE_INFINITY;
+  for (const { pass, index } of pending) {
+    const arrivalAbs = pass.launchedAtMs + pass.orbitEndAt;
+    const need = prevArrivalAbs + LANDING_GAP_MS - arrivalAbs;
+    if (need > 0 && !frozen.has(pass.passId) && passTime(pass, now) < pass.orbitEndAt) {
+      passes[index] = finalizePass({ ...pass, orbitEndAt: pass.orbitEndAt + need, landingAt: pass.landingAt + need });
+    }
+    prevArrivalAbs = Math.max(prevArrivalAbs, passes[index]!.launchedAtMs + passes[index]!.orbitEndAt);
   }
 }
 

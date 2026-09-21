@@ -18,6 +18,7 @@
  */
 import { legalActions, type GameAction } from './actions';
 import { createGame } from './createGame';
+import { applyActionWithArrivals, settleDueArrivals } from './holdingArrival';
 import { boardFingerprint } from './frozen';
 import { resolveAction } from './resolveLaunch';
 import type { GameState, LevelDefinition } from './types';
@@ -34,7 +35,11 @@ import type { GameState, LevelDefinition } from './types';
 export function stateKey(s: GameState): string {
   return boardFingerprint(s.pixels) + '/' +
     s.tunnels.map((t) => t.queue.map((c) => `${c.id}:${c.color}:${c.capacity}`).join(',')).join('|') + '/' +
-    s.holding.map((c) => `${c.id}:${c.color}:${c.capacity}`).join(',');
+    s.holding.map((c) => `${c.id}:${c.color}:${c.capacity}`).join(',') + '/' +
+    // Pals still travelling toward an undecided Holding admission shape the
+    // rest of the game (one of them may yet take a slot, or end the run), so
+    // two states that differ only in what is inbound are NOT the same state.
+    s.pendingHolding.map((p) => `${p.charge.id}:${p.charge.capacity}+${p.grace}`).join(',');
 }
 
 /**
@@ -140,7 +145,7 @@ function replayLine(from: GameState, line: GameAction[]): { peakHolding: number;
   let state = from;
   for (const action of line) {
     if (action.kind === 'holding') held += 1;
-    state = resolveAction(state, action).state;
+    state = applyActionWithArrivals(state, action).state;
     peak = Math.max(peak, state.holding.length);
   }
   return { peakHolding: peak, heldRelaunches: held };
@@ -177,7 +182,11 @@ export function solve(level: LevelDefinition, opts: SolveOptions = {}): SolveRes
     for (const action of actions) {
       const outcome = resolveAction(state, action);
       if (!outcome.accepted) throw new Error('Solver/runtime admission mismatch');
-      const childKey = outcome.state.status === 'playing' ? stateKey(outcome.state) : '';
+      // The player moves, THEN any arrival whose grace window has elapsed
+      // commits. That ordering is the rescue window: a relaunch taken while a
+      // Pal is inbound frees the slot before that Pal lands.
+      const child = settleDueArrivals(outcome.state);
+      const childKey = child.status === 'playing' ? stateKey(child) : '';
       // A move that loops back onto this line — e.g. a Core V2 Holding relaunch
       // that clears nothing and returns to the same logical state — is neither
       // progress nor a loss: it cannot shorten a win or end the game, so it is
@@ -185,14 +194,14 @@ export function solve(level: LevelDefinition, opts: SolveOptions = {}): SolveRes
       // random play simply picks again, which is what renormalising over the
       // remaining moves computes.)
       if (childKey && onLine.has(childKey)) continue;
-      const child = visit(outcome.state, childKey || undefined);
-      if (child.win !== null) {
-        const candidate = [action, ...child.win];
+      const node = visit(child, childKey || undefined);
+      if (node.win !== null) {
+        const candidate = [action, ...node.win];
         if (win === null || candidate.length < win.length) win = candidate;
-        minPeak = Math.min(minPeak, Math.max(state.holding.length, child.minPeak));
+        minPeak = Math.min(minPeak, Math.max(state.holding.length, node.minPeak));
       }
-      if (child.fail !== null && (fail === null || child.fail.length + 1 < fail.length)) fail = [action, ...child.fail];
-      loss += child.loss;
+      if (node.fail !== null && (fail === null || node.fail.length + 1 < fail.length)) fail = [action, ...node.fail];
+      loss += node.loss;
       counted += 1;
     }
     onLine.delete(key);
@@ -256,7 +265,7 @@ export function solve(level: LevelDefinition, opts: SolveOptions = {}): SolveRes
         }
         decisionStats.push({ legalCount: actions.length, winningCount, losingCount });
       }
-      state = resolveAction(state, action).state;
+      state = applyActionWithArrivals(state, action).state;
     }
   }
 
@@ -346,7 +355,7 @@ export function findFirstWinningWitness(
     for (const action of actions) {
       const outcome = resolveAction(state, action);
       if (!outcome.accepted) continue;
-      const childWin = visit(outcome.state);
+      const childWin = visit(settleDueArrivals(outcome.state));
       if (childWin !== null) {
         const win = [action, ...childWin];
         visiting.delete(key);

@@ -23,10 +23,12 @@ export const SLOT_POINTS: Point[] = [{ x: 101, y: 901 }, { x: 165, y: 901 }, { x
 export type TerminalView =
   | { kind: 'consumed' }
   | { kind: 'toHolding'; slot: number | undefined; target: Point | undefined }
+  /** Still undecided: it reached no verdict at launch and the Gate will judge it. */
+  | { kind: 'pendingHolding' }
   | { kind: 'reject' };
 
 type AnyPass = FlightPass & {
-  terminal?: { kind: 'consumed' | 'toHolding' | 'reject'; slot?: number; target?: Point };
+  terminal?: { kind: 'consumed' | 'toHolding' | 'pendingHolding' | 'reject'; slot?: number; target?: Point };
   endKind?: 'burst' | 'toHolding'; holdingSlotIndex?: number; holdingTarget?: Point;
 };
 
@@ -292,7 +294,13 @@ export function expectLifecycleValid(session: GameSession): void {
   const slots = new Set<number>();
   for (const pass of session.flights) {
     const term = terminalOf(pass);
-    expect(['consumed', 'toHolding', 'reject']).toContain(term.kind);
+    expect(['consumed', 'toHolding', 'reject', 'pendingHolding']).toContain(term.kind);
+    if (term.kind === 'pendingHolding') {
+      // Provisional: no slot is claimed and none is reserved, so it must not be
+      // in the tray yet, and truth must still be carrying it as pending.
+      expect(truth.holding.some((c) => c.id === pass.charge.id)).toBe(false);
+      expect(truth.pendingHolding.some((pending) => pending.charge.id === pass.charge.id)).toBe(true);
+    }
     if (term.kind === 'toHolding') {
       expect(typeof term.slot).toBe('number');
       expect(term.slot!).toBeGreaterThanOrEqual(0);

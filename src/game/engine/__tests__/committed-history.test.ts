@@ -19,6 +19,7 @@
  * reject it outright. That case is pinned at the bottom.
  */
 import { LAUNCH_SPACING } from '../concurrency';
+import { resolveArrival } from '../holdingArrival';
 import { createGame } from '../createGame';
 import { simulateEpoch } from '../epoch';
 import { resolveAction } from '../resolveLaunch';
@@ -203,7 +204,9 @@ test('a join may still change where an in-flight Pal parks — that is future, n
   // Its encounters are still empty (history intact) but it cannot park.
   const cyan = out.epochCharges!.find((c) => c.color === 'cyan')!;
   expect(cyan.encounters).toEqual([]);
-  expect(out.state.status).toBe('lost');
+  // Provisional overflow: playing while the Pal flies, decided at the Gate.
+  expect(out.state.status).toBe('playing');
+  expect(resolveArrival(out.state).state.status).toBe('lost');
   // The three that already parked keep their slots, in launch order.
   expect(out.state.holding.map((c) => c.color)).toEqual(['blue', 'red', 'green']);
 });

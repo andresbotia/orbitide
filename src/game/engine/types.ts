@@ -99,6 +99,23 @@ export interface ChargeSpec {
 export type ChargeSource = 'tunnel' | 'holding';
 
 /**
+ * A survivor travelling to the GateTerminal whose Holding admission is still
+ * provisional. Its combat is already resolved and immutable (FIRST LAUNCHED,
+ * FIRST SERVED); only "is there a slot when it lands" remains open.
+ */
+export interface PendingArrival {
+  charge: Charge;
+  /**
+   * Player actions still to come before this arrival commits. It is a COUNTDOWN,
+   * never an absolute move number: two otherwise identical positions must key
+   * identically, or a cycling line would look new forever and no search could
+   * ever detect the loop. 1 = created this move, 0 = commits on the next one —
+   * exactly one action of grace, the same one-lap spacing the epoch uses.
+   */
+  grace: number;
+}
+
+/**
  * One accepted launch, recorded on the epoch so the whole concurrent timeline
  * can be re-simulated deterministically. Serializable.
  */
@@ -292,6 +309,17 @@ export interface GameState {
   tunnels: TunnelState[];
   /** Charges parked with leftover capacity. */
   holding: Charge[];
+  /**
+   * Survivors whose Holding admission has NOT been decided yet, oldest first.
+   *
+   * A Pal only enters Holding when it physically reaches the GateTerminal. It
+   * waits here when it could not be parked the moment its lap resolved —
+   * because the tray was full, or because earlier arrivals are still queued
+   * ahead of it. No slot is reserved: the tray stays fully interactive, and a
+   * relaunch that frees a slot while a Pal is in transit is exactly how the
+   * player rescues an overflow. See `resolveArrival`.
+   */
+  pendingHolding: PendingArrival[];
   status: GameStatus;
   /** Number of player launches that have been accepted. Useful for race guards. */
   movesApplied: number;

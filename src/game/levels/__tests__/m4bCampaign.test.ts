@@ -1,6 +1,6 @@
 import { createGame } from '../../engine/createGame';
 import { iceLayers, shieldLayers } from '../../engine/frozen';
-import { resolveAction } from '../../engine/resolveLaunch';
+import { applyActionWithArrivals } from '../../engine/holdingArrival';
 import { solve } from '../../engine/solver';
 import { traceActions } from '../../engine/trace';
 import { CAMPAIGN_MANIFEST } from '../campaign';
@@ -49,6 +49,6 @@ test('a production mixed Frozen + Shielded board solves and replays correctly', 
   expect(trace.steps.some((step) => step.frozenBreakPixelIds.length > 0)).toBe(true);
   expect(trace.steps.some((step) => step.shieldBreakPixelIds.length > 0)).toBe(true);
   let state = initial;
-  for (const action of result.moves) state = resolveAction(state, action).state;
+  for (const action of result.moves) state = applyActionWithArrivals(state, action).state;
   expect(state.status).toBe('won');
 });

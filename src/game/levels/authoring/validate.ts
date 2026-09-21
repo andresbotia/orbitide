@@ -1,7 +1,7 @@
 import { DEFAULT_ART_LEGEND } from '@/game/engine/art';
 import { createGame } from '@/game/engine/createGame';
 import { defaultHoldingCapacity, expectedTunnelCount } from '@/game/engine/ruleset';
-import { resolveAction } from '@/game/engine/resolveLaunch';
+import { applyActionWithArrivals } from '@/game/engine/holdingArrival';
 import { findFirstWinningWitness } from '@/game/engine/solver';
 import type { LevelDefinition, OrbColor } from '@/game/engine/types';
 import type { LevelValidationResult, ValidationDiagnostic } from './types';
@@ -328,7 +328,7 @@ export function validateLevelPacket(
       let replayState = createGame(def);
       let moveIndex = 0;
       for (const action of solveResult.moves) {
-        const outcome = resolveAction(replayState, action);
+        const outcome = applyActionWithArrivals(replayState, action);
         if (!outcome.accepted) {
           err(
             'REPLAY_ACTION_REJECTED',

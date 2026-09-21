@@ -3,7 +3,7 @@
  * edits, and the engine must behave identically on the result.
  */
 import { createGame } from '../../engine/createGame';
-import { resolveAction } from '../../engine/resolveLaunch';
+import { applyActionWithArrivals } from '../../engine/holdingArrival';
 import { solve } from '../../engine/__tests__/solver';
 import { LEVEL_DEFINITIONS } from '../../levels/levelDefinitions';
 import { fromLevelDefinition, serializeToJSON, toLevelDefinition } from '../serialize';
@@ -40,7 +40,7 @@ test('every campaign level stays solvable after a round-trip, with the same witn
     // The original winning witness replays move-for-move on the round-tripped level.
     let state = createGame(back);
     for (const action of original.moves) {
-      const outcome = resolveAction(state, action);
+      const outcome = applyActionWithArrivals(state, action);
       expect(outcome.accepted).toBe(true);
       state = outcome.state;
     }

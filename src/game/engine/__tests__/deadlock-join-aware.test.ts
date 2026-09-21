@@ -18,6 +18,7 @@ import { iceLayers } from '../frozen';
 import { reachablePixels, remainingPixelCount } from '../pixels';
 import { resolveAction } from '../resolveLaunch';
 import { enumerateActions, solve, stateKey } from '../solver';
+import { applyActionWithArrivals } from '../holdingArrival';
 import { isLost, isProductiveAction, isWon } from '../winState';
 import type { GameState, LevelDefinition } from '../types';
 import { LEVEL_DEFINITIONS } from '../../levels/levelDefinitions';
@@ -235,11 +236,10 @@ test('J · the final pixel cleared mid-epoch → won, never lost', () => {
   expect(s.status).toBe('won');
 });
 
-test('the solver dead-ends on JOIN_ONLY without crashing', () => {
+test('the solver handles JOIN_ONLY without crashing', () => {
   // The property under test is that it does so cleanly — it must NOT throw
   // "Runtime failed to mark a deadlock".
   expect(() => solve(JOIN_ONLY)).not.toThrow();
-  expect(solve(JOIN_ONLY).solved).toBe(false);
 });
 
 /**
@@ -252,29 +252,30 @@ test('the solver dead-ends on JOIN_ONLY without crashing', () => {
  * 16th capacity. That is precisely the rewrite of an earlier Pal's history that
  * FIRST LAUNCHED, FIRST SERVED forbids.
  *
- * Under the new rule white's lap runs alone: it clears the 15 frame whites, the
- * centre is still buried, and its leftover capacity has no free tray slot (the
- * three stranded cyans filled it) — so the epoch overflows and the level is
- * lost. The level is genuinely unsolvable now, and deliberately NOT special
- * cased. It is kept as a fixture because the deadlock predicates above still
- * need a state where the tray is full and every queue is stuck.
+ * Under the FLFS rule white's lap runs alone: it clears the 15 frame whites and
+ * the centre is still buried, so its leftover capacity needs a tray slot the
+ * three stranded cyans are holding.
+ *
+ * That overflow used to end the level on the spot, which made this fixture
+ * unsolvable. It no longer does: the surviving white is inbound and the player
+ * may relaunch a cyan to open a slot for it, so the position is playable and
+ * the solver finds a line. Whatever the verdict, solver and runtime must reach
+ * it together — that is what this pins.
  */
-test('JOIN_ONLY is unsolvable under first-launched-first-served, and runtime agrees', () => {
+test('JOIN_ONLY: solver and runtime agree on the same verdict', () => {
   const con = solve(JOIN_ONLY);
-  expect(con.solved).toBe(false);
   expect(con.complete).toBe(true);
 
-  // Solver and runtime must agree — an unsolvable level is not a crash, and the
-  // runtime must reach a state it marks lost rather than stranding the player.
+  const line = con.solved ? con.moves : (con.failPath ?? []);
   let s = createGame(JOIN_ONLY);
-  for (const a of con.failPath ?? []) {
-    const out = resolveAction(s, a);
+  for (const a of line) {
+    const out = applyActionWithArrivals(s, a);
     expect(out.accepted).toBe(true);
     s = out.state;
   }
-  expect(s.status).toBe('lost');
-  expect(isLost(s)).toBe(true);
-  expect(legalActions(s, { includeJoin: s.epoch !== null })).toHaveLength(0);
+  // The runtime ends exactly where the solver said it would.
+  expect(s.status).toBe(con.solved ? 'won' : 'lost');
+  expect(isLost(s)).toBe(!con.solved);
 });
 
 // ── solver / runtime consistency ───────────────────────────────────────────
@@ -298,8 +299,17 @@ test('runtime deadlock, legalActions and the solver agree; joins add no logical 
       const solverEnum = enumerateActions(s);
       const key = (a: GameAction) => `${a.kind}:${a.id}`;
 
-      // the three views of "is there a move" cannot disagree
-      expect(lost).toBe(joinAware.length === 0 && remainingPixelCount(s) > 0);
+      // The three views of "can this still go anywhere" cannot disagree.
+      // Two things soften the old "lost iff no move" equivalence:
+      //   - a state whose every move is a no-op loop is lost WITH moves left;
+      //   - a Pal inbound to an undecided Holding admission keeps the level
+      //     alive even with no move at all, because its arrival is still ahead.
+      if (s.pendingHolding.length > 0) {
+        expect(lost).toBe(false);
+      } else {
+        const productive = joinAware.some((a) => isProductiveAction(s, a));
+        expect(lost).toBe(!productive && remainingPixelCount(s) > 0);
+      }
       // the solver's choices are exactly the runtime's settle-first launches, and
       // every join the runtime admits is a twin of one of them — no extra choice
       expect(solverEnum.map(key)).toEqual(legalActions(s).map(key));

@@ -285,7 +285,7 @@ test('full holding can still win with a fully consuming Pal', () => {
   act(() => root.unmount());
 });
 
-test('overflow loss timing: engine knows loss immediately, but presented state stays playing until terminal flight fail event', () => {
+test('overflow timing: the Pal flies provisional, the Gate decides, and only then is the loss presented', () => {
   lost.mockClear();
   const root = mount(9610, overflowLevel);
   act(() => session.launch('tunnel-0')); finish();
@@ -293,47 +293,55 @@ test('overflow loss timing: engine knows loss immediately, but presented state s
   const held = session.state.holding.map((c) => c.id);
   expect(held).toHaveLength(2);
 
-  // Launch the third Pal that overflows Holding
+  // Launch the third Pal, which finds the tray full.
   act(() => session.launch('tunnel-2'));
   expect(session.flights).toHaveLength(1);
   const flight = session.flights[0]!;
 
-  // 1. Engine truth immediately knows loss is inevitable
-  expect(session.engineState.status).toBe('lost');
+  // 1. Nothing is decided at launch: truth itself is still playing.
+  expect(session.engineState.status).toBe('playing');
+  expect(session.engineState.pendingHolding).toHaveLength(1);
 
-  // 2. New launches are locked immediately
-  expect(session.canLaunch).toBe(false);
+  // 2. The board stays open — a free Active slot is a usable Active slot, and
+  //    the whole point of the rescue window is that the player may act in it.
+  expect(session.canLaunch).toBe(true);
 
-  // 3. BUT presentation status remains playing during the flight!
+  // 3. Presentation is playing, and the occupants are untouched.
   expect(session.state.status).toBe('playing');
   expect(lost).not.toHaveBeenCalled();
-
-  // 4. Holding occupants remain completely untouched
   expect(session.state.holding.map((c) => c.id)).toEqual(held);
 
-  // 5. Flight pass never enters holding
-  expect(flight.terminal).toEqual({ kind: 'reject' }); // no slot, no target
+  // 4. The pass carries the provisional terminal and no baked-in outcome.
+  expect(flight.terminal).toEqual({ kind: 'pendingHolding' });
   expect(flight.events.some((e) => e.kind === 'holdingLanded')).toBe(false);
+  expect(flight.events.some((e) => e.kind === 'fail')).toBe(false);
 
-  const failIndex = flight.events.findIndex((e) => e.kind === 'fail');
-  expect(failIndex).toBeGreaterThan(0);
+  const arrivalIndex = flight.events.findIndex((e) => e.kind === 'holdingArrival');
+  expect(arrivalIndex).toBeGreaterThan(0);
 
-  // 6. As Pal travels and reaches terminal point before fail: presentation remains playing
-  act(() => session.presentThrough(flight.passId, failIndex));
+  // 5. Everything before the Gate leaves the level playing.
+  act(() => session.presentThrough(flight.passId, arrivalIndex));
   expect(session.state.status).toBe('playing');
+  expect(session.engineState.status).toBe('playing');
   expect(lost).not.toHaveBeenCalled();
   expect(session.state.holding.map((c) => c.id)).toEqual(held);
 
-  // 7. Only when the terminal fail event fires is the loss committed to presentation
-  act(() => session.presentThrough(flight.passId, failIndex + 1));
+  // 6. The Gate beat is the decision. Nobody freed a slot, so it is turned
+  //    away: truth commits the loss and the pass becomes a reject in place.
+  act(() => session.presentThrough(flight.passId, arrivalIndex + 1));
+  expect(session.engineState.status).toBe('lost');
+  const decided = session.flights[0]!;
+  expect(decided.terminal).toEqual({ kind: 'reject' });
+  expect(decided.events.some((e) => e.kind === 'holdingLanded')).toBe(false);
+  // Presentation still lags truth until the burst is actually shown.
+  expect(session.state.status).toBe('playing');
+  expect(lost).not.toHaveBeenCalled();
+
+  // 7. Playing out the burst commits the loss to presentation, exactly once.
+  act(() => session.presentThrough(decided.passId, decided.events.length));
   expect(session.state.status).toBe('lost');
   expect(lost).toHaveBeenCalledTimes(1);
-  expect(session.state.holding.map((c) => c.id)).toEqual(held);
-
-  // 8. Flight completes cleanly
-  act(() => session.presentThrough(flight.passId, flight.events.length));
   expect(session.flights).toHaveLength(0);
-  expect(session.state.status).toBe('lost');
   expect(session.state.holding.map((c) => c.id)).toEqual(held);
 
   act(() => root.unmount());
@@ -395,8 +403,10 @@ test('exact repro: holding full 3/3, two active Pals: first consumes, second hit
   // Holding must still be untouched: blue 1, yellow 11, yellow 13
   expect(session.state.holding.map((c) => c.id)).toEqual(heldBefore.map((c) => c.id));
 
-  // Finish green 9
+  // Finish green 9 (Gate decision, then burst)
   act(() => session.presentThrough(greenFlight.passId, greenFlight.events.length));
+  const greenDecided = session.flights.find((f) => f.passId === greenFlight.passId);
+  if (greenDecided) act(() => session.presentThrough(greenDecided.passId, greenDecided.events.length));
 
   // Loss presentation
   expect(session.state.status).toBe('lost');

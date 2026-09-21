@@ -19,6 +19,8 @@ export interface Shot {
   linkedClearTargets?: { pixelId: string; x: number; y: number; color: Charge['color'] }[];
 }
 export type PlaybackKind = 'orbitEnter' | 'pixelClear' | 'frozenHit' | 'shieldHit' | 'linkPrime' | 'linkGroupClear' | 'chargeConsumed' |
+  /** The Pal reached the Gate with its Holding admission still undecided. */
+  'holdingArrival' |
   'holdingLanded' | 'holdingCritical' | 'holdingFull' | 'win' | 'fail' | 'complete';
 export interface PlaybackEvent { kind: PlaybackKind; at: number; pixelId?: string; remaining?: number;
   pixelIds?: string[]; groupId?: string;
@@ -32,10 +34,17 @@ export interface PlaybackEvent { kind: PlaybackKind; at: number; pixelId?: strin
  *   is that slot's measured screen point (absent only while unmeasured — the Pal
  *   then waits at GateTerminal, never at an off-screen fallback).
  * - `reject`    — full lap to GateTerminal and bursts in place; Holding unchanged.
+ * - `pendingHolding` — PROVISIONAL: the Pal survived but the tray had no free
+ *   slot for it (or earlier arrivals are queued ahead). It flies its full lap
+ *   to the GateTerminal and the decision is taken there, against the tray as it
+ *   stands at that moment: it becomes `toHolding` if a slot is free — which is
+ *   how a relaunch mid-flight rescues it — and `reject` if not. Its combat is
+ *   already fixed and never changes.
  */
 export type FlightTerminal =
   | { kind: 'consumed' }
   | { kind: 'toHolding'; slot: number; target?: Point; retargets?: HoldingRetarget[] }
+  | { kind: 'pendingHolding' }
   | { kind: 'reject' };
 
 /**

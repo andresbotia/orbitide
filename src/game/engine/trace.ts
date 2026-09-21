@@ -15,7 +15,7 @@ import { createGame } from './createGame';
 import { iceLayers, shieldLayers } from './frozen';
 import { isLinkedPrimed, linkedGroupId } from './linked';
 import { reachablePixels, remainingPixelCount } from './pixels';
-import { resolveAction } from './resolveLaunch';
+import { applyActionWithArrivals } from './holdingArrival';
 import type { GameState, GameStatus, LevelDefinition, OrbColor } from './types';
 
 export interface TraceCharge {
@@ -138,7 +138,7 @@ export function traceActions(level: LevelDefinition, actions: GameAction[]): Tra
       ? before.tunnels.find((t) => t.id === action.id)?.queue[0]
       : before.holding.find((c) => c.id === action.id);
 
-    const outcome = resolveAction(before, action);
+    const outcome = applyActionWithArrivals(before, action);
 
     if (!outcome.accepted) {
       steps.push({

@@ -1,6 +1,6 @@
 import { createGame } from '../../engine/createGame';
 import { iceLayers, shieldLayers } from '../../engine/frozen';
-import { resolveAction } from '../../engine/resolveLaunch';
+import { applyActionWithArrivals } from '../../engine/holdingArrival';
 import { solve } from '../../engine/solver';
 import { validateManifest } from '../../studio/campaign/validate';
 import { LEVEL_DEFINITIONS } from '../levelDefinitions';
@@ -112,7 +112,7 @@ test.each(LEVELS)('level $id is deterministically winnable with zero boosters', 
   // The witness replays through the real runtime and actually wins.
   let state = createGame(level);
   for (const action of result.moves) {
-    const outcome = resolveAction(state, action);
+    const outcome = applyActionWithArrivals(state, action);
     expect(outcome.accepted).toBe(true);
     expect(outcome.state.holding.length).toBeLessThanOrEqual(3);
     state = outcome.state;

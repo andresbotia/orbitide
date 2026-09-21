@@ -16,6 +16,7 @@
 import { canJoinEpoch } from '../epoch';
 import { candidateActions, legalActions, type GameAction } from '../actions';
 import { createGame } from '../createGame';
+import { resolveArrival } from '../holdingArrival';
 import { enumerateActions, stateKey } from '../solver';
 import { resolveAction } from '../resolveLaunch';
 import type { GameState, LevelDefinition } from '../types';
@@ -114,7 +115,9 @@ test('M4A repro — a full-Holding join is accepted, and is the same logical cho
   // risky move. Overflow parks nobody extra and the pass loses.
   const settle = resolveAction(s, T(0));
   expect(settle.accepted).toBe(true);
-  expect(settle.state.status).toBe('lost');
+  // Provisional now: the overflow is decided when that Pal reaches the Gate.
+  expect(settle.state.status).toBe('playing');
+  expect(resolveArrival(settle.state).state.status).toBe('lost');
   expect(settle.state.holding.map((c) => c.id)).toEqual(s.holding.map((c) => c.id));
   expect(legalActions(s).map((a) => a.id)).toContain('tunnel-0');
   // …and it is the same logical choice as the settle-first launch the solver

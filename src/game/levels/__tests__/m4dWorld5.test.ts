@@ -1,7 +1,7 @@
 import type { GameAction } from '../../engine/actions';
 import { createGame } from '../../engine/createGame';
 import { iceLayers, shieldLayers } from '../../engine/frozen';
-import { resolveAction } from '../../engine/resolveLaunch';
+import { applyActionWithArrivals } from '../../engine/holdingArrival';
 import { solve } from '../../engine/solver';
 import { traceActions } from '../../engine/trace';
 import type { LevelDefinition } from '../../engine/types';
@@ -13,7 +13,7 @@ const WORLD_5 = LEVEL_DEFINITIONS.filter((level) => level.id >= 41 && level.id <
 function replay(level: LevelDefinition, moves: GameAction[]) {
   let state = createGame(level);
   for (const action of moves) {
-    const outcome = resolveAction(state, action);
+    const outcome = applyActionWithArrivals(state, action);
     expect(outcome.accepted).toBe(true);
     expect(outcome.state.holding.length).toBeLessThanOrEqual(level.holdingCapacity);
     state = outcome.state;

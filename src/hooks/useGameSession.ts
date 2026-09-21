@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import { DEFAULT_ACTIVE_CAPACITY } from '@/game/engine/concurrency';
 import { createGame } from '@/game/engine/createGame';
 import { epochHasCapacity } from '@/game/engine/epoch';
+import { resolveArrival } from '@/game/engine/holdingArrival';
 import { resolveAction } from '@/game/engine/resolveLaunch';
 import { isCoreV2 } from '@/game/engine/ruleset';
 import type { GameAction } from '@/game/engine/actions';
@@ -223,11 +224,10 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
   }, []);
 
   const perform = useCallback((action: GameAction, from?: Point, holdingSlots?: (Point | undefined)[]): boolean => {
-    // Engine truth has already decided this level (a Holding overflow decides
-    // the loss at launch time, a full lap before the rejecting Pal reaches the
-    // GateTerminal and the loss is presented). The board still LOOKS playable
-    // for that whole window, so the tap must be refused out loud — returning
-    // bare `false` here is what made taps vanish on device.
+    // The level is genuinely over in truth. (It is no longer decided a lap
+    // early: a Holding overflow now commits when the Pal reaches the Gate, so
+    // this window is short and the player could act right up to it.) Refuse out
+    // loud — returning bare `false` here is what made taps vanish on device.
     if (truth.current.status !== 'playing') {
       deny('gameOver');
       return false;
@@ -326,6 +326,31 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     return true;
   }, [publishFlights, advanceTutorial, commitHolding, clearLanding, deny]);
 
+  /**
+   * Re-derive every live flight from `next` truth. Used when truth changes
+   * outside a launch — a Gate arrival committing a provisional Holding
+   * admission — so the deciding Pal picks up its real terminal (a landing with
+   * a slot, or a reject) and everyone else keeps their presented prefix.
+   */
+  const resyncFlights = useCallback((next: GameState, now: number) => {
+    if (!active.current.size) return;
+    const { passes } = reconcileFlights({
+      flights: [...active.current.values()],
+      freshPassId: -1,
+      truth: next,
+      resolutions: next.activeCharges,
+      pixels: next.pixels,
+      now,
+      slotPoints: holdingSlotsRef.current,
+      convoy: isCoreV2(next.ruleset),
+    });
+    for (const pass of assignResult(passes, next.status, now)) {
+      const flight = active.current.get(pass.passId);
+      if (flight) flight.pass = pass;
+    }
+    publishFlights();
+  }, [publishFlights]);
+
   const presentThrough = useCallback((passId: number, count: number) => {
     const flight = active.current.get(passId);
     if (!flight) {
@@ -365,6 +390,24 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
           const idx = nextPixels.findIndex((p) => p.id === event.pixelId);
           if (idx !== -1) nextPixels[idx] = { ...nextPixels[idx]!, modifier: truthPixel.modifier };
         }
+      } else if (event.kind === 'holdingArrival') {
+        // THE decision point. The Pal is at the Gate; admit it if the tray has
+        // room right now — which it may, because the player was free to
+        // relaunch a held Pal while this one flew — otherwise this is the
+        // reject, and the loss commits with it.
+        const outcome = resolveArrival(truth.current, flight.pass.charge.id);
+        if (!outcome.admitted && !outcome.rejected) {
+          queueViewFlush();
+          return;
+        }
+        truth.current = outcome.state;
+        setEngineState(outcome.state);
+        feedback.emit('gateIntro', { haptic: false });
+        resyncFlights(outcome.state, Date.now());
+        // The re-script replaced this pass: replay it from the same cursor so
+        // its real terminal beats (landing, or burst + result) are presented.
+        queueViewFlush();
+        return;
       } else if (event.kind === 'holdingLanded') {
         // The pass was re-scripted against the latest truth, so this Pal is
         // one truth keeps, landing in its truth slot with truth's capacity.
@@ -437,7 +480,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
       view.current = { ...view.current, pixels: nextPixels };
     }
     queueViewFlush();
-  }, [reportResult, settleAll, publishFlights, publishLanding, advanceTutorial, queueViewFlush, commitHolding]);
+  }, [reportResult, settleAll, publishFlights, publishLanding, advanceTutorial, queueViewFlush, commitHolding, resyncFlights]);
 
   const restart = useCallback(() => {
     active.current.clear();

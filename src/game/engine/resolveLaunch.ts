@@ -8,7 +8,7 @@ import {
 } from './epoch';
 import type { ChargePass, Encounter } from './pass';
 import type { ActiveCharge, Charge, EpochLaunch, GameState } from './types';
-import { computeStatus } from './winState';
+import { settleStatus } from './winState';
 
 export interface LaunchOutcome {
   state: GameState;
@@ -87,25 +87,19 @@ export function resolveAction(state: GameState, action: GameAction): LaunchOutco
     charges: plan.joined ? [...state.activeCharges, own.charge] : [own.charge],
   };
   const flushed = commitLaunch(state, plan, resolution);
-  flushed.status = computeStatus(flushed);
-  if (flushed.status !== 'won') {
-    const parkedIds = resolution.charges
-      .filter((c) => c.landed === 'holding')
-      .map((c) => c.id);
-    const heldIds = new Set(flushed.holding.map((c) => c.id));
-    if (parkedIds.some((id) => !heldIds.has(id))) {
-      flushed.status = 'lost';
-      flushed.epoch = null;
-    }
-  }
+  // A survivor with no slot is no longer a loss here: it is queued in
+  // `pendingHolding` and decided when it reaches the Gate (`resolveArrival`).
+  // The level stays playable meanwhile, which is exactly what lets the player
+  // free a slot and rescue it.
+  const settled = settleStatus(flushed);
 
-  const { pass, charge } = toChargePass(resolution, source.id, flushed);
+  const { pass, charge } = toChargePass(resolution, source.id, settled);
   const heldCharge = charge.remainingCapacity > 0
     ? { id: charge.id, color: charge.color, capacity: charge.remainingCapacity }
     : null;
 
   return {
-    state: flushed,
+    state: settled,
     action,
     accepted: true,
     sourceIndex,

@@ -78,16 +78,20 @@ const v2 = (extra: Partial<LevelDefinition> & Pick<LevelDefinition, 'id' | 'titl
 };
 
 /**
- * Holding capacity 1. Two Pals that can never hit anything (no red/green on a
- * blue board) both want to park: the second decides the loss the instant it is
- * launched. A useful blue Pal is still sitting in tunnel-2 the whole time.
+ * A level that DECIDES ITSELF while a Pal is still on screen.
+ *
+ * A Holding overflow no longer does that — it stays provisional until the Gate
+ * (see `pendingOverflow.test.ts`). What still decides early is a no-op
+ * deadlock: once the queues are drained and every held Pal is a lap that can
+ * meet nothing, truth is lost on that commit while the flight plays on.
  */
 const OVERFLOW = v2({
-  id: 9721, title: 'overflow', holdingCapacity: 1, pixelArt: ['BB', 'BB'],
+  id: 9721, title: 'deadlock while flying', holdingCapacity: 3,
+  pixelArt: ['BB', 'BB'],
   tunnels: [
     [{ color: 'red', capacity: 1 }],
-    [{ color: 'green', capacity: 1 }],
-    [{ color: 'blue', capacity: 4 }],
+    [{ color: 'red', capacity: 1 }],
+    [],
     [],
   ],
 });
@@ -101,15 +105,15 @@ describe('the decided-but-unpresented window', () => {
     presentTo(first.totalMs + 10);
     expect(session.state.holding).toHaveLength(1);
 
-    // The second miss has nowhere to park: engine truth is lost immediately.
+    // The last tunnel Pal goes out. Once it too can only miss, nothing left can
+    // change the board, so truth is lost on that commit while the Pal flies on.
     expect(tap({ kind: 'tunnel', id: 'tunnel-1' }).accepted).toBe(true);
     const doomed = session.flights[session.flights.length - 1]!;
     expect(session.engineState.status).toBe('lost');
-    // ...but the player still sees a playable board with free slots and a
-    // perfectly good Pal waiting in tunnel-2.
+    // ...but the player still sees a playable board with free Active slots.
     expect(session.state.status).toBe('playing');
     expect(session.activeCount).toBeLessThan(session.activeCapacity);
-    expect(session.state.tunnels[2]!.queue.length).toBeGreaterThan(0);
+    expect(session.state.holding.length).toBeGreaterThan(0);
 
     // Every tap across that whole window must answer.
     const windowMs = doomed.launchedAtMs + doomed.totalMs - Date.now();
@@ -118,7 +122,7 @@ describe('the decided-but-unpresented window', () => {
     for (let t = Date.now() + 200; t < doomed.launchedAtMs + doomed.totalMs; t += 400) {
       presentTo(t);
       if (session.state.status !== 'playing') break;
-      const result = tap({ kind: 'tunnel', id: 'tunnel-2' });
+      const result = tap({ kind: 'holding', id: session.state.holding[0]!.id });
       taps++;
       expect(result.answered).toBe(true);
       expect(result.accepted).toBe(false);
@@ -220,13 +224,13 @@ describe('acceptance', () => {
     presentTo(session.flights[0]!.totalMs + 10);
     tap({ kind: 'tunnel', id: 'tunnel-1' });
     expect(session.engineState.status).toBe('lost');
-    expect(tap({ kind: 'tunnel', id: 'tunnel-2' }).refused).toBe('gameOver');
+    expect(tap({ kind: 'holding', id: session.state.holding[0]!.id }).refused).toBe('gameOver');
 
     act(() => { session.restart(); });
     expect(session.engineState.status).toBe('playing');
     expect(session.state.status).toBe('playing');
     expect(session.activeCount).toBe(0);
-    expect(tap({ kind: 'tunnel', id: 'tunnel-2' }).accepted).toBe(true);
+    expect(tap({ kind: 'tunnel', id: 'tunnel-0' }).accepted).toBe(true);
     act(() => root.unmount());
   });
 

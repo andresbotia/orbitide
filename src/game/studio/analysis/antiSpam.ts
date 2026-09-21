@@ -11,7 +11,7 @@
  */
 import { legalActions } from '@/game/engine/actions';
 import { createGame } from '@/game/engine/createGame';
-import { resolveAction } from '@/game/engine/resolveLaunch';
+import { applyActionWithArrivals } from '@/game/engine/holdingArrival';
 import type { GameAction } from '@/game/engine/actions';
 import type { GameState, LevelDefinition } from '@/game/engine/types';
 import type { AntiSpamResult } from './types';
@@ -61,7 +61,7 @@ export function evaluateRoundRobinSpam(
       }
     }
 
-    const outcome = resolveAction(state, action);
+    const outcome = applyActionWithArrivals(state, action);
     if (!outcome.accepted) return finish('deadlocked');
     steps += 1;
     state = outcome.state;

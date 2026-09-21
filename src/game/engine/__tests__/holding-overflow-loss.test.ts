@@ -4,6 +4,7 @@ import { resolveAction } from '../resolveLaunch';
 import { DEFAULT_HOLDING_CAPACITY_V2, defaultHoldingCapacity } from '../ruleset';
 import type { LevelDefinition } from '../types';
 import { computeStatus, isLost, isWon } from '../winState';
+import { resolveArrival } from '../holdingArrival';
 import { holdingSlotFor } from '../../presentation/holdingSlot';
 import { buildLaunchScript } from '../../presentation/buildScript';
 
@@ -53,12 +54,19 @@ test('B — fill all three slots: A, B, C enter holding, remain present and dist
   expect(state.status).toBe('playing');
 });
 
-test('C — fourth unresolved Pal causes loss without replacing existing or silently disappearing', () => {
+test('C — a fourth unresolved Pal waits for the Gate; it replaces nothing and vanishes nowhere', () => {
   const state = fillHolding();
   const heldBefore = state.holding.map((c) => ({ ...c }));
   const outcome = resolveAction(state, T(0));
   expect(outcome.accepted).toBe(true);
-  expect(outcome.state.status).toBe('lost');
+  // Not lost at launch any more: the Pal is inbound and still rescuable.
+  expect(outcome.state.status).toBe('playing');
+  expect(outcome.state.pendingHolding.map((p) => p.charge.id)).toEqual([outcome.launchedCharge!.id]);
+  // It commits at the Gate, and with no rescue that is the loss.
+  const arrival = resolveArrival(outcome.state);
+  expect(arrival.rejected?.id).toBe(outcome.launchedCharge!.id);
+  expect(arrival.admitted).toBeNull();
+  expect(arrival.state.status).toBe('lost');
   // A, B, C remain unchanged
   expect(outcome.state.holding).toEqual(heldBefore);
   // D does not replace any of them
@@ -81,8 +89,12 @@ test('D — no slot reuse: exact same occupants before and after overflow attemp
   expect(outcome.state.holding[1]).toEqual(slot1Before);
   expect(outcome.state.holding[2]).toEqual(slot2Before);
 
-  // Presentation slots come from truth order: the overflow Pal has none.
+  // Presentation slots come from truth order: an inbound Pal has none yet, and
+  // still has none after a rejected arrival.
   expect(holdingSlotFor(outcome.state.holding, outcome.launchedCharge!.id)).toBe(-1);
+  const rejected = resolveArrival(outcome.state).state;
+  expect(rejected.holding).toEqual([slot0Before, slot1Before, slot2Before]);
+  expect(holdingSlotFor(rejected.holding, outcome.launchedCharge!.id)).toBe(-1);
 });
 
 test('E — full holding launch may still succeed if Pal fully resolves', () => {
@@ -95,14 +107,38 @@ test('E — full holding launch may still succeed if Pal fully resolves', () => 
   expect(outcome.state.holding.map((c) => c.id)).toEqual(ids);
 });
 
-test('F — full holding launch requiring park loses', () => {
+test('F — a full-tray launch that needs a slot loses only when it lands', () => {
   const state = fillHolding();
   expect(actionRejection(state, T(0))).toBeNull();
   expect(legalActions(state).some((a) => a.kind === 'tunnel' && a.id === 'tunnel-0')).toBe(true);
   const outcome = resolveAction(state, T(0));
   expect(outcome.accepted).toBe(true);
-  expect(outcome.state.status).toBe('lost');
   expect(outcome.heldCharge).not.toBeNull();
+  // Playing while it travels...
+  expect(outcome.state.status).toBe('playing');
+  // ...and lost on the arrival beat if nothing freed a slot in the meantime.
+  expect(resolveArrival(outcome.state).state.status).toBe('lost');
+});
+
+test('F2 — RESCUE: a relaunch during the flight frees the slot, and the Pal lands', () => {
+  const state = fillHolding();
+  const inbound = resolveAction(state, T(0));
+  const pendingId = inbound.state.pendingHolding[0]!.charge.id;
+  expect(inbound.state.status).toBe('playing');
+
+  // The player spends an Active slot on a held Pal: it leaves the tray at once.
+  const freed = resolveAction(inbound.state, { kind: 'holding', id: inbound.state.holding[0]!.id });
+  expect(freed.accepted).toBe(true);
+  expect(freed.state.holding).toHaveLength(2);
+  // The rescuing Pal queues BEHIND the inbound one, so it cannot steal the slot.
+  expect(freed.state.pendingHolding.map((p) => p.charge.id)[0]).toBe(pendingId);
+
+  // The inbound Pal reaches the Gate: there is room now.
+  const arrival = resolveArrival(freed.state);
+  expect(arrival.admitted?.id).toBe(pendingId);
+  expect(arrival.rejected).toBeNull();
+  expect(arrival.state.status).toBe('playing');
+  expect(arrival.state.holding.map((c) => c.id)).toContain(pendingId);
 });
 
 test('G — concurrent overflow: final slot taken by ordering, next needing holding causes loss', () => {
@@ -119,13 +155,17 @@ test('G — concurrent overflow: final slot taken by ordering, next needing hold
 
   const overflowJoin = resolveAction(joinOutcome.state, { ...T(0), join: true });
   expect(overflowJoin.accepted).toBe(true);
-  expect(overflowJoin.state.status).toBe('lost');
+  expect(overflowJoin.state.status).toBe('playing');
   expect(overflowJoin.state.holding).toHaveLength(3);
   expect(priorHeld.every((id) => overflowJoin.state.holding.some((c) => c.id === id))).toBe(true);
+  // The ordering still decides it — the last Pal is the one that finds no slot.
+  const arrival = resolveArrival(overflowJoin.state);
+  expect(arrival.rejected?.id).toBe(overflowJoin.launchedCharge!.id);
+  expect(arrival.state.status).toBe('lost');
 });
 
-test('H — terminal lock: once lost, no additional launches, insertions, or win transitions', () => {
-  const lostState = resolveAction(fillHolding(), T(0)).state;
+test('H — terminal lock: once the arrival rejects, nothing more may happen', () => {
+  const lostState = resolveArrival(resolveAction(fillHolding(), T(0)).state).state;
   expect(lostState.status).toBe('lost');
 
   // No additional normal launches
@@ -187,8 +227,11 @@ test('I — authoritative regression: full holding [A, B, C] + launching Pal D w
   // It hit 1 pixel and has 8 remaining capacity
   expect(outcome.heldCharge).toMatchObject({ color: 'green', capacity: 8 });
 
-  // Invariant 1: outcome.state.status must be 'lost'
-  expect(outcome.state.status).toBe('lost');
+  // Invariant 1: provisional — playing while it flies, lost when it lands with
+  // the tray still full. Its combat above is already fixed and unchanged.
+  expect(outcome.state.status).toBe('playing');
+  expect(outcome.state.pendingHolding.map((p) => p.charge.id)).toEqual([outcome.launchedCharge!.id]);
+  expect(resolveArrival(outcome.state).state.status).toBe('lost');
 
   // Invariant 2: Green 8 must NOT enter holding
   expect(outcome.state.holding.some((c) => c.color === 'green')).toBe(false);
@@ -199,13 +242,16 @@ test('I — authoritative regression: full holding [A, B, C] + launching Pal D w
 
   // Invariant 4: Presentation script must NOT have holdingLanded, must burst at terminal point
   const script = buildLaunchScript(outcome, state, 1);
-  expect(script.pass.terminal).toEqual({ kind: 'reject' }); // no slot, no target
+  // Provisional: it flies the full lap and is judged at the Gate.
+  expect(script.pass.terminal).toEqual({ kind: 'pendingHolding' });
+  expect(script.pass.events.some((e) => e.kind === 'holdingArrival')).toBe(true);
   expect(script.pass.events.some((e) => e.kind === 'holdingLanded')).toBe(false);
-  const failEvent = script.pass.events.find((e) => e.kind === 'fail');
-  expect(failEvent).toBeDefined();
-  // Lap completes to the terminal point before bursting
+  // No outcome is baked in at launch any more: the loss belongs to the arrival.
+  expect(script.pass.events.some((e) => e.kind === 'fail')).toBe(false);
+  // The lap still completes to the Gate, and the decision sits exactly there.
   expect(script.pass.endProgress).toBe(1);
-  expect(script.pass.landingAt).toBeGreaterThan(script.pass.orbitEndAt);
+  expect(script.pass.events.find((e) => e.kind === 'holdingArrival')!.at)
+    .toBe(script.pass.orbitEndAt);
 });
 
 test('J — authoritative regression: full holding [A, B, C] + launching Pal D with 0 hits and overflow preserves [A, B, C] and timing', () => {
@@ -247,13 +293,18 @@ test('J — authoritative regression: full holding [A, B, C] + launching Pal D w
   expect(outcome.heldCharge).toMatchObject({ color: 'green', capacity: 9 });
 
   // Invariants
-  expect(outcome.state.status).toBe('lost');
+  expect(outcome.state.status).toBe('playing');
+  expect(resolveArrival(outcome.state).state.status).toBe('lost');
   expect(outcome.state.holding.some((c) => c.color === 'green')).toBe(false);
   expect(outcome.state.holding).toEqual(occupantsBefore);
 
   const script = buildLaunchScript(outcome, state, 1);
-  expect(script.pass.terminal).toEqual({ kind: 'reject' }); // no slot, no target
+  // Provisional: it flies the full lap and is judged at the Gate.
+  expect(script.pass.terminal).toEqual({ kind: 'pendingHolding' });
+  expect(script.pass.events.some((e) => e.kind === 'holdingArrival')).toBe(true);
   expect(script.pass.events.some((e) => e.kind === 'holdingLanded')).toBe(false);
-  expect(script.pass.events.some((e) => e.kind === 'fail')).toBe(true);
+  expect(script.pass.events.some((e) => e.kind === 'fail')).toBe(false);
   expect(script.pass.endProgress).toBe(1);
+  expect(script.pass.events.find((e) => e.kind === 'holdingArrival')!.at)
+    .toBe(script.pass.orbitEndAt);
 });

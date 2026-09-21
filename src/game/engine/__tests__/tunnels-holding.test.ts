@@ -1,4 +1,5 @@
 import { createGame } from '../createGame';
+import { resolveArrival } from '../holdingArrival';
 import { CORE_V2_TUNNEL_COUNT, expectedTunnelCount, LEGACY_TUNNEL_COUNT } from '../ruleset';
 import {
   holdingWarnAt,
@@ -177,9 +178,14 @@ describe('Holding capacity 4', () => {
 
     const fifth = resolveAction(state, T(0));
     expect(fifth.accepted).toBe(true);
-    expect(fifth.state.status).toBe('lost');
-    expect(fifth.state.holding).toHaveLength(4);
-    expect(fifth.state.holding.map((c) => c.id)).toEqual(state.holding.map((c) => c.id));
+    // It is inbound, not lost: the tray could still open before it lands.
+    expect(fifth.state.status).toBe('playing');
+    expect(fifth.state.pendingHolding).toHaveLength(1);
+    // Nothing freed a slot, so its arrival at the Gate is the loss.
+    const arrival = resolveArrival(fifth.state);
+    expect(arrival.state.status).toBe('lost');
+    expect(arrival.state.holding).toHaveLength(4);
+    expect(arrival.state.holding.map((c) => c.id)).toEqual(state.holding.map((c) => c.id));
   });
 
   test('held relaunch from a 4-slot tray frees that slot and preserves identity', () => {

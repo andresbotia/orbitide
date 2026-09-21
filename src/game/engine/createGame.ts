@@ -108,6 +108,7 @@ export function createGame(level: LevelDefinition): GameState {
     pixels,
     tunnels,
     holding: [],
+    pendingHolding: [],
     status: 'playing',
     movesApplied: 0,
     activeCharges: [],

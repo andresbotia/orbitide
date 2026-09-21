@@ -1,5 +1,5 @@
 import { createGame } from '../../engine/createGame';
-import { resolveAction } from '../../engine/resolveLaunch';
+import { applyActionWithArrivals } from '../../engine/holdingArrival';
 import { solve } from '../../engine/solver';
 import type { GameAction } from '../../engine/actions';
 import type { LevelDefinition } from '../../engine/types';
@@ -11,7 +11,7 @@ const WORLD_1 = LEVEL_DEFINITIONS.filter((level) => level.id >= 1 && level.id <=
 function replay(level: LevelDefinition, moves: GameAction[]) {
   let state = createGame(level);
   for (const action of moves) {
-    const outcome = resolveAction(state, action);
+    const outcome = applyActionWithArrivals(state, action);
     expect(outcome.accepted).toBe(true);
     expect(outcome.state.holding.length).toBeLessThanOrEqual(level.holdingCapacity);
     state = outcome.state;
@@ -84,11 +84,12 @@ test('First Light analyzer report stays scoped to Levels 1-10', async () => {
   }
 
   // L4-L8 expose Holding through imperfect lines without requiring it on the
-  // best line. L5 intentionally remains authored Easy despite its advisory
-  // Medium score; its low-risk six-move fail path is the first real consequence.
+  // best line. L5 is the first level with a real fail path — but a recoverable
+  // Holding overflow made the advisory score fall back in line with its
+  // authored Easy, which is where an onboarding level should sit.
   for (const result of concurrent.slice(3, 8)) expect(result.minWinningPeak).toBe(0);
   expect(concurrent.slice(3, 8).every((result) => result.maxHolding >= 1)).toBe(true);
-  expect(rows[4]).toMatchObject({ authored: 'easy', suggested: 'medium' });
+  expect(rows[4]).toMatchObject({ authored: 'easy', suggested: 'easy' });
   expect(rows[4]!.solve.lossProbability).toBeLessThan(0.1);
   expect(rows[4]!.solve.failPathLength).toBeGreaterThan(2);
 

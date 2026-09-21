@@ -304,14 +304,25 @@ export function commitLaunch(state: GameState, plan: EpochPlan, resolution: Epoc
     : state.tunnels;
 
   const fromHolding = launch.source === 'holding';
-  const parked: Charge[] = charge.landed === 'holding'
-    ? [{ id: charge.id, color: charge.color, capacity: charge.remainingCapacity }]
-    : [];
+  const survivor: Charge | null = charge.landed === 'holding'
+    ? { id: charge.id, color: charge.color, capacity: charge.remainingCapacity }
+    : null;
+  // A relaunched Pal leaves its slot at once — it physically departs.
   const keep = fromHolding ? state.holding.filter((c) => c.id !== launch.originId) : state.holding;
+  const movesApplied = state.movesApplied + 1;
+
+  // Holding admission belongs to the moment a Pal REACHES the Gate, not to the
+  // moment its lap resolves. It parks straight away only when that decision
+  // cannot be in doubt: nothing queued ahead of it and a slot free. Otherwise
+  // it joins the queue and waits its turn, so a slot freed while it travels can
+  // still catch it — and two arrivals can never claim the same slot.
+  const queued = state.pendingHolding.length > 0;
   const room = Math.max(0, state.holdingCapacity - keep.length);
-  const holding: Charge[] = !fromHolding && parked.length === 0
-    ? state.holding
-    : [...keep, ...parked.slice(0, room)];
+  const parksNow = survivor !== null && !queued && room > 0;
+  const holding: Charge[] = parksNow && survivor !== null ? [...keep, survivor] : keep;
+  const pendingHolding = survivor !== null && !parksNow
+    ? [...state.pendingHolding, { charge: survivor, grace: 1 }]
+    : state.pendingHolding;
 
   const epoch: EpochState = { launches: plan.launches, clock: plan.clock };
 
@@ -320,7 +331,8 @@ export function commitLaunch(state: GameState, plan: EpochPlan, resolution: Epoc
     pixels: resolution.pixels,
     tunnels,
     holding,
-    movesApplied: state.movesApplied + 1,
+    pendingHolding,
+    movesApplied,
     activeCharges: resolution.charges,
     epoch,
     status: state.status,

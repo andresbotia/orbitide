@@ -1,4 +1,5 @@
 import { createGame } from '@/game/engine/createGame';
+import { resolveArrival } from '@/game/engine/holdingArrival';
 import { resolveLaunch } from '@/game/engine/resolveLaunch';
 import type { LevelDefinition } from '@/game/engine/types';
 import { buildLaunchScript } from '../buildScript';
@@ -136,25 +137,27 @@ test('an unresolved Pal overflowing full holding completes full lap to terminal 
 
   // Launch third blue Pal (miss -> overflow)
   const outcome = resolveLaunch(state, 'tunnel-2');
-  expect(outcome.state.status).toBe('lost');
+  // Provisional overflow: playing while the Pal flies, decided at the Gate.
+  expect(outcome.state.status).toBe('playing');
+  expect(resolveArrival(outcome.state).state.status).toBe('lost');
   expect(outcome.state.holding).toHaveLength(2);
 
   const pass = buildLaunchScript(outcome, state).pass;
-  expect(pass.terminal).toEqual({ kind: 'reject' }); // no slot, no target
+  // Provisional: the tray was full when its lap resolved, so it flies the whole
+  // lap and is judged at the Gate — no outcome is baked in here.
+  expect(pass.terminal).toEqual({ kind: 'pendingHolding' });
   expect(pass.endProgress).toBe(1);
   expect(pass.orbitEndAt - pass.liftMs).toBe(FEEL.ORBIT_DURATION);
-  expect(pass.landingAt).toBe(pass.orbitEndAt + FEEL.BURST_DURATION);
   expect(pass.events.some((e) => e.kind === 'holdingLanded')).toBe(false);
+  expect(pass.events.some((e) => e.kind === 'fail')).toBe(false);
 
-  const failEvent = pass.events.find((e) => e.kind === 'fail');
-  expect(failEvent).toBeDefined();
-  expect(failEvent!.at).toBe(pass.landingAt + FEEL.FAIL_DELAY);
+  const arrival = pass.events.find((e) => e.kind === 'holdingArrival');
+  expect(arrival).toBeDefined();
+  expect(arrival!.at).toBe(pass.orbitEndAt);
 
   const completeEvent = pass.events.find((e) => e.kind === 'complete');
   expect(completeEvent).toBeDefined();
-  // Completes on the result beat itself (one commit), presented after it.
-  expect(completeEvent!.at).toBe(failEvent!.at);
-  expect(pass.events.indexOf(completeEvent!)).toBeGreaterThan(pass.events.indexOf(failEvent!));
+  expect(completeEvent!.at).toBeGreaterThanOrEqual(arrival!.at);
 });
 
 test('an unresolved Pal with hits that overflows Holding still completes full lap to terminal point without cutting orbit short', () => {
@@ -174,7 +177,9 @@ test('an unresolved Pal with hits that overflows Holding still completes full la
 
   // Tunnel-2 (blue, capacity 2) clears the 1 blue pixel, capacity 1 remaining, holding full -> overflow
   const outcome = resolveLaunch(state, 'tunnel-2');
-  expect(outcome.state.status).toBe('lost');
+  // Provisional overflow: playing while the Pal flies, decided at the Gate.
+  expect(outcome.state.status).toBe('playing');
+  expect(resolveArrival(outcome.state).state.status).toBe('lost');
   expect(outcome.heldCharge?.capacity).toBe(1);
   expect(outcome.state.holding).toHaveLength(1);
 
@@ -183,12 +188,13 @@ test('an unresolved Pal with hits that overflows Holding still completes full la
   // Orbit MUST NOT be cut short at the shot clear time:
   expect(pass.endProgress).toBe(1);
   expect(pass.orbitEndAt).toBeGreaterThan(pass.shots[0]!.clearAt);
-  expect(pass.terminal).toEqual({ kind: 'reject' });
-  expect(pass.landingAt).toBe(pass.orbitEndAt + FEEL.BURST_DURATION);
+  // Provisional until the Gate (see above).
+  expect(pass.terminal).toEqual({ kind: 'pendingHolding' });
+  // It holds at the Gate for the decision; the burst (or the landing leg) is
+  // timed by the re-script that follows, not baked in here.
+  expect(pass.landingAt).toBe(pass.orbitEndAt);
   expect(pass.events.some((e) => e.kind === 'holdingLanded')).toBe(false);
-
-  const failEvent = pass.events.find((e) => e.kind === 'fail');
-  expect(failEvent).toBeDefined();
-  expect(failEvent!.at).toBe(pass.landingAt + FEEL.FAIL_DELAY);
+  expect(pass.events.some((e) => e.kind === 'fail')).toBe(false);
+  expect(pass.events.find((e) => e.kind === 'holdingArrival')!.at).toBe(pass.orbitEndAt);
 });
 

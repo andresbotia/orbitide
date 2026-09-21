@@ -129,7 +129,56 @@ function presentAll(cursors: Map<number, number>, now: number) {
   }
 }
 
-interface Finding { kind: 'silent' | 'capacity' | 'buriedHeld' | 'endlessLoop'; trace: Trace; history: GameAction[] }
+interface Finding {
+  kind: 'silent' | 'capacity' | 'buriedHeld' | 'endlessLoop' | 'pending';
+  trace: Trace; history: GameAction[]; note?: string;
+}
+
+/**
+ * Everything that must be true of a provisional Holding arrival, at every
+ * single step, in both rulesets:
+ *
+ *   1. NOT YET FINAL — while anything is pending, the level is still playing;
+ *      an overflow may never end the level before the Gate decides it.
+ *   2. NOT IN TWO PLACES — a pending Pal is not in the tray, and the tray is
+ *      never over capacity.
+ *   3. STILL ACTIVE — a pending Pal is still an Active Pal: it is carried by a
+ *      live flight and keeps consuming its slot until its lifecycle ends.
+ *   4. FIFO — pendings queue in LAUNCH order (a relaunched Pal queues by the
+ *      launch it is flying, not by the charge's first ever flight), and the
+ *      head is always the next to be decided.
+ *   5. NEVER STRANDED — every pending carries a live countdown, so it is always
+ *      on its way to a decision rather than parked forever.
+ */
+function pendingProblem(truth: GameState): string | null {
+  const pending = truth.pendingHolding;
+  if (pending.length === 0) return null;
+  if (truth.status !== 'playing') return `status '${truth.status}' with ${pending.length} pending`;
+  const live = [...session.flights, ...session.landingFlights];
+  const order: number[] = [];
+  const graces: number[] = [];
+  for (const { charge, grace } of pending) {
+    if (truth.holding.some((c) => c.id === charge.id)) return `${charge.id} is pending AND in the tray`;
+    // A relaunched Pal can appear twice — the finished landing it came from and
+    // the lap it is flying now. The pending belongs to the lap it is flying.
+    const mine = live.filter((f) => f.charge.id === charge.id);
+    const flight = mine.reduce<typeof mine[number] | undefined>(
+      (best, f) => (best === undefined || f.passId > best.passId ? f : best), undefined);
+    if (!flight) return `${charge.id} is pending but no longer an Active flight`;
+    if (grace < 0 || grace > 1) return `${charge.id} has an out-of-range grace ${grace}`;
+    order.push(flight.passId);
+    graces.push(grace);
+  }
+  if (truth.holding.length > truth.holdingCapacity) return `tray ${truth.holding.length}/${truth.holdingCapacity}`;
+  for (let i = 1; i < order.length; i++) {
+    // Queued in launch order...
+    if (order[i]! <= order[i - 1]!) return `pending queue is out of launch order (passes ${order.join(',')})`;
+    // ...and therefore counting down in that same order: the head is always
+    // the one closest to its decision, so nothing overtakes it.
+    if (graces[i]! < graces[i - 1]!) return `pending grace overtakes the head (${graces.join(',')})`;
+  }
+  return null;
+}
 
 const steps = { n: 0 };
 
@@ -211,20 +260,23 @@ function runSession(seed: number, stepCount: number, ruleset: GameRuleset = 'cor
       findings.push({ kind: 'buriedHeld', trace, history: [...history] });
     }
     // A state whose every admitted action is a no-op loop must be lost, not
-    // endlessly playable.
-    if (truth.status === 'playing') {
+    // endlessly playable — unless a Pal is inbound to an undecided Holding
+    // admission, whose arrival is itself the pending change.
+    if (truth.status === 'playing' && truth.pendingHolding.length === 0) {
       const admitted = legalActions(truth);
       if (admitted.length > 0 && !admitted.some((a) => isProductiveAction(truth, a))) {
         findings.push({ kind: 'endlessLoop', trace, history: [...history] });
       }
     }
+    const pendingIssue = pendingProblem(session.engineState);
+    if (pendingIssue) findings.push({ kind: 'pending', trace, history: [...history], note: pendingIssue });
     if (findings.length) break;
   }
   act(() => root.unmount());
   return findings;
 }
 
-test('randomized play never produces a silent tap or a false capacity refusal', () => {
+test('randomized play never produces a silent tap, a false capacity refusal or a broken pending arrival', () => {
   const found: Finding[] = [];
   for (const ruleset of ['coreV2', 'legacyV1'] as const) {
     for (let seed = 1; seed <= 150 && found.length === 0; seed++) {
@@ -234,8 +286,8 @@ test('randomized play never produces a silent tap or a false capacity refusal', 
   console.log(`[ADMISSION STRESS] ${steps.n} taps across 300 randomized sessions`);
   if (found.length) {
     const f = found[0]!;
-    console.log(`\n[ADMISSION ${f.kind.toUpperCase()}]\n${describeTrace(f.trace)}\nsequence: `
+    console.log(`\n[ADMISSION ${f.kind.toUpperCase()}]${f.note ? ` ${f.note}` : ''}\n${describeTrace(f.trace)}\nsequence: `
       + f.history.map((a) => `${a.kind}:${a.id}`).join(' -> '));
   }
-  expect(found.map((f) => `${f.kind}: ${describeTrace(f.trace)}`)).toEqual([]);
+  expect(found.map((f) => `${f.kind}${f.note ? ` (${f.note})` : ''}: ${describeTrace(f.trace)}`)).toEqual([]);
 });

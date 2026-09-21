@@ -1,5 +1,6 @@
 import { createGame, restartGame } from '../createGame';
 import { resolveLaunch, resolveAction } from '../resolveLaunch';
+import { resolveArrival } from '../holdingArrival';
 import { resolveHoldingLaunch } from '../resolveHolding';
 import { legalActions, actionRejection } from '../actions';
 import { computeStatus, isProductiveAction } from '../winState';
@@ -73,7 +74,9 @@ test('full Holding accepts a partial tunnel pass then loses without overwriting 
   expect(computeStatus(state)).toBe('playing');
   const result = resolveLaunch(state, 'tunnel-0');
   expect(result.accepted).toBe(true);
-  expect(result.state.status).toBe('lost');
+  // Provisional overflow: playing while the Pal flies, decided at the Gate.
+  expect(result.state.status).toBe('playing');
+  expect(resolveArrival(result.state).state.status).toBe('lost');
   expect(result.state.holding).toEqual(state.holding);
   expect(result.heldCharge?.capacity).toBeGreaterThan(0);
   expect(result.state.holding.some((c) => c.id === result.launchedCharge!.id)).toBe(false);

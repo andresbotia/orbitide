@@ -78,6 +78,12 @@ function heldRelaunchMeetsSomething(state: GameState, charge: Charge): boolean {
 export function isLost(state: GameState): boolean {
   if (state.status === 'lost') return true;
   if (isWon(state)) return false;
+  // A Pal is still travelling toward an undecided Holding admission. Its
+  // arrival is the decision point (`resolveArrival`), and until then the level
+  // is live: a full tray can still be opened by relaunching a held Pal, which
+  // is the rescue this whole model exists for. The loss, if it comes, commits
+  // on that arrival beat — never before it.
+  if (state.pendingHolding.length > 0) return false;
   const playing: GameState = { ...state, status: 'playing' };
   const actions = legalActions(playing);
   if (actions.length === 0) return true;
@@ -87,4 +93,16 @@ export function isLost(state: GameState): boolean {
 export function computeStatus(state: GameState): GameStatus {
   if (state.status === 'lost') return 'lost';
   return isWon(state) ? 'won' : isLost(state) ? 'lost' : 'playing';
+}
+
+/**
+ * The state's settled status, with the one consequence a finished game carries:
+ * nothing is inbound any more. A won or lost level will never be played again,
+ * so no arrival is left pending on it and every terminal state is self
+ * consistent — `pendingHolding` non-empty always means the level is still live.
+ */
+export function settleStatus(state: GameState): GameState {
+  const status = computeStatus(state);
+  if (status === 'playing' || state.pendingHolding.length === 0) return { ...state, status };
+  return { ...state, status, pendingHolding: [] };
 }
