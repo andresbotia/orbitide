@@ -9,64 +9,156 @@ import type { LevelDefinition } from '../engine/types';
 export const COMPILED_LEVELS: LevelDefinition[] = [
   {
     "id": 1,
-    "title": "First Spark",
+    "title": "Neon Launch",
     "themeId": "first-light",
     "difficulty": "easy",
     "holdingCapacity": 3,
     "pixelArt": [
-      ".......",
-      "..C.C..",
-      "..CYC..",
-      "..CYC..",
-      ".CCCCC.",
-      "..C.C..",
-      "......."
+      "........C........",
+      ".......CYC.......",
+      "......CYBYC......",
+      "......CYBYC......",
+      ".....CYBCBYC.....",
+      ".....CYBCBYC.....",
+      ".....CYBCBYC.....",
+      ".....CYBCBYC.....",
+      ".....CYBCBYC.....",
+      ".....CYBCBYC.....",
+      ".....CYBCBYC.....",
+      "....CYCBCBCYC....",
+      "...CYC.BCB.CYC...",
+      "...CC..YBY..CC...",
+      "..CC...YBY...CC..",
+      ".......CYC.......",
+      "........C........"
     ],
     "tunnels": [
       [
         {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
           "color": "gold",
-          "capacity": 2
+          "capacity": 7
+        },
+        {
+          "color": "blue",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 5
         }
       ],
       [
         {
-          "color": "coral",
-          "capacity": 13
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "cyan",
+          "capacity": 4
         }
       ],
-      [],
-      []
+      [
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        }
+      ]
     ],
     "replacesLegacy": true,
     "legend": {
-      "Y": "gold",
-      "C": "coral"
+      "B": "blue",
+      "C": "cyan",
+      "Y": "gold"
     },
-    "ruleset": "coreV2"
+    "activeCapacity": 5
   },
   {
     "id": 2,
-    "title": "Morning Kite",
+    "title": "Coral Koi",
     "themeId": "first-light",
     "difficulty": "easy",
     "holdingCapacity": 3,
     "pixelArt": [
-      "....B....",
-      "...BWB...",
-      "..BRRRB..",
-      ".BRRWRRB.",
-      "..BRRRB..",
-      "...BWB...",
-      "....R....",
-      "...R.R...",
-      "....R...."
+      "..................",
+      "..........RR......",
+      ".......RRRWWR.....",
+      "....RRRWWWPPWR....",
+      "..RRWWWPPPRRPWRR..",
+      ".RWWPPPRRRWWRPWWR.",
+      "RWPPRRRWWWPPWRPPWR",
+      ".RWPPRRWWPRPWRPWR.",
+      "..RWWPPRRWPWRPWRR.",
+      "....RWWPPRWRPWR...",
+      "......RWWPRPWR....",
+      ".......RRWPPWR....",
+      "......RR.RWPWR....",
+      ".....RR...RWR.....",
+      "....RR.....R......",
+      "...RR.............",
+      "..R...............",
+      ".................."
     ],
     "tunnels": [
       [
         {
-          "color": "cyan",
-          "capacity": 11
+          "color": "red",
+          "capacity": 8
+        },
+        {
+          "color": "red",
+          "capacity": 7
+        },
+        {
+          "color": "white",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 7
+        },
+        {
+          "color": "purple",
+          "capacity": 7
+        },
+        {
+          "color": "white",
+          "capacity": 6
+        },
+        {
+          "color": "purple",
+          "capacity": 5
         }
       ],
       [
@@ -75,659 +167,1177 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
           "capacity": 8
         },
         {
+          "color": "red",
+          "capacity": 7
+        },
+        {
           "color": "white",
-          "capacity": 3
+          "capacity": 8
+        },
+        {
+          "color": "white",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 7
         },
         {
           "color": "red",
           "capacity": 6
+        },
+        {
+          "color": "white",
+          "capacity": 6
         }
       ],
-      [],
-      []
+      [
+        {
+          "color": "red",
+          "capacity": 7
+        },
+        {
+          "color": "red",
+          "capacity": 7
+        },
+        {
+          "color": "white",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 7
+        },
+        {
+          "color": "red",
+          "capacity": 7
+        },
+        {
+          "color": "red",
+          "capacity": 6
+        },
+        {
+          "color": "red",
+          "capacity": 1
+        }
+      ]
     ],
     "replacesLegacy": true,
     "legend": {
-      "B": "cyan"
+      "P": "purple",
+      "R": "red",
+      "W": "white"
     },
-    "ruleset": "coreV2"
+    "activeCapacity": 5
   },
   {
     "id": 3,
-    "title": "Sunrise Balloon",
+    "title": "Street Sprint",
     "themeId": "first-light",
     "difficulty": "easy",
     "holdingCapacity": 3,
     "pixelArt": [
-      "...PPP...",
-      "..POOOP..",
-      ".POYOYOP.",
-      ".POOOOOP.",
-      "..PYPYP..",
-      "...OOO...",
-      "...BBB...",
-      "...B.B...",
-      "...B.B...",
-      "..BBBBB..",
-      "........."
+      "...................",
+      "...................",
+      "...................",
+      "...GGGGG...........",
+      "...GMMMG...........",
+      "...GMPMG...........",
+      "...GMPMG...........",
+      "...GMPPMGGGGGGGG...",
+      "...GMPGPMMMMMMMMGG.",
+      "...GMPGGPPPPPPPPMG.",
+      "..GMPGMMGGGGGGGGPMG",
+      "..GMPGMMMMMMMMGPMG.",
+      "..GMPGGGGGGGGGGPMG.",
+      "..GMPPPPPPPPPPPMG..",
+      "..GMMMMMMMMMMMMMG..",
+      "...GGGGGGGGGGGGGG..",
+      "...................",
+      "...................",
+      "..................."
     ],
     "tunnels": [
       [
         {
-          "color": "pink",
-          "capacity": 12
+          "color": "lime",
+          "capacity": 7
         },
         {
-          "color": "yellow",
-          "capacity": 4
+          "color": "lime",
+          "capacity": 7
+        },
+        {
+          "color": "magenta",
+          "capacity": 7
+        },
+        {
+          "color": "magenta",
+          "capacity": 7
+        },
+        {
+          "color": "purple",
+          "capacity": 8
+        },
+        {
+          "color": "purple",
+          "capacity": 8
+        },
+        {
+          "color": "lime",
+          "capacity": 8
+        },
+        {
+          "color": "magenta",
+          "capacity": 5
         }
       ],
       [
         {
-          "color": "orange",
+          "color": "lime",
+          "capacity": 7
+        },
+        {
+          "color": "lime",
+          "capacity": 7
+        },
+        {
+          "color": "magenta",
+          "capacity": 7
+        },
+        {
+          "color": "magenta",
+          "capacity": 7
+        },
+        {
+          "color": "purple",
           "capacity": 8
         },
         {
-          "color": "blue",
-          "capacity": 12
+          "color": "lime",
+          "capacity": 8
         },
         {
-          "color": "orange",
-          "capacity": 6
+          "color": "magenta",
+          "capacity": 5
         }
       ],
-      [],
-      []
+      [
+        {
+          "color": "lime",
+          "capacity": 7
+        },
+        {
+          "color": "lime",
+          "capacity": 7
+        },
+        {
+          "color": "lime",
+          "capacity": 7
+        },
+        {
+          "color": "magenta",
+          "capacity": 7
+        },
+        {
+          "color": "magenta",
+          "capacity": 6
+        },
+        {
+          "color": "purple",
+          "capacity": 8
+        },
+        {
+          "color": "lime",
+          "capacity": 8
+        }
+      ]
     ],
     "replacesLegacy": true,
     "legend": {
-      "P": "pink"
+      "G": "lime",
+      "M": "magenta",
+      "P": "purple"
     },
-    "ruleset": "coreV2"
+    "activeCapacity": 5
   },
   {
     "id": 4,
-    "title": "Dawn Windmill",
+    "title": "Sunset Camper",
     "themeId": "first-light",
-    "difficulty": "medium",
+    "difficulty": "easy",
     "holdingCapacity": 3,
     "pixelArt": [
-      ".....I.......",
-      "....III......",
-      "...ITTI......",
-      "....TIT......",
-      "RRRRTYYYY....",
-      ".RRRTTYYY....",
-      "..TTTYTTT....",
-      "....YYTRRR...",
-      "....YTRRRR...",
-      ".....I.......",
-      "....III......",
-      "....I.I......",
-      "...IIIII....."
+      "...................",
+      "...................",
+      "...................",
+      "...................",
+      "....OOOOOOOOOO.....",
+      "....OTTTTTTTTO.....",
+      "..OOTWWWWWWWWTOOO..",
+      "..OTWOOOOOOOOWTTTO.",
+      "..OTWOTTTTTTTOWWTO.",
+      "..OTWOTWTTTTWTOWTO.",
+      "..OTWOTTOOOOTTOWTO.",
+      "..OTWOTOWWWWOTOWTO.",
+      "..OTWOOWTTTTWOOWTO.",
+      ".OOTWOWTOOOOTWOWTO.",
+      "...OTWTO....OTWTO..",
+      "....OTO......OTO...",
+      ".....O........O....",
+      "...................",
+      "..................."
     ],
     "tunnels": [
       [
         {
-          "color": "gold",
-          "capacity": 5
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 7
         },
         {
           "color": "white",
-          "capacity": 3
+          "capacity": 7
         },
         {
-          "color": "gold",
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "teal",
           "capacity": 6
         }
       ],
       [
         {
-          "color": "red",
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "white",
           "capacity": 7
         },
         {
           "color": "white",
-          "capacity": 15
+          "capacity": 7
         },
         {
-          "color": "red",
+          "color": "orange",
           "capacity": 7
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "teal",
+          "capacity": 6
         }
       ],
       [
         {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
           "color": "teal",
-          "capacity": 15
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "white",
+          "capacity": 6
+        },
+        {
+          "color": "white",
+          "capacity": 6
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "white",
+          "capacity": 2
         }
-      ],
-      []
+      ]
     ],
     "replacesLegacy": true,
     "legend": {
-      "I": "white",
+      "O": "orange",
       "T": "teal",
-      "Y": "gold"
+      "W": "white"
     },
-    "ruleset": "coreV2"
+    "activeCapacity": 5
   },
   {
     "id": 5,
-    "title": "Sunlit Bloom",
+    "title": "Arctic Whale",
     "themeId": "first-light",
-    "difficulty": "medium",
+    "difficulty": "easy",
     "holdingCapacity": 3,
     "pixelArt": [
-      "......Y.Y......",
-      "....YYCYY......",
-      "...YCYYYCY.....",
-      "..YCCYAYCCY....",
-      ".YYCAAAAACYY...",
-      ".YCAAAAAAACY...",
-      "YYCAAAAAAACYY..",
-      ".YCAAAAAAACY...",
-      ".YYCAAAAACYY...",
-      "..YCCYAYCCY....",
-      "......L........",
-      ".....LLL.......",
-      "..GGG.L.GGG....",
-      "...GG.LL.GG....",
-      "......L........"
+      "...................",
+      "...................",
+      "...................",
+      "RRRRR..............",
+      "RIIII....R...RRR...",
+      "RIBBBRRRRIRRRIIIR..",
+      "RIBRRIIIIBIIIBBBIR.",
+      "RIBRIBBBBRBBBRRBIR.",
+      "RI.BRRRRRIRRRIIRBIR",
+      "..RIBRIIIBIIIIRBIR.",
+      "RI.BRRRRRIRRRRBBIR.",
+      "RIBRIBBBBRBBBBIIR..",
+      "RIBRRIIIIBIIIIRR...",
+      "RIBBBRRRRIRRRR.....",
+      "RIIII....R.........",
+      "RRRRR..............",
+      "...................",
+      "...................",
+      "..................."
     ],
     "tunnels": [
       [
         {
-          "color": "gold",
-          "capacity": 22
+          "color": "red",
+          "capacity": 7
         },
         {
-          "color": "coral",
-          "capacity": 21
+          "color": "red",
+          "capacity": 7
         },
         {
-          "color": "gold",
-          "capacity": 13
-        }
-      ],
-      [
+          "color": "red",
+          "capacity": 7
+        },
         {
-          "color": "lime",
+          "color": "indigo",
+          "capacity": 7
+        },
+        {
+          "color": "blue",
           "capacity": 8
         },
         {
-          "color": "orange",
-          "capacity": 16
+          "color": "blue",
+          "capacity": 8
+        },
+        {
+          "color": "red",
+          "capacity": 7
+        },
+        {
+          "color": "indigo",
+          "capacity": 6
+        },
+        {
+          "color": "blue",
+          "capacity": 1
         }
       ],
       [
         {
-          "color": "green",
-          "capacity": 10
+          "color": "red",
+          "capacity": 8
         },
         {
-          "color": "orange",
-          "capacity": 17
+          "color": "red",
+          "capacity": 7
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "indigo",
+          "capacity": 7
+        },
+        {
+          "color": "blue",
+          "capacity": 8
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "red",
+          "capacity": 8
+        },
+        {
+          "color": "indigo",
+          "capacity": 7
         }
       ],
-      []
+      [
+        {
+          "color": "red",
+          "capacity": 7
+        },
+        {
+          "color": "red",
+          "capacity": 7
+        },
+        {
+          "color": "indigo",
+          "capacity": 8
+        },
+        {
+          "color": "indigo",
+          "capacity": 7
+        },
+        {
+          "color": "indigo",
+          "capacity": 7
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "red",
+          "capacity": 8
+        },
+        {
+          "color": "red",
+          "capacity": 7
+        }
+      ]
     ],
     "replacesLegacy": true,
     "legend": {
-      "Y": "gold",
-      "C": "coral",
-      "A": "orange",
-      "L": "lime"
+      "B": "blue",
+      "I": "indigo",
+      "R": "red"
     },
-    "ruleset": "coreV2"
+    "activeCapacity": 5
   },
   {
     "id": 6,
-    "title": "Rainbow Gate",
+    "title": "Moonbeam Lighthouse",
     "themeId": "first-light",
-    "difficulty": "medium",
+    "difficulty": "easy",
     "holdingCapacity": 3,
     "pixelArt": [
-      "......RRRRR......",
-      "....RRYYYYYRR....",
-      "...RYYGGGGGYYR...",
-      "..RYGGBBBBBGGYR..",
-      ".RYGBBVVVVVBBGYR.",
-      "RYGBV.....VBGYR..",
-      "RYGBV.....VBGYR..",
-      "RYGBV.....VBGYR..",
-      "RYGBV.....VBGYR..",
-      "RYGBV.....VBGYR..",
-      "RYGBV.....VBGYR..",
-      "RYGBV.....VBGYR..",
-      "BBBV.......VBBB..",
-      ".BB.........BB...",
-      "................."
+      "..................",
+      "..................",
+      "..................",
+      "........YY........",
+      "......YYBBYY......",
+      ".YYYYYBBCCBBYYYYY.",
+      ".YYYBBCCYYCCBBYYY.",
+      ".....YBCYYCBY.....",
+      "......YBCCBY......",
+      "......YBCCBY......",
+      "......YBCCBY......",
+      "......YBCCBY......",
+      ".....YBCYYCBY.....",
+      ".....YBCYYCBY.....",
+      ".....YBCYYCBY.....",
+      ".....YBCCCCBY.....",
+      ".....YBBBBBBY.....",
+      "....YYYYYYYYYY...."
     ],
     "tunnels": [
       [
         {
-          "color": "blue",
-          "capacity": 12
-        },
-        {
-          "color": "yellow",
-          "capacity": 14
-        },
-        {
-          "color": "yellow",
-          "capacity": 13
-        }
-      ],
-      [
-        {
-          "color": "purple",
+          "color": "gold",
           "capacity": 8
         },
         {
-          "color": "green",
-          "capacity": 12
-        },
-        {
-          "color": "green",
-          "capacity": 13
-        }
-      ],
-      [
-        {
-          "color": "red",
-          "capacity": 10
+          "color": "gold",
+          "capacity": 7
         },
         {
           "color": "blue",
-          "capacity": 21
+          "capacity": 7
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "cyan",
+          "capacity": 6
+        },
+        {
+          "color": "gold",
+          "capacity": 5
         }
       ],
       [
         {
-          "color": "red",
-          "capacity": 19
+          "color": "gold",
+          "capacity": 8
         },
         {
-          "color": "purple",
-          "capacity": 13
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "blue",
+          "capacity": 6
+        },
+        {
+          "color": "cyan",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 5
+        }
+      ],
+      [
+        {
+          "color": "gold",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "cyan",
+          "capacity": 7
+        },
+        {
+          "color": "cyan",
+          "capacity": 6
         }
       ]
     ],
     "replacesLegacy": true,
     "legend": {
-      "V": "purple"
+      "B": "blue",
+      "C": "cyan",
+      "Y": "gold"
     },
-    "ruleset": "coreV2"
+    "activeCapacity": 5
   },
   {
     "id": 7,
-    "title": "Morning Hummingbird",
+    "title": "Garden Cat",
     "themeId": "first-light",
-    "difficulty": "medium",
+    "difficulty": "easy",
     "holdingCapacity": 3,
     "pixelArt": [
-      ".......B...........",
-      "......BBB..........",
-      ".....BBTBB.........",
-      "....BBTTTB.........",
-      "...BBTTGTTB........",
-      "...BBTTGGTB........",
-      "....BBTGGGTTGT.....",
-      ".......GGTTTGTY...M",
-      ".......GTTTGGTYWWMY",
-      ".......GTTGMMYT...M",
-      ".....BBGGGMM.......",
-      "....BBBTGG.........",
-      "..MBBBBT...........",
-      ".MBBBBT............",
-      "..MMBBT............",
-      "..MBBT.............",
-      ".M................."
+      "...................",
+      "...................",
+      "...PPPPP...PPPPP...",
+      "...PGGGG...GGGGP...",
+      "...PGWW..P..WWGP...",
+      "....PGWWPGPWWGP....",
+      "....PGWPGWGPWGP....",
+      "...PGWPGWPWGPWGP...",
+      "..PGWPGWPGPWGPWGP..",
+      ".PGWPGWPGWGPWGPWGP.",
+      ".PGWPGWWWPWWWGPWGP.",
+      ".PGWPPGGGWGGGPPWGP.",
+      ".PGWPWPPPGPPPWPWGP.",
+      ".PGGWGWWWPWWWGWGGP.",
+      "..PPGPGGGWGGGPGPP..",
+      "....P.PPPGPPP.P....",
+      ".........P.........",
+      "...................",
+      "..................."
     ],
     "tunnels": [
       [
         {
-          "color": "blue",
-          "capacity": 26
+          "color": "purple",
+          "capacity": 8
         },
         {
-          "color": "blue",
-          "capacity": 10
+          "color": "purple",
+          "capacity": 7
+        },
+        {
+          "color": "purple",
+          "capacity": 7
+        },
+        {
+          "color": "lime",
+          "capacity": 7
+        },
+        {
+          "color": "lime",
+          "capacity": 7
+        },
+        {
+          "color": "white",
+          "capacity": 7
+        },
+        {
+          "color": "purple",
+          "capacity": 7
+        },
+        {
+          "color": "purple",
+          "capacity": 6
+        },
+        {
+          "color": "lime",
+          "capacity": 6
+        },
+        {
+          "color": "purple",
+          "capacity": 3
         }
       ],
       [
         {
-          "color": "cyan",
-          "capacity": 18
+          "color": "purple",
+          "capacity": 7
         },
         {
-          "color": "cyan",
-          "capacity": 13
-        }
-      ],
-      [
-        {
-          "color": "green",
-          "capacity": 14
+          "color": "purple",
+          "capacity": 7
         },
         {
-          "color": "green",
+          "color": "lime",
+          "capacity": 8
+        },
+        {
+          "color": "lime",
+          "capacity": 7
+        },
+        {
+          "color": "white",
+          "capacity": 8
+        },
+        {
+          "color": "white",
+          "capacity": 7
+        },
+        {
+          "color": "purple",
+          "capacity": 7
+        },
+        {
+          "color": "lime",
+          "capacity": 6
+        },
+        {
+          "color": "white",
           "capacity": 6
         }
       ],
       [
         {
-          "color": "yellow",
-          "capacity": 4
+          "color": "purple",
+          "capacity": 7
         },
         {
-          "color": "magenta",
-          "capacity": 11
+          "color": "purple",
+          "capacity": 7
+        },
+        {
+          "color": "lime",
+          "capacity": 8
+        },
+        {
+          "color": "lime",
+          "capacity": 7
         },
         {
           "color": "white",
-          "capacity": 2
+          "capacity": 7
         },
         {
-          "color": "magenta",
-          "capacity": 2
+          "color": "white",
+          "capacity": 7
+        },
+        {
+          "color": "purple",
+          "capacity": 6
+        },
+        {
+          "color": "lime",
+          "capacity": 6
+        },
+        {
+          "color": "white",
+          "capacity": 6
         }
       ]
     ],
     "replacesLegacy": true,
     "legend": {
-      "T": "cyan",
-      "M": "magenta"
+      "G": "lime",
+      "P": "purple",
+      "W": "white"
     },
-    "ruleset": "coreV2"
+    "activeCapacity": 5
   },
   {
     "id": 8,
-    "title": "Sunrise Lighthouse",
+    "title": "Tropic Toucan",
     "themeId": "first-light",
-    "difficulty": "medium",
+    "difficulty": "easy",
     "holdingCapacity": 3,
     "pixelArt": [
-      ".......YYYYY.......",
-      ".....YY.....YY.....",
-      "...YY..NNNNN..YY...",
-      "......RRRRRRR......",
-      "......IYNYNYI......",
-      "......IYNYNYI......",
-      ".....NNNNNNNNN.....",
-      "......NIIIIIN......",
-      ".......RRRRR.......",
-      ".......INVNI.......",
-      ".......IIIII.......",
-      "......RRRRRRR......",
-      "......IIVNVII......",
-      "...TTTIIIVIIITT....",
-      "..TTTRRRRRRRRRTT...",
-      ".TTVTTTVTTTVTTTVTT.",
-      "TTVT.TVTT.TTVT.TVTT",
-      "ANA.ANA.ANA.ANA.ANA",
-      ".A.A.A.A.A.A.A.A.A."
+      "....................",
+      "....................",
+      "........T...........",
+      "......TTRTT.........",
+      ".....TRRORRTTTTTTTT.",
+      ".....TROYOORRRRRRRT.",
+      "....TROYTYYOOOOOORT.",
+      ".....TROYTTYYORRRRT.",
+      ".....TROYTTYORTTTTT.",
+      "....TROYTYORT.......",
+      "....TROYTYORT.......",
+      "....TROYTYORT.......",
+      "...TROYTRTYORT......",
+      "....TROYTYORT.......",
+      "....TROYTYORT.......",
+      "....TROYYYORT.......",
+      "....TROOOORT........",
+      "....TRORRRRRRT......",
+      "....TRRTTTTTTT......",
+      "....TTT............."
     ],
     "tunnels": [
       [
         {
-          "color": "gold",
-          "capacity": 13
+          "color": "teal",
+          "capacity": 8
         },
         {
-          "color": "white",
-          "capacity": 10
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "red",
+          "capacity": 8
+        },
+        {
+          "color": "red",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "orange",
+          "capacity": 6
         },
         {
           "color": "gold",
+          "capacity": 8
+        },
+        {
+          "color": "red",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "red",
+          "capacity": 8
+        },
+        {
+          "color": "red",
+          "capacity": 7
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
           "capacity": 6
         }
       ],
       [
         {
-          "color": "indigo",
+          "color": "teal",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
           "capacity": 8
         },
         {
           "color": "red",
-          "capacity": 28
+          "capacity": 8
         },
         {
-          "color": "indigo",
-          "capacity": 20
-        }
-      ],
-      [
-        {
-          "color": "purple",
-          "capacity": 12
+          "color": "red",
+          "capacity": 8
         },
         {
-          "color": "white",
-          "capacity": 16
-        }
-      ],
-      [
-        {
-          "color": "teal",
-          "capacity": 12
+          "color": "orange",
+          "capacity": 7
         },
         {
-          "color": "cyan",
-          "capacity": 19
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 8
         },
         {
           "color": "teal",
-          "capacity": 23
+          "capacity": 6
         }
       ]
     ],
     "replacesLegacy": true,
     "legend": {
-      "Y": "gold",
-      "N": "indigo",
-      "I": "white",
-      "V": "purple",
+      "O": "orange",
+      "R": "red",
       "T": "teal",
-      "A": "cyan"
+      "Y": "gold"
     },
-    "ruleset": "coreV2"
+    "activeCapacity": 5
   },
   {
     "id": 9,
-    "title": "Prismatic Peacock",
+    "title": "Turbo Circuit",
     "themeId": "first-light",
-    "difficulty": "hard",
+    "difficulty": "easy",
     "holdingCapacity": 3,
     "pixelArt": [
-      "...........T.........",
-      ".......T..TST..T.....",
-      "...T..TSTTSGSTTST.T..",
-      "..TSTTSVSTTSTTSCSTST.",
-      ".TSGSTTST..T..TSTSVST",
-      "..TST..T.EEE...T.TST.",
-      "...TEEE.ETSTE.EEE.T..",
-      "...ETSTEECGCEETSTE...",
-      "..TTTCTTTGTGTTTCTTT..",
-      "...SSVSCSSTSSCSVSS...",
-      "....EECEVETEVECEE....",
-      ".........TVTGG.......",
-      ".........TCT.........",
-      "........TSCST........",
-      "........SCCCS........",
-      ".......TECCCET.......",
-      ".......TECCCET.......",
-      "........TETET........",
-      ".........R.R.........",
-      ".........R.R.........",
-      "........RR.RR........"
+      "....................",
+      "....................",
+      "....................",
+      "....................",
+      "....................",
+      "......BBBBBBBB......",
+      "......BOOOOOOB......",
+      ".BBBB.OCCCCCOB......",
+      ".BOOO.CWWWWWCOBBBB..",
+      ".BOCCBWBBBBBWCOOOB..",
+      "..BOCOWBBBBBBWCCOB..",
+      "..BOCCWBWWWWWBWCOB..",
+      "..BOCWBWCCCCCWWCOB..",
+      "..BOCWWCOOOOOCWCOB..",
+      ".BBOCWCOBBBBBOCWCOB.",
+      "...BOCOB.....BOCOB..",
+      "....BOB.......BOB...",
+      ".....B.........B....",
+      "....................",
+      "...................."
     ],
     "tunnels": [
       [
         {
-          "color": "purple",
+          "color": "blue",
           "capacity": 7
         },
         {
-          "color": "teal",
-          "capacity": 14
+          "color": "blue",
+          "capacity": 7
         },
         {
           "color": "blue",
-          "capacity": 12
-        }
-      ],
-      [
-        {
-          "color": "teal",
-          "capacity": 50
+          "capacity": 7
         },
         {
-          "color": "teal",
+          "color": "orange",
           "capacity": 8
         },
         {
-          "color": "green",
-          "capacity": 16
+          "color": "cyan",
+          "capacity": 7
         },
         {
           "color": "cyan",
-          "capacity": 10
+          "capacity": 6
+        },
+        {
+          "color": "white",
+          "capacity": 6
         }
       ],
       [
         {
-          "color": "green",
-          "capacity": 15
+          "color": "blue",
+          "capacity": 7
         },
         {
           "color": "blue",
-          "capacity": 25
+          "capacity": 7
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 7
+        },
+        {
+          "color": "cyan",
+          "capacity": 6
+        },
+        {
+          "color": "white",
+          "capacity": 6
+        },
+        {
+          "color": "blue",
+          "capacity": 7
         }
       ],
       [
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 7
+        },
+        {
+          "color": "white",
+          "capacity": 7
+        },
+        {
+          "color": "white",
+          "capacity": 6
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "B": "blue",
+      "C": "cyan",
+      "O": "orange",
+      "W": "white"
+    },
+    "activeCapacity": 5
+  },
+  {
+    "id": 10,
+    "title": "Arcade Dragon",
+    "themeId": "first-light",
+    "difficulty": "easy",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      "....................",
+      "............CC......",
+      "...........CMMCC....",
+      "..........CMYYMMCCC.",
+      "..........CMYRYYMMC.",
+      "..........CMYRRRYMC.",
+      ".......CC.MYRYMC....",
+      "......CMMCYRGGGRYMC.",
+      ".....CMYYMRGCCGRYMC.",
+      "....CMYRRYGCMCGRYMC.",
+      "...CMYRGGRCCCGRYMC..",
+      "..CMYYYRGGCGGRYMC...",
+      ".CMMMMMYRRGRRYMC....",
+      ".CCCCCCMYYRYYRGRYMC.",
+      ".......CMMYMMYRRYMC.",
+      "........CCMCCMYRYMC.",
+      "..........C..CMYYMC.",
+      "..............CMMMC.",
+      "...............CCCC.",
+      "...................."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 7
+        },
+        {
+          "color": "magenta",
+          "capacity": 8
+        },
+        {
+          "color": "magenta",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 8
+        },
         {
           "color": "gold",
           "capacity": 7
         },
         {
           "color": "red",
-          "capacity": 8
+          "capacity": 7
         },
-        {
-          "color": "cyan",
-          "capacity": 10
-        }
-      ]
-    ],
-    "replacesLegacy": true,
-    "legend": {
-      "T": "teal",
-      "S": "blue",
-      "E": "green",
-      "G": "gold",
-      "V": "purple"
-    },
-    "ruleset": "coreV2"
-  },
-  {
-    "id": 10,
-    "title": "First Light Citadel",
-    "themeId": "first-light",
-    "difficulty": "hard",
-    "holdingCapacity": 3,
-    "pixelArt": [
-      "..........G..........",
-      "........G.G.G........",
-      "..CC...G.GGG.G...CC..",
-      "..C.....GGGGG.....C..",
-      "..C.....GVGVG.....C..",
-      ".I.I.I...VVV...I.I.I.",
-      ".IIIII.........IIIII.",
-      ".CCCCCCI.III.ICCCCCC.",
-      "..IN.I.CCCCCCC.I.SI..",
-      "..IN.I.I.GGG.I.I.SI..",
-      "..MMMM.MMMMMMM.IIII..",
-      "..IVNI.INNNNNI.MMMM..",
-      "..I..I.INVVVNI.ISEI..",
-      "..CCCCINVVVVVNICCCC..",
-      "..INVIINVVGVVNIIESI..",
-      ".IIIIIINVVGVVNIIIIII.",
-      ".E.EGE.EEEGEEE.EGE.E.",
-      ".C.CCGCCCCCCCCCGCC.C.",
-      "...I.IEIIIGIIIEI.I...",
-      ".....M.MEMMMEM.M.....",
-      ".......SSSSSSS......."
-    ],
-    "tunnels": [
-      [
-        {
-          "color": "purple",
-          "capacity": 23
-        },
-        {
-          "color": "coral",
-          "capacity": 18
-        },
-        {
-          "color": "coral",
-          "capacity": 32
-        }
-      ],
-      [
-        {
-          "color": "gold",
-          "capacity": 20
-        },
-        {
-          "color": "white",
-          "capacity": 26
-        },
-        {
-          "color": "gold",
-          "capacity": 8
-        }
-      ],
-      [
         {
           "color": "lime",
-          "capacity": 22
-        },
-        {
-          "color": "cyan",
-          "capacity": 11
-        },
-        {
-          "color": "white",
-          "capacity": 24
+          "capacity": 8
         }
       ],
       [
         {
-          "color": "indigo",
-          "capacity": 17
+          "color": "cyan",
+          "capacity": 8
         },
         {
-          "color": "green",
-          "capacity": 18
+          "color": "cyan",
+          "capacity": 7
         },
         {
-          "color": "white",
-          "capacity": 25
+          "color": "cyan",
+          "capacity": 7
+        },
+        {
+          "color": "magenta",
+          "capacity": 7
+        },
+        {
+          "color": "magenta",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "red",
+          "capacity": 7
+        },
+        {
+          "color": "red",
+          "capacity": 6
+        },
+        {
+          "color": "cyan",
+          "capacity": 8
+        }
+      ],
+      [
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 7
+        },
+        {
+          "color": "magenta",
+          "capacity": 8
+        },
+        {
+          "color": "magenta",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "red",
+          "capacity": 7
+        },
+        {
+          "color": "lime",
+          "capacity": 8
+        },
+        {
+          "color": "magenta",
+          "capacity": 1
         }
       ]
     ],
     "replacesLegacy": true,
     "legend": {
-      "G": "gold",
-      "C": "coral",
-      "I": "white",
-      "V": "purple",
-      "N": "indigo",
-      "M": "lime",
-      "E": "green",
-      "S": "cyan"
+      "C": "cyan",
+      "G": "lime",
+      "M": "magenta",
+      "R": "red",
+      "Y": "gold"
     },
-    "ruleset": "coreV2"
+    "activeCapacity": 5
   }
 ];
