@@ -25,8 +25,8 @@ function queue(specs: { color: OrbColor; capacity: number }[]): ChargeSpec[] {
 const v2 = (
   extra: Partial<LevelDefinition> & { pixelArt?: string[] } = {},
 ): LevelDefinition => {
-  const tunnels = [...(extra.tunnels ?? [[], [], [], []])];
-  while (tunnels.length < 4) tunnels.push([]);
+  const tunnels = [...(extra.tunnels ?? [[], [], []])];
+  while (tunnels.length < 3) tunnels.push([]);
   return {
     id: extra.id ?? 8500,
     title: extra.title ?? 'TunnelsHolding',
@@ -35,7 +35,7 @@ const v2 = (
     pixelArt: extra.pixelArt ?? ['WWW', 'WWW', 'WWW'],
     ...extra,
     tunnels,
-    holdingCapacity: extra.holdingCapacity ?? 4,
+    holdingCapacity: extra.holdingCapacity ?? 3,
     ruleset: extra.ruleset ?? 'coreV2',
   };
 };
@@ -43,24 +43,24 @@ const v2 = (
 const T = (i: number) => ({ kind: 'tunnel' as const, id: `tunnel-${i}` });
 
 describe('Core V2 tunnel count', () => {
-  test('a 4-tunnel Core V2 definition is accepted', () => {
+  test('a 3-tunnel Core V2 definition is accepted', () => {
     const state = createGame(v2({
-      tunnels: [[{ color: 'white', capacity: 1 }], [], [], []],
+      tunnels: [[{ color: 'white', capacity: 1 }], [], []],
     }));
     expect(state.tunnels).toHaveLength(CORE_V2_TUNNEL_COUNT);
-    expect(expectedTunnelCount('coreV2')).toBe(4);
+    expect(expectedTunnelCount('coreV2')).toBe(3);
   });
 
-  test('a 3-tunnel Core V2 definition is rejected', () => {
+  test('a 4-tunnel Core V2 definition is rejected', () => {
     expect(() => createGame({
-      id: 8501, title: 'Bad', themeId: 'test', difficulty: 'easy', holdingCapacity: 4,
+      id: 8501, title: 'Bad', themeId: 'test', difficulty: 'easy', holdingCapacity: 3,
       pixelArt: ['W'], ruleset: 'coreV2',
-      tunnels: [[{ color: 'white', capacity: 1 }], [], []],
-    })).toThrow(/expected exactly 4 tunnels/);
+      tunnels: [[{ color: 'white', capacity: 1 }], [], [], []],
+    })).toThrow(/expected exactly 3 tunnels/);
     const res = validateLevelStructure({
-      id: 8501, title: 'Bad', themeId: 'test', difficulty: 'easy', holdingCapacity: 4,
+      id: 8501, title: 'Bad', themeId: 'test', difficulty: 'easy', holdingCapacity: 3,
       pixelArt: ['W'], ruleset: 'coreV2',
-      tunnels: [[{ color: 'white', capacity: 1 }], [], []],
+      tunnels: [[{ color: 'white', capacity: 1 }], [], [], []],
     });
     expect(res.diagnostics.some((d) => d.code === 'TUNNEL_COUNT_MISMATCH')).toBe(true);
   });
@@ -86,7 +86,7 @@ describe('queue depth and visible preview', () => {
   test('deep hidden entries remain in runtime state and are not truncated', () => {
     const state = createGame(v2({
       id: 8502,
-      tunnels: [deep, [], [], []],
+      tunnels: [deep, [], []],
     }));
     expect(state.tunnels[0]!.queue).toHaveLength(5);
     expect(state.tunnels[0]!.queue.map((c) => `${c.color}${c.capacity}`))
@@ -96,7 +96,7 @@ describe('queue depth and visible preview', () => {
   test('Core V2 exposes only CURRENT, NEXT, NEXT+1', () => {
     expect(VISIBLE_TUNNEL_ENTRIES).toBe(3);
     expect(upcomingPreviewCount('coreV2')).toBe(2);
-    const state = createGame(v2({ id: 8503, tunnels: [deep, [], [], []] }));
+    const state = createGame(v2({ id: 8503, tunnels: [deep, [], []] }));
     const window = visibleTunnelWindow(state.tunnels[0]!.queue, state.ruleset);
     expect(window.map((c) => `${c.color}${c.capacity}`)).toEqual(['white8', 'blue10', 'red6']);
   });
@@ -105,8 +105,8 @@ describe('queue depth and visible preview', () => {
     let state = createGame(v2({
       id: 8504,
       pixelArt: ['GGG', 'GGG', 'GGG'],
-      holdingCapacity: 4,
-      tunnels: [deep, [], [], []],
+      holdingCapacity: 3,
+      tunnels: [deep, [], []],
     }));
     expect(visibleTunnelWindow(state.tunnels[0]!.queue, 'coreV2').map((c) => c.color))
       .toEqual(['white', 'blue', 'red']);
@@ -123,16 +123,15 @@ describe('queue depth and visible preview', () => {
   });
 });
 
-describe('four tunnels advance independently', () => {
-  test('launching tunnel 0 leaves tunnels 1–3 untouched', () => {
+describe('three tunnels advance independently', () => {
+  test('launching tunnel 0 leaves tunnels 1–2 untouched', () => {
     const def = v2({
       id: 8505,
       pixelArt: ['GGG', 'GGG', 'GGG'],
-      holdingCapacity: 4,
+      holdingCapacity: 3,
       tunnels: [
         [{ color: 'white', capacity: 1 }, { color: 'blue', capacity: 2 }],
         [{ color: 'red', capacity: 3 }, { color: 'orange', capacity: 4 }],
-        [{ color: 'purple', capacity: 5 }],
         [{ color: 'green', capacity: 6 }, { color: 'cyan', capacity: 7 }],
       ],
     });
@@ -142,58 +141,53 @@ describe('four tunnels advance independently', () => {
     expect(after.tunnels[0]!.queue[0]!.color).toBe('blue');
     expect(JSON.stringify(after.tunnels.slice(1))).toBe(snapshot);
 
-    const after3 = resolveAction(after, T(3)).state;
-    expect(after3.tunnels[3]!.queue[0]!.color).toBe('cyan');
-    expect(after3.tunnels[0]).toEqual(after.tunnels[0]);
-    expect(after3.tunnels[1]).toEqual(after.tunnels[1]);
-    expect(after3.tunnels[2]).toEqual(after.tunnels[2]);
+    const after2 = resolveAction(after, T(2)).state;
+    expect(after2.tunnels[2]!.queue[0]!.color).toBe('cyan');
+    expect(after2.tunnels[0]).toEqual(after.tunnels[0]);
+    expect(after2.tunnels[1]).toEqual(after.tunnels[1]);
   });
 });
 
-describe('Holding capacity 4', () => {
+describe('Holding capacity 3', () => {
   const miss = v2({
     id: 8506,
     pixelArt: ['WWW', 'WWW', 'WWW'],
-    holdingCapacity: 4,
+    holdingCapacity: 3,
     tunnels: [
       [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
       [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
       [{ color: 'blue', capacity: 1 }],
-      [{ color: 'blue', capacity: 1 }],
     ],
   });
 
-  test('Core V2 can park 1–4 held charges; 4/4 is full', () => {
+  test('Core V2 can park 1–3 held charges; 3/3 is full', () => {
     let state = createGame(miss);
-    expect(state.holdingCapacity).toBe(4);
+    expect(state.holdingCapacity).toBe(3);
     state = resolveAction(state, T(0)).state;
     expect(state.holding).toHaveLength(1);
     state = resolveAction(state, T(1)).state;
     expect(state.holding).toHaveLength(2);
     state = resolveAction(state, T(2)).state;
     expect(state.holding).toHaveLength(3);
-    state = resolveAction(state, T(3)).state;
-    expect(state.holding).toHaveLength(4);
     expect(state.holding.length).toBe(state.holdingCapacity);
 
-    const fifth = resolveAction(state, T(0));
-    expect(fifth.accepted).toBe(true);
+    const fourth = resolveAction(state, T(0));
+    expect(fourth.accepted).toBe(true);
     // It is inbound, not lost: the tray could still open before it lands.
-    expect(fifth.state.status).toBe('playing');
-    expect(fifth.state.pendingHolding).toHaveLength(1);
+    expect(fourth.state.status).toBe('playing');
+    expect(fourth.state.pendingHolding).toHaveLength(1);
     // Nothing freed a slot, so its arrival at the Gate is the loss.
-    const arrival = resolveArrival(fifth.state);
+    const arrival = resolveArrival(fourth.state);
     expect(arrival.state.status).toBe('lost');
-    expect(arrival.state.holding).toHaveLength(4);
+    expect(arrival.state.holding).toHaveLength(3);
     expect(arrival.state.holding.map((c) => c.id)).toEqual(state.holding.map((c) => c.id));
   });
 
-  test('held relaunch from a 4-slot tray frees that slot and preserves identity', () => {
+  test('held relaunch from a 3-slot tray frees that slot and preserves identity', () => {
     let state = createGame(miss);
     state = resolveAction(state, T(0)).state;
     state = resolveAction(state, T(1)).state;
-    state = resolveAction(state, T(2)).state;
-    expect(state.holding).toHaveLength(3);
+    expect(state.holding).toHaveLength(2);
     const keep = state.holding[1]!;
     const target = state.holding[0]!;
     const relaunch = resolveHoldingLaunch(state, target.id);
@@ -216,10 +210,9 @@ describe('Holding pressure thresholds', () => {
     const def = v2({
       id: 8509,
       pixelArt: ['WWW', 'WWW', 'WWW'],
-      holdingCapacity: 4,
+      holdingCapacity: 3,
       tunnels: [
         [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
-        [{ color: 'blue', capacity: 1 }],
         [{ color: 'blue', capacity: 1 }],
         [{ color: 'blue', capacity: 1 }],
       ],
@@ -227,30 +220,29 @@ describe('Holding pressure thresholds', () => {
     let prev = createGame(def);
     prev = resolveAction(prev, T(0)).state;
     prev = resolveAction(prev, T(1)).state;
-    prev = resolveAction(prev, T(2)).state;
-    expect(prev.holding).toHaveLength(3);
-    const fourth = resolveAction(prev, T(3));
-    const pass = buildLaunchScript(fourth, prev).pass;
+    expect(prev.holding).toHaveLength(2);
+    const third = resolveAction(prev, T(2));
+    const pass = buildLaunchScript(third, prev).pass;
     expect(pass.events.some((e) => e.kind === 'holdingCritical')).toBe(false);
     expect(pass.events.some((e) => e.kind === 'holdingFull')).toBe(true);
   });
 });
 
 describe('source registration keys', () => {
-  test('four tunnel and four Holding keys are unique and stable', () => {
-    const state = createGame(v2({ id: 8507, tunnels: [[], [], [], []] }));
+  test('three tunnel and three Holding keys are unique and stable', () => {
+    const state = createGame(v2({ id: 8507, tunnels: [[], [], []] }));
     const tunnelKeys = state.tunnels.map((t) => t.id);
-    expect(tunnelKeys).toEqual(['tunnel-0', 'tunnel-1', 'tunnel-2', 'tunnel-3']);
-    expect(new Set(tunnelKeys).size).toBe(4);
+    expect(tunnelKeys).toEqual(['tunnel-0', 'tunnel-1', 'tunnel-2']);
+    expect(new Set(tunnelKeys).size).toBe(3);
     const holdingKeys = Array.from({ length: state.holdingCapacity }, (_, i) => `holding-${i}`);
-    expect(holdingKeys).toEqual(['holding-0', 'holding-1', 'holding-2', 'holding-3']);
-    expect(new Set(holdingKeys).size).toBe(4);
-    expect(new Set([...tunnelKeys, ...holdingKeys]).size).toBe(8);
+    expect(holdingKeys).toEqual(['holding-0', 'holding-1', 'holding-2']);
+    expect(new Set(holdingKeys).size).toBe(3);
+    expect(new Set([...tunnelKeys, ...holdingKeys]).size).toBe(6);
   });
 });
 
 describe('authoring / studio round-trip', () => {
-  test('Core V2 4-tunnel holding-4 definition round-trips', () => {
+  test('Core V2 3-tunnel holding-3 definition round-trips', () => {
     const authored = normalizeAuthoredLevel({
       id: 8508,
       title: 'V2 Round',
@@ -260,31 +252,30 @@ describe('authoring / studio round-trip', () => {
       tunnels: [
         [{ color: 'red', capacity: 1 }],
         [{ color: 'blue', capacity: 2 }],
-        [],
         [{ color: 'white', capacity: 3 }],
       ],
     });
     expect(authored.ruleset).toBe('coreV2');
-    expect(authored.holdingCapacity).toBe(4);
-    expect(authored.tunnels).toHaveLength(4);
+    expect(authored.holdingCapacity).toBe(3);
+    expect(authored.tunnels).toHaveLength(3);
 
     const studio = fromLevelDefinition(authored);
     expect(studio.ruleset).toBe('coreV2');
-    expect(studio.holdingCapacity).toBe(4);
-    expect(studio.tunnels).toHaveLength(4);
+    expect(studio.holdingCapacity).toBe(3);
+    expect(studio.tunnels).toHaveLength(3);
     const back = toLevelDefinition(studio);
     expect(back.ruleset).toBe('coreV2');
-    expect(back.holdingCapacity).toBe(4);
-    expect(back.tunnels).toHaveLength(4);
+    expect(back.holdingCapacity).toBe(3);
+    expect(back.tunnels).toHaveLength(3);
     expect(back.tunnels).toEqual(authored.tunnels);
     expect(createGame(back).tunnels.map((t) => t.queue.map((c) => `${c.color}${c.capacity}`)))
       .toEqual(createGame(authored).tunnels.map((t) => t.queue.map((c) => `${c.color}${c.capacity}`)));
   });
 
-  test('createBlankLevel Core V2 starts with 4 tunnels and holding 4', () => {
+  test('createBlankLevel Core V2 starts with 3 tunnels and holding 3', () => {
     const blank = createBlankLevel({ ruleset: 'coreV2', width: 7, height: 7 });
-    expect(blank.tunnels).toHaveLength(4);
-    expect(blank.holdingCapacity).toBe(4);
+    expect(blank.tunnels).toHaveLength(3);
+    expect(blank.holdingCapacity).toBe(3);
     expect(validateStudioLevel(blank).errors.some((e) => e.code === 'tunnels/count')).toBe(false);
   });
 

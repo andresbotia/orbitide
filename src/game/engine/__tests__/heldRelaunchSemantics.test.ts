@@ -23,7 +23,7 @@ function level(
   extra: Partial<LevelDefinition> & Pick<LevelDefinition, 'id' | 'pixelArt' | 'tunnels'>,
 ): LevelDefinition {
   const tunnels = [...extra.tunnels];
-  while (tunnels.length < (ruleset === 'coreV2' ? 4 : 3)) tunnels.push([]);
+  while (tunnels.length < 3) tunnels.push([]);
   return {
     title: `held-${extra.id}`, themeId: 'fixture', difficulty: 'easy', holdingCapacity: 3,
     ...extra, tunnels, ruleset,

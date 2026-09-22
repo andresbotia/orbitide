@@ -70,7 +70,7 @@ function tap(action: { kind: 'tunnel' | 'holding'; id: string }) {
 
 const v2 = (extra: Partial<LevelDefinition> & Pick<LevelDefinition, 'id' | 'title' | 'pixelArt' | 'tunnels'>): LevelDefinition => {
   const tunnels = [...extra.tunnels];
-  while (tunnels.length < 4) tunnels.push([]);
+  while (tunnels.length < 3) tunnels.push([]);
   return {
     themeId: 'fixture', difficulty: 'easy', holdingCapacity: 3,
     activeCapacity: DEFAULT_ACTIVE_CAPACITY, ...extra, tunnels, ruleset: 'coreV2',
@@ -91,7 +91,6 @@ const OVERFLOW = v2({
   tunnels: [
     [{ color: 'red', capacity: 1 }],
     [{ color: 'red', capacity: 1 }],
-    [],
     [],
   ],
 });
@@ -152,14 +151,13 @@ describe('acceptance', () => {
   /** Plain board: every tunnel Pal can always hit something. */
   const PLAIN = v2({
     id: 9722, title: 'plain', pixelArt: ['BBBB', 'BBBB', 'BBBB', 'BBBB'],
-    tunnels: Array.from({ length: 4 }, () =>
+    tunnels: Array.from({ length: 3 }, () =>
       Array.from({ length: 4 }, () => ({ color: 'blue' as const, capacity: 2 }))),
   });
 
   test('A. a 6th launch at 5/5 is refused as activeFull', () => {
     const root = mount(PLAIN);
-    for (let i = 0; i < 4; i++) tap({ kind: 'tunnel', id: `tunnel-${i}` });
-    tap({ kind: 'tunnel', id: 'tunnel-0' });
+    for (let i = 0; i < 5; i++) tap({ kind: 'tunnel', id: `tunnel-${i % 3}` });
     expect(session.activeCount).toBe(5);
     const sixth = tap({ kind: 'tunnel', id: 'tunnel-1' });
     expect(sixth.accepted).toBe(false);
@@ -169,16 +167,16 @@ describe('acceptance', () => {
 
   test.each([3, 4])('B/C. a legal tunnel Pal launches at %i active', (n) => {
     const root = mount(PLAIN);
-    for (let i = 0; i < n; i++) tap({ kind: 'tunnel', id: `tunnel-${i % 4}` });
+    for (let i = 0; i < n; i++) tap({ kind: 'tunnel', id: `tunnel-${i % 3}` });
     expect(session.activeCount).toBe(n);
     expect(session.activeCount).toBeLessThan(session.activeCapacity);
-    expect(tap({ kind: 'tunnel', id: 'tunnel-3' }).accepted).toBe(true);
+    expect(tap({ kind: 'tunnel', id: 'tunnel-0' }).accepted).toBe(true);
     act(() => root.unmount());
   });
 
   test('E/G. a completed Pal frees its slot, and the freed slot is reusable', () => {
     const root = mount(PLAIN);
-    for (let i = 0; i < 5; i++) tap({ kind: 'tunnel', id: `tunnel-${i % 4}` });
+    for (let i = 0; i < 5; i++) tap({ kind: 'tunnel', id: `tunnel-${i % 3}` });
     expect(session.activeCount).toBe(5);
     expect(tap({ kind: 'tunnel', id: 'tunnel-0' }).refused).toBe('activeFull');
 
@@ -196,7 +194,7 @@ describe('acceptance', () => {
     /** A red Pal on a blue board always misses and parks. */
     const PARK = v2({
       id: 9723, title: 'park', pixelArt: ['BB', 'BB'],
-      tunnels: [[{ color: 'red', capacity: 2 }], [{ color: 'blue', capacity: 1 }], [], []],
+      tunnels: [[{ color: 'red', capacity: 2 }], [{ color: 'blue', capacity: 1 }], []],
     });
     const root = mount(PARK);
     tap({ kind: 'tunnel', id: 'tunnel-0' });

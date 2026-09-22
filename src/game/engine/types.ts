@@ -250,7 +250,7 @@ export interface LevelDefinition {
   modifiers?: PixelModifierMap;
   /**
    * Authored tunnel queues; index 0 of each is the front charge.
-   * Legacy V1: exactly 3. Core V2: exactly 4.
+   * Both Legacy V1 and Core V2: exactly 3.
    */
   tunnels: ChargeSpec[][];
   /** Optional authored Win / Discovery constellation. */
@@ -273,6 +273,10 @@ export interface LevelDefinition {
    * (5). Future items may set 6; campaign JSON does not set this yet.
    */
   activeCapacity?: number;
+  /**
+   * Optional authored winning witness action sequence.
+   */
+  winningWitness?: string[];
 }
 
 export type GameStatus = 'playing' | 'won' | 'lost';

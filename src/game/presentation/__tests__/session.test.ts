@@ -254,7 +254,6 @@ const overflowLevel: LevelDefinition = {
   tunnels: [
     [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
     [{ color: 'blue', capacity: 1 }],
-    [{ color: 'blue', capacity: 1 }],
     [{ color: 'white', capacity: 9 }],
   ],
 };
@@ -265,7 +264,7 @@ test('full holding still launches a ready Pal; overflow loses without eating hol
   act(() => session.launch('tunnel-1')); finish();
   const held = session.state.holding.map((c) => c.id);
   expect(held).toHaveLength(2);
-  act(() => session.launch('tunnel-2'));
+  act(() => session.launch('tunnel-0'));
   expect(session.flights.length).toBeGreaterThan(0);
   expect(session.message).not.toBe('Free a Holding slot first.');
   finish();
@@ -279,7 +278,7 @@ test('full holding can still win with a fully consuming Pal', () => {
   act(() => session.launch('tunnel-0')); finish();
   act(() => session.launch('tunnel-1')); finish();
   expect(session.state.holding).toHaveLength(2);
-  act(() => session.launch('tunnel-3')); finish();
+  act(() => session.launch('tunnel-2')); finish();
   expect(session.engineState.status).toBe('won');
   expect(session.state.holding).toHaveLength(2);
   act(() => root.unmount());
@@ -294,7 +293,7 @@ test('overflow timing: the Pal flies provisional, the Gate decides, and only the
   expect(held).toHaveLength(2);
 
   // Launch the third Pal, which finds the tray full.
-  act(() => session.launch('tunnel-2'));
+  act(() => session.launch('tunnel-0'));
   expect(session.flights).toHaveLength(1);
   const flight = session.flights[0]!;
 
@@ -361,7 +360,6 @@ test('exact repro: holding full 3/3, two active Pals: first consumes, second hit
       [{ color: 'blue', capacity: 1 }, { color: 'purple', capacity: 1 }],
       [{ color: 'yellow', capacity: 11 }, { color: 'green', capacity: 9 }],
       [{ color: 'yellow', capacity: 13 }],
-      [],
     ],
   };
   const root = mount(9611, reproLevel);

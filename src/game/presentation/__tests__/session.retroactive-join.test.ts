@@ -31,9 +31,8 @@ const LEVEL: LevelDefinition = {
   pixelArt: ['BWY', 'YBB', 'BYY'],
   tunnels: [
     [{ color: 'blue', capacity: 4 }],
-    [{ color: 'yellow', capacity: 2 }],
+    [{ color: 'yellow', capacity: 2 }, { color: 'yellow', capacity: 2 }],
     [{ color: 'white', capacity: 1 }],
-    [{ color: 'yellow', capacity: 2 }],
   ],
 };
 const A = 'L9720-t0-c0';
@@ -119,7 +118,6 @@ describe('Holding relaunch while another Pal is flying toward Holding', () => {
     tunnels: [
       [{ color: 'blue', capacity: 1 }],
       [{ color: 'red', capacity: 1 }],
-      [{ color: 'white', capacity: 1 }],
       [{ color: 'white', capacity: 9 }],
     ],
   };

@@ -70,7 +70,7 @@ export interface StudioLevel {
   modifiers?: Record<string, StudioModifier>;
   /** Studio-only authoring provenance. Stripped on export to a `LevelDefinition`. */
   source?: LevelProvenance;
-  /** Authored tunnel queues (Legacy V1: 3, Core V2: 4); index 0 of each is the front. */
+  /** Authored tunnel queues (Legacy V1: 3, Core V2: 3); index 0 of each is the front. */
   tunnels: ChargeSpec[][];
   /**
    * Authored Win / Discovery constellation. Preserved verbatim across a

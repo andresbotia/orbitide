@@ -73,9 +73,9 @@ describe('board and queue metrics', () => {
     expect(legacy.minTunnelDepth).toBe(1);
 
     const v2 = queueMetrics(V2_SPAM_WINS);
-    expect(v2.tunnelCount).toBe(4);
-    expect(v2.perTunnelDepth).toEqual([1, 1, 1, 1]);
-    expect(v2.totalCharges).toBe(4);
+    expect(v2.tunnelCount).toBe(3);
+    expect(v2.perTunnelDepth).toEqual([1, 1, 1]);
+    expect(v2.totalCharges).toBe(3);
   });
 });
 
@@ -136,7 +136,7 @@ describe('resource pressure', () => {
     const trace = traceActions(def, r.moves);
     const holding = holdingPressure(trace, def.holdingCapacity);
     const p = resourcePressure({ holding });
-    expect(p.holdingCapacity).toBe(4);
+    expect(p.holdingCapacity).toBe(def.holdingCapacity);
     expect(p.maxHolding).toBeGreaterThanOrEqual(1);
     expect(p.holdingUtilization).toBe(p.maxHolding / p.holdingCapacity);
     expect(p.manualRelaunches).toBeGreaterThanOrEqual(1);

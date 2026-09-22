@@ -58,5 +58,9 @@ export function normalizeAuthoredLevel(
     def.activeCapacity = authored.activeCapacity;
   }
 
+  if (authored.winningWitness && authored.winningWitness.length > 0) {
+    def.winningWitness = [...authored.winningWitness];
+  }
+
   return def;
 }

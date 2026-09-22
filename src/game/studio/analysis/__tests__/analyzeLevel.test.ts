@@ -83,17 +83,17 @@ test('M5.6 authoring sections are populated and kept out of the difficulty score
   expect(Object.keys(a.difficulty.factors)).toEqual(Object.keys(DIFFICULTY_WEIGHTS));
 }, 60_000);
 
-test('Core V2 analysis uses ray geometry and 4-tunnel queue metrics', async () => {
+test('Core V2 analysis uses ray geometry and 3-tunnel queue metrics', async () => {
   const a = await analyzeLevel(V2_FORCED, { now: () => 0 });
   expect(a.solvable).toBe(true);
   expect(a.directionalGeometry.mode).toBe('coreV2');
-  expect(a.queueMetrics.tunnelCount).toBe(4);
+  expect(a.queueMetrics.tunnelCount).toBe(3);
   expect(a.choiceMetrics.forcedStates).toBe(a.choiceMetrics.totalDecisionStates);
   expect(a.antiSpam.outcome).toBe('won');
 
   const spam = await analyzeLevel(V2_SPAM_WINS, { now: () => 0 });
   expect(spam.antiSpam.outcome).toBe('won');
-  expect(spam.queueMetrics.tunnelCount).toBe(4);
+  expect(spam.queueMetrics.tunnelCount).toBe(3);
 }, 60_000);
 
 test('phase callback fires once per phase, in order', async () => {

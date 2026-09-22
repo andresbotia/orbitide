@@ -3,7 +3,7 @@ import type { ChargeSpec, GameRuleset } from './types';
 export const DEFAULT_RULESET: GameRuleset = 'legacyV1';
 
 export const LEGACY_TUNNEL_COUNT = 3;
-export const CORE_V2_TUNNEL_COUNT = 4;
+export const CORE_V2_TUNNEL_COUNT = 3;
 export const DEFAULT_HOLDING_CAPACITY_V1 = 3;
 export const DEFAULT_HOLDING_CAPACITY_V2 = 3;
 

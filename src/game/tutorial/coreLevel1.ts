@@ -28,11 +28,11 @@ export const CORE_LEVEL1_TUTORIAL_AUTHORING = {
   tutorialId: TUTORIAL_IDS.coreLevel1,
   levelId: 1,
   ruleset: 'coreV2',
-  tunnelCount: 4,
+  tunnelCount: 3,
   holdingCapacity: 3,
   requirements: [
     'ruleset must be coreV2 (Legacy V1 never runs this tutorial)',
-    'exactly 4 tunnels, holdingCapacity 3',
+    'exactly 3 tunnels, holdingCapacity 3',
     'the intended first tunnel launch must hit at least one front-visible matching pixel',
     'that pass must finish a full lap with remaining capacity > 0 and enter Holding',
     'the level must still be playing after that first pass (not already won)',

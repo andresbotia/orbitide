@@ -82,7 +82,7 @@ function expectIdempotentUnderExtension(
  */
 const RETRO = lvl(9720, ['BWY', 'YBB', 'BYY'], [
   [{ color: 'blue', capacity: 4 }], [{ color: 'yellow', capacity: 2 }],
-  [{ color: 'white', capacity: 1 }], [{ color: 'yellow', capacity: 2 }],
+  [{ color: 'white', capacity: 1 }],
 ]);
 
 test('A · a join never alters the earlier Pal, whenever it arrives', () => {
@@ -112,7 +112,7 @@ test('B · no hit is ever inserted behind an earlier Pal', () => {
 test('C · an earlier Pal with several hits keeps every one of them', () => {
   const base = createGame(lvl(9941, ['BBBB', 'BYYB', 'BYYB', 'BBBB'], [
     [{ color: 'blue', capacity: 12 }], [{ color: 'yellow', capacity: 4 }],
-    [{ color: 'blue', capacity: 1 }], [{ color: 'yellow', capacity: 1 }],
+    [{ color: 'blue', capacity: 1 }],
   ]));
   const steps = expectIdempotentUnderExtension(base, [
     launch('blue', 12, 0), launch('yellow', 4, 1),
@@ -157,7 +157,7 @@ test('F · a contested pixel goes to the earlier launch; the later one keeps its
 test('G · Frozen/Shielded shells: an earlier Pal keeps its exact break sequence', () => {
   const base = createGame(lvl(9945, ['BBB', 'BBB', 'BBB'], [
     [{ color: 'blue', capacity: 6 }], [{ color: 'blue', capacity: 3 }],
-    [{ color: 'blue', capacity: 1 }], [{ color: 'blue', capacity: 1 }],
+    [{ color: 'blue', capacity: 1 }],
   ], { modifiers: { '0,0': { kind: 'frozen', level: 2 }, '2,0': { kind: 'shielded', level: 1 } } }));
   const steps = expectIdempotentUnderExtension(base, [
     launch('blue', 6, 0), launch('blue', 3, 1),
@@ -189,8 +189,9 @@ test('I · deterministic replay — the same launches always give a byte-equal r
 test('a join may still change where an in-flight Pal parks — that is future, not past', () => {
   // Three misses fill a 3-slot tray; the fourth has nowhere to land.
   const OVERFLOW = lvl(9946, ['WWW', 'WWW', 'WWW'], [
-    [{ color: 'blue', capacity: 1 }], [{ color: 'red', capacity: 1 }],
-    [{ color: 'green', capacity: 1 }], [{ color: 'cyan', capacity: 1 }],
+    [{ color: 'blue', capacity: 1 }, { color: 'cyan', capacity: 1 }],
+    [{ color: 'red', capacity: 1 }],
+    [{ color: 'green', capacity: 1 }],
   ]);
   let s = createGame(OVERFLOW);
   for (const id of ['tunnel-0', 'tunnel-1', 'tunnel-2']) {
@@ -199,7 +200,7 @@ test('a join may still change where an in-flight Pal parks — that is future, n
   expect(s.holding).toHaveLength(3);
   expect(s.status).toBe('playing');
 
-  const out = resolveAction(s, { kind: 'tunnel', id: 'tunnel-3', join: true });
+  const out = resolveAction(s, { kind: 'tunnel', id: 'tunnel-0', join: true });
   expect(out.accepted).toBe(true);
   // Its encounters are still empty (history intact) but it cannot park.
   const cyan = out.epochCharges!.find((c) => c.color === 'cyan')!;

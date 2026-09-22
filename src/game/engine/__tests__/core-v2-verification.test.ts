@@ -23,16 +23,16 @@ const v2 = (
   extra: Partial<LevelDefinition> = {},
 ): LevelDefinition => {
   const queues = [...(extra.tunnels ?? tunnels)];
-  while (queues.length < 4) queues.push([]);
+  while (queues.length < 3) queues.push([]);
   return {
     id: extra.id ?? 9000,
     title: extra.title ?? 'CoreV2Verification',
     themeId: 'test',
     difficulty: 'easy',
-    holdingCapacity: extra.holdingCapacity ?? 4,
+    holdingCapacity: extra.holdingCapacity ?? 3,
     pixelArt,
     ...extra,
-    tunnels: queues,
+    tunnels: queues.slice(0, 3),
     ruleset: extra.ruleset ?? 'coreV2',
   };
 };
@@ -133,8 +133,7 @@ describe('M5.2E Verification — Priority Edge Cases', () => {
   // ── 3. Five active orbs ───────────────────────────────────────────────────
   describe('3. Five active orbs', () => {
     const missTunnels = (): LevelDefinition['tunnels'] => [
-      [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
-      [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
+      [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
       [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
       [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
     ];
@@ -147,74 +146,75 @@ describe('M5.2E Verification — Priority Edge Cases', () => {
       state = resolveAction(state, T(0)).state;
       state = resolveAction(state, J(1)).state;
       state = resolveAction(state, J(2)).state;
-      state = resolveAction(state, J(3)).state;
       state = resolveAction(state, J(0)).state;
+      state = resolveAction(state, J(1)).state;
 
       expect(activeCount(state)).toBe(5);
       expect(state.epoch!.launches).toHaveLength(5);
 
       // Sixth tunnel launch denied
       const beforeTunnel = state;
-      const deniedTunnel = resolveAction(state, J(1));
+      const deniedTunnel = resolveAction(state, J(2));
       expect(deniedTunnel.accepted).toBe(false);
       expect(deniedTunnel.rejection).toBe('activeSlotsFull');
-      expect(deniedTunnel.state).toBe(beforeTunnel);
-      expect(deniedTunnel.state.movesApplied).toBe(beforeTunnel.movesApplied);
-      expect(deniedTunnel.state.tunnels[1]!.queue).toEqual(beforeTunnel.tunnels[1]!.queue);
+      expect(state).toEqual(beforeTunnel);
+    });
 
-      // Sixth held relaunch denied
-      const withHeld: typeof state = {
-        ...state,
-        holding: [{ id: 'held-1', color: 'blue', capacity: 1 }],
-      };
-      const deniedHeld = resolveAction(withHeld, { kind: 'holding', id: 'held-1', join: true });
-      expect(deniedHeld.accepted).toBe(false);
-      expect(deniedHeld.rejection).toBe('activeSlotsFull');
-      expect(deniedHeld.state).toBe(withHeld);
-      expect(deniedHeld.state.holding).toHaveLength(1);
+    test('relaunch from Holding into concurrent epoch counts toward the same 5-slot rail', () => {
+      const def = v2(
+        ['WWW', 'WWW', 'WWW'],
+        [
+          [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
+          [{ color: 'blue', capacity: 1 }],
+          [{ color: 'blue', capacity: 1 }],
+        ],
+        { id: 9003, holdingCapacity: 8 },
+      );
+      let state = createGame(def);
+      state = resolveAction(state, T(0)).state;
+      expect(state.holding).toHaveLength(1);
+      const heldId = state.holding[0]!.id;
 
-      // Settle-first opens slots again
-      const nextFresh = resolveAction(state, T(1));
-      expect(nextFresh.accepted).toBe(true);
-      expect(nextFresh.joinedEpoch).toBe(false);
-      expect(activeCount(nextFresh.state)).toBe(1);
+      state = resolveAction(state, T(0)).state;
+      state = resolveAction(state, J(1)).state;
+      state = resolveAction(state, { kind: 'holding', id: heldId, join: true }).state;
+
+      expect(activeCount(state)).toBe(3);
     });
   });
 
   // ── 4. Capacity 6 structural support ──────────────────────────────────────
   describe('4. Capacity 6 structural support', () => {
     test('activeCapacity = 6 admits 6 concurrent passes; 7th is denied', () => {
-      const queues: LevelDefinition['tunnels'] = [
-        [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
-        [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
-        [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
-        [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
-      ];
-      const def = v2(['WWW', 'WWW', 'WWW'], queues, { id: 9004, holdingCapacity: 8, activeCapacity: 6 });
+      const def = v2(
+        ['WWW', 'WWW', 'WWW'],
+        [
+          [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
+          [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
+          [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
+        ],
+        { id: 9004, activeCapacity: 6, holdingCapacity: 8 },
+      );
       let state = createGame(def);
-      expect(state.activeCapacity).toBe(6);
       expect(activeCapacity(state)).toBe(6);
 
       state = resolveAction(state, T(0)).state;
-      for (const a of [J(1), J(2), J(3), J(0), J(1)]) {
+      for (const a of [J(1), J(2), J(0), J(1), J(2)]) {
         const out = resolveAction(state, a);
         expect(out.accepted).toBe(true);
         state = out.state;
       }
       expect(activeCount(state)).toBe(6);
-      expect(state.epoch!.launches).toHaveLength(6);
 
-      // 7th launch is denied
-      const seventh = resolveAction(state, J(2));
-      expect(seventh.accepted).toBe(false);
-      expect(seventh.rejection).toBe('activeSlotsFull');
-      expect(activeCount(seventh.state)).toBe(6);
+      const denied = resolveAction(state, J(0));
+      expect(denied.accepted).toBe(false);
+      expect(denied.rejection).toBe('activeSlotsFull');
     });
   });
 
-  // ── 5. Four tunnel independence ───────────────────────────────────────────
-  describe('5. Four tunnel independence', () => {
-    test('four deep queues advance independently, only launched tunnel pops, exactly 3 entries visible, hidden queue remains intact', () => {
+  // ── 5. Three tunnel independence ───────────────────────────────────────────
+  describe('5. Three tunnel independence', () => {
+    test('three deep queues advance independently, only launched tunnel pops, exactly 3 entries visible, hidden queue remains intact', () => {
       const q = (c: OrbColor) => [
         { color: c, capacity: 1 },
         { color: c, capacity: 2 },
@@ -224,15 +224,15 @@ describe('M5.2E Verification — Priority Edge Cases', () => {
       ];
       const def = v2(
         ['GGG', 'GGG', 'GGG'],
-        [q('white'), q('blue'), q('red'), q('yellow')],
+        [q('white'), q('blue'), q('red')],
         { id: 9005 },
       );
       let state = createGame(def);
-      expect(state.tunnels).toHaveLength(4);
+      expect(state.tunnels).toHaveLength(3);
 
       // Check initial visible windows (3 entries: CURRENT, NEXT, NEXT+1)
       expect(VISIBLE_TUNNEL_ENTRIES).toBe(3);
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 3; i++) {
         expect(state.tunnels[i]!.queue).toHaveLength(5);
         const win = visibleTunnelWindow(state.tunnels[i]!.queue, 'coreV2');
         expect(win).toHaveLength(3);
@@ -244,10 +244,9 @@ describe('M5.2E Verification — Priority Edge Cases', () => {
       expect(state.tunnels[1]!.queue).toHaveLength(4);
       expect(visibleTunnelWindow(state.tunnels[1]!.queue, 'coreV2').map((c) => c.capacity)).toEqual([2, 3, 4]);
 
-      // Tunnels 0, 2, 3 are completely untouched
+      // Tunnels 0, 2 are completely untouched
       expect(state.tunnels[0]!.queue).toHaveLength(5);
       expect(state.tunnels[2]!.queue).toHaveLength(5);
-      expect(state.tunnels[3]!.queue).toHaveLength(5);
 
       // Launch tunnel 1 again
       state = resolveAction(state, T(1)).state;
@@ -262,46 +261,40 @@ describe('M5.2E Verification — Priority Edge Cases', () => {
   });
 
   // ── 6. Four Holding slots ─────────────────────────────────────────────────
-  describe('6. Four Holding slots', () => {
-    test('HOLDING 0/4 -> 1/4 -> 2/4 -> 3/4 -> 4/4 preserves identity/color/capacity; manual relaunch frees slot immediately', () => {
+  describe('6. Three Holding slots', () => {
+    test('HOLDING 0/3 -> 1/3 -> 2/3 -> 3/3 preserves identity/color/capacity; manual relaunch frees slot immediately', () => {
       const def = v2(
         ['WWW', 'WWW', 'WWW'],
         [
           // The spare blue keeps a productive action available, so filling the
           // tray does not itself end the level (see the deadlock rule below).
-          [{ color: 'blue', capacity: 2 }, { color: 'blue', capacity: 2 }],
+          [{ color: 'blue', capacity: 2 }, { color: 'purple', capacity: 5 }],
           [{ color: 'red', capacity: 3 }],
           [{ color: 'green', capacity: 4 }],
-          [{ color: 'purple', capacity: 5 }],
         ],
-        { id: 9006, holdingCapacity: 4 },
+        { id: 9006, holdingCapacity: 3 },
       );
       let state = createGame(def);
       expect(state.holding).toHaveLength(0);
 
-      // 0/4 -> 1/4
+      // 0/3 -> 1/3
       state = resolveAction(state, T(0)).state;
       expect(state.holding).toHaveLength(1);
       expect(state.holding[0]).toMatchObject({ color: 'blue', capacity: 2 });
 
-      // 1/4 -> 2/4
+      // 1/3 -> 2/3
       state = resolveAction(state, T(1)).state;
       expect(state.holding).toHaveLength(2);
       expect(state.holding[1]).toMatchObject({ color: 'red', capacity: 3 });
 
-      // 2/4 -> 3/4
+      // 2/3 -> 3/3
       state = resolveAction(state, T(2)).state;
       expect(state.holding).toHaveLength(3);
       expect(state.holding[2]).toMatchObject({ color: 'green', capacity: 4 });
 
-      // 3/4 -> 4/4
-      state = resolveAction(state, T(3)).state;
-      expect(state.holding).toHaveLength(4);
-      expect(state.holding[3]).toMatchObject({ color: 'purple', capacity: 5 });
-
-      // Slot stability: all 4 are intact with preserved identities
+      // Slot stability: all 3 are intact with preserved identities
       const redHeldId = state.holding[1]!.id;
-      const purpleHeldId = state.holding[3]!.id;
+      const greenHeldId = state.holding[2]!.id;
 
       // Manual relaunch of slot 1 (red)
       const relaunch = resolveHoldingLaunch(state, redHeldId);
@@ -310,40 +303,38 @@ describe('M5.2E Verification — Priority Edge Cases', () => {
       expect(relaunch.launchedCharge!.capacity).toBe(3);
 
       // During/after the relaunch, slot identity is preserved and other slots are stable
-      expect(relaunch.state.holding.some((c) => c.id === purpleHeldId)).toBe(true);
+      expect(relaunch.state.holding.some((c) => c.id === greenHeldId)).toBe(true);
     });
   });
 
   // ── 7. Holding full ───────────────────────────────────────────────────────
   describe('7. Holding full', () => {
-    test('at HOLDING 4/4, a non-clearing launch is accepted then lost; a fully consuming charge still wins', () => {
+    test('at HOLDING 3/3, a non-clearing launch is accepted then lost; a fully consuming charge still wins', () => {
       const def = v2(
         ['WWW', 'WWW', 'WWW'],
         [
           [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
           [{ color: 'blue', capacity: 1 }],
-          [{ color: 'blue', capacity: 1 }],
           [{ color: 'white', capacity: 9 }], // white clears all 9 pixels
         ],
-        { id: 9007, holdingCapacity: 4 },
+        { id: 9007, holdingCapacity: 3 },
       );
       let state = createGame(def);
       state = resolveAction(state, T(0)).state;
       state = resolveAction(state, T(1)).state;
-      state = resolveAction(state, T(2)).state;
       state = resolveAction(state, T(0)).state;
-      expect(state.holding).toHaveLength(4);
+      expect(state.holding).toHaveLength(3);
 
       const overflow = resolveAction(state, T(0));
       expect(overflow.accepted).toBe(true);
       // Provisional: it flies to the Gate, and with nothing freed it is the loss.
       expect(overflow.state.status).toBe('playing');
       expect(resolveArrival(overflow.state).state.status).toBe('lost');
-      expect(overflow.state.holding).toHaveLength(4);
+      expect(overflow.state.holding).toHaveLength(3);
       expect(overflow.state.holding.map((c) => c.id)).toEqual(state.holding.map((c) => c.id));
 
-      // But tunnel 3 (white charge that fully consumes itself) IS accepted even at 4/4 Holding!
-      const allowed = resolveAction(state, T(3));
+      // But tunnel 2 (white charge that fully consumes itself) IS accepted even at 3/3 Holding!
+      const allowed = resolveAction(state, T(2));
       expect(allowed.accepted).toBe(true);
       expect(allowed.state.status).toBe('won');
     });

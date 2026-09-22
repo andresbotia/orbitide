@@ -5,6 +5,7 @@ import { actionRejection, type GameAction } from '@/game/engine/actions';
 import { DEFAULT_ACTIVE_CAPACITY } from '@/game/engine/concurrency';
 import { activeSlotCount } from '@/game/engine/epoch';
 import { isProductiveAction } from '@/game/engine/winState';
+import { expectedTunnelCount } from '@/game/engine/ruleset';
 import type { GameRuleset, GameState, LevelDefinition, OrbColor } from '@/game/engine/types';
 import { legalActions } from '@/game/engine/actions';
 import { useGameSession, type GameSession } from '@/hooks/useGameSession';
@@ -72,7 +73,7 @@ function makeLevel(seed: number, ruleset: GameRuleset): LevelDefinition {
     : Array.from({ length: size }, () =>
       Array.from({ length: size }, () => LETTER[palette[Math.floor(next() * palette.length)]!]!).join(''));
   const colours: OrbColor[] = buried ? ['red', 'red', 'blue'] : palette;
-  const tunnelCount = ruleset === 'coreV2' ? 4 : 3;
+  const tunnelCount = expectedTunnelCount(ruleset);
   const tunnels = Array.from({ length: tunnelCount }, () =>
     Array.from({ length: 3 + Math.floor(next() * 3) }, () => ({
       color: colours[Math.floor(next() * colours.length)]!,

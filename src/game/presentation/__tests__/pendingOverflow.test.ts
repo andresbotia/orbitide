@@ -68,10 +68,9 @@ const MISS: LevelDefinition = {
   ruleset: 'coreV2', holdingCapacity: 3, activeCapacity: DEFAULT_ACTIVE_CAPACITY,
   pixelArt: ['RRR', 'RRR'],
   tunnels: [
-    [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
-    [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
-    [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
-    [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
+    [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
+    [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
+    [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
   ],
 };
 
@@ -90,7 +89,7 @@ test('RESCUE: relaunching during the flight frees the slot and the inbound Pal l
   fillTray();
 
   // A fourth Pal launches into a full tray: provisional, not lost.
-  expect(tap('tunnel', 'tunnel-3').accepted).toBe(true);
+  expect(tap('tunnel', 'tunnel-0').accepted).toBe(true);
   const inbound = session.flights[session.flights.length - 1]!;
   expect(inbound.terminal.kind).toBe('pendingHolding');
   expect(session.engineState.status).toBe('playing');
@@ -117,7 +116,7 @@ test('RESCUE: relaunching during the flight frees the slot and the inbound Pal l
 test('FAILURE: with no rescue, the same Pal rejects at the Gate and the level is lost', () => {
   const root = mount(MISS);
   fillTray();
-  expect(tap('tunnel', 'tunnel-3').accepted).toBe(true);
+  expect(tap('tunnel', 'tunnel-0').accepted).toBe(true);
   const inbound = session.flights[session.flights.length - 1]!;
   expect(inbound.terminal.kind).toBe('pendingHolding');
 
@@ -132,13 +131,13 @@ test('FAILURE: with no rescue, the same Pal rejects at the Gate and the level is
 test('INPUT: tunnel and Holding taps both work while an overflow is pending', () => {
   const root = mount(MISS);
   fillTray();
-  expect(tap('tunnel', 'tunnel-3').accepted).toBe(true);
+  expect(tap('tunnel', 'tunnel-0').accepted).toBe(true);
   const inbound = session.flights[session.flights.length - 1]!;
   presentTo(inbound.launchedAtMs + 300);
 
   expect(session.activeCount).toBeLessThan(session.activeCapacity);
   // A tunnel Pal launches normally...
-  expect(tap('tunnel', 'tunnel-0').accepted).toBe(true);
+  expect(tap('tunnel', 'tunnel-1').accepted).toBe(true);
   // ...and so does a held Pal, with no gameOver refusal anywhere.
   expect(tap('holding', session.state.holding[0]!.id).accepted).toBe(true);
   expect(session.lastDenial).toBeNull();
@@ -148,7 +147,7 @@ test('INPUT: tunnel and Holding taps both work while an overflow is pending', ()
 test('ACTIVE count still counts the pending Pal — no phantom slot release', () => {
   const root = mount(MISS);
   fillTray();
-  tap('tunnel', 'tunnel-3');
+  tap('tunnel', 'tunnel-0');
   const inbound = session.flights[session.flights.length - 1]!;
   presentTo(inbound.launchedAtMs + 300);
   // It is still on the rail, so it still occupies one Active slot.
@@ -162,10 +161,10 @@ test('TWO PENDING, ONE SLOT: the first arrival captures, the second rejects', ()
   fillTray();
 
   // Two survivors head for a full tray.
-  expect(tap('tunnel', 'tunnel-3').accepted).toBe(true);
+  expect(tap('tunnel', 'tunnel-0').accepted).toBe(true);
   const firstIn = session.flights[session.flights.length - 1]!;
   presentTo(firstIn.launchedAtMs + 100);
-  expect(tap('tunnel', 'tunnel-0').accepted).toBe(true);
+  expect(tap('tunnel', 'tunnel-1').accepted).toBe(true);
   const secondIn = session.flights[session.flights.length - 1]!;
   expect(session.engineState.pendingHolding.map((p) => p.charge.id))
     .toEqual([firstIn.charge.id, secondIn.charge.id]);

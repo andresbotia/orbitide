@@ -22,8 +22,7 @@ function missLevel(extra: Partial<LevelDefinition> = {}): LevelDefinition {
     tunnels: [
       [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
       [{ color: 'blue', capacity: 1 }],
-      [{ color: 'blue', capacity: 1 }],
-      [{ color: 'white', capacity: 9 }],
+      [{ color: 'blue', capacity: 1 }, { color: 'white', capacity: 9 }],
     ],
     ...extra,
   };
@@ -100,7 +99,7 @@ test('D — no slot reuse: exact same occupants before and after overflow attemp
 test('E — full holding launch may still succeed if Pal fully resolves', () => {
   const state = fillHolding();
   const ids = state.holding.map((c) => c.id);
-  const outcome = resolveAction(state, T(3));
+  const outcome = resolveAction(state, T(2));
   expect(outcome.accepted).toBe(true);
   expect(outcome.state.status).toBe('won');
   expect(outcome.heldCharge).toBeNull();
@@ -169,7 +168,7 @@ test('H — terminal lock: once the arrival rejects, nothing more may happen', (
   expect(lostState.status).toBe('lost');
 
   // No additional normal launches
-  const tunnelAttempt = resolveAction(lostState, T(3));
+  const tunnelAttempt = resolveAction(lostState, T(2));
   expect(tunnelAttempt.accepted).toBe(false);
   expect(tunnelAttempt.rejection).toBe('gameOver');
 
@@ -202,10 +201,9 @@ test('I — authoritative regression: full holding [A, B, C] + launching Pal D w
       'WWW',
     ],
     tunnels: [
-      [{ color: 'blue', capacity: 1 }],
+      [{ color: 'blue', capacity: 1 }, { color: 'green', capacity: 9 }],
       [{ color: 'yellow', capacity: 11 }],
       [{ color: 'yellow', capacity: 13 }],
-      [{ color: 'green', capacity: 9 }],
     ],
   };
 
@@ -220,8 +218,8 @@ test('I — authoritative regression: full holding [A, B, C] + launching Pal D w
   expect(state.holding[2]).toMatchObject({ color: 'yellow', capacity: 13 });
   const occupantsBefore = state.holding.map((c) => ({ ...c }));
 
-  // Launch Green 9 (tunnel-3)
-  const outcome = resolveAction(state, T(3));
+  // Launch Green 9 (tunnel-0)
+  const outcome = resolveAction(state, T(0));
   expect(outcome.accepted).toBe(true);
   expect(outcome.launchedCharge).toMatchObject({ color: 'green', capacity: 9 });
   // It hit 1 pixel and has 8 remaining capacity
@@ -272,10 +270,9 @@ test('J — authoritative regression: full holding [A, B, C] + launching Pal D w
       '...',
     ],
     tunnels: [
-      [{ color: 'blue', capacity: 1 }],
+      [{ color: 'blue', capacity: 1 }, { color: 'green', capacity: 9 }],
       [{ color: 'yellow', capacity: 11 }],
       [{ color: 'yellow', capacity: 13 }],
-      [{ color: 'green', capacity: 9 }],
     ],
   };
 
@@ -286,8 +283,8 @@ test('J — authoritative regression: full holding [A, B, C] + launching Pal D w
   expect(state.holding).toHaveLength(3);
   const occupantsBefore = state.holding.map((c) => ({ ...c }));
 
-  // Launch Green 9 (tunnel-3)
-  const outcome = resolveAction(state, T(3));
+  // Launch Green 9 (tunnel-0)
+  const outcome = resolveAction(state, T(0));
   expect(outcome.accepted).toBe(true);
   expect(outcome.launchedCharge).toMatchObject({ color: 'green', capacity: 9 });
   expect(outcome.heldCharge).toMatchObject({ color: 'green', capacity: 9 });

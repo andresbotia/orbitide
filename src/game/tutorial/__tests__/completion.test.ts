@@ -16,12 +16,11 @@ function coreV2Level1(): LevelDefinition {
     title: 'First Light',
     themeId: 'first-light',
     difficulty: 'easy',
-    holdingCapacity: 4,
+    holdingCapacity: 3,
     pixelArt: ['BBB', 'BRB', 'BRB'],
     tunnels: [
       [{ color: 'red', capacity: 2 }],
       [{ color: 'blue', capacity: 8 }],
-      [],
       [],
     ],
     ruleset: 'coreV2',

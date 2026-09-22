@@ -17,7 +17,7 @@ import { entryWaitEndAt } from '@/game/rendering/railPath';
 
 const v2 = (extra: Partial<LevelDefinition> & Pick<LevelDefinition, 'id' | 'title' | 'pixelArt' | 'tunnels'>): LevelDefinition => {
   const tunnels = [...extra.tunnels];
-  while (tunnels.length < 4) tunnels.push([]);
+  while (tunnels.length < 3) tunnels.push([]);
   return { themeId: 'fixture', difficulty: 'easy', holdingCapacity: 3, ...extra, tunnels, ruleset: 'coreV2' };
 };
 
@@ -38,13 +38,13 @@ function launch(level: LevelDefinition, tunnelId = 'tunnel-0') {
 /** 8-capacity white Pal over an all-white plate: it fires every shot it has. */
 const CONSUMED = v2({
   id: 9911, title: 'consumed', pixelArt: ['WWWW', 'WWWW', 'WWWW'],
-  tunnels: [[{ color: 'white', capacity: 8 }], [], [], []],
+  tunnels: [[{ color: 'white', capacity: 8 }], [], []],
 });
 
 /** 8-capacity Pal with only 5 reachable targets: it banks the rest in Holding. */
 const PARTIAL = v2({
   id: 9912, title: 'partial', pixelArt: ['WWWWW'],
-  tunnels: [[{ color: 'white', capacity: 8 }], [], [], []],
+  tunnels: [[{ color: 'white', capacity: 8 }], [], []],
 });
 
 describe('A. no hit yet', () => {
@@ -120,7 +120,7 @@ describe('F. reconcile / re-script', () => {
   test('a re-scripted tail keeps the presented prefix and never resets to 0', () => {
     const level = v2({
       id: 9913, title: 'join', pixelArt: ['WWWW', 'WWWW'],
-      tunnels: [[{ color: 'white', capacity: 6 }], [{ color: 'white', capacity: 4 }], [], []],
+      tunnels: [[{ color: 'white', capacity: 6 }], [{ color: 'white', capacity: 4 }], []],
     });
     const game = createGame(level);
     const first = resolveAction(game, { kind: 'tunnel', id: 'tunnel-0' });

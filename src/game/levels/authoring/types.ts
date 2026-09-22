@@ -31,6 +31,7 @@ export interface AuthoredLevel {
   replacesLegacy?: boolean;
   ruleset?: GameRuleset;
   activeCapacity?: number;
+  winningWitness?: string[];
 }
 
 /**

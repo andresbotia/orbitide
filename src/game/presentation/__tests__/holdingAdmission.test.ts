@@ -74,7 +74,7 @@ function tapTunnel(id: string) {
 
 const level = (ruleset: GameRuleset, extra: Partial<LevelDefinition> & Pick<LevelDefinition, 'id' | 'pixelArt' | 'tunnels'>): LevelDefinition => {
   const tunnels = [...extra.tunnels];
-  while (tunnels.length < (ruleset === 'coreV2' ? 4 : 3)) tunnels.push([]);
+  while (tunnels.length < 3) tunnels.push([]);
   return {
     title: `holding-${extra.id}`, themeId: 'fixture', difficulty: 'easy', holdingCapacity: 3,
     ...extra, tunnels, ruleset,
@@ -96,7 +96,7 @@ const buried = (ruleset: GameRuleset, id: number) => level(ruleset, {
 const open = (ruleset: GameRuleset, id: number) => level(ruleset, {
   id,
   pixelArt: ['BBBB', 'BBBB', 'BBBB', 'BBBB'],
-  tunnels: Array.from({ length: ruleset === 'coreV2' ? 4 : 3 }, () =>
+  tunnels: Array.from({ length: 3 }, () =>
     Array.from({ length: 4 }, () => ({ color: 'blue' as OrbColor, capacity: 1 }))),
 });
 

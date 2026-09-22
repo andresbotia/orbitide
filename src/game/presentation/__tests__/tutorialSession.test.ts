@@ -22,12 +22,11 @@ function coreV2Level1(extra: Partial<LevelDefinition> = {}): LevelDefinition {
     title: 'First Light',
     themeId: 'first-light',
     difficulty: 'easy',
-    holdingCapacity: 4,
+    holdingCapacity: 3,
     pixelArt: ['BBB', 'BRB', 'BRB'],
     tunnels: [
       [{ color: 'red', capacity: 2 }],
       [{ color: 'blue', capacity: 8 }],
-      [],
       [],
     ],
     ruleset: 'coreV2',
@@ -147,7 +146,7 @@ test('Core V2 Level 2 is ungated', () => {
 test('winning marks the tutorial complete once', () => {
   const root = mount(coreV2Level1({
     pixelArt: ['R'],
-    tunnels: [[{ color: 'red', capacity: 2 }], [], [], []],
+    tunnels: [[{ color: 'red', capacity: 2 }], [], []],
   }));
   act(() => { session.launch('tunnel-0'); });
   finish();

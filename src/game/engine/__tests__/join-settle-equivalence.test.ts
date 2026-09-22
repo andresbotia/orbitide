@@ -85,7 +85,7 @@ function expectJoinEqualsSettle(s: GameState, action: GameAction) {
  */
 test('the only line to a pixel an earlier Pal exposed is not stolen from a joining Pal', () => {
   const level = lvl(9810, ['YYY', 'YBY', 'YBY'], [
-    [{ color: 'blue', capacity: 1 }], [{ color: 'blue', capacity: 1 }], [{ color: 'yellow', capacity: 9 }], [],
+    [{ color: 'blue', capacity: 1 }], [{ color: 'blue', capacity: 1 }], [{ color: 'yellow', capacity: 9 }],
   ]);
   const a = resolveAction(createGame(level), { kind: 'tunnel', id: 'tunnel-0' });
   expect(a.pass!.encounters.map((e) => e.pixelId)).toEqual(['L9810-p1-2']);
@@ -103,7 +103,7 @@ test('the only line to a pixel an earlier Pal exposed is not stolen from a joini
  *         line at 0.1066 because A "used" b:0 a lap earlier.
  */
 test('a joining Pal fires on the same line at the same lap-progress as settle-first', () => {
-  const level = lvl(9811, ['B', 'B'], [[{ color: 'blue', capacity: 1 }], [{ color: 'blue', capacity: 1 }], [], []]);
+  const level = lvl(9811, ['B', 'B'], [[{ color: 'blue', capacity: 1 }], [{ color: 'blue', capacity: 1 }], []]);
   const a = resolveAction(createGame(level), { kind: 'tunnel', id: 'tunnel-0' });
   const { joined } = expectJoinEqualsSettle(a.state, { kind: 'tunnel', id: 'tunnel-1' });
   expect(joined.epochCharges![1]!.encounters.map((e) => [e.pixelId, e.progress]))
@@ -112,7 +112,7 @@ test('a joining Pal fires on the same line at the same lap-progress as settle-fi
 
 test('simulateEpoch: a later launch resolves exactly as it would alone on the board the earlier one left', () => {
   const s0 = createGame(lvl(9812, ['YYY', 'YBY', 'YBY'], [
-    [{ color: 'blue', capacity: 1 }], [{ color: 'blue', capacity: 1 }], [{ color: 'yellow', capacity: 9 }], [],
+    [{ color: 'blue', capacity: 1 }], [{ color: 'blue', capacity: 1 }], [{ color: 'yellow', capacity: 9 }],
   ]));
   const launch = (i: number, at: number): EpochLaunch => ({
     chargeId: `c${i}`, source: 'tunnel', originId: `tunnel-${i}`, color: 'blue', capacity: 1,

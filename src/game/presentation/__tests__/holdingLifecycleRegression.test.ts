@@ -181,7 +181,6 @@ describe('EXACT FORENSIC REPRODUCTION: Pal L8-t2-c0', () => {
       [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
       [{ color: 'blue', capacity: 1 }],
       [{ color: 'red', capacity: 13 }],
-      [],
     ],
   };
 
@@ -258,7 +257,6 @@ describe('DETERMINISTIC REGRESSION: Failure and Multiple Pending', () => {
       [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
       [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
       [{ color: 'blue', capacity: 1 }],
-      [],
     ],
   };
 
@@ -356,7 +354,6 @@ describe('LIFECYCLE PROPERTY INVARIANT', () => {
     tunnels: [
       [{ color: 'blue', capacity: 1 }, { color: 'blue', capacity: 1 }],
       [{ color: 'blue', capacity: 1 }],
-      [],
       [],
     ],
   };

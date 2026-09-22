@@ -77,7 +77,6 @@ const OVERFLOW_LEVEL: LevelDefinition = {
     [{ color: 'yellow', capacity: 1 }, { color: 'yellow', capacity: 1 }, { color: 'yellow', capacity: 1 }],
     [{ color: 'white', capacity: 2 }],
     [{ color: 'blue', capacity: 5 }],
-    [],
   ],
 };
 const PARKERS = ['L9840-t0-c0', 'L9840-t0-c1', 'L9840-t0-c2'];

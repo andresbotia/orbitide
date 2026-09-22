@@ -68,8 +68,7 @@ const OPEN_V2: LevelDefinition = {
   tunnels: [
     [{ color: 'white', capacity: 2 }, { color: 'blue', capacity: 2 }],
     [{ color: 'blue', capacity: 3 }],
-    [{ color: 'yellow', capacity: 1 }, { color: 'white', capacity: 2 }],
-    [{ color: 'white', capacity: 1 }],
+    [{ color: 'yellow', capacity: 1 }, { color: 'white', capacity: 3 }],
   ],
 };
 
