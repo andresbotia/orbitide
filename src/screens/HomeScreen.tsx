@@ -20,6 +20,7 @@ import { NEON } from '@/theme/neon';
 interface HomeScreenProps {
   highestUnlockedLevel: number;
   loading: boolean;
+  coins?: number;
   onPlay: () => void;
   onShop: () => void;
   onLeaderboard: () => void;
@@ -39,6 +40,7 @@ const PODIUM_CLEARANCE = 2;
 export function HomeScreen({
   highestUnlockedLevel,
   loading,
+  coins,
   onPlay,
   onShop,
   onLeaderboard,
@@ -93,7 +95,7 @@ export function HomeScreen({
         <View style={styles.hud}>
           <HomeHud
             hearts={HOME_HEARTS_PLACEHOLDER}
-            coins={HOME_COINS_PLACEHOLDER}
+            coins={coins ?? HOME_COINS_PLACEHOLDER}
             onSettings={onSettings}
           />
         </View>

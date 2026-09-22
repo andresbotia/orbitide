@@ -14,6 +14,7 @@ interface HudProps {
   /** Presented cleared pixels / total — the only values the HUD re-renders on. */
   cleared: number;
   total: number;
+  coins?: number;
   onRestart: () => void;
   onHome: () => void;
 }
@@ -24,21 +25,31 @@ const HIT = GAMEPLAY.hudButtonHit;
 const TRACK_H = 8;
 
 /**
- * Compact arcade status bar: level chip, board progress, Home + Restart.
+ * Compact arcade status bar: level chip, coin chip, board progress, Home + Restart.
  * ACTIVE/HOLDING pressure lives in the deck's status strip, directly above the
  * controls that change it. Only `ProgressBar` re-renders per presented clear;
  * the chip and buttons are memoized on stable props.
  */
-export const Hud = memo(function Hud({ levelId, cleared, total, onRestart, onHome }: HudProps) {
+export const Hud = memo(function Hud({ levelId, cleared, total, coins, onRestart, onHome }: HudProps) {
   const progress = total === 0 ? 0 : cleared / total;
   return (
     <View style={styles.container}>
       <LevelChip levelId={levelId} />
+      {coins !== undefined ? <CoinChip coins={coins} /> : null}
       <ProgressBar progress={progress} />
       <View style={styles.actions}>
         <HudButton onPress={onHome} accessibilityLabel="Home"><HomeGlyph /></HudButton>
         <HudButton onPress={onRestart} accessibilityLabel="Restart level"><RestartGlyph /></HudButton>
       </View>
+    </View>
+  );
+});
+
+const CoinChip = memo(function CoinChip({ coins }: { coins: number }) {
+  return (
+    <View accessible accessibilityRole="text" accessibilityLabel={`${coins} coins`} style={styles.coinChip}>
+      <View style={styles.coinPip} />
+      <Text style={styles.coinNum}>{coins}</Text>
     </View>
   );
 });
@@ -142,6 +153,32 @@ const styles = StyleSheet.create({
     color: GP.text,
     fontFamily: GP_DISPLAY_FONT,
     fontSize: 16,
+    fontVariant: ['tabular-nums'],
+  },
+  coinChip: {
+    height: 30,
+    minWidth: 48,
+    paddingHorizontal: 7,
+    borderRadius: GP_RADIUS.control,
+    backgroundColor: GP.panel,
+    borderWidth: 1,
+    borderColor: GP.hairlineStrong,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  coinPip: {
+    width: 8,
+    height: 8,
+    borderRadius: 2,
+    backgroundColor: GP.gold,
+    transform: [{ rotate: '45deg' }],
+  },
+  coinNum: {
+    color: GP.text,
+    fontFamily: GP_DISPLAY_FONT,
+    fontSize: 14,
     fontVariant: ['tabular-nums'],
   },
   progressBlock: {

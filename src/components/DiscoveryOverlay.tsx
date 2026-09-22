@@ -20,6 +20,7 @@ interface DiscoveryOverlayProps {
   worldTitle: string;
   tier: CelebrationTier;
   hasNext: boolean;
+  earnedCoins?: number;
   progress: SharedValue<number>;
   reducedMotion: boolean;
   onNext: () => void;
@@ -36,7 +37,7 @@ interface DiscoveryOverlayProps {
  * animation, at any tier. No card.
  */
 export function DiscoveryOverlay({
-  name, source, levelId, worldTitle, tier, hasNext, progress, reducedMotion, onNext, onHome,
+  name, source, levelId, worldTitle, tier, hasNext, earnedCoins, progress, reducedMotion, onNext, onHome,
 }: DiscoveryOverlayProps) {
   const tl = revealTimeline(reducedMotion, tier);
   const [nextReady, setNextReady] = useState(false);
@@ -112,6 +113,13 @@ export function DiscoveryOverlay({
         <Animated.View style={[styles.infoChip, infoStyle]} pointerEvents="none">
           <Text style={styles.infoText}>{worldTitle.toUpperCase()} · LEVEL {levelId}</Text>
         </Animated.View>
+
+        {earnedCoins && earnedCoins > 0 ? (
+          <Animated.View style={[styles.rewardChip, infoStyle]} pointerEvents="none">
+            <View style={styles.goldPip} />
+            <Text style={styles.rewardText}>FIRST CLEAR · +{earnedCoins} COINS</Text>
+          </Animated.View>
+        ) : null}
 
         <Animated.View style={nextStyle}>
           <PlayButton
@@ -197,5 +205,23 @@ const styles = StyleSheet.create({
     backgroundColor: GP.panel,
   },
   infoText: { ...GP_TYPE.label, color: GP.textSecondary, letterSpacing: 1.5 },
+  rewardChip: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: GP.gold,
+    backgroundColor: GP.wellDeep,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  rewardText: {
+    ...GP_TYPE.label,
+    color: GP.gold,
+    fontSize: 11,
+    letterSpacing: 2,
+    fontWeight: '700',
+  },
   home: { ...GP_TYPE.body, color: GP.textMuted, fontSize: 13, letterSpacing: 1, paddingTop: 2 },
 });

@@ -2,7 +2,7 @@ import { createGame } from '@/game/engine/createGame';
 import { iceLayers, shieldLayers } from '@/game/engine/frozen';
 import { linkedGroupId } from '@/game/engine/linked';
 import { isPixelReachable, remainingPixelCount, renderExteriorMask } from '@/game/engine/pixels';
-import type { Point } from '@/game/rendering/boardGeometry';
+import { cellCenter, computeBoardGeometry, type Point } from '@/game/rendering/boardGeometry';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +18,8 @@ import { DiscoveryOverlay } from '@/components/DiscoveryOverlay';
 import { Hud } from '@/components/Hud';
 import { RESULT_BEAT_MS, ResultOverlay } from '@/components/ResultOverlay';
 import { TutorialCoach } from '@/components/TutorialCoach';
+import { BombDetonationFlash, BombTargetingOverlay } from '@/components/gameplay/BombTargetingOverlay';
+import { RestockModal } from '@/components/gameplay/RestockModal';
 import { CoreV2Board } from '@/game/rendering/CoreV2Board';
 import { DiscoveryReveal } from '@/game/rendering/DiscoveryReveal';
 import { OrbitBoard } from '@/game/rendering/OrbitBoard';
@@ -26,8 +28,11 @@ import { CAMPAIGN_MANIFEST } from '@/game/levels/campaign';
 import { nextLevelId, requireLevel } from '@/game/levels/levels';
 import { isCoreV2 } from '@/game/engine/ruleset';
 import type { LevelDefinition } from '@/game/engine/types';
+import { type GameplayItemId } from '@/game/economy/config';
+import { feedback } from '@/game/feedback';
 import { useAmbientActive } from '@/hooks/useAmbientActive';
 import { useColorAssist } from '@/hooks/useColorAssist';
+import { useEconomy } from '@/hooks/useEconomy';
 import { useGameSession } from '@/hooks/useGameSession';
 import { useTutorialCompletion } from '@/hooks/useTutorialCompletion';
 import { GAMEPLAY } from '@/theme/gameplayLayout';
@@ -100,9 +105,18 @@ export function GameScreen({
     return { worldTitle: world.title, tier: isFinale ? 'finale' : isCapstone ? 'capstone' : 'normal' };
   }, [level.id]);
 
-  const handleWin = useCallback(() => {
+  const economyApi = useEconomy();
+  const [earnedCoins, setEarnedCoins] = useState<number | undefined>(undefined);
+  const [restockItem, setRestockItem] = useState<GameplayItemId | null>(null);
+  const [bombFlash, setBombFlash] = useState<{ point: Point; size: number } | null>(null);
+
+  const handleWin = useCallback(async () => {
+    const res = await economyApi.settleFirstClear(levelId);
+    if (res.awarded) {
+      setEarnedCoins(res.reward);
+    }
     onWin(levelId);
-  }, [levelId, onWin]);
+  }, [levelId, onWin, economyApi]);
 
   const tutorials = useTutorialCompletion();
   const session = useGameSession(levelId, {
@@ -211,9 +225,78 @@ export function GameScreen({
   const boardEntryStyle = useAnimatedStyle(() => ({ opacity: 0.45 + boardEntry.value * 0.55 }));
   const { restart } = session;
   const handleRestart = useCallback(() => {
+    setEarnedCoins(undefined);
+    setBombFlash(null);
     restart();
     armBoard();
   }, [restart, armBoard]);
+
+  const controlsLocked = state.status !== 'playing';
+
+  const handleItemPress = useCallback(async (itemId: GameplayItemId) => {
+    if (controlsLocked) return;
+
+    if (itemId === 'undo') {
+      if (economyApi.hasItem('undo')) {
+        if (session.canUndo) {
+          const success = session.undo();
+          if (success) {
+            await economyApi.consumeItem('undo');
+          } else {
+            feedback.emit('denied');
+          }
+        } else {
+          feedback.emit('denied');
+        }
+      } else {
+        setRestockItem('undo');
+      }
+    } else if (itemId === 'extraSlot') {
+      if (economyApi.hasItem('extraSlot')) {
+        if (session.extraSlotActive || session.state.holdingCapacity >= 4) {
+          feedback.emit('denied');
+        } else {
+          const success = session.activateExtraSlot();
+          if (success) {
+            await economyApi.consumeItem('extraSlot');
+          } else {
+            feedback.emit('denied');
+          }
+        }
+      } else {
+        setRestockItem('extraSlot');
+      }
+    } else if (itemId === 'bomb') {
+      if (economyApi.hasItem('bomb')) {
+        session.armBomb();
+      } else {
+        setRestockItem('bomb');
+      }
+    }
+  }, [controlsLocked, economyApi, session]);
+
+  const handleBombTarget = useCallback(async (target: Point) => {
+    if (!economyApi.hasItem('bomb')) {
+      session.cancelBomb();
+      setRestockItem('bomb');
+      return;
+    }
+
+    const outcome = session.triggerBomb(target);
+    if (outcome.accepted) {
+      await economyApi.consumeItem('bomb');
+
+      const availW = boardBox.width;
+      const availH = boardBox.height;
+      const geo = computeBoardGeometry(Math.max(availW, availH), state.width, state.height, {
+        roundedRect: isCoreV2(state.ruleset),
+        box: { width: availW, height: availH },
+      });
+      const center = cellCenter(geo, target.x, target.y);
+      setBombFlash({ point: center, size: geo.cell * 3 + 12 });
+      setTimeout(() => setBombFlash(null), 300);
+    }
+  }, [economyApi, session, boardBox.width, boardBox.height, state.width, state.height, state.ruleset]);
 
   // NEXT fades the whole screen to the intro's navy BEFORE navigating, so
   // win -> next level's intro -> board reads as one continuous field.
@@ -324,7 +407,6 @@ export function GameScreen({
   // refusal, no haptic. The session still refuses those taps; now they reach it
   // and are answered (`gameOver`).
   const resultPending = state.status === 'playing' && session.engineState.status !== 'playing';
-  const controlsLocked = state.status !== 'playing';
   // Strictly "the rail is full" — never a stand-in for any other refusal, so a
   // pending result cannot masquerade as capacity pressure.
   const railFull = !controlsLocked && !resultPending && session.activeCount >= session.activeCapacity;
@@ -344,6 +426,7 @@ export function GameScreen({
         levelId={state.levelId}
         cleared={cleared}
         total={total}
+        coins={economyApi.economy.coins}
         onRestart={handleRestart}
         onHome={onExit}
       />
@@ -402,6 +485,18 @@ export function GameScreen({
                 </View>
               ) : null}
               <Animated.View pointerEvents="none" style={[styles.failDim, failDimStyle]} />
+              {session.bombTargeting && !won && !lost ? (
+                <BombTargetingOverlay
+                  width={boardBox.width}
+                  height={boardBox.height}
+                  state={state}
+                  onTarget={handleBombTarget}
+                  onCancel={session.cancelBomb}
+                />
+              ) : null}
+              {bombFlash ? (
+                <BombDetonationFlash point={bombFlash.point} size={bombFlash.size} />
+              ) : null}
             </View>
           </Animated.View>
         ) : null}
@@ -420,7 +515,7 @@ export function GameScreen({
           activeCount={session.activeCount}
           activeCapacity={isCoreV2(state.ruleset) ? session.activeCapacity : 0}
           layoutVersion={boardBox.width + boardBox.height}
-          disabled={controlsLocked}
+          disabled={controlsLocked || session.bombTargeting}
           blocked={railFull}
           capacityRefusalSeq={capacityRefusalSeq}
           usefulIds={usefulIds}
@@ -431,6 +526,11 @@ export function GameScreen({
           onLaunchHeld={launchHeldPal}
           denial={session.lastDenial}
           tutorial={session.tutorial}
+          inventory={economyApi.economy.inventory}
+          canUndo={session.canUndo}
+          extraSlotActive={session.extraSlotActive}
+          bombArmed={session.bombTargeting}
+          onPressItem={handleItemPress}
         />
       </Animated.View>
 
@@ -442,6 +542,7 @@ export function GameScreen({
           worldTitle={worldTitle}
           tier={tier}
           hasNext={next !== undefined}
+          earnedCoins={earnedCoins}
           progress={revealProgress}
           reducedMotion={reducedMotion}
           onNext={handleNext}
@@ -471,6 +572,13 @@ export function GameScreen({
           onDone={handleIntroDone}
         />
       ) : null}
+
+      <RestockModal
+        itemId={restockItem}
+        coins={economyApi.economy.coins}
+        onClose={() => setRestockItem(null)}
+        onBuy={economyApi.buyItem}
+      />
 
       <Animated.View pointerEvents="none" style={[styles.exitFade, exitStyle]} />
     </SafeAreaView>

@@ -12,6 +12,7 @@ import type { Charge, GameState } from '@/game/engine/types';
 import type { Point } from '@/game/rendering/boardGeometry';
 import type { TutorialView } from '@/game/tutorial';
 import type { LaunchDenial, LaunchDenialReason } from '@/hooks/useGameSession';
+import type { GameplayItemId } from '@/game/economy/config';
 import { GAMEPLAY } from '@/theme/gameplayLayout';
 import { GP, GP_TYPE } from '@/theme/gameplayUi';
 
@@ -35,6 +36,11 @@ interface ControlDeckProps {
   /** The most recent refused tap; drives the one-line notice over the status strip. */
   denial: LaunchDenial | null;
   tutorial?: TutorialView;
+  inventory?: Record<GameplayItemId, number>;
+  canUndo?: boolean;
+  extraSlotActive?: boolean;
+  bombArmed?: boolean;
+  onPressItem?: (itemId: GameplayItemId) => void;
 }
 
 /**
@@ -83,6 +89,11 @@ export const ControlDeck = memo(function ControlDeck({
   onLaunchHeld,
   denial,
   tutorial,
+  inventory,
+  canUndo,
+  extraSlotActive,
+  bombArmed,
+  onPressItem,
 }: ControlDeckProps) {
   const holding: Charge[] = state.holding;
 
@@ -130,7 +141,14 @@ export const ControlDeck = memo(function ControlDeck({
         embedded
       />
 
-      <ItemRack />
+      <ItemRack
+        inventory={inventory}
+        canUndo={canUndo}
+        extraSlotActive={extraSlotActive}
+        bombArmed={bombArmed}
+        disabled={disabled}
+        onPressItem={onPressItem}
+      />
     </View>
   );
 }, (prev, next) => (
@@ -142,6 +160,11 @@ export const ControlDeck = memo(function ControlDeck({
   && prev.capacityRefusalSeq === next.capacityRefusalSeq
   && prev.colorAssist === next.colorAssist
   && prev.pixelPal === next.pixelPal
+  && prev.canUndo === next.canUndo
+  && prev.extraSlotActive === next.extraSlotActive
+  && prev.bombArmed === next.bombArmed
+  && prev.inventory === next.inventory
+  && prev.onPressItem === next.onPressItem
   && prev.onSourceLayout === next.onSourceLayout
   && prev.onLaunchTunnel === next.onLaunchTunnel
   && prev.onLaunchHeld === next.onLaunchHeld

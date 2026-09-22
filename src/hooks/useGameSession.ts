@@ -11,6 +11,8 @@ import type { GameState, LevelDefinition } from '@/game/engine/types';
 import { feedback } from '@/game/feedback';
 import { cancelHits, registerHit } from '@/game/hapticArbiter';
 import { requireLevel } from '@/game/levels/levels';
+import { applyBomb, type BombOutcome, type BombTarget } from '@/game/engine/bomb';
+import { cloneGameState, restoreSnapshot } from '@/game/engine/undo';
 import { buildLaunchScript } from '@/game/presentation/buildScript';
 import type { FlightPass, Point } from '@/game/presentation/events';
 import { HOLDING_HANDOFF_MS } from '@/game/presentation/constants';
@@ -98,6 +100,14 @@ export interface GameSession {
   launchHeld: (chargeId: string, from?: Point, holdingSlots?: (Point | undefined)[]) => boolean;
   presentThrough: (passId: number, eventCount: number) => void;
   restart: () => void;
+  canUndo: boolean;
+  undo: () => boolean;
+  extraSlotActive: boolean;
+  activateExtraSlot: () => boolean;
+  bombTargeting: boolean;
+  armBomb: () => void;
+  cancelBomb: () => void;
+  triggerBomb: (target: BombTarget) => BombOutcome;
 }
 
 export function useGameSession(levelId: number, options: Options = {}): GameSession {
@@ -122,6 +132,11 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
   const landedIds = useRef(new Set<string>());
   const optionsRef = useRef(options);
   const reported = useRef(false);
+  const [canUndo, setCanUndo] = useState(false);
+  const undoSnapshotRef = useRef<GameState | null>(null);
+  const [extraSlotActive, setExtraSlotActive] = useState(false);
+  const extraSlotActiveRef = useRef(false);
+  const [bombTargeting, setBombTargeting] = useState(false);
   const [tutorial, setTutorial] = useState<TutorialState>(() =>
     createTutorial(level, options.completedTutorials));
   const tutorialRef = useRef(tutorial);
@@ -167,6 +182,8 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
   const reportResult = useCallback(() => {
     if (reported.current || truth.current.status === 'playing') return;
     reported.current = true;
+    undoSnapshotRef.current = null;
+    setCanUndo(false);
     if (truth.current.status === 'won') optionsRef.current.onWin?.();
     else optionsRef.current.onLose?.();
   }, []);
@@ -253,6 +270,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     }
     const joining = active.current.size > 0 && epochHasCapacity(truth.current);
     const before = truth.current;
+    const snapshot = cloneGameState(before);
     const outcome = resolveAction(before, { ...action, join: joining });
     if (!outcome.accepted) {
       if (outcome.rejection === 'activeSlotsFull') {
@@ -264,6 +282,9 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
       }
       return false;
     }
+    undoSnapshotRef.current = snapshot;
+    setCanUndo(true);
+    setBombTargeting(false);
     setMessage('');
     // Exactly one haptic on an accepted Pal interaction, on the tap itself: a
     // tunnel launch gets the strong dedicated cue, a Holding relaunch keeps its
@@ -488,6 +509,11 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     landedIds.current.clear();
     feedback.cancelPending();
     cancelHits();
+    undoSnapshotRef.current = null;
+    setCanUndo(false);
+    extraSlotActiveRef.current = false;
+    setExtraSlotActive(false);
+    setBombTargeting(false);
     const fresh = createGame(level);
     truth.current = fresh; view.current = fresh; reported.current = false;
     setState(fresh); setEngineState(fresh); setFlights([]); setMessage('');
@@ -497,6 +523,99 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
         : createTutorial(level, optionsRef.current.completedTutorials),
     );
   }, [level, commitTutorial, clearLanding]);
+
+  const undo = useCallback((): boolean => {
+    if (truth.current.status !== 'playing' || !undoSnapshotRef.current) {
+      return false;
+    }
+    const snapshot = undoSnapshotRef.current;
+    undoSnapshotRef.current = null;
+    setCanUndo(false);
+    setBombTargeting(false);
+
+    active.current.clear();
+    clearLanding();
+    landedIds.current.clear();
+    feedback.cancelPending();
+    cancelHits();
+
+    const restored = restoreSnapshot(snapshot, extraSlotActiveRef.current);
+    truth.current = restored;
+    view.current = restored;
+    reported.current = false;
+
+    setState(restored);
+    setEngineState(restored);
+    setFlights([]);
+    setMessage('');
+
+    feedback.emit('select');
+    return true;
+  }, [clearLanding]);
+
+  const activateExtraSlot = useCallback((): boolean => {
+    if (truth.current.status !== 'playing' || extraSlotActiveRef.current || truth.current.holdingCapacity >= 4) {
+      return false;
+    }
+    extraSlotActiveRef.current = true;
+    setExtraSlotActive(true);
+
+    truth.current = { ...truth.current, holdingCapacity: 4 };
+    view.current = { ...view.current, holdingCapacity: 4 };
+    setState(view.current);
+    setEngineState(truth.current);
+
+    resyncFlights(truth.current, Date.now());
+    feedback.emit('reward');
+    return true;
+  }, [resyncFlights]);
+
+  const armBomb = useCallback(() => {
+    if (truth.current.status !== 'playing') return;
+    setBombTargeting((prev) => !prev);
+    feedback.emit('select');
+  }, []);
+
+  const cancelBomb = useCallback(() => {
+    setBombTargeting(false);
+  }, []);
+
+  const triggerBomb = useCallback((target: BombTarget): BombOutcome => {
+    if (truth.current.status !== 'playing') {
+      deny('gameOver');
+      return { accepted: false, state: truth.current, clearedPixels: [], clearedPixelIds: [], rejection: 'gameOver' };
+    }
+
+    const before = truth.current;
+    const snapshot = cloneGameState(before);
+    const outcome = applyBomb(before, target);
+
+    if (!outcome.accepted) {
+      feedback.emit('denied');
+      return outcome;
+    }
+
+    undoSnapshotRef.current = snapshot;
+    setCanUndo(true);
+    setBombTargeting(false);
+
+    truth.current = outcome.state;
+    view.current = {
+      ...view.current,
+      movesApplied: outcome.state.movesApplied,
+      pixels: outcome.state.pixels,
+      status: outcome.state.status,
+    };
+    setState(view.current);
+    setEngineState(outcome.state);
+
+    feedback.emit('finalClear', { haptic: true });
+    if (outcome.state.status === 'won') {
+      reportResult();
+    }
+
+    return outcome;
+  }, [deny, reportResult]);
 
   const launch = useCallback((id: string, from?: Point, holdingSlots?: (Point | undefined)[]) => {
     return perform({ kind: 'tunnel', id }, from, holdingSlots);
@@ -512,7 +631,7 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
   return {
     state, engineState, locked: flights.length >= cap,
     flights, landingFlights, flightPass: flights[flights.length - 1] ?? null,
-    canLaunch: state.status === 'playing' && truth.current.status === 'playing' && flights.length < cap,
+    canLaunch: state.status === 'playing' && truth.current.status === 'playing' && flights.length < cap && !bombTargeting,
     activeCount: flights.length,
     activeCapacity: cap,
     message,
@@ -521,5 +640,13 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     launch,
     launchHeld,
     presentThrough, restart,
+    canUndo: canUndo && state.status === 'playing' && truth.current.status === 'playing' && undoSnapshotRef.current !== null,
+    undo,
+    extraSlotActive,
+    activateExtraSlot,
+    bombTargeting,
+    armBomb,
+    cancelBomb,
+    triggerBomb,
   };
 }

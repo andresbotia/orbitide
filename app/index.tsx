@@ -3,20 +3,24 @@ import { router, useFocusEffect, type Href } from 'expo-router';
 
 import { HomeScreen } from '@/screens/HomeScreen';
 import { useProgress } from '@/hooks/useProgress';
+import { useEconomy } from '@/hooks/useEconomy';
 
 export default function HomeRoute() {
   const { progress, loading, reset, reload } = useProgress();
+  const { economy, reload: reloadEconomy } = useEconomy();
 
   useFocusEffect(
     useCallback(() => {
       void reload();
-    }, [reload]),
+      void reloadEconomy();
+    }, [reload, reloadEconomy]),
   );
 
   return (
     <HomeScreen
       highestUnlockedLevel={progress.highestUnlockedLevel}
       loading={loading}
+      coins={economy.coins}
       onPlay={() =>
         router.push({
           pathname: '/game',
