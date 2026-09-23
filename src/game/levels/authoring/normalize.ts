@@ -2,6 +2,22 @@ import { defaultHoldingCapacity, emptyTunnelQueues } from '@/game/engine/ruleset
 import type { LevelDefinition } from '@/game/engine/types';
 import type { AuthoredLevel } from './types';
 
+function normalizeDifficulty(difficulty?: string): LevelDefinition['difficulty'] {
+  if (difficulty === 'moderate-easy') return 'easy';
+  if (difficulty === 'moderate') return 'medium';
+  if (difficulty === 'medium-hard' || difficulty === 'hard+' || difficulty === 'finale') return 'hard';
+  if (
+    difficulty === 'easy'
+    || difficulty === 'medium'
+    || difficulty === 'hard'
+    || difficulty === 'super-hard'
+    || difficulty === 'extreme'
+  ) {
+    return difficulty;
+  }
+  return 'medium';
+}
+
 /**
  * Normalizes an externally authored level object into a strict LevelDefinition.
  * Resolves aliases (grid -> pixelArt, holding -> holdingCapacity, theme -> themeId),
@@ -23,7 +39,7 @@ export function normalizeAuthoredLevel(
     id: authored.id,
     title: authored.title ?? `Level ${authored.id}`,
     themeId,
-    difficulty: authored.difficulty,
+    difficulty: normalizeDifficulty(authored.difficulty),
     holdingCapacity,
     pixelArt,
     tunnels: authored.tunnels ?? emptyTunnelQueues(ruleset),

@@ -18,7 +18,7 @@ export interface AuthoredLevel {
   title: string;
   themeId?: string;
   theme?: string;
-  difficulty: LevelDifficulty;
+  difficulty: LevelDifficulty | string;
   holdingCapacity?: number;
   holding?: number;
   pixelArt?: string[];
@@ -32,6 +32,7 @@ export interface AuthoredLevel {
   ruleset?: GameRuleset;
   activeCapacity?: number;
   winningWitness?: string[];
+  plannedBlockers?: { x: number; y: number }[];
 }
 
 /**

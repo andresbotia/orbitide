@@ -60,7 +60,7 @@ describe('Level Authoring Pipeline — Stage A (Structural Validation & Compiler
       ruleset: 'coreV2',
       activeCapacity: 6,
       grid: ['R'],
-      tunnels: [[{ color: 'red', capacity: 1 }], [], [], []],
+      tunnels: [[{ color: 'red', capacity: 1 }], [], []],
     }));
     expect(errors).toHaveLength(0);
     expect(levels[0]!.ruleset).toBe('coreV2');

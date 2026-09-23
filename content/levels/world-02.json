@@ -7,271 +7,497 @@
   "levels": [
     {
       "id": 11,
-      "title": "First Sprout",
-      "difficulty": "medium",
+      "title": "Sunflower Crown",
+      "difficulty": "easy",
       "holding": 3,
+      "ruleset": "coreV2",
       "legend": {
-        "L": "lime"
+        "A": "gold",
+        "B": "green",
+        "C": "red",
+        "D": "white"
       },
       "grid": [
-        "...LL.LL...",
-        "..LLLLLLLL.",
-        ".LLLLGYLLLL",
-        "..LLLGGGLL.",
-        "..LLLGGGLL.",
-        "...LLGGGLL.",
-        "..OOOOOOOO.",
-        ".OOOOYOOOO.",
-        ".OOOOOOOOO.",
-        "..OOOOOOO..",
-        "..........."
+        "....................",
+        "....................",
+        ".....AAA.BB.AAA.....",
+        "....AAAAABBAAAAA....",
+        "...AAAAAAAAAAAAA....",
+        "...AAAAACCCCAABBA...",
+        "...AAAACCCCCCBBBB...",
+        "..BBAACCDDDDCCBBBB..",
+        "..BBBACDDDDDDCBBBB..",
+        "..BBBBCDDDDDDCBBBB..",
+        "..BBBBCDDDDDDCBBBB..",
+        "..BBBBBCBBBDCAABBB..",
+        "..BBBBBBBBBCAAAAB...",
+        "...BB..BBBBBBB......",
+        "........BBBBB.......",
+        ".......BBBBB........",
+        ".......BBBBB........",
+        ".......BBBB.........",
+        "........BB..........",
+        "...................."
       ],
       "tunnels": [
         [
           {
             "color": "green",
-            "capacity": 3
+            "capacity": 12
           },
           {
-            "color": "lime",
-            "capacity": 34
+            "color": "green",
+            "capacity": 12
           },
           {
-            "color": "orange",
-            "capacity": 32
+            "color": "gold",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "gold",
+            "capacity": 12
+          },
+          {
+            "color": "white",
+            "capacity": 11
+          },
+          {
+            "color": "green",
+            "capacity": 6
+          },
+          {
+            "color": "green",
+            "capacity": 1
           }
         ],
         [
           {
-            "color": "yellow",
-            "capacity": 1
+            "color": "green",
+            "capacity": 12
           },
           {
-            "color": "yellow",
-            "capacity": 1
+            "color": "gold",
+            "capacity": 12
           },
           {
             "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "red",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 11
+          },
+          {
+            "color": "white",
+            "capacity": 8
+          },
+          {
+            "color": "white",
             "capacity": 4
+          },
+          {
+            "color": "red",
+            "capacity": 1
           }
         ],
         [
           {
             "color": "green",
-            "capacity": 3
+            "capacity": 12
+          },
+          {
+            "color": "gold",
+            "capacity": 12
+          },
+          {
+            "color": "red",
+            "capacity": 10
+          },
+          {
+            "color": "gold",
+            "capacity": 2
           }
         ]
+      ],
+      "winningWitness": [
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T3",
+        "T3",
+        "T3",
+        "T3",
+        "H1",
+        "H1",
+        "H1"
       ]
     },
     {
       "id": 12,
-      "title": "Garden Bloom",
-      "difficulty": "medium",
+      "title": "Blue Morpho",
+      "difficulty": "easy",
       "holding": 3,
+      "ruleset": "coreV2",
       "legend": {
-        "M": "magenta"
+        "A": "blue",
+        "B": "orange",
+        "C": "teal",
+        "D": "indigo"
       },
       "grid": [
-        "....MMM....",
-        "..MMMPMMM..",
-        ".MMMPPPMMM.",
-        ".MPPPYYPPPM",
-        "MMPYYYYYPMM",
-        "MPPYYOYPPPM",
-        "MMPYYYYYPMM",
-        ".MPPPYYPPPM",
-        ".MMMPPPMMM.",
-        "..MMMPMMM..",
-        "....MMM...."
+        "....................",
+        "....................",
+        "....................",
+        "....................",
+        ".....CCADBDAACCC....",
+        "....CCCCDDDACCCCC...",
+        "...CCCCCDDDACCCCCA..",
+        "...CCCCCDDDACCCCCAA.",
+        "...ACCCADDDAACCCAAA.",
+        "...BBBBBDDDABBBBBA..",
+        "...BBBBBDDD.BBBBB...",
+        "..BBBDDBDDDBBDDBBB..",
+        "..BBDDDDDDDBDDDDBB..",
+        "..BBDDDDDDDBDDDDBB..",
+        "..BBDDDDDDDBDDDDBB..",
+        "...BBDDBDDD.BDDBB...",
+        "...BBBBBDD...BBBB...",
+        "....BBB.......BB....",
+        "....................",
+        "...................."
       ],
       "tunnels": [
         [
           {
-            "color": "purple",
-            "capacity": 15
+            "color": "orange",
+            "capacity": 12
           },
           {
-            "color": "magenta",
-            "capacity": 44
+            "color": "indigo",
+            "capacity": 12
           },
           {
-            "color": "yellow",
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "blue",
+            "capacity": 5
+          },
+          {
+            "color": "blue",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "blue",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 9
+          },
+          {
+            "color": "orange",
             "capacity": 5
           }
         ],
         [
           {
-            "color": "yellow",
-            "capacity": 6
-          },
-          {
-            "color": "purple",
-            "capacity": 14
-          }
-        ],
-        [
-          {
-            "color": "yellow",
-            "capacity": 6
-          },
-          {
             "color": "orange",
-            "capacity": 1
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 4
           }
         ]
+      ],
+      "winningWitness": [
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "H1",
+        "T2",
+        "T2",
+        "T2",
+        "T3",
+        "H1",
+        "T3",
+        "T3",
+        "T3",
+        "H1",
+        "H1",
+        "H1"
       ]
     },
     {
       "id": 13,
-      "title": "Mushroom Grove",
-      "difficulty": "medium",
+      "title": "Mooncap Grove",
+      "difficulty": "easy",
       "holding": 3,
+      "ruleset": "coreV2",
       "legend": {
-        "L": "lime",
-        "D": "coral"
+        "A": "purple",
+        "B": "coral",
+        "C": "green",
+        "D": "yellow"
       },
       "grid": [
-        "..RRRR.....",
-        ".RRWRRR.DD.",
-        "RRWRRRWRDDD",
-        "RRRRRRRDDDD",
-        ".DDDDD.DDDD",
-        ".LWWW..DDWL",
-        ".LWWW..WWWL",
-        ".LWWW..WWWL",
-        ".GWWW..WWWG",
-        "GGLLGGLLGGL",
-        "GGGGGGGGGGG"
+        ".....................",
+        ".....................",
+        ".....................",
+        "..........BDB........",
+        ".........BDDDB.BD....",
+        "...AAA...BBDBBBDDD...",
+        "..ADDDA.BBBBBBBBDB...",
+        "..ADDDADDDBCCCCBB....",
+        "..AACCCDDDACCCC......",
+        "...ACCCCAA.CCCCAAA...",
+        "....CCCCA..CCCCAAAA..",
+        "....CCCC..ACCCCAAAAA.",
+        "....CCCC..ACCCCAAAAA.",
+        "....CCCC...CCCCCCCA..",
+        "....CCCC...CCCCCCC...",
+        "....CCCC...CCCCCCC...",
+        "....CCCC...CCCCCCC...",
+        "....CCCCCCCCCCCCCCC..",
+        ".....CCCCCCCCCCCCCC..",
+        "..............CCCC..."
       ],
       "tunnels": [
         [
           {
-            "color": "white",
+            "color": "green",
             "capacity": 12
           },
           {
-            "color": "red",
-            "capacity": 22
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "purple",
+            "capacity": 12
           },
           {
             "color": "coral",
             "capacity": 10
-          }
-        ],
-        [
+          },
           {
-            "color": "white",
+            "color": "yellow",
             "capacity": 10
           },
           {
             "color": "green",
-            "capacity": 19
-          },
-          {
-            "color": "lime",
-            "capacity": 11
-          },
-          {
-            "color": "coral",
-            "capacity": 10
+            "capacity": 2
           }
         ],
         [
           {
-            "color": "white",
-            "capacity": 3
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "coral",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 10
+          },
+          {
+            "color": "purple",
+            "capacity": 8
+          }
+        ],
+        [
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "purple",
+            "capacity": 12
+          },
+          {
+            "color": "yellow",
+            "capacity": 12
+          },
+          {
+            "color": "purple",
+            "capacity": 2
           }
         ]
+      ],
+      "winningWitness": [
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T3",
+        "T3",
+        "T3",
+        "T3",
+        "H1",
+        "H1"
       ]
     },
     {
       "id": 14,
-      "title": "Butterfly",
-      "difficulty": "medium",
+      "title": "Tree Frog",
+      "difficulty": "easy",
       "holding": 3,
-      "grid": [
-        "W...W.W...W",
-        "WW...W...WW",
-        "BBBBBWBBBBB",
-        "BCCCCWCCCCB",
-        "BCCYYPYYCCB",
-        "BCCCCPCCCCB",
-        "BBCCCPCCCBB",
-        "BBYYYPYYYBB",
-        ".BBCCPCCBB.",
-        "..BBBWBBB..",
-        "....WWW...."
-      ],
-      "tunnels": [
-        [
-          {
-            "color": "cyan",
-            "capacity": 15
-          },
-          {
-            "color": "blue",
-            "capacity": 34
-          },
-          {
-            "color": "purple",
-            "capacity": 3
-          }
-        ],
-        [
-          {
-            "color": "yellow",
-            "capacity": 5
-          },
-          {
-            "color": "cyan",
-            "capacity": 15
-          },
-          {
-            "color": "white",
-            "capacity": 15
-          }
-        ],
-        [
-          {
-            "color": "yellow",
-            "capacity": 5
-          },
-          {
-            "color": "purple",
-            "capacity": 2
-          }
-        ]
-      ]
-    },
-    {
-      "id": 15,
-      "title": "Sunflower",
-      "difficulty": "hard",
-      "holding": 3,
+      "ruleset": "coreV2",
       "legend": {
-        "A": "gold",
-        "N": "indigo",
-        "D": "coral"
+        "A": "green",
+        "B": "cyan",
+        "C": "magenta",
+        "D": "indigo"
       },
       "grid": [
-        ".....YYY.....",
-        "...YYYYYYY...",
-        "..YYAAAAAYY..",
-        ".YYAOOOOOAYY.",
-        ".YAOONNNOOAY.",
-        "YYAONNDNNOAYY",
-        "YYAONDDDNOAYY",
-        "YYAONNDNNOAYY",
-        ".YAOONNNOOAY.",
-        ".YYAOOOOOAYY.",
-        "..YYAAAAAYY..",
-        "...YYYYYYY...",
-        ".....YYY....."
+        ".....................",
+        ".....................",
+        "......BB......BB.....",
+        ".....BBDB....BDBB....",
+        "....BBDDDBAABDDDBB...",
+        "....BBBDBBAABBDBBB...",
+        ".....BBBBAAAABBBB....",
+        ".....ABBACCCAABB.....",
+        ".....AAACCCCCAAA.....",
+        "....AAACCCCCCCAAAA...",
+        "....AAACCCCCCCAAAAA..",
+        "....AAAACCCCCAAAAAA..",
+        "...AAAAAACCCAAAAAB...",
+        "..AAAAAAAABBBBBAAA...",
+        "..AAAABBBBAAAAAAAA...",
+        "...BBBAAAAAAAAAAAA...",
+        "....AAAAAAAAAAAAA....",
+        "....AAAAAAAAAAA......",
+        ".....................",
+        "....................."
       ],
       "tunnels": [
         [
           {
-            "color": "gold",
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "cyan",
+            "capacity": 12
+          },
+          {
+            "color": "cyan",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "green",
             "capacity": 12
           },
           {
@@ -279,427 +505,1111 @@
             "capacity": 8
           },
           {
-            "color": "yellow",
-            "capacity": 52
-          },
-          {
-            "color": "orange",
-            "capacity": 12
-          }
-        ],
-        [
-          {
-            "color": "orange",
-            "capacity": 12
-          },
-          {
-            "color": "gold",
-            "capacity": 12
-          },
-          {
-            "color": "indigo",
-            "capacity": 8
-          }
-        ],
-        [
-          {
-            "color": "coral",
-            "capacity": 5
-          }
-        ]
-      ]
-    },
-    {
-      "id": 16,
-      "title": "Cactus Bloom",
-      "difficulty": "medium",
-      "holding": 3,
-      "legend": {
-        "M": "magenta",
-        "L": "lime"
-      },
-      "grid": [
-        "...MMMMM...",
-        "..MMMYMMM..",
-        ".MY.MMM.YM.",
-        ".MM.GLG.MM.",
-        ".GL.GLG.LG.",
-        ".GL.GLG.LG.",
-        ".GL.GLG.LG.",
-        ".GG.GLG.GG.",
-        ".GGGGGLGGGG",
-        "....GLG....",
-        "..OOOOOOO..",
-        ".OOOOOOOOO.",
-        "..OOOOOOO.."
-      ],
-      "tunnels": [
-        [
-          {
-            "color": "yellow",
-            "capacity": 1
+            "color": "cyan",
+            "capacity": 3
           },
           {
             "color": "magenta",
-            "capacity": 20
-          },
-          {
-            "color": "lime",
-            "capacity": 6
+            "capacity": 1
           }
         ],
         [
           {
-            "color": "lime",
-            "capacity": 7
+            "color": "green",
+            "capacity": 12
           },
           {
             "color": "green",
-            "capacity": 31
-          }
-        ],
-        [
-          {
-            "color": "yellow",
-            "capacity": 2
+            "capacity": 12
           },
           {
-            "color": "orange",
-            "capacity": 23
-          }
-        ]
-      ]
-    },
-    {
-      "id": 17,
-      "title": "Dragonfly",
-      "difficulty": "hard",
-      "holding": 3,
-      "legend": {
-        "D": "coral",
-        "N": "indigo",
-        "T": "teal"
-      },
-      "grid": [
-        ".....DDD.....",
-        ".CCCCCCCCCCC.",
-        "CCWCCCCCCCWCC",
-        "CCWCCCCCCCWCC",
-        ".CCCCCCCCCCC.",
-        "..TTTTNTTTT..",
-        ".TTTTTNTTTTT.",
-        ".TTTTTNTTTTT.",
-        "..TTTTNTTTT..",
-        ".....TNT.....",
-        ".....TNT.....",
-        ".....TNT.....",
-        ".....TTT....."
-      ],
-      "tunnels": [
-        [
-          {
-            "color": "indigo",
-            "capacity": 4
+            "color": "green",
+            "capacity": 12
           },
           {
-            "color": "white",
-            "capacity": 4
+            "color": "green",
+            "capacity": 12
           },
           {
             "color": "cyan",
-            "capacity": 44
-          }
-        ],
-        [
-          {
-            "color": "indigo",
-            "capacity": 3
-          },
-          {
-            "color": "teal",
-            "capacity": 45
-          }
-        ],
-        [
-          {
-            "color": "coral",
-            "capacity": 3
-          }
-        ]
-      ]
-    },
-    {
-      "id": 18,
-      "title": "Crimson Rose",
-      "difficulty": "hard",
-      "holding": 3,
-      "legend": {
-        "D": "coral",
-        "M": "magenta",
-        "A": "gold"
-      },
-      "grid": [
-        "G...........G",
-        ".G..RRRRR..G.",
-        "..RRDDDDDRR..",
-        ".RRDMMMMMDRR.",
-        ".RDMMMAMMMDR.",
-        "RRDMAAAAAMDRR",
-        "RRDMAAYAAMDRR",
-        "RRDMAAAAAMDRR",
-        ".RDMMMAMMMDR.",
-        ".RRDMMMMMDRR.",
-        "..RRDDDDDRR..",
-        ".G..RRRRR..G.",
-        "G...........G"
-      ],
-      "tunnels": [
-        [
-          {
-            "color": "coral",
             "capacity": 12
-          },
-          {
-            "color": "gold",
-            "capacity": 16
-          },
-          {
-            "color": "red",
-            "capacity": 42
-          },
-          {
-            "color": "coral",
-            "capacity": 12
-          }
-        ],
-        [
-          {
-            "color": "magenta",
-            "capacity": 28
-          }
-        ],
-        [
-          {
-            "color": "yellow",
-            "capacity": 1
-          },
-          {
-            "color": "green",
-            "capacity": 4
-          },
-          {
-            "color": "green",
-            "capacity": 4
-          }
-        ]
-      ]
-    },
-    {
-      "id": 19,
-      "title": "Hummingbird",
-      "difficulty": "hard",
-      "holding": 3,
-      "legend": {
-        "M": "magenta",
-        "L": "lime",
-        "T": "teal"
-      },
-      "grid": [
-        "W............",
-        ".WW...GGGGGGG",
-        "..WW.GGLLLLLG",
-        "...W.GGLLLLLG",
-        "....TTGGLLLLG",
-        "...TTTGGLLLLG",
-        "...MMMGGGGGGG",
-        "..MMMMCCCCCCC",
-        "..MMMMCCCCCCC",
-        "...TTTCCCCCCC",
-        "....TTTTTTT..",
-        ".....TTT.TTT.",
-        "......TT..TT."
-      ],
-      "tunnels": [
-        [
-          {
-            "color": "lime",
-            "capacity": 10
-          },
-          {
-            "color": "green",
-            "capacity": 26
           },
           {
             "color": "magenta",
             "capacity": 11
+          },
+          {
+            "color": "magenta",
+            "capacity": 6
+          },
+          {
+            "color": "indigo",
+            "capacity": 2
           }
         ],
         [
           {
-            "color": "lime",
-            "capacity": 8
+            "color": "green",
+            "capacity": 12
           },
           {
             "color": "cyan",
-            "capacity": 21
+            "capacity": 12
+          },
+          {
+            "color": "magenta",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 5
+          }
+        ]
+      ],
+      "winningWitness": [
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T3",
+        "T3",
+        "T3",
+        "T3",
+        "H1",
+        "H1"
+      ]
+    },
+    {
+      "id": 15,
+      "title": "Desert Bloom",
+      "difficulty": "easy",
+      "holding": 3,
+      "ruleset": "coreV2",
+      "legend": {
+        "A": "orange",
+        "B": "teal",
+        "C": "white",
+        "D": "green",
+        "E": "red"
+      },
+      "grid": [
+        "........EEE..........",
+        "........EEEA.........",
+        "......BBBEEBBB.......",
+        ".....BBBBBBBBBB......",
+        ".....BBBBBBBBBB......",
+        "......BBBDDBBB.......",
+        "....DDDDDDDDDD.......",
+        "...DDDDDDBDED..DDD...",
+        "...DDDDDDBDED.DDDDD..",
+        "...DDDDDDBDED.DDDDD..",
+        "...DDDDDDBDEDDDDDD...",
+        "...DDDDDDBDEDDDDDD...",
+        "....DDDDDBDEDDDDDD...",
+        "........DBDEDDDDDD...",
+        "........DBDEDDDDD....",
+        "........DBDED........",
+        "........DBDED........",
+        "......CCCBCECCCCCCC..",
+        "......CCCCCCCCCCCCCC.",
+        "......CCCCCCCCCCCCCC."
+      ],
+      "tunnels": [
+        [
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
           },
           {
             "color": "white",
+            "capacity": 12
+          },
+          {
+            "color": "red",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 8
+          },
+          {
+            "color": "green",
+            "capacity": 4
+          },
+          {
+            "color": "orange",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "white",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "white",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 7
+          },
+          {
+            "color": "white",
+            "capacity": 3
+          }
+        ],
+        [
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "red",
+            "capacity": 7
+          }
+        ]
+      ],
+      "winningWitness": [
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T3",
+        "T3",
+        "T3",
+        "T3",
+        "H1",
+        "H1"
+      ]
+    },
+    {
+      "id": 16,
+      "title": "Hummingbird",
+      "difficulty": "medium",
+      "holding": 3,
+      "ruleset": "coreV2",
+      "legend": {
+        "A": "magenta",
+        "B": "yellow",
+        "C": "cyan",
+        "D": "green",
+        "E": "indigo"
+      },
+      "grid": [
+        ".....................",
+        ".....................",
+        ".....................",
+        "...C.................",
+        "..CCC............C...",
+        "...CCCCCCBB..CCCC....",
+        "...CCCCCBBAACCCCC....",
+        "...CCCCCBAAAACCCCCE..",
+        "..CCCCCCAAACCCCCCEEE.",
+        "..CCCCCCAACCCCCCEEEEE",
+        "..CCCCCCAAAAAEEEEEEE.",
+        "..CCCCCADAAAAAEEEEE..",
+        "..AAADDDDDAAAAAEEE...",
+        "..AAAADDDDDAAAAAE....",
+        "..AAAAADDDDDAAA......",
+        ".AAAAAAADDDDD........",
+        ".AAAAAAAADDD.........",
+        ".AADDAAAAAD..........",
+        "AAADDAAAA............",
+        "AAADDAA..............",
+        ".AADD................"
+      ],
+      "tunnels": [
+        [
+          {
+            "color": "cyan",
+            "capacity": 12
+          },
+          {
+            "color": "magenta",
+            "capacity": 12
+          },
+          {
+            "color": "magenta",
+            "capacity": 12
+          },
+          {
+            "color": "cyan",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "magenta",
+            "capacity": 9
+          },
+          {
+            "color": "yellow",
+            "capacity": 5
+          },
+          {
+            "color": "magenta",
+            "capacity": 2
+          }
+        ],
+        [
+          {
+            "color": "magenta",
+            "capacity": 12
+          },
+          {
+            "color": "cyan",
+            "capacity": 12
+          },
+          {
+            "color": "magenta",
+            "capacity": 12
+          },
+          {
+            "color": "magenta",
+            "capacity": 12
+          },
+          {
+            "color": "cyan",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 10
+          },
+          {
+            "color": "cyan",
+            "capacity": 9
+          },
+          {
+            "color": "indigo",
+            "capacity": 3
+          },
+          {
+            "color": "cyan",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "magenta",
+            "capacity": 12
+          },
+          {
+            "color": "cyan",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 9
+          }
+        ]
+      ],
+      "winningWitness": [
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "H1",
+        "T2",
+        "T2",
+        "T2",
+        "T3",
+        "T3",
+        "H1",
+        "T3",
+        "T3",
+        "H1",
+        "H1",
+        "H1",
+        "H1"
+      ]
+    },
+    {
+      "id": 17,
+      "title": "Foxglove",
+      "difficulty": "medium",
+      "holding": 3,
+      "ruleset": "coreV2",
+      "legend": {
+        "A": "purple",
+        "B": "red",
+        "C": "green",
+        "D": "white",
+        "E": "indigo"
+      },
+      "grid": [
+        ".....................",
+        "........EEEE.........",
+        ".....AAAEDDEB........",
+        "....AAAAADDBBB.......",
+        "....AAAAABBBBBB......",
+        "....AAAAABBBBBBB.....",
+        "...AAAAAAABBBBBB.....",
+        "...AAAAAAABBBBBB.....",
+        "...AAAAAAABBBBBB.....",
+        "...AAAAAAABBBBBB.....",
+        "...AAAAAAABBBBBB.....",
+        "...AAAAAABBBBBBB.....",
+        "...AAAAAABBBBBBBB....",
+        "...CAAAAAABBBBBBB....",
+        "...ACCAAABBBBBBCC....",
+        "...ACCCCBBBBBBCCC....",
+        "....CCCCCCBBCCCCC....",
+        ".....CCCCBCCCCCC.....",
+        "......CCCCCCCCC......",
+        "........CCCCCCC......",
+        "..........CCC........"
+      ],
+      "tunnels": [
+        [
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "purple",
+            "capacity": 12
+          },
+          {
+            "color": "red",
+            "capacity": 12
+          },
+          {
+            "color": "red",
+            "capacity": 12
+          },
+          {
+            "color": "purple",
+            "capacity": 12
+          },
+          {
+            "color": "purple",
+            "capacity": 11
+          },
+          {
+            "color": "purple",
+            "capacity": 5
+          },
+          {
+            "color": "white",
+            "capacity": 4
+          }
+        ],
+        [
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "red",
+            "capacity": 12
+          },
+          {
+            "color": "red",
+            "capacity": 12
+          },
+          {
+            "color": "red",
+            "capacity": 12
+          },
+          {
+            "color": "green",
+            "capacity": 12
+          },
+          {
+            "color": "purple",
+            "capacity": 12
+          },
+          {
+            "color": "red",
+            "capacity": 11
+          },
+          {
+            "color": "green",
+            "capacity": 4
+          },
+          {
+            "color": "red",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "purple",
+            "capacity": 12
+          },
+          {
+            "color": "purple",
+            "capacity": 12
+          },
+          {
+            "color": "red",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
             "capacity": 6
+          }
+        ]
+      ],
+      "winningWitness": [
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T3",
+        "T3",
+        "T3",
+        "T3",
+        "H1"
+      ]
+    },
+    {
+      "id": 18,
+      "title": "Koi & Lilies",
+      "difficulty": "medium",
+      "holding": 3,
+      "ruleset": "coreV2",
+      "legend": {
+        "A": "teal",
+        "B": "orange",
+        "C": "cyan",
+        "D": "indigo",
+        "E": "white"
+      },
+      "grid": [
+        ".....................",
+        ".....................",
+        ".....EEE.......CCC...",
+        "....EAAAE.....CCCCC..",
+        "B...EAAAEB...CCCCCCC.",
+        "B..BBEEEBBB..CCCCCCC.",
+        "BBBBBBEBBBBB..CCCCC..",
+        "BBBBBEEEBBBB...CCC...",
+        ".BBBBBEBBBBBD..DDD...",
+        ".BBBBBBBBBDDDDDDDDDD.",
+        ".DDDDDDDDDBDAAAAAADAA",
+        ".B...BBBBBAAAAAAAAAAA",
+        "..........AAAAADAAAAA",
+        "....CC....AAAADDDAAAA",
+        "...CCCC...AAAAADAAAAA",
+        "..CC.CCC..AAAAAAAAAAA",
+        "..C...CC...AAAAAAAAAA",
+        "...C.CC......AAAA...A",
+        "....CC..............A",
+        ".....................",
+        "....................."
+      ],
+      "tunnels": [
+        [
+          {
+            "color": "cyan",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "cyan",
+            "capacity": 12
+          },
+          {
+            "color": "orange",
+            "capacity": 6
+          },
+          {
+            "color": "white",
+            "capacity": 3
+          },
+          {
+            "color": "indigo",
+            "capacity": 1
+          }
+        ],
+        [
+          {
+            "color": "cyan",
+            "capacity": 12
+          },
+          {
+            "color": "cyan",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "white",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 5
+          },
+          {
+            "color": "teal",
+            "capacity": 1
           }
         ],
         [
           {
             "color": "teal",
-            "capacity": 25
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 7
+          },
+          {
+            "color": "cyan",
+            "capacity": 1
           }
         ]
+      ],
+      "winningWitness": [
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "T2",
+        "H1",
+        "T2",
+        "T2",
+        "T3",
+        "T3",
+        "T3",
+        "H1",
+        "T3",
+        "T3",
+        "H1",
+        "H1",
+        "H1"
+      ]
+    },
+    {
+      "id": 19,
+      "title": "Peacock Feather",
+      "difficulty": "medium",
+      "holding": 3,
+      "ruleset": "coreV2",
+      "legend": {
+        "A": "teal",
+        "B": "magenta",
+        "C": "gold",
+        "D": "purple",
+        "E": "indigo"
+      },
+      "grid": [
+        ".....................",
+        "..........AA.........",
+        "........AAAAA........",
+        ".......AAAAAAAA......",
+        "......AAABBBBAAA.....",
+        ".....AAABBBBBBAAA....",
+        "....AAABBBCCBBBAAA...",
+        "...BBBBBBCDDCBBBAA...",
+        "...BBABBAABBDCBBBB...",
+        "...AAAAACDEEBBBBAA...",
+        "...AAABBCBBBDCBBBB...",
+        "...AAABBBCDDBBBBAA...",
+        "...BBBBBBCCCBBBBAA...",
+        "...BBBAACABBBBAABB...",
+        "....BAAAABBBBBAABB...",
+        "....AAAAAAAAAABBBB...",
+        "...AAACABBBBAAABBB...",
+        "...BBBBBAAAABBBBBB...",
+        "...BBBBAAAAAAB..BB...",
+        "....C....AAA.........",
+        "...C......A.........."
+      ],
+      "tunnels": [
+        [
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "magenta",
+            "capacity": 12
+          },
+          {
+            "color": "magenta",
+            "capacity": 12
+          },
+          {
+            "color": "magenta",
+            "capacity": 12
+          },
+          {
+            "color": "magenta",
+            "capacity": 12
+          },
+          {
+            "color": "gold",
+            "capacity": 12
+          },
+          {
+            "color": "magenta",
+            "capacity": 12
+          },
+          {
+            "color": "purple",
+            "capacity": 7
+          },
+          {
+            "color": "magenta",
+            "capacity": 3
+          }
+        ],
+        [
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "magenta",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "magenta",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "magenta",
+            "capacity": 12
+          },
+          {
+            "color": "gold",
+            "capacity": 4
+          },
+          {
+            "color": "indigo",
+            "capacity": 2
+          }
+        ],
+        [
+          {
+            "color": "magenta",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 12
+          },
+          {
+            "color": "teal",
+            "capacity": 1
+          }
+        ]
+      ],
+      "winningWitness": [
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "H1",
+        "T1",
+        "H1",
+        "H1",
+        "H1",
+        "H1",
+        "T2",
+        "T2",
+        "T2",
+        "H1",
+        "H1",
+        "H1",
+        "H1",
+        "H1",
+        "T2",
+        "T2",
+        "H1",
+        "T2",
+        "T2",
+        "H1",
+        "T2",
+        "H1",
+        "T2",
+        "T3",
+        "H1",
+        "T3",
+        "T3",
+        "T3",
+        "T3",
+        "H1",
+        "H1",
+        "H1"
       ]
     },
     {
       "id": 20,
-      "title": "Tree of Life",
-      "difficulty": "hard",
+      "title": "Moon Garden Gate",
+      "difficulty": "medium",
       "holding": 3,
+      "ruleset": "coreV2",
       "legend": {
-        "L": "lime",
-        "T": "teal",
-        "A": "gold",
-        "D": "coral"
+        "A": "blue",
+        "B": "orange",
+        "C": "red",
+        "D": "green",
+        "E": "white",
+        "F": "indigo"
       },
       "grid": [
-        "....GGGGG....",
-        "..GLLLGLLLG..",
-        ".GLATALATALG.",
-        "GLTTTTGTTTTLG",
-        "GLATALGLATALG",
-        "GLLTLLGLLTLLG",
-        ".GLOGL.LGOLG.",
-        "..GOOG.GOOG..",
-        "...OOO.OOO...",
-        "...OOO.OOO...",
-        "..OOOO.OOOO..",
-        ".DDD.DDD.DDD.",
-        "DD.........DD"
+        ".....................",
+        ".....................",
+        ".....................",
+        "....EE.........EE....",
+        "...EEEE.......EEEE...",
+        "...EEEEA......EEEE...",
+        "..CEEEEA.......EECC..",
+        ".CCCEEFFFFFFFFFCCCC..",
+        ".CCCCFFFFFFFFFFCCCC..",
+        ".CCCCFBB.BBBB.BBCC...",
+        "..CCFFBB.BBBB.BBFDEE.",
+        ".CCDFFBBBBBBBBBBFEEEE",
+        "CCCCFFBB.BBBB.BBFEEEE",
+        "CCCCFFBB.BBBB.BBFEEEE",
+        "CCCCFFBB.BBBB.BBFDEE.",
+        ".CCDFFBBBBBBBBBBFD...",
+        "...DFFBB.BBBB.BBFD...",
+        "...DFFBB.BBBB.BBFD...",
+        "...DFFBB.BBBB.BBFD...",
+        "....FFB...BB..BBF....",
+        "....................."
       ],
-      "reveal": {
-        "name": "THE TREE OF LIFE",
-        "nodes": [
-          {
-            "x": 6,
-            "y": 9
-          },
-          {
-            "x": 6,
-            "y": 0
-          },
-          {
-            "x": 1,
-            "y": 3
-          },
-          {
-            "x": 11,
-            "y": 3
-          },
-          {
-            "x": 2,
-            "y": 6
-          },
-          {
-            "x": 10,
-            "y": 6
-          },
-          {
-            "x": 1,
-            "y": 12
-          },
-          {
-            "x": 11,
-            "y": 12
-          }
-        ],
-        "lines": [
-          [
-            0,
-            1
-          ],
-          [
-            0,
-            2
-          ],
-          [
-            0,
-            3
-          ],
-          [
-            0,
-            4
-          ],
-          [
-            0,
-            5
-          ],
-          [
-            0,
-            6
-          ],
-          [
-            0,
-            7
-          ],
-          [
-            2,
-            1
-          ],
-          [
-            3,
-            1
-          ],
-          [
-            4,
-            2
-          ],
-          [
-            5,
-            3
-          ]
-        ],
-        "accentNodes": [
-          0
-        ],
-        "collectionId": "wild-garden"
-      },
       "tunnels": [
         [
           {
-            "color": "gold",
-            "capacity": 8
+            "color": "orange",
+            "capacity": 12
           },
           {
-            "color": "teal",
-            "capacity": 14
+            "color": "orange",
+            "capacity": 12
           },
           {
-            "color": "lime",
-            "capacity": 27
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "white",
+            "capacity": 12
+          },
+          {
+            "color": "white",
+            "capacity": 12
+          },
+          {
+            "color": "white",
+            "capacity": 12
           },
           {
             "color": "green",
-            "capacity": 27
+            "capacity": 10
+          },
+          {
+            "color": "white",
+            "capacity": 8
+          },
+          {
+            "color": "orange",
+            "capacity": 5
+          },
+          {
+            "color": "green",
+            "capacity": 1
           }
         ],
         [
           {
             "color": "orange",
-            "capacity": 26
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "red",
+            "capacity": 12
+          },
+          {
+            "color": "red",
+            "capacity": 12
+          },
+          {
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "red",
+            "capacity": 6
+          },
+          {
+            "color": "blue",
+            "capacity": 2
           }
         ],
         [
           {
-            "color": "coral",
-            "capacity": 13
+            "color": "orange",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 12
+          },
+          {
+            "color": "red",
+            "capacity": 12
+          },
+          {
+            "color": "indigo",
+            "capacity": 2
           }
         ]
+      ],
+      "winningWitness": [
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "T1",
+        "H1",
+        "T1",
+        "T1",
+        "T1",
+        "T2",
+        "H1",
+        "T2",
+        "T2",
+        "H1",
+        "T2",
+        "T2",
+        "T2",
+        "H1",
+        "T2",
+        "T2",
+        "T2",
+        "T3",
+        "H1",
+        "T3",
+        "T3",
+        "H1",
+        "T3",
+        "T3",
+        "H1",
+        "H1",
+        "H1"
+      ],
+      "plannedBlockers": [
+        {
+          "x": 8,
+          "y": 10
+        },
+        {
+          "x": 13,
+          "y": 9
+        },
+        {
+          "x": 8,
+          "y": 14
+        },
+        {
+          "x": 13,
+          "y": 13
+        }
       ]
     }
   ]
