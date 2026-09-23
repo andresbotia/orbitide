@@ -1,0 +1,2323 @@
+/**
+ * AUTO-GENERATED FILE — DO NOT EDIT DIRECTLY.
+ * Produced by Orbitide Level Authoring Compiler from:
+ * content\levels\world-04.json
+ * Total compiled levels: 10
+ */
+import type { LevelDefinition } from '../engine/types';
+
+export const COMPILED_LEVELS: LevelDefinition[] = [
+  {
+    "id": 31,
+    "title": "Gearworks",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      "......................",
+      "......................",
+      ".......EE.....EEE.....",
+      "...FF.EEEAFFFBEEEFF...",
+      "..FFFAAAAAFFFBBBBFFF..",
+      "..FFFAADDAFFFBDDBFFF..",
+      "...AAADDEEEBBDD.DBBEEE",
+      "EEEAADD.EEEEEE...BBEEE",
+      "EEEAAD..EEEEEED.DBBEEE",
+      "EEEAADFFFDCEEEDDFFBB..",
+      "..AAAAFFFCCCCCCCFFFF..",
+      "...AAAFFFCCCCCCCFFFF..",
+      "..FFFAACCCCDDDCCCFF...",
+      "..FFFACCCCDDDDDCCC....",
+      "...FFEECCDDD.DDDCEE...",
+      ".....EECCDD...DDCEE...",
+      "......ECCCDD.DDCCE....",
+      ".......CCCCDDDCCC.....",
+      "......FFFCCCCCCCFF....",
+      "......FFFCCCCCCCF.....",
+      ".......FF.CEEE........",
+      "...........EEE........"
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 8
+        },
+        {
+          "color": "indigo",
+          "capacity": 3
+        },
+        {
+          "color": "orange",
+          "capacity": 2
+        }
+      ],
+      [
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "white",
+          "capacity": 3
+        }
+      ],
+      [
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 5
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "A": "gold",
+      "B": "teal",
+      "C": "orange",
+      "D": "indigo",
+      "E": "white",
+      "F": "blue"
+    },
+    "ruleset": "coreV2",
+    "winningWitness": [
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T2",
+      "T1",
+      "H1",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T2",
+      "T1",
+      "H1",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1"
+    ]
+  },
+  {
+    "id": 32,
+    "title": "Cargo Crane",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      ".......................",
+      ".......................",
+      ".......................",
+      "...BBBBAAAAA...........",
+      "...BBADAAAAAAAAAAAAA...",
+      "...BBAADDAAAAAAAAAEA...",
+      "...BCCBDDDDAAAAAAEEE...",
+      "...BCCBBDDDDDDAAEEEE...",
+      "...BBBBBBDDDDDDDEEEE...",
+      "...BBBBBBDDDDDDDEEEE...",
+      "...BCCBBBDDDDDDEEEEE...",
+      "...BCCBBB......EEEEE...",
+      "...BBBBB.......EEEEE...",
+      "...BBBBB......AEEEEE...",
+      "...BCCBBB...AAAADDDD...",
+      "...BCCBBBCAAAAAAADDD...",
+      "..BBBBBBCCAAAAAAAAAF...",
+      "..CBBBBCCCAAAAAAAAAF...",
+      ".CCCCCCCCCCAAAAAAAAF...",
+      ".CCCCCCCCCCAAAAAAAAF...",
+      ".CCCCCCCCCCFFFFFFFFF...",
+      "......................."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 5
+        },
+        {
+          "color": "red",
+          "capacity": 2
+        }
+      ],
+      [
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 9
+        },
+        {
+          "color": "red",
+          "capacity": 8
+        },
+        {
+          "color": "teal",
+          "capacity": 3
+        },
+        {
+          "color": "blue",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 5
+        },
+        {
+          "color": "indigo",
+          "capacity": 1
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "A": "orange",
+      "B": "blue",
+      "C": "white",
+      "D": "red",
+      "E": "indigo",
+      "F": "teal"
+    },
+    "ruleset": "coreV2",
+    "winningWitness": [
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T3",
+      "T2",
+      "H1",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T1",
+      "T3",
+      "H1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3"
+    ]
+  },
+  {
+    "id": 33,
+    "title": "Service Droid",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      "..........BBB..........",
+      ".........FBBBF.........",
+      "........FFFDFFF........",
+      ".......FFFFFFFFF.......",
+      "......FFFFFFFFFFF......",
+      ".....FFFFFFFFFFFFF.....",
+      "....AAAAAAAAAAAAAAA....",
+      "...FFAACCCCCCCCCAAFF...",
+      "...FFFACCBBCCBBCAFFFF..",
+      "..FFFFACBBBBBBBBAFFFFF.",
+      "..FFFFACBBBBBBBBAFFFFF.",
+      "..FFFFACCBBCCBBCAFFFFF.",
+      "..FFFFAAAAAAAAAAAFFFFF.",
+      "..FFFFAAEEEEEEEAAFFFF..",
+      "...FFFAAEEEEEEEAAFFFF..",
+      "...FFFAAEEEEEEEAAFFF...",
+      "....FAAAEEEEEEEAAAF....",
+      ".....AAADDDDDDDAAA.....",
+      "......ADDDDDDDDDA......",
+      ".......DDDDDDDDD.......",
+      "........DDDDDDD........",
+      "..........DDD.........."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 9
+        },
+        {
+          "color": "lime",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "red",
+          "capacity": 7
+        },
+        {
+          "color": "cyan",
+          "capacity": 3
+        },
+        {
+          "color": "indigo",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 9
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 9
+        },
+        {
+          "color": "red",
+          "capacity": 9
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "white",
+          "capacity": 6
+        },
+        {
+          "color": "lime",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 7
+        },
+        {
+          "color": "blue",
+          "capacity": 1
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "A": "white",
+      "B": "lime",
+      "C": "blue",
+      "D": "red",
+      "E": "cyan",
+      "F": "indigo"
+    },
+    "ruleset": "coreV2",
+    "winningWitness": [
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T3",
+      "T2",
+      "H1",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T1",
+      "T3",
+      "H1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1"
+    ]
+  },
+  {
+    "id": 34,
+    "title": "Reactor Turbine",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      ".......................",
+      "..........EEE..........",
+      ".......EEEEEEEEE.......",
+      "......EEEAEEEEEEE......",
+      ".....EEEEAAAABECEE.....",
+      "....EEECBBAAABBCCEE....",
+      "...EEECCBBAAFBCCCEEE...",
+      "..EEECCCCFFAFFCCCCEEE..",
+      "..EEEBBCCFDADCCCBBEEE..",
+      "..EEABBFFCDDDCFFBBAEEE.",
+      "..EEAAAAADDDDDAAAAAEEE.",
+      ".EEEAAAFFDDDDDFFAAAEEE.",
+      "..EEABBFFCDDDCFFBBAEEE.",
+      "..EEEBBCCCDADFCCBBEEE..",
+      "..EEECCCCFFAFFCCCCEEE..",
+      "...EEECCCBFAABBCCEEE...",
+      "....EECCBBAAABBCEEE....",
+      ".....EECEBAAAAEEEE.....",
+      "......EEEEEEEAEEE......",
+      ".......EEEEEEEEE.......",
+      ".........EEEEE.........",
+      "...........E..........."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 7
+        },
+        {
+          "color": "white",
+          "capacity": 4
+        },
+        {
+          "color": "orange",
+          "capacity": 1
+        },
+        {
+          "color": "indigo",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 7
+        },
+        {
+          "color": "orange",
+          "capacity": 7
+        },
+        {
+          "color": "orange",
+          "capacity": 6
+        },
+        {
+          "color": "cyan",
+          "capacity": 3
+        },
+        {
+          "color": "purple",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 9
+        },
+        {
+          "color": "gold",
+          "capacity": 7
+        },
+        {
+          "color": "gold",
+          "capacity": 3
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "A": "orange",
+      "B": "cyan",
+      "C": "purple",
+      "D": "gold",
+      "E": "indigo",
+      "F": "white"
+    },
+    "ruleset": "coreV2",
+    "winningWitness": [
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T1",
+      "T3",
+      "H1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T1",
+      "T2",
+      "H1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1"
+    ]
+  },
+  {
+    "id": 35,
+    "title": "Iron Express",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      ".......................",
+      ".......................",
+      ".......................",
+      ".......................",
+      "...........DD..........",
+      "....BBBBBDDDDDDDDDD....",
+      "...BBBBBBGDDDDDDDDD....",
+      "..EEBBBBGGDDDFFFFDD....",
+      ".EEEEBBBGGDDDFFFFDDD...",
+      ".EEEEEGGGGDDDFFFFDDD...",
+      ".EEEEEGGGGDDDFFFFDDDD..",
+      ".EEEEGGGGAADDDDDDDDDD..",
+      ".ECCCAAAAAAAAAAAAAAEEE.",
+      ".AAAAAAAAAAAAAAAAAEEEE.",
+      ".AAAAABBBAAAAABBBAEEEE.",
+      ".AAAABBBBBAAABBBBBEEEEE",
+      ".AAABBBCBBBABBBCBBEEEEE",
+      "..AABBCCCBBABBCCCBEEEEE",
+      "...BBBBCBBBBBBBCBBBEE..",
+      "....BBBBBBBBBBBBBBB....",
+      ".....BBBBBBBBBBBBB.....",
+      ".......................",
+      "......................."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 8
+        },
+        {
+          "color": "cyan",
+          "capacity": 7
+        },
+        {
+          "color": "green",
+          "capacity": 6
+        },
+        {
+          "color": "blue",
+          "capacity": 6
+        },
+        {
+          "color": "gold",
+          "capacity": 3
+        },
+        {
+          "color": "white",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 8
+        },
+        {
+          "color": "green",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 5
+        },
+        {
+          "color": "red",
+          "capacity": 4
+        },
+        {
+          "color": "cyan",
+          "capacity": 3
+        },
+        {
+          "color": "blue",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 6
+        },
+        {
+          "color": "indigo",
+          "capacity": 4
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "A": "red",
+      "B": "indigo",
+      "C": "gold",
+      "D": "cyan",
+      "E": "white",
+      "F": "green",
+      "G": "blue"
+    },
+    "ruleset": "coreV2",
+    "winningWitness": [
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T1",
+      "T3",
+      "H1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T1",
+      "T2",
+      "H1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2"
+    ]
+  },
+  {
+    "id": 36,
+    "title": "Clocktower",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      ".......................",
+      "..........FF...........",
+      ".........FFFF..........",
+      "........FFFFFF.........",
+      ".......AFFFFFFA........",
+      "......AAAAAAAAAA.......",
+      ".....AAAAAAAAAAAA......",
+      "....AAAAAEEEEAAAAA.....",
+      "...AAAAAEEBCEEAAAAA....",
+      "..AAAAAEEBBCBEEAAAAA...",
+      ".AAAAAAEBBBCBBEAAAAAA..",
+      ".AAAAAAEBBBDDDEAAAAAAA.",
+      ".AAAAAAEEBBBBEEAAAAAAA.",
+      "..AAAAAAEEBBEEAAAAAAA..",
+      "..AAAAAAAEEEEAAAAAAA...",
+      "...AAAAADDDEEEAAAAAA...",
+      "...AAAAADDDEEEAAAAA....",
+      "....AAAADDDEEEAAAAA....",
+      "....AAAADDDEEEAAAAA....",
+      "....GGAADDDEEEAAGG.....",
+      "....GGGGDDDEEEGGGG.....",
+      "....GGGGGGGGGGGGGG.....",
+      "....GGGGGGGGGGGGGG....."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 7
+        },
+        {
+          "color": "white",
+          "capacity": 6
+        },
+        {
+          "color": "gold",
+          "capacity": 2
+        }
+      ],
+      [
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 7
+        },
+        {
+          "color": "teal",
+          "capacity": 4
+        },
+        {
+          "color": "indigo",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 8
+        },
+        {
+          "color": "red",
+          "capacity": 3
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "A": "gold",
+      "B": "indigo",
+      "C": "red",
+      "D": "teal",
+      "E": "white",
+      "F": "purple",
+      "G": "blue"
+    },
+    "ruleset": "coreV2",
+    "winningWitness": [
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T3",
+      "T2",
+      "H1",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T2",
+      "T1",
+      "H1",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2"
+    ]
+  },
+  {
+    "id": 37,
+    "title": "Mech Spider",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      ".......................",
+      ".......................",
+      ".......................",
+      "B......................",
+      "BBBB.....CCCCC........F",
+      ".BBBB..CCCCCCCCC..FFFFF",
+      "..BBBBBCCCCCCCCCFFFFF..",
+      ".CCBBBBBCCCCCCCFFFFF...",
+      "CCCCCBBBBCFCGCFFFFFBB..",
+      "CCCCCCCBAFFFFFFFFBBBBBB",
+      ".CCCCCCCCAFCFAFABBBBBBB",
+      "..DDDDDADAAAAABBBBBBBB.",
+      "..DDDDDDDAAAAACACCCCC..",
+      ".DDDDDDAAEAAAACCCCCCC..",
+      "DDDDDDEEEEEAAADDCCCCCC.",
+      "D....EEEEEAAADDDDCCCCCC",
+      ".....EEEEEDDDDDDDDC...C",
+      ".....EEEEDDDDDDDDD.....",
+      "....EEEEDDDDDDDDDDD....",
+      "...EEEEDDDDDDDDDDDDD...",
+      "...EE...DDDDDDD...DDD..",
+      "..EEE..............DD..",
+      "...E...............DDD."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "lime",
+          "capacity": 7
+        },
+        {
+          "color": "white",
+          "capacity": 3
+        },
+        {
+          "color": "indigo",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "orange",
+          "capacity": 4
+        },
+        {
+          "color": "blue",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "magenta",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "lime",
+          "capacity": 10
+        },
+        {
+          "color": "magenta",
+          "capacity": 3
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "A": "blue",
+      "B": "lime",
+      "C": "magenta",
+      "D": "cyan",
+      "E": "orange",
+      "F": "white",
+      "G": "indigo"
+    },
+    "ruleset": "coreV2",
+    "winningWitness": [
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T1",
+      "T3",
+      "H1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T1",
+      "T2",
+      "H1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1"
+    ]
+  },
+  {
+    "id": 38,
+    "title": "Assembly Line",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      ".......................",
+      ".......................",
+      ".......EEEEEEEEE...BBB.",
+      "..FFF..EEEEEEEEE..BBBBB",
+      ".FFFFFEEEEEEEEEE..BBBBB",
+      ".FFFFFFEEEEEEEEE..BBBBB",
+      ".FFFFFFEEFFFFFE..GGBBB.",
+      "..FFFDDDFFFFFF..GGG....",
+      ".....DDDFFFFFF..GG.....",
+      "......DDFFFFFF..GG.....",
+      ".....DDD.CCCFF..GG.....",
+      "...BBDDBCCCCCCCCCGG....",
+      "...BBDDBCCCCCCCCCGG....",
+      "...BBBBBCCCCCCCCCCC....",
+      "...BBBBBCCCCCCCCCCCC...",
+      ".AABBBBBACCCCACCCCCAAA.",
+      ".AAAAAAAAAAAAAAAAAAAAA.",
+      ".AAAAAAAAAAAAAAAAAAAAA.",
+      ".AAAAEEAAAAEAAAAEEAAAA.",
+      ".AAAEEEEAAEEEAAEEEEAAA.",
+      "....EEEE..EEE..EEEE....",
+      ".....EE....E....EE.....",
+      "......................."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "yellow",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "yellow",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 5
+        },
+        {
+          "color": "red",
+          "capacity": 3
+        },
+        {
+          "color": "indigo",
+          "capacity": 2
+        }
+      ],
+      [
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "green",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 7
+        },
+        {
+          "color": "white",
+          "capacity": 5
+        },
+        {
+          "color": "yellow",
+          "capacity": 2
+        },
+        {
+          "color": "coral",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "yellow",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "yellow",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "green",
+          "capacity": 5
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "A": "teal",
+      "B": "yellow",
+      "C": "red",
+      "D": "white",
+      "E": "indigo",
+      "F": "coral",
+      "G": "green"
+    },
+    "ruleset": "coreV2",
+    "winningWitness": [
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T1",
+      "T3",
+      "H1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T1",
+      "T2",
+      "H1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2"
+    ]
+  },
+  {
+    "id": 39,
+    "title": "Airship Dock",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      ".......................",
+      ".......................",
+      ".........BBBBB.........",
+      "......BBBBBBBBBBBB.....",
+      ".....BBBBBBBBBBBBBB....",
+      "....BBBBBBBFFBBBBBDD...",
+      "...BBBBBBBBBBFFFBDDDD..",
+      "..BBBBBBBBBBBBBBFFDDDD.",
+      ".BBBBBBBBBBBBBDDDDDDDD.",
+      ".BBBCBBBBBBBBBBBCDDDDD.",
+      ".CCCCBBBBBBBBBBBAAADDD.",
+      ".CCCCCBBEEEEEBBBAAAACC.",
+      "..CCCBBBEEEEFFFAAGGAAA.",
+      "...CBBBEEEEEEFFFAGGAAA.",
+      "....BBEEEEEEEEFFFFAAAA.",
+      ".....EEEEEEEEFFAAAAAAA.",
+      "......EEEEEEFFAAAGGAAA.",
+      ".......EEEEFFAAAAGGAAA.",
+      "........EEFFAAAAAAAAAA.",
+      "..........FAAAAAAAAAAA.",
+      "...........AAAAAAGGAAA.",
+      "............AAAAAGGAA..",
+      "..............AAAAAA..."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "coral",
+          "capacity": 6
+        },
+        {
+          "color": "gold",
+          "capacity": 5
+        },
+        {
+          "color": "white",
+          "capacity": 2
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 9
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 9
+        },
+        {
+          "color": "purple",
+          "capacity": 6
+        },
+        {
+          "color": "orange",
+          "capacity": 3
+        },
+        {
+          "color": "coral",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 6
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "A": "orange",
+      "B": "teal",
+      "C": "coral",
+      "D": "purple",
+      "E": "gold",
+      "F": "indigo",
+      "G": "white"
+    },
+    "ruleset": "coreV2",
+    "winningWitness": [
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T1",
+      "T3",
+      "H1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T1",
+      "T2",
+      "H1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2"
+    ]
+  },
+  {
+    "id": 40,
+    "title": "City Core",
+    "themeId": "mechanical-city",
+    "difficulty": "hard",
+    "holdingCapacity": 3,
+    "pixelArt": [
+      "..........CC...........",
+      ".GGGG.....CC......HHHH.",
+      ".GGGG.....CC......HHHH.",
+      ".GGGG.....CCC.....HHHH.",
+      ".GGGGH...DCCDDD..DHHHH.",
+      "....HHHDDDDDDDDDDDD....",
+      ".....HDDDAAAAADDDD.....",
+      ".....DDDAAAAAAADDD.....",
+      ".....DDAAABBBAAADDD....",
+      "....DDAAABBBBBAAADD....",
+      "GGGGGDAABBBFBBBAADDC...",
+      "GGGGGDAABBFFFBBAADCCCCC",
+      "...GDDAABBBFBBBAADCCCCC",
+      "....DDAAABBBBBAAADDC...",
+      ".....DDAAABBBAAADDD....",
+      ".....DFDAAAAAAADDD.....",
+      ".....FFFDAAAAADDDD.....",
+      "....FFFDDDDDDDDDDDD....",
+      "....FFFEDDDEEDDEDDDD...",
+      ".EEEEEEEEEEEEEEEEEEEEE.",
+      ".EEEEEEEEEEEEEEEEEEEEE.",
+      ".EEEEEEEEEEEEEEEEEEEEE.",
+      "...........EE.........."
+    ],
+    "tunnels": [
+      [
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 9
+        },
+        {
+          "color": "orange",
+          "capacity": 9
+        },
+        {
+          "color": "gold",
+          "capacity": 5
+        },
+        {
+          "color": "purple",
+          "capacity": 3
+        }
+      ],
+      [
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "white",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "purple",
+          "capacity": 10
+        },
+        {
+          "color": "orange",
+          "capacity": 9
+        },
+        {
+          "color": "cyan",
+          "capacity": 8
+        },
+        {
+          "color": "blue",
+          "capacity": 7
+        },
+        {
+          "color": "orange",
+          "capacity": 4
+        },
+        {
+          "color": "cyan",
+          "capacity": 2
+        }
+      ],
+      [
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "blue",
+          "capacity": 10
+        },
+        {
+          "color": "red",
+          "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 10
+        },
+        {
+          "color": "gold",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 7
+        },
+        {
+          "color": "white",
+          "capacity": 1
+        }
+      ]
+    ],
+    "replacesLegacy": true,
+    "legend": {
+      "A": "cyan",
+      "B": "orange",
+      "C": "purple",
+      "D": "blue",
+      "E": "red",
+      "F": "gold",
+      "G": "indigo",
+      "H": "white"
+    },
+    "ruleset": "coreV2",
+    "winningWitness": [
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T1",
+      "T3",
+      "H1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T2",
+      "T1",
+      "H1",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T1",
+      "T2",
+      "T3"
+    ]
+  }
+];
