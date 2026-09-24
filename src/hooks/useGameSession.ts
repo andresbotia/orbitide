@@ -22,7 +22,6 @@ import {
   applyTutorialEvent,
   catchUpTutorial,
   createTutorial,
-  isTutorialActionAllowed,
   syncTutorialCompletion,
   toTutorialView,
   type TutorialEvent,
@@ -247,10 +246,6 @@ export function useGameSession(levelId: number, options: Options = {}): GameSess
     // loud — returning bare `false` here is what made taps vanish on device.
     if (truth.current.status !== 'playing') {
       deny('gameOver');
-      return false;
-    }
-    if (!isTutorialActionAllowed(tutorialRef.current, action)) {
-      deny('tutorial');
       return false;
     }
     const cap = truth.current.activeCapacity || DEFAULT_ACTIVE_CAPACITY;

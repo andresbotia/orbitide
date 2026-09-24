@@ -81,19 +81,9 @@ test('session activates the Core V2 Level 1 tutorial and follows presentation ev
   expect(session.tutorial.stage).toBe('launch');
 
   const moves = session.engineState.movesApplied;
-  act(() => { session.launch('tunnel-1'); });
-  expect(session.engineState.movesApplied).toBe(moves);
-  expect(feedback.emit).toHaveBeenCalledWith('denied');
-  expect(session.tutorial.stage).toBe('launch');
-
   act(() => { session.launch('tunnel-0'); });
   expect(session.tutorial.stage).toBe('observeHit');
   expect(session.engineState.movesApplied).toBe(moves + 1);
-
-  const orbiting = session.engineState.movesApplied;
-  act(() => { session.launch('tunnel-1'); });
-  expect(session.engineState.movesApplied).toBe(orbiting);
-  expect(session.tutorial.stage).toBe('observeHit');
 
   finish();
   expect(session.tutorial.flags.sawHit).toBe(true);
@@ -103,8 +93,6 @@ test('session activates the Core V2 Level 1 tutorial and follows presentation ev
 
   const heldId = session.state.holding[0]!.id;
   expect(session.tutorial.highlight).toEqual({ kind: 'heldCharge', chargeId: heldId });
-  act(() => { session.launch('tunnel-1'); });
-  expect(session.flights).toHaveLength(0);
 
   act(() => { session.launchHeld(heldId); });
   expect(session.tutorial.stage).toBe('freePlay');
@@ -114,6 +102,33 @@ test('session activates the Core V2 Level 1 tutorial and follows presentation ev
   const afterRelaunch = session.engineState.movesApplied;
   act(() => { session.launch('tunnel-1'); });
   expect(session.engineState.movesApplied).toBeGreaterThan(afterRelaunch);
+  act(() => root.unmount());
+});
+
+test('Level 1 allows legal tunnel taps even when tutorial recommends another tunnel', () => {
+  const root = mount(coreV2Level1());
+  expect(session.tutorial.active).toBe(true);
+  expect(session.tutorial.stage).toBe('launch');
+  expect(session.tutorial.highlight).toEqual({ kind: 'tunnel', tunnelId: 'tunnel-0' });
+
+  // Tapping tunnel-1 is legal in Core V2 engine and is NOT blocked by tutorial gating
+  act(() => { session.launch('tunnel-1'); });
+  expect(session.engineState.movesApplied).toBe(1);
+  expect(session.flights).toHaveLength(1);
+  act(() => root.unmount());
+});
+
+test('other visible tunnels can be tapped after launching the first Pal', () => {
+  const root = mount(coreV2Level1());
+  act(() => { session.launch('tunnel-0'); });
+  finish();
+  expect(session.tutorial.stage).toBe('relaunchHeld');
+  expect(session.state.holding).toHaveLength(1);
+
+  // tunnel-1 tap is legal in engine and must not be blocked by tutorial
+  act(() => { session.launch('tunnel-1'); });
+  expect(session.engineState.movesApplied).toBe(2);
+  expect(session.flights).toHaveLength(1);
   act(() => root.unmount());
 });
 

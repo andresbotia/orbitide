@@ -352,32 +352,16 @@ export function catchUpTutorial(
   return next;
 }
 
+/**
+ * Tutorial guidance is advisory only — engine legality determines whether an action
+ * is allowed. Legal actions (tunnel launches and held-Pal relaunches) are never
+ * blocked by the tutorial state machine.
+ */
 export function isTutorialActionAllowed(
-  state: TutorialState,
-  action: TutorialAction,
+  _state: TutorialState,
+  _action: TutorialAction,
 ): boolean {
-  if (!state.active || state.completed) return true;
-  switch (state.stage) {
-    case 'launch':
-      return (
-        action.kind === 'tunnel'
-        && (state.intendedTunnelId == null || action.id === state.intendedTunnelId)
-      );
-    case 'observeHit':
-      return false;
-    case 'observeHolding':
-    case 'relaunchHeld':
-      return (
-        action.kind === 'holding'
-        && (state.heldChargeId == null || action.id === state.heldChargeId)
-      );
-    case 'freePlay':
-    case 'completed':
-    case 'inactive':
-      return true;
-    default:
-      return true;
-  }
+  return true;
 }
 
 function gatingFor(state: TutorialState): TutorialGating {

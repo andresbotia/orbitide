@@ -117,7 +117,7 @@ describe('Level 1 teaching sequence via engine-observed events', () => {
   test('first required launch advances launch → observeHit', () => {
     let t = createTutorial(def, []);
     const intended = pickIntendedTutorialLaunch(def)!;
-    expect(isTutorialActionAllowed(t, { kind: 'tunnel', id: 'tunnel-1' })).toBe(false);
+    expect(isTutorialActionAllowed(t, { kind: 'tunnel', id: 'tunnel-1' })).toBe(true);
     expect(isTutorialActionAllowed(t, { kind: 'tunnel', id: intended.tunnelId })).toBe(true);
 
     t = drive(t, {
@@ -130,7 +130,7 @@ describe('Level 1 teaching sequence via engine-observed events', () => {
     expect(view.stage).toBe('observeHit');
     expect(view.flags.sawLaunch).toBe(true);
     expect(view.interaction).toBe('watch');
-    expect(isTutorialActionAllowed(t, { kind: 'tunnel', id: intended.tunnelId })).toBe(false);
+    expect(isTutorialActionAllowed(t, { kind: 'tunnel', id: intended.tunnelId })).toBe(true);
   });
 
   test('a real successful attack validates the hit teaching stage', () => {
@@ -177,7 +177,7 @@ describe('Level 1 teaching sequence via engine-observed events', () => {
     expect(view.stage).toBe('relaunchHeld');
     expect(view.flags.sawHolding).toBe(true);
     expect(view.highlight).toEqual({ kind: 'heldCharge', chargeId: intended.chargeId });
-    expect(isTutorialActionAllowed(t, { kind: 'tunnel', id: 'tunnel-1' })).toBe(false);
+    expect(isTutorialActionAllowed(t, { kind: 'tunnel', id: 'tunnel-1' })).toBe(true);
     expect(isTutorialActionAllowed(t, { kind: 'holding', id: intended.chargeId })).toBe(true);
   });
 
