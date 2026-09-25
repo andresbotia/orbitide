@@ -1,118 +1,21 @@
 import { memo, useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
-import Animated, {
-  runOnJS, useAnimatedReaction, useAnimatedStyle, useDerivedValue, useSharedValue, withDelay, withSequence, withTiming,
-  type SharedValue,
-} from 'react-native-reanimated';
+import { StyleSheet } from 'react-native';
+import Animated, { useAnimatedStyle, useDerivedValue, type SharedValue } from 'react-native-reanimated';
 
-import { feedback } from '@/game/feedback';
 import type { FlightPass } from '@/game/presentation/events';
-import { shotsClearedAt } from '@/game/presentation/motion';
-import { GP, GP_DISPLAY_FONT, GP_TYPE, gpAlpha } from '@/theme/gameplayUi';
-import { comboTierCrossed, GP_MOTION, nextComboChain, pulseEnvelope } from '@/theme/gameplayMotion';
+import { GP } from '@/theme/gameplayUi';
+import { GP_MOTION, pulseEnvelope } from '@/theme/gameplayMotion';
 import type { BoardGeometry } from './boardGeometry';
-import { DigitStrip } from './pixelPal/AnimatedCount';
 import { entryWaitEndAt } from './railPath';
 
 /**
  * M5.8B board-level presentation effects. Everything here is driven from
  * existing clocks on the UI thread — no JS per hit, no timers, no React state.
  *
- *  - Combo: every flight reports its landed shots into one board-wide chain
- *    (`useComboHits`). Hits ≤ `comboWindowMs` apart extend it, across Pals.
- *    For longer chains it shows a small COMBO ×N chip on the top rail band —
- *    never over the artwork, and never a whole-board outline.
  *  - Gate: each flight plays its own GateTerminal response (transit on rail
  *    entry, gold capture into Holding, danger burst on reject) off its own
  *    pass clock, so it lands on the exact frame of the beat it represents.
  */
-
-export interface ComboState {
-  chain: SharedValue<number>;
-  lastHitAt: SharedValue<number>;
-  /** 0..1 one-shot per hit — chip punch. */
-  beat: SharedValue<number>;
-  /** 0..1 — chip visibility (holds, then fades on its own). */
-  chip: SharedValue<number>;
-}
-
-export function useComboState(): ComboState {
-  const chain = useSharedValue(0);
-  const lastHitAt = useSharedValue(-1e9);
-  const beat = useSharedValue(0);
-  const chip = useSharedValue(0);
-  return useMemo(() => ({ chain, lastHitAt, beat, chip }), [chain, lastHitAt, beat, chip]);
-}
-
-/** Sound-only hook (no haptic — the arbiter already escalates grouped hits). */
-function onComboTier(): void {
-  feedback.emit('combo', { haptic: false });
-}
-
-/**
- * Feed one flight's landed shots into the board combo. A re-scripted pass
- * re-arms the reaction (`previous === null`), which is ignored, so already
- * counted shots are never counted twice.
- */
-export function useComboHits(pass: FlightPass, clock: SharedValue<number>, now: SharedValue<number>, combo: ComboState, reducedMotion: boolean): void {
-  useAnimatedReaction(
-    () => shotsClearedAt(pass, clock.value),
-    (hits, previous) => {
-      if (previous === null || hits <= previous) return;
-      const at = now.value;
-      const before = combo.chain.value;
-      const next = nextComboChain(before, combo.lastHitAt.value, at, hits - previous, GP_MOTION.comboWindowMs);
-      combo.chain.set(next);
-      combo.lastHitAt.set(at);
-      if (next >= GP_MOTION.comboEdgeAt && !reducedMotion) {
-        combo.beat.set(withSequence(withTiming(1, { duration: 60 }), withTiming(0, { duration: 300 })));
-      }
-      if (next >= GP_MOTION.comboChipAt) {
-        combo.chip.set(withSequence(
-          withTiming(1, { duration: 90 }),
-          withDelay(GP_MOTION.comboChipHoldMs, withTiming(0, { duration: GP_MOTION.comboChipFadeMs })),
-        ));
-      }
-      if (comboTierCrossed(before, next) > 0) runOnJS(onComboTier)();
-    },
-    [pass, reducedMotion],
-  );
-}
-
-const CHIP_H = 18;
-const COMBO_NUMERAL = {
-  color: GP.text,
-  fontFamily: GP_DISPLAY_FONT,
-  fontSize: 12,
-  lineHeight: 13,
-  textAlign: 'center' as const,
-  fontVariant: ['tabular-nums' as const],
-};
-
-/** COMBO ×N chip. One view plus the digit strip. */
-export const ComboLayer = memo(function ComboLayer({ combo, geo, reducedMotion }: {
-  combo: ComboState;
-  geo: BoardGeometry;
-  reducedMotion: boolean;
-}) {
-  const gold = useDerivedValue(() => (combo.chain.value >= GP_MOTION.comboGoldAt ? 1 : 0));
-  const chipStyle = useAnimatedStyle(() => ({
-    opacity: combo.chip.value,
-    borderColor: gold.value ? GP.gold : GP.hairlineStrong,
-    transform: [{ scale: reducedMotion ? 1 : 0.9 + combo.chip.value * 0.1 + combo.beat.value * 0.08 }],
-  }));
-  const labelStyle = useAnimatedStyle(() => ({ color: gold.value ? GP.gold : GP.cyan }));
-
-  const top = geo.perimeter ? geo.perimeter.y - CHIP_H / 2 : 2;
-  return (
-    <View pointerEvents="none" style={[styles.chipRow, { top }]}>
-      <Animated.View style={[styles.chip, chipStyle]}>
-        <Animated.Text style={[styles.chipLabel, labelStyle]}>COMBO ×</Animated.Text>
-        <DigitStrip count={combo.chain} columns={3} numeral={COMBO_NUMERAL} />
-      </Animated.View>
-    </View>
-  );
-});
 
 /**
  * One flight's GateTerminal response. The static gate (Skia) never animates;
@@ -181,22 +84,6 @@ export const GateFx = memo(function GateFx({ pass, clock, geo, reducedMotion }: 
 });
 
 const styles = StyleSheet.create({
-  chipRow: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  chip: {
-    height: CHIP_H,
-    paddingHorizontal: 8,
-    borderRadius: CHIP_H / 2,
-    borderWidth: 1,
-    backgroundColor: gpAlpha(GP.canvas, 0.92),
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  chipLabel: { ...GP_TYPE.label, fontSize: 9, letterSpacing: 1.2 },
   gateRing: { position: 'absolute', borderWidth: 2.5 },
   gateCore: { position: 'absolute' },
 });

@@ -65,7 +65,7 @@ function workletBodies(src: string): { body: string; line: number }[] {
 
 test('worklet guard knows the real worklet helpers', () => {
   for (const name of ['flightPose', 'progressAt', 'capacityAt', 'eventCountAt', 'shotsClearedAt',
-    'holdingHandoffOpacity', 'nextComboChain', 'comboTierCrossed', 'pulseEnvelope']) {
+    'holdingHandoffOpacity', 'pulseEnvelope']) {
     expect(WORKLET_FNS.has(name)).toBe(true);
   }
   // A plain colour helper is NOT a worklet — the M5.8B crash.

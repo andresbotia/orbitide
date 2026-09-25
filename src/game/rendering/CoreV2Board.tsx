@@ -12,7 +12,7 @@ import { eventCountAt, presentationEndMs } from '@/game/presentation/motion';
 import { coreV2Board } from '@/theme/coreV2Board';
 import { NEON } from '@/theme/neon';
 import { BoardActors } from './BoardActors';
-import { ComboLayer, GateFx, useComboHits, useComboState, type ComboState } from './BoardFx';
+import { GateFx } from './BoardFx';
 import { EnergyShot } from './EnergyShot';
 import { cellCenter, computeBoardGeometry, type BoardGeometry } from './boardGeometry';
 import { assignLaneSlots, laneOffset } from './laneAssignment';
@@ -95,7 +95,6 @@ export const CoreV2Board = memo(function CoreV2Board({ size, width, height, stat
   }, [actors]);
   // One UI-thread time source for every Pal; runs only while a Pal is shown.
   const boardClock = usePresentationClock(actors.length > 0);
-  const combo = useComboState();
 
   return (
     <View style={{ width: canvasW, height: canvasH, overflow: 'visible' }}>
@@ -116,9 +115,6 @@ export const CoreV2Board = memo(function CoreV2Board({ size, width, height, stat
         shotPixelIds={shotPixelIds}
       />
 
-      {/* Under the Pals: momentum never covers an active Pal. */}
-      <ComboLayer combo={combo} geo={geo} reducedMotion={!!reducedMotion} />
-
       {actors.map((pass) => (
         <CoreV2FlightActor
           key={pass.passId}
@@ -129,7 +125,6 @@ export const CoreV2Board = memo(function CoreV2Board({ size, width, height, stat
           colorAssist={!!colorAssist}
           laneOffset={laneOffset(lanes.get(pass.passId) ?? 0, LANE_OFFSET_PX)}
           calm={calm}
-          combo={combo}
           reducedMotion={!!reducedMotion}
         />
       ))}
@@ -159,10 +154,9 @@ const CoreV2Field = memo(function CoreV2Field({ geo }: { geo: BoardGeometry }) {
  * beats, the pop of the pixels it clears, its projectile streak and its
  * traveling creature. Structurally identical to `OrbitBoard`'s
  * `FlightActor` — only the traveling-character component differs — plus
- * the M5.8B beats read off the same clock: its GateTerminal response and its
- * contribution to the board combo.
+ * the M5.8B beat read off the same clock: its GateTerminal response.
  */
-const CoreV2FlightActor = memo(function CoreV2FlightActor({ pass, boardClock, geo, presentThrough, colorAssist, laneOffset: lane, calm, combo, reducedMotion }: {
+const CoreV2FlightActor = memo(function CoreV2FlightActor({ pass, boardClock, geo, presentThrough, colorAssist, laneOffset: lane, calm, reducedMotion }: {
   pass: FlightPass;
   boardClock: PresentationClock;
   geo: BoardGeometry;
@@ -170,7 +164,6 @@ const CoreV2FlightActor = memo(function CoreV2FlightActor({ pass, boardClock, ge
   colorAssist: boolean;
   laneOffset: number;
   calm: boolean;
-  combo: ComboState;
   reducedMotion: boolean;
 }) {
   // Pass time from the board's shared clock. A join that re-scripts this pass
@@ -188,7 +181,6 @@ const CoreV2FlightActor = memo(function CoreV2FlightActor({ pass, boardClock, ge
     },
     [pass, presentThrough, endMs],
   );
-  useComboHits(pass, clock, boardClock.now, combo, reducedMotion);
 
   return (
     <>

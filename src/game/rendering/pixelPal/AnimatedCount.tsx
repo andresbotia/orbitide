@@ -11,7 +11,6 @@ import { palBadgeNumeralStyle } from './PixelPalFace';
  * is the strip's pitch by LAYOUT — never an assumption about a text line box.
  */
 const ROW_RATIO = 1.3;
-const DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
 /**
  * A UI-thread integer readout with no animated text props and no React commit
@@ -102,55 +101,6 @@ export const AnimatedCount = memo(function AnimatedCount({ palSize, pass, clock,
   return <RollingNumber rows={rows} index={index} rowH={rowH} width={width} numeral={text} />;
 });
 
-/**
- * A rolling integer of arbitrary size: one 0–9 strip per decimal column.
- * Used by the board's combo counter, which has no bounded value sequence.
- */
-export const DigitStrip = memo(function DigitStrip({ count, columns, numeral }: {
-  count: SharedValue<number>;
-  columns: number;
-  /** Must set `fontSize`. */
-  numeral: TextStyle;
-}) {
-  const { rowH, width, text } = metrics(numeral, 1);
-  return (
-    <View style={styles.columns}>
-      {Array.from({ length: columns }, (_, i) => (
-        <DigitColumn
-          key={i}
-          place={10 ** (columns - 1 - i)}
-          count={count}
-          rowH={rowH}
-          width={width}
-          numeral={text}
-        />
-      ))}
-    </View>
-  );
-});
-
-function DigitColumn({ place, count, rowH, width, numeral }: {
-  place: number;
-  count: SharedValue<number>;
-  rowH: number;
-  width: number;
-  numeral: TextStyle;
-}) {
-  const digit = useDerivedValue(() => {
-    const value = Math.max(0, Math.floor(count.value));
-    return Math.floor(value / place) % 10;
-  });
-  const hide = useAnimatedStyle(() => ({
-    opacity: place === 1 || Math.max(0, Math.floor(count.value)) >= place ? 1 : 0,
-  }));
-  return (
-    <Animated.View style={hide}>
-      <RollingNumber rows={DIGITS} index={digit} rowH={rowH} width={width} numeral={numeral} />
-    </Animated.View>
-  );
-}
-
 const styles = StyleSheet.create({
   row: { alignItems: 'center', justifyContent: 'center' },
-  columns: { flexDirection: 'row' },
 });

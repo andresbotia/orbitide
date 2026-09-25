@@ -1,44 +1,6 @@
-import { comboTierCrossed, COMBO_SOUND_TIERS, GP_MOTION, nextComboChain, pulseEnvelope } from '../gameplayMotion';
+import { GP_MOTION, pulseEnvelope } from '../gameplayMotion';
 import { GP } from '../gameplayUi';
 import { revealTimeline } from '../../game/rendering/revealGeometry';
-
-describe('combo chain', () => {
-  const W = GP_MOTION.comboWindowMs;
-
-  test('hits inside the window extend the chain, across any number of Pals', () => {
-    let chain = 0;
-    let last = -1e9;
-    for (let i = 0; i < 8; i++) {
-      const at = i * 110; // one Pal sweeping a row: PIXEL_CLEAR_INTERVAL apart
-      chain = nextComboChain(chain, last, at, 1, W);
-      last = at;
-    }
-    expect(chain).toBe(8);
-  });
-
-  test('a gap longer than the window restarts at the new hits', () => {
-    expect(nextComboChain(12, 0, W + 1, 1, W)).toBe(1);
-    expect(nextComboChain(12, 0, W, 1, W)).toBe(13);
-  });
-
-  test('several hits landing in one frame all count; zero hits change nothing', () => {
-    expect(nextComboChain(3, 0, 16, 3, W)).toBe(6);
-    expect(nextComboChain(3, 0, 16, 0, W)).toBe(3);
-  });
-
-  test('each sound tier fires once, only when crossed upward', () => {
-    expect(comboTierCrossed(5, 6)).toBe(6);
-    expect(comboTierCrossed(6, 7)).toBe(0);
-    expect(comboTierCrossed(4, 12)).toBe(10);
-    expect(comboTierCrossed(12, 1)).toBe(0);
-    expect(COMBO_SOUND_TIERS[0]).toBe(GP_MOTION.comboChipAt);
-  });
-
-  test('momentum thresholds escalate edge -> chip -> gold', () => {
-    expect(GP_MOTION.comboEdgeAt).toBeLessThan(GP_MOTION.comboChipAt);
-    expect(GP_MOTION.comboChipAt).toBeLessThan(GP_MOTION.comboGoldAt);
-  });
-});
 
 test('pulse envelope rises, falls and is zero outside its window', () => {
   expect(pulseEnvelope(-1, 300, 60)).toBe(0);

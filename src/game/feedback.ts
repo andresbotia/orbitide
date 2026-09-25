@@ -5,9 +5,7 @@ export type FeedbackEvent =
   | 'orbitWhoosh'
   /** Sound-only hooks (no haptic). */
   | 'reward'
-  | 'gateIntro'
-  /** A hit chain crossed a combo tier (6 / 10 / 20). */
-  | 'combo';
+  | 'gateIntro';
 
 /**
  * Per-emit context for the sound layer. `voice` groups transient sounds so the

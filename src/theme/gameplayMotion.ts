@@ -51,14 +51,6 @@ export const GP_MOTION = {
   badgeTickMs: 150,
   badgeTickScale: 0.22,
 
-  /** Combo / momentum. */
-  comboWindowMs: 360,
-  comboEdgeAt: 3,
-  comboChipAt: 6,
-  comboGoldAt: 10,
-  comboChipHoldMs: 520,
-  comboChipFadeMs: 220,
-
   /** Loss card after the (unchanged) result beat. */
   lossCardMs: 260,
   lossCardRise: 18,
@@ -68,32 +60,6 @@ export const GP_MOTION = {
   exitFadeMs: 160,
   reducedFadeMs: 90,
 } as const;
-
-/** Combo tiers that fire the sound-only `combo` hook once when crossed. */
-export const COMBO_SOUND_TIERS: readonly number[] = [6, 10, 20];
-
-/**
- * The next combo chain length when a hit lands at `now` (board-clock ms).
- * Hits within `window` of the previous hit extend the chain; `added` hits
- * arriving together (one frame) all count.
- */
-export function nextComboChain(chain: number, lastHitAt: number, now: number, added: number, window: number): number {
-  'worklet';
-  if (added <= 0) return chain;
-  const continues = chain > 0 && now - lastHitAt <= window;
-  return (continues ? chain : 0) + added;
-}
-
-/** Highest combo sound tier crossed going from `before` to `after`, or 0. */
-export function comboTierCrossed(before: number, after: number): number {
-  'worklet';
-  let crossed = 0;
-  for (let i = 0; i < COMBO_SOUND_TIERS.length; i++) {
-    const tier = COMBO_SOUND_TIERS[i]!;
-    if (before < tier && after >= tier) crossed = tier;
-  }
-  return crossed;
-}
 
 /** 0..1 → 0..1 → 0 envelope for a one-shot pulse of `ms`, rising over `rise`. */
 export function pulseEnvelope(elapsed: number, ms: number, rise: number): number {
