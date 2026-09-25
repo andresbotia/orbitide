@@ -77,9 +77,16 @@ export function clearCanvas(level: StudioLevel): StudioLevel {
 }
 
 /** Resize the grid; pixels that fall outside the new bounds are dropped. */
+/**
+ * Editor hard bound. Deliberately looser than `GRID_RANGE` (the legal range,
+ * capped at `MAX_BOARD_DIMENSION`) so an out-of-range size still reaches the
+ * validator and surfaces as an error instead of being silently clamped.
+ */
+const EDITOR_GRID_LIMIT = 64;
+
 export function setGridSize(level: StudioLevel, width: number, height: number): StudioLevel {
-  const w = clampInt(width, 1, 40);
-  const h = clampInt(height, 1, 40);
+  const w = clampInt(width, 1, EDITOR_GRID_LIMIT);
+  const h = clampInt(height, 1, EDITOR_GRID_LIMIT);
   if (w === level.width && h === level.height) return level;
   const cells: Record<string, OrbColor> = {};
   for (const [key, color] of Object.entries(level.cells)) {

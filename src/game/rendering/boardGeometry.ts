@@ -54,9 +54,13 @@ export interface PixelAdaptive {
   popOvershoot: number;
 }
 
-/** Board densities the production renderer is tuned for. */
+/** Board densities the Legacy V1 (circular) renderer is tuned for. */
 export const SUPPORTED_DENSITIES = [7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 28] as const;
-/** Max density prepared for in the adaptive renderer. */
+/**
+ * Density at which the adaptive look saturates. Denser boards (Core V2 allows
+ * up to `MAX_BOARD_DIMENSION`) keep this density's thin gutter, bevel and
+ * corners — the cells themselves keep shrinking with the grid.
+ */
 export const MAX_READY_DENSITY = 28;
 
 const DENSITY_MIN = 7;
@@ -163,7 +167,20 @@ export interface BoardGeometry {
  * computed separately so the grid can fill the rail interior.
  */
 const FOOTPRINT = 0.56;
+/** Last-resort render floor (pt). Never binds up to `MAX_BOARD_DIMENSION` on a phone. */
 const MIN_CELL = 3;
+
+/**
+ * Largest cell ≤ `raw` that is a whole number of device pixels. Integer-point
+ * flooring lost up to one point per column (a 32-wide board rendered ~9%
+ * smaller than a 28-wide one); snapping to device pixels keeps cell edges
+ * crisp while the board keeps ~the same physical size at every density. The
+ * epsilon keeps a re-pack of an already-fitted canvas stable.
+ */
+function snapCell(raw: number, pixelRatio: number): number {
+  const pr = pixelRatio > 0 ? pixelRatio : 1;
+  return Math.floor(raw * pr + 1e-6) / pr;
+}
 
 export interface BoardGeometryOptions {
   /**
@@ -178,6 +195,12 @@ export interface BoardGeometryOptions {
    * so a tall/wide grid does not sit in a giant letterboxed square.
    */
   box?: { width: number; height: number };
+  /**
+   * Device pixel ratio for Core V2 cell snapping. Every caller measuring the
+   * same board must pass the same value (cell math is shared with Bomb
+   * targeting). Omitted = 1, i.e. whole-point cells.
+   */
+  pixelRatio?: number;
 }
 
 /**
@@ -189,7 +212,7 @@ export interface BoardGeometryOptions {
  * grids shrink cells down to {@link MIN_CELL} and should be reported, not
  * given a new navigation model.
  */
-function packRoundedRectBoard(availW: number, availH: number, cols: number, rows: number): {
+function packRoundedRectBoard(availW: number, availH: number, cols: number, rows: number, pixelRatio = 1): {
   cell: number;
   chargeRadius: number;
   width: number;
@@ -210,7 +233,7 @@ function packRoundedRectBoard(availW: number, availH: number, cols: number, rows
   const innerH = Math.max(0, availH - 2 * (inset + artClear));
   const cell = Math.max(
     MIN_CELL,
-    Math.floor(Math.min(innerW / safeCols, innerH / safeRows)),
+    snapCell(Math.min(innerW / safeCols, innerH / safeRows), pixelRatio),
   );
 
   const contentW = cell * safeCols;
@@ -243,8 +266,9 @@ export function fitRoundedRectCanvas(
   availH: number,
   cols: number,
   rows: number,
+  pixelRatio = 1,
 ): { width: number; height: number } {
-  const packed = packRoundedRectBoard(availW, availH, cols, rows);
+  const packed = packRoundedRectBoard(availW, availH, cols, rows, pixelRatio);
   return { width: packed.width, height: packed.height };
 }
 
@@ -271,6 +295,7 @@ export function computeBoardGeometry(
       options.box?.height ?? size,
       cols,
       rows,
+      options.pixelRatio,
     );
     cell = packed.cell;
     chargeRadius = packed.chargeRadius;

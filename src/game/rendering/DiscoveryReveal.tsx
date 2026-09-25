@@ -1,6 +1,6 @@
 import { Blur, Canvas, Circle, Group, Path, RoundedRect } from '@shopify/react-native-skia';
 import { memo, useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { PixelRatio, StyleSheet, View } from 'react-native';
 import Animated, { interpolate, useAnimatedStyle, useDerivedValue, type SharedValue } from 'react-native-reanimated';
 
 import type { GameState, LevelDefinition, Pixel } from '@/game/engine/types';
@@ -58,7 +58,7 @@ export const DiscoveryReveal = memo(function DiscoveryReveal({
     state.width,
     state.height,
     isCoreV2(state.ruleset)
-      ? { roundedRect: true, box: { width: canvasW, height: canvasH } }
+      ? { roundedRect: true, box: { width: canvasW, height: canvasH }, pixelRatio: PixelRatio.get() }
       : undefined,
   ), [canvasW, canvasH, state.width, state.height, state.ruleset]);
   const reveal = useMemo<ResolvedReveal>(() => resolveReveal(level), [level]);

@@ -1,4 +1,5 @@
 import { DEFAULT_ART_LEGEND } from '@/game/engine/art';
+import { MAX_BOARD_DIMENSION, MIN_BOARD_DIMENSION } from '@/game/engine/boardLimits';
 import { createGame } from '@/game/engine/createGame';
 import { defaultHoldingCapacity, expectedTunnelCount } from '@/game/engine/ruleset';
 import { applyActionWithArrivals } from '@/game/engine/holdingArrival';
@@ -13,10 +14,9 @@ export const VALID_ORB_COLORS = new Set<OrbColor>([
 
 export const VALID_DIFFICULTIES = new Set(['easy', 'medium', 'hard', 'super-hard', 'extreme']);
 
-export const MAX_BOARD_WIDTH = 28;
-export const MAX_BOARD_HEIGHT = 28;
-export const MAX_BOARD_DIMENSION = 28;
-export const MIN_BOARD_DIMENSION = 1;
+export { MAX_BOARD_DIMENSION, MIN_BOARD_DIMENSION };
+export const MAX_BOARD_WIDTH = MAX_BOARD_DIMENSION;
+export const MAX_BOARD_HEIGHT = MAX_BOARD_DIMENSION;
 
 export interface ValidationOptions {
   /** Skip solving and replaying (for rapid structural/syntactic linting). Default: false */

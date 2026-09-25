@@ -1,3 +1,4 @@
+import { MAX_BOARD_DIMENSION } from '../../engine/boardLimits';
 import { LEVEL_DEFINITIONS } from '../../levels/levelDefinitions';
 import { addCharge, createBlankLevel, paintCell, setGridSize, setMeta } from '../model';
 import { fromLevelDefinition } from '../serialize';
@@ -53,7 +54,7 @@ describe('error rules block export', () => {
   });
 
   test('grid dimension outside the supported range', () => {
-    const level = setGridSize(tiny(), 29, 7);
+    const level = setGridSize(tiny(), MAX_BOARD_DIMENSION + 1, 7);
     expect(codes(level).errors).toContain('meta/width');
   });
 

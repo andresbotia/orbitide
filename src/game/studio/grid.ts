@@ -4,6 +4,7 @@
  * agree on exactly one encoding.
  */
 import { DEFAULT_ART_LEGEND } from '@/game/engine/art';
+import { MAX_BOARD_DIMENSION } from '@/game/engine/boardLimits';
 import type { OrbColor } from '@/game/engine/types';
 
 /**
@@ -11,9 +12,13 @@ import type { OrbColor } from '@/game/engine/types';
  * size limit (`parsePixelArt` accepts any dimensions), and Levels 1–10 include
  * 6×6, 7×7, 7×9 and 8×8 boards, so the Studio treats anything in
  * {@link GRID_RANGE} as legal and only *warns* outside {@link TUNED_GRID_SIZES}.
+ *
+ * 30–40 are the Campaign V2 large-board sizes verified by the geometry fixture
+ * (`largeBoards.test.ts`); 41–{@link MAX_BOARD_DIMENSION} are legal but warn
+ * until device testing confirms they stay readable.
  */
-export const TUNED_GRID_SIZES = [7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 28] as const;
-export const GRID_RANGE = { min: 4, max: 28 } as const;
+export const TUNED_GRID_SIZES = [7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 28, 30, 32, 34, 36, 38, 40] as const;
+export const GRID_RANGE = { min: 4, max: MAX_BOARD_DIMENSION } as const;
 
 export function cellKey(x: number, y: number): string {
   return `${x},${y}`;

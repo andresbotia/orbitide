@@ -1,6 +1,6 @@
 import { Canvas, Group } from '@shopify/react-native-skia';
 import { memo, useMemo, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { PixelRatio, StyleSheet, View } from 'react-native';
 import Animated, {
   runOnJS, useAnimatedReaction, useAnimatedStyle,
   type SharedValue,
@@ -64,6 +64,7 @@ export const CoreV2Board = memo(function CoreV2Board({ size, width, height, stat
     () => computeBoardGeometry(Math.max(availW, availH), state.width, state.height, {
       roundedRect: true,
       box: { width: availW, height: availH },
+      pixelRatio: PixelRatio.get(),
     }),
     [availW, availH, state.width, state.height],
   );

@@ -4,7 +4,7 @@ import { linkedGroupId } from '@/game/engine/linked';
 import { isPixelReachable, remainingPixelCount, renderExteriorMask } from '@/game/engine/pixels';
 import { cellCenter, computeBoardGeometry, type Point } from '@/game/rendering/boardGeometry';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
+import { LayoutChangeEvent, PixelRatio, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   Easing, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming,
@@ -286,6 +286,7 @@ export function GameScreen({
       const geo = computeBoardGeometry(Math.max(availW, availH), state.width, state.height, {
         roundedRect: isCoreV2(state.ruleset),
         box: { width: availW, height: availH },
+        pixelRatio: PixelRatio.get(),
       });
       const center = cellCenter(geo, target.x, target.y);
       setBombFlash({ point: center, size: geo.cell * 3 + 12 });

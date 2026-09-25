@@ -69,15 +69,17 @@ function makeSyntheticLevel(
 }
 
 describe('Variable Board Size — Validation & Authoring Limits', () => {
-  it('exposes maximum dimensions of 28x28', () => {
-    expect(MAX_BOARD_WIDTH).toBe(28);
-    expect(MAX_BOARD_HEIGHT).toBe(28);
-    expect(MAX_BOARD_DIMENSION).toBe(28);
+  it('exposes maximum dimensions of 48x48 (M8E large boards)', () => {
+    expect(MAX_BOARD_WIDTH).toBe(48);
+    expect(MAX_BOARD_HEIGHT).toBe(48);
+    expect(MAX_BOARD_DIMENSION).toBe(48);
     expect(MIN_BOARD_DIMENSION).toBe(1);
-    expect(GRID_RANGE.max).toBe(28);
-    expect(Math.max(...TUNED_GRID_SIZES)).toBe(28);
-    expect(TUNED_GRID_SIZES.every((s) => s <= 28)).toBe(true);
-    expect((TUNED_GRID_SIZES as readonly number[]).includes(28)).toBe(true);
+    expect(GRID_RANGE.max).toBe(MAX_BOARD_DIMENSION);
+    expect(Math.max(...TUNED_GRID_SIZES)).toBe(40);
+    expect(TUNED_GRID_SIZES.every((s) => s <= MAX_BOARD_DIMENSION)).toBe(true);
+    for (const s of [28, 30, 32, 34, 36, 38, 40]) {
+      expect((TUNED_GRID_SIZES as readonly number[]).includes(s)).toBe(true);
+    }
   });
 
   it('validates and infers dimensions for an existing 15x15 level (Level 21)', () => {
@@ -156,16 +158,16 @@ describe('Variable Board Size — Validation & Authoring Limits', () => {
     expect(result.height).toBe(28);
   });
 
-  it('rejects a 29x28 level with GRID_WIDTH_OOB', () => {
-    const lvl29x28 = makeSyntheticLevel(9131, 'Too Wide 29x28', 29, 28);
-    const result = validateLevelStructure(lvl29x28);
+  it('rejects a 49x28 level with GRID_WIDTH_OOB', () => {
+    const lvl49x28 = makeSyntheticLevel(9131, 'Too Wide 49x28', 49, 28);
+    const result = validateLevelStructure(lvl49x28);
     expect(result.valid).toBe(false);
     expect(result.diagnostics.some((d) => d.code === 'GRID_WIDTH_OOB')).toBe(true);
   });
 
-  it('rejects a 28x29 level with GRID_HEIGHT_OOB', () => {
-    const lvl28x29 = makeSyntheticLevel(9132, 'Too Tall 28x29', 28, 29);
-    const result = validateLevelStructure(lvl28x29);
+  it('rejects a 28x49 level with GRID_HEIGHT_OOB', () => {
+    const lvl28x49 = makeSyntheticLevel(9132, 'Too Tall 28x49', 28, 49);
+    const result = validateLevelStructure(lvl28x49);
     expect(result.valid).toBe(false);
     expect(result.diagnostics.some((d) => d.code === 'GRID_HEIGHT_OOB')).toBe(true);
   });

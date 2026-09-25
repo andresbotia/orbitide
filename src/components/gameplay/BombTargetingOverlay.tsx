@@ -1,6 +1,7 @@
 import { memo, useCallback } from 'react';
 import {
   GestureResponderEvent,
+  PixelRatio,
   Pressable,
   StyleSheet,
   Text,
@@ -43,6 +44,7 @@ export const BombTargetingOverlay = memo(function BombTargetingOverlay({
   const geo = computeBoardGeometry(Math.max(width, height), state.width, state.height, {
     roundedRect: isCoreV2(state.ruleset),
     box: { width, height },
+    pixelRatio: PixelRatio.get(),
   });
 
   const handlePress = useCallback(
