@@ -474,132 +474,164 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
     "difficulty": "easy",
     "holdingCapacity": 3,
     "pixelArt": [
-      "...................",
-      ".........R.........",
-      "..R.....RRR.....R..",
-      ".RRR...RRRRR...RRR.",
-      ".RIR...RIRIR...RIR.",
-      ".RII...IIIII...IIR.",
-      ".RIII.RIIIIIR.RIIIR",
-      ".RIIIIIIIIIIIIIIIIR",
-      "..RII.BBII.BB.IIR..",
-      "..RII.BBII.BB.IIR..",
-      "...RIIIIIIIIIIIR...",
-      "...RRII..II..IIRR..",
-      "....RRRRRRRRRRR....",
-      "....RBBBBBBBBBR....",
-      "....RBII.BB.IIR....",
-      ".....RBBBBBBBR.....",
-      "......RRRRRRR......",
-      "..................."
+      "....................",
+      ".........RR.........",
+      "........RRRR........",
+      ".........RR.........",
+      ".........GG.........",
+      ".GGG....GGGG....GGG.",
+      ".GGG...GGGGGG...GGG.",
+      ".GPGG.GGRRRRGG.GGPG.",
+      ".GPPGGGRRRRRRGGGPPG.",
+      ".GPPPGGRRRRRRGGPPPG.",
+      ".GPPPPGGRRRRGGPPPPG.",
+      ".GPPPPPGGRRGGPPPPPG.",
+      ".GPPPPPPPPPPPPPPPPG.",
+      ".GGGGGGGGGGGGGGGGGG.",
+      ".GCCCCCCCCCCCCCCCCG.",
+      ".GCCCCCCCCCCCCCCCCG.",
+      ".GGGGGGGGGGGGGGGGGG.",
+      "WWWWWWWWWWWWWWWWWWWW",
+      ".WWWWWWWWWWWWWWWWWW."
     ],
     "tunnels": [
       [
         {
-          "color": "red",
-          "capacity": 10
+          "color": "gold",
+          "capacity": 14
+        },
+        {
+          "color": "white",
+          "capacity": 14
+        },
+        {
+          "color": "gold",
+          "capacity": 14
+        },
+        {
+          "color": "gold",
+          "capacity": 14
+        },
+        {
+          "color": "gold",
+          "capacity": 12
         },
         {
           "color": "red",
-          "capacity": 10
+          "capacity": 8
         },
         {
-          "color": "indigo",
-          "capacity": 10
+          "color": "purple",
+          "capacity": 15
         },
         {
-          "color": "indigo",
-          "capacity": 10
-        },
-        {
-          "color": "indigo",
-          "capacity": 10
-        },
-        {
-          "color": "red",
-          "capacity": 7
-        }
-      ],
-      [
-        {
-          "color": "red",
-          "capacity": 10
-        },
-        {
-          "color": "red",
-          "capacity": 10
-        },
-        {
-          "color": "indigo",
-          "capacity": 10
-        },
-        {
-          "color": "indigo",
-          "capacity": 10
-        },
-        {
-          "color": "blue",
-          "capacity": 10
-        },
-        {
-          "color": "indigo",
+          "color": "purple",
           "capacity": 3
+        },
+        {
+          "color": "white",
+          "capacity": 2
         }
       ],
       [
         {
-          "color": "indigo",
+          "color": "red",
+          "capacity": 6
+        },
+        {
+          "color": "cyan",
+          "capacity": 13
+        },
+        {
+          "color": "purple",
+          "capacity": 14
+        },
+        {
+          "color": "gold",
           "capacity": 10
+        },
+        {
+          "color": "cyan",
+          "capacity": 4
         },
         {
           "color": "red",
-          "capacity": 10
-        },
+          "capacity": 8
+        }
+      ],
+      [
         {
-          "color": "blue",
-          "capacity": 16
+          "color": "gold",
+          "capacity": 14
         },
         {
           "color": "red",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
+          "capacity": 14
+        },
+        {
+          "color": "white",
+          "capacity": 14
+        },
+        {
+          "color": "purple",
+          "capacity": 14
+        },
+        {
+          "color": "cyan",
           "capacity": 10
         },
         {
-          "color": "indigo",
+          "color": "white",
+          "capacity": 8
+        },
+        {
+          "color": "gold",
           "capacity": 10
         },
         {
-          "color": "blue",
-          "capacity": 1
+          "color": "cyan",
+          "capacity": 5
         }
       ]
     ],
     "replacesLegacy": true,
     "legend": {
+      "G": "gold",
+      "P": "purple",
       "R": "red",
-      "I": "indigo",
-      "B": "blue"
+      "C": "cyan",
+      "W": "white"
     },
     "ruleset": "coreV2",
     "winningWitness": [
       "T1",
-      "T1",
-      "T2",
       "T3",
-      "T2",
-      "T1",
-      "T3",
-      "T2",
       "T3",
       "T1",
-      "H1",
-      "T2",
+      "T3",
+      "T1",
       "T3",
       "T1",
       "T2",
       "T3",
+      "T2",
       "T1",
       "T2",
-      "T3"
+      "T3",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T3",
+      "T1",
+      "T2",
+      "T3",
+      "T1"
     ]
   },
   {
@@ -609,119 +641,153 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
     "difficulty": "easy",
     "holdingCapacity": 3,
     "pixelArt": [
-      "...................",
-      ".......YYYYY.......",
-      ".....YYYYYYYYY.....",
-      "....YYYYYYYYYYY....",
-      "...YYYYYYYYYYYYY...",
-      "...YYYYYYYYYYYYY...",
-      "....YYYYYYYYYYY....",
-      ".....YYYYYYYYY.....",
-      ".......YYYYY.......",
-      "..T.........T......",
-      ".TTT.......TTT.....",
-      "TT.TT.....TT.TT....",
-      "...TTT...TTT.......",
-      "....T.....T........",
-      "....T.....T........",
-      "...NTN...NTN.......",
-      "..NNNT...TNNN......",
-      ".DDDDDDDDDDDDDDD...",
-      "DDDDDDDDDDDDDDDDD.."
+      "....................",
+      "...............TT...",
+      "......YYYYYY..TTTTT.",
+      "....YYYYYYYYYTTTTTTT",
+      "...YYYYYYYYYYTTPTTT.",
+      "..DDDDDDDDDYYYTPT.TT",
+      "..DDDDDDDDDDDYYP..TT",
+      "...YYYYDDDDDDYYP...T",
+      "...YYYYYYYYYYYYP....",
+      "....YYYYYYYYYYYP....",
+      ".....YYYYYYYYYYP....",
+      "BBBBBBBBBBBBBBBPBBBB",
+      ".BBBBBBYYYYYBBBPBBB.",
+      "..BBBBBBYYYBBBBPBBB.",
+      ".BBBBBBYYYYYBBPPPBB.",
+      "..BBBBBBYYYBBPPPPPB.",
+      "...BBBBBBYBBPPPPPPP.",
+      "...BBBBBBBBPPPPPPPPP"
     ],
     "tunnels": [
       [
         {
-          "color": "gold",
-          "capacity": 12
+          "color": "blue",
+          "capacity": 14
         },
         {
-          "color": "gold",
-          "capacity": 12
+          "color": "yellow",
+          "capacity": 14
         },
         {
-          "color": "gold",
-          "capacity": 12
+          "color": "blue",
+          "capacity": 14
         },
         {
-          "color": "indigo",
+          "color": "purple",
+          "capacity": 13
+        },
+        {
+          "color": "yellow",
           "capacity": 10
         },
         {
           "color": "coral",
-          "capacity": 7
-        }
-      ],
-      [
-        {
-          "color": "coral",
-          "capacity": 12
+          "capacity": 10
         },
         {
-          "color": "gold",
-          "capacity": 12
+          "color": "blue",
+          "capacity": 8
         },
         {
-          "color": "teal",
+          "color": "purple",
           "capacity": 16
         },
         {
-          "color": "gold",
-          "capacity": 12
-        },
-        {
-          "color": "teal",
-          "capacity": 2
+          "color": "purple",
+          "capacity": 5
         }
       ],
       [
         {
+          "color": "yellow",
+          "capacity": 14
+        },
+        {
+          "color": "teal",
+          "capacity": 14
+        },
+        {
+          "color": "yellow",
+          "capacity": 13
+        },
+        {
+          "color": "yellow",
+          "capacity": 13
+        },
+        {
+          "color": "blue",
+          "capacity": 14
+        },
+        {
+          "color": "blue",
+          "capacity": 14
+        },
+        {
           "color": "teal",
           "capacity": 12
         },
         {
+          "color": "yellow",
+          "capacity": 8
+        },
+        {
+          "color": "blue",
+          "capacity": 3
+        }
+      ],
+      [
+        {
           "color": "coral",
+          "capacity": 11
+        },
+        {
+          "color": "yellow",
+          "capacity": 14
+        },
+        {
+          "color": "blue",
           "capacity": 12
         },
         {
-          "color": "gold",
-          "capacity": 12
-        },
-        {
-          "color": "gold",
-          "capacity": 4
-        },
-        {
           "color": "coral",
-          "capacity": 1
+          "capacity": 5
         }
       ]
     ],
     "replacesLegacy": true,
     "legend": {
-      "Y": "gold",
-      "T": "teal",
+      "Y": "yellow",
       "D": "coral",
-      "N": "indigo"
+      "T": "teal",
+      "P": "purple",
+      "B": "blue"
     },
     "ruleset": "coreV2",
     "winningWitness": [
       "T1",
       "T2",
       "T1",
-      "T3",
+      "T2",
+      "T1",
       "T2",
       "T3",
       "T1",
       "T2",
-      "T3",
       "T1",
-      "H1",
+      "T2",
+      "T1",
       "T2",
       "T1",
       "T3",
       "T2",
-      "T3"
+      "T1",
+      "T3",
+      "T2",
+      "T1",
+      "T3",
+      "T2"
     ]
   },
   {
@@ -731,34 +797,70 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
     "difficulty": "easy",
     "holdingCapacity": 3,
     "pixelArt": [
-      "...................",
-      ".................W.",
-      "...............WWW.",
-      ".............WWWWW.",
-      "...........MMWWWWW.",
-      ".........MMMMMWWW..",
-      ".......MMMMMMMMW...",
-      ".....MMMMMMMMMMM...",
-      "...LLLLMMMMMMM.....",
-      "..LLLLLLMMMM.......",
-      ".LLLLLLLLMM........",
-      "...LLLLLLB.........",
-      ".....LLLBBB........",
-      "......BBBBB........",
-      "....WWBBBBBBB......",
-      "...WWWWBBBBB.......",
-      "..WWWWWWBBB........",
-      "...WWWW............",
-      "..................."
+      "..WWWW...............",
+      ".WWWWWWW..........MM.",
+      "WWWWWWWWW.......MMMM.",
+      ".WWWWWWWW.....MMMMMML",
+      "...WWWW.....MMMMMMMLL",
+      "..........MMMMMMMMLLL",
+      "........MMMMMMMMMLLLL",
+      "......MMMMMMMMMMLLLLL",
+      "....MMMMMMMMMMMLLLLLL",
+      "..MMMMMMMMMMMMLLLLLLL",
+      "MMMMMMMMMMMMMBLLLLLL.",
+      "..MMMMMMMMMMBBLLLLLL.",
+      ".....MMMMMMBBBLLLL...",
+      "........MMBBBBLLLL...",
+      ".......YYBBBBBLLL....",
+      "......YY..BBBBLL.....",
+      "....YYYY...BBBL......",
+      "...YY..YY...B...WWW..",
+      "...YY..YY......WWWWW.",
+      "..YYYYYY....WWWWWWWWW",
+      "YYY.........WWWWWWWWW"
     ],
     "tunnels": [
       [
         {
+          "color": "white",
+          "capacity": 12
+        },
+        {
           "color": "magenta",
-          "capacity": 21
+          "capacity": 12
+        },
+        {
+          "color": "magenta",
+          "capacity": 12
+        },
+        {
+          "color": "white",
+          "capacity": 12
         },
         {
           "color": "lime",
+          "capacity": 12
+        },
+        {
+          "color": "lime",
+          "capacity": 12
+        },
+        {
+          "color": "magenta",
+          "capacity": 23
+        },
+        {
+          "color": "yellow",
+          "capacity": 12
+        },
+        {
+          "color": "blue",
+          "capacity": 12
+        }
+      ],
+      [
+        {
+          "color": "magenta",
           "capacity": 12
         },
         {
@@ -766,31 +868,25 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
           "capacity": 11
         },
         {
-          "color": "magenta",
-          "capacity": 6
+          "color": "white",
+          "capacity": 9
+        },
+        {
+          "color": "lime",
+          "capacity": 3
         }
       ],
       [
+        {
+          "color": "yellow",
+          "capacity": 13
+        },
         {
           "color": "white",
           "capacity": 12
         },
         {
-          "color": "blue",
-          "capacity": 12
-        },
-        {
           "color": "lime",
-          "capacity": 11
-        },
-        {
-          "color": "lime",
-          "capacity": 4
-        }
-      ],
-      [
-        {
-          "color": "white",
           "capacity": 12
         },
         {
@@ -798,12 +894,24 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
           "capacity": 12
         },
         {
-          "color": "white",
-          "capacity": 10
+          "color": "magenta",
+          "capacity": 12
         },
         {
-          "color": "blue",
-          "capacity": 1
+          "color": "magenta",
+          "capacity": 12
+        },
+        {
+          "color": "white",
+          "capacity": 13
+        },
+        {
+          "color": "lime",
+          "capacity": 15
+        },
+        {
+          "color": "magenta",
+          "capacity": 5
         }
       ]
     ],
@@ -812,23 +920,33 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
       "M": "magenta",
       "L": "lime",
       "B": "blue",
-      "W": "white"
+      "W": "white",
+      "Y": "yellow"
     },
     "ruleset": "coreV2",
     "winningWitness": [
-      "T2",
-      "T1",
-      "T3",
-      "H1",
       "T1",
       "T2",
       "T3",
-      "T2",
+      "T1",
+      "T3",
+      "T1",
+      "T3",
+      "T1",
+      "T3",
+      "T1",
+      "T3",
+      "T3",
       "T1",
       "T3",
       "T1",
       "T2",
-      "T3"
+      "T1",
+      "T3",
+      "T2",
+      "T3",
+      "T2",
+      "T1"
     ]
   },
   {
@@ -838,105 +956,163 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
     "difficulty": "medium",
     "holdingCapacity": 3,
     "pixelArt": [
-      "....................",
-      "........OOOO........",
-      "......OOOOOOOO......",
-      ".....OOOOOOOOOO.....",
-      "....OOOOOOOOOOOO....",
-      ".......WW...........",
-      "......WWWW..........",
-      ".....WWWWWW.........",
-      "........WW..........",
-      "....TTTTWWTTTT......",
-      "..TTTTTTWWTTTTTT....",
-      "......TTWWTT........",
-      ".......TWWT.........",
-      ".......NWWN.........",
-      "......NNWWNN........",
-      ".....NNNWWNNN.......",
-      "....NNNNWWNNNN......",
-      "...NNNNNWWNNNNN.....",
-      "..TTTTTTTTTTTTTT...."
+      "..........N..........",
+      ".........NNN.........",
+      "........NNNNN........",
+      "YYY....NNNNNNN.......",
+      "YYYYYY..NYYYN........",
+      "YYYYYYYYNYYYN........",
+      "YYYYYY..NYYYN........",
+      "YYY....NNNNNNN.......",
+      "......NNNNNNNNN......",
+      "......OOWWWWWOO......",
+      "....OOOOWWWWWOOOO....",
+      "..OOOOOOWWWWWOOOOOO..",
+      ".OOOOOOWWWWWWWOOOOOO.",
+      ".OOOOOOWWWWWWWOOOOOO.",
+      "OOOOOOOWWWWWWWOOOOOOO",
+      "OOOOOOWWWWWWWWWOOOOOO",
+      "OOOOOOWWWWWWWWWOOOOOO",
+      "TTTTTTTTTTTTTTTTTTTTT",
+      ".TTTTTTTTTTTTTTTTTTT.",
+      "...TTTTTTTTTTTTTTT...",
+      ".......TTTTTTT.......",
+      "....................."
     ],
     "tunnels": [
       [
         {
           "color": "teal",
-          "capacity": 12
+          "capacity": 14
         },
         {
-          "color": "teal",
-          "capacity": 12
+          "color": "orange",
+          "capacity": 14
         },
         {
-          "color": "white",
-          "capacity": 12
+          "color": "orange",
+          "capacity": 14
         },
         {
           "color": "indigo",
-          "capacity": 6
-        }
-      ],
-      [
+          "capacity": 14
+        },
         {
           "color": "orange",
+          "capacity": 14
+        },
+        {
+          "color": "indigo",
+          "capacity": 14
+        },
+        {
+          "color": "teal",
+          "capacity": 14
+        },
+        {
+          "color": "teal",
           "capacity": 24
         },
         {
           "color": "white",
+          "capacity": 25
+        },
+        {
+          "color": "white",
           "capacity": 18
-        },
-        {
-          "color": "teal",
-          "capacity": 12
-        },
-        {
-          "color": "teal",
-          "capacity": 4
         }
       ],
       [
         {
-          "color": "indigo",
+          "color": "yellow",
           "capacity": 12
         },
         {
+          "color": "yellow",
+          "capacity": 7
+        },
+        {
+          "color": "orange",
+          "capacity": 14
+        },
+        {
           "color": "indigo",
-          "capacity": 12
+          "capacity": 8
+        },
+        {
+          "color": "orange",
+          "capacity": 14
+        },
+        {
+          "color": "teal",
+          "capacity": 10
+        },
+        {
+          "color": "indigo",
+          "capacity": 2
+        },
+        {
+          "color": "yellow",
+          "capacity": 1
+        }
+      ],
+      [
+        {
+          "color": "yellow",
+          "capacity": 15
+        },
+        {
+          "color": "white",
+          "capacity": 10
         },
         {
           "color": "orange",
           "capacity": 10
         },
         {
+          "color": "orange",
+          "capacity": 6
+        },
+        {
           "color": "white",
-          "capacity": 2
+          "capacity": 1
         }
       ]
     ],
     "replacesLegacy": true,
     "legend": {
-      "T": "teal",
-      "O": "orange",
+      "Y": "yellow",
       "N": "indigo",
-      "W": "white"
+      "W": "white",
+      "O": "orange",
+      "T": "teal"
     },
     "ruleset": "coreV2",
     "winningWitness": [
       "T1",
       "T2",
+      "T1",
       "T3",
+      "T1",
       "T1",
       "H1",
+      "T1",
+      "T1",
+      "T2",
+      "T2",
+      "T1",
       "T2",
       "T3",
-      "H1",
       "T2",
       "T1",
       "T3",
       "T1",
       "T2",
-      "T3"
+      "T3",
+      "T1",
+      "T2",
+      "T3",
+      "T2"
     ]
   },
   {
@@ -946,116 +1122,132 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
     "difficulty": "medium",
     "holdingCapacity": 3,
     "pixelArt": [
-      "....................",
-      "....C.........C.....",
-      "...CCC.......CCC....",
-      "..CCCCC.....CCCCC...",
-      "..CPYPC.....CPYPC...",
-      "..CPPPC.....CPPPC...",
-      "..CP.PC.....CP.PC...",
-      "...P.P...C...P.P....",
-      "...PYP..CCC..PYP....",
-      "..CPPPCCCCCCCPPPC...",
-      "..CPPPPPPPPPPPPPC...",
-      "..CPYPPCCCPPYPPPC...",
-      "..CPPPCCPCCPPPPPC...",
-      "..CPPPPPPPPPPPPPC...",
-      "...CBBBBBBBBBBBC....",
-      "...CBBBP...PBBBC....",
-      "...CBBBPYYYPBBBC....",
-      "...CBBBBBBBBBBBC....",
-      "...CCCCCCCCCCCCC....",
-      "...................."
+      "..........WW..........",
+      "..C.......WW.......C..",
+      ".CCC......WW......CCC.",
+      ".CCC.....WWWW.....CCC.",
+      "CCCCC...WWWWWW...CCCCC",
+      "CCCCC...WWWWWW...CCCCC",
+      ".CCC...PPWWWWPP...CCC.",
+      ".CCC..PPPWWWWPPP..CCC.",
+      ".CCC..PPWWYYWWPP..CCC.",
+      ".CCC..PPWYYYYWPP..CCC.",
+      ".CCCPPPPWYYYYWPPPPCCC.",
+      ".CCCPPPPWWYYWWPPPPCCC.",
+      ".CCCPPPPPWWWWPPPPPCCC.",
+      ".CCCPPPPPPPPPPPPPPCCC.",
+      "..PPPPPPPYYYYPPPPPPP..",
+      "..PPPPPPYYYYYYPPPPPP..",
+      "BBBBBBBBYYYYYYBBBBBBBB",
+      ".BBBBBBBBBBBBBBBBBBBB.",
+      "....BBBBBBBBBBBBBB....",
+      "......................"
     ],
     "tunnels": [
       [
         {
+          "color": "cyan",
+          "capacity": 14
+        },
+        {
+          "color": "cyan",
+          "capacity": 14
+        },
+        {
           "color": "blue",
-          "capacity": 3
+          "capacity": 14
         },
         {
           "color": "cyan",
-          "capacity": 12
+          "capacity": 14
         },
         {
-          "color": "cyan",
-          "capacity": 12
-        },
-        {
-          "color": "cyan",
+          "color": "white",
           "capacity": 12
         },
         {
           "color": "purple",
-          "capacity": 12
+          "capacity": 13
         },
         {
-          "color": "gold",
-          "capacity": 7
+          "color": "blue",
+          "capacity": 14
+        },
+        {
+          "color": "white",
+          "capacity": 5
         },
         {
           "color": "cyan",
-          "capacity": 7
+          "capacity": 10
         }
       ],
       [
         {
+          "color": "blue",
+          "capacity": 14
+        },
+        {
           "color": "gold",
-          "capacity": 2
+          "capacity": 12
+        },
+        {
+          "color": "purple",
+          "capacity": 14
         },
         {
           "color": "cyan",
-          "capacity": 12
+          "capacity": 14
+        },
+        {
+          "color": "gold",
+          "capacity": 10
         },
         {
           "color": "cyan",
-          "capacity": 12
+          "capacity": 16
         },
         {
           "color": "purple",
           "capacity": 12
         },
-        {
-          "color": "purple",
-          "capacity": 12
-        },
-        {
-          "color": "purple",
-          "capacity": 8
-        },
-        {
-          "color": "purple",
-          "capacity": 1
-        }
-      ],
-      [
         {
           "color": "purple",
           "capacity": 6
+        }
+      ],
+      [
+        {
+          "color": "purple",
+          "capacity": 14
         },
         {
-          "color": "cyan",
+          "color": "white",
           "capacity": 12
         },
         {
           "color": "purple",
-          "capacity": 12
+          "capacity": 14
+        },
+        {
+          "color": "white",
+          "capacity": 14
         },
         {
           "color": "purple",
-          "capacity": 12
-        },
-        {
-          "color": "blue",
-          "capacity": 12
-        },
-        {
-          "color": "blue",
           "capacity": 11
+        },
+        {
+          "color": "gold",
+          "capacity": 6
         },
         {
           "color": "blue",
           "capacity": 8
+        },
+        {
+          "color": "white",
+          "capacity": 3
         }
       ]
     ],
@@ -1063,6 +1255,7 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
     "legend": {
       "C": "cyan",
       "P": "purple",
+      "W": "white",
       "Y": "gold",
       "B": "blue"
     },
@@ -1070,28 +1263,30 @@ export const COMPILED_LEVELS: LevelDefinition[] = [
     "winningWitness": [
       "T1",
       "T2",
+      "T1",
+      "T1",
       "T3",
+      "T2",
+      "T1",
+      "T3",
+      "T2",
+      "T1",
       "T3",
       "H1",
-      "H1",
-      "H1",
+      "T2",
       "T1",
+      "T3",
+      "T2",
+      "T1",
+      "T3",
       "T2",
       "T1",
       "T3",
       "T2",
       "T3",
-      "T1",
       "T2",
       "T3",
-      "T1",
-      "T3",
-      "T2",
-      "T1",
-      "T2",
-      "T3",
-      "T1",
-      "T2"
+      "T1"
     ]
   },
   {
