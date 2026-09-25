@@ -3,18 +3,37 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, SpaceGrotesk_700Bold } from '@expo-google-fonts/space-grotesk';
+import {
+  Rubik_400Regular,
+  Rubik_500Medium,
+  Rubik_600SemiBold,
+  Rubik_700Bold,
+  Rubik_800ExtraBold,
+  Rubik_900Black,
+} from '@expo-google-fonts/rubik';
+import { PixelifySans_600SemiBold } from '@expo-google-fonts/pixelify-sans';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { brandColor } from '@/theme/brand';
+import { AV } from '@/theme/arcadiaV2';
 
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  // Live wordmark font. The UI never blocks on it — the wordmark falls back to
-  // the system bold face until it resolves — but we hold the native splash a
-  // beat so the first frame is already branded.
-  const [fontsLoaded, fontError] = useFonts({ SpaceGrotesk_700Bold });
+  // Live wordmark font + the v2 UI faces (Rubik for all UI and numbers,
+  // Pixelify Sans for tiny brand captions). The UI never blocks on them —
+  // text falls back to the system face until they resolve — but we hold the
+  // native splash a beat so the first frame is already branded.
+  const [fontsLoaded, fontError] = useFonts({
+    SpaceGrotesk_700Bold,
+    Rubik_400Regular,
+    Rubik_500Medium,
+    Rubik_600SemiBold,
+    Rubik_700Bold,
+    Rubik_800ExtraBold,
+    Rubik_900Black,
+    PixelifySans_600SemiBold,
+  });
 
   useEffect(() => {
     if (fontsLoaded || fontError) void SplashScreen.hideAsync();
@@ -40,7 +59,8 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: brandColor.background },
+            // v2 shell blue, so Home ⇄ gameplay fades never flash dark navy.
+            contentStyle: { backgroundColor: AV.shellBottom },
             animation: 'fade',
             animationDuration: 220,
           }}

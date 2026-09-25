@@ -1,38 +1,43 @@
 /**
  * Gameplay-screen visual metrics for the Pixel Arcadia cabinet redesign.
  * Presentation only — engine rules, holding capacity, and orbit paths are
- * unchanged. Colors come from `homeV2` / `NEON`; this module is sizes.
+ * unchanged. Colors come from `arcadiaV2` / `gameplayUi`; this module is sizes.
  */
 export const GAMEPLAY = {
-  hudHeight: 44,
-  hudButton: 36,
-  hudButtonHit: 44,
-  hudProgressHeight: 7,
+  // M7A v2 top HUD: one 50pt row (pause · level plate · coins) plus the
+  // progress tab hanging under the plate.
+  hudHeight: 50,
+  hudButton: 40,
+  hudButtonHit: 48,
+  hudProgressHeight: 5,
   hudMedallion: 34,
 
-  // Reserves room for GameScreen's board frame (padding + hairline border)
-  // around the rail — the frame lives outside `boardWrap`, this is its budget.
-  boardSidePad: 7,
-  boardDeckGap: 8,
+  // v2: the board canvas paints its own track band, so the side pad is the
+  // screen margin and the deck gap is "board → tray 14".
+  boardSidePad: 14,
+  boardDeckGap: 14,
 
   /** Orbiting Pal visual size (pt). chargeRadius ≈ this / 2.1 */
   orbitingPalMin: 32,
   orbitingPalMax: 38,
 
-  holdingWell: 62,
-  holdingPal: 52,
+  // v2 Holding: 40pt recessed slots, 32pt Pal, 48pt tap target.
+  holdingWell: 40,
+  holdingPal: 32,
 
+  // Legacy queue ladder — locked by `gameplayLayout.test.ts`. The v2 tunnel
+  // column sizes itself from `AV_SIZE` (Ready 56 · Next 38 · Next+1 30).
   readyPalMin: 64,
   readyPalMax: 76,
   queuePalMin: 44,
   queuePalMax: 54,
 
-  deckPadTop: 8,
-  deckPadX: 10,
-  deckPadBottom: 8,
-  deckGap: 6,
+  deckPadTop: 0,
+  deckPadX: 16,
+  deckPadBottom: 16,
+  deckGap: 14,
 
-  itemButton: 58,
+  itemButton: 56,
   itemButtonHit: 64,
 } as const;
 

@@ -1,5 +1,5 @@
 import { memo, useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   cancelAnimation, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming,
 } from 'react-native-reanimated';
@@ -8,11 +8,12 @@ import { ActiveStatus } from '@/components/ActiveStatus';
 import { ItemRack } from '@/components/gameplay/ItemRack';
 import { HoldingStatus, HoldingTray } from '@/components/HoldingTray';
 import { TunnelBar } from '@/components/TunnelBar';
-import type { Charge, GameState } from '@/game/engine/types';
+import type { Charge, GameState, OrbColor } from '@/game/engine/types';
 import type { Point } from '@/game/rendering/boardGeometry';
 import type { TutorialView } from '@/game/tutorial';
 import type { LaunchDenial, LaunchDenialReason } from '@/hooks/useGameSession';
 import type { GameplayItemId } from '@/game/economy/config';
+import { AV, AV_SIZE } from '@/theme/arcadiaV2';
 import { GAMEPLAY } from '@/theme/gameplayLayout';
 import { GP, GP_TYPE } from '@/theme/gameplayUi';
 
@@ -21,6 +22,8 @@ interface ControlDeckProps {
   state: GameState;
   activeCount: number;
   activeCapacity: number;
+  /** Colours of the Pals on the track, launch order — fills the ACTIVE pips. */
+  activeColors?: readonly OrbColor[];
   layoutVersion: number;
   disabled: boolean;
   /** Rail full: controls stay pressable (so a refused tap can explain itself) but read as blocked. */
@@ -59,6 +62,32 @@ const DENIAL_NOTICE: Record<LaunchDenialReason, string> = {
 /** TUNABLE — how long a refusal notice holds over the strip. */
 const NOTICE_HOLD_MS = 1300;
 
+/** Tray padding (left, right) and the gap between its sections (pt). */
+const TRAY_PAD_L = 14;
+const TRAY_PAD_R = 10;
+const TRAY_GAP = 10;
+/** Room the "HOLDING n/cap" label needs beside the wells. */
+const HOLDING_LABEL_W = 58;
+
+/**
+ * v2 Holding slot size: 40pt, stepped down only when a 4th (Extra Slot) well
+ * would not otherwise fit in the tray's width. The tray never grows taller.
+ */
+function holdingSlotSize(width: number, capacity: number, activeCapacity: number): number {
+  const avail = width - AV_SIZE.sideMargin * 2 - TRAY_PAD_L - TRAY_PAD_R;
+  const activeW = activeCapacity > 0 ? activeCapacity * (AV_SIZE.activePipW + 3) - 3 : 0;
+  const fixed = activeW + HOLDING_LABEL_W + TRAY_GAP * 3 + 1;
+  const fit = Math.floor((avail - fixed - 6 * Math.max(0, capacity - 1)) / Math.max(1, capacity));
+  return Math.max(30, Math.min(AV_SIZE.holdingSlot, fit));
+}
+
+function colorsEqual(a?: readonly OrbColor[], b?: readonly OrbColor[]): boolean {
+  if (a === b) return true;
+  if (!a || !b || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
 function setsEqual(a: Set<string>, b: Set<string>): boolean {
   if (a === b) return true;
   if (a.size !== b.size) return false;
@@ -68,15 +97,17 @@ function setsEqual(a: Set<string>, b: Set<string>): boolean {
 
 /**
  * Single gameplay control surface. Slot count follows engine capacity.
- * Visual stack, top to bottom:
- *   STATUS STRIP (ACTIVE · HOLDING) → HOLDING WELLS → TUNNELS → ITEMS
- * Both pressure readouts share one strip directly above the controls that
- * change them, so the deck spends one row on status instead of two.
+ * M7A v2 stack, top to bottom:
+ *   TRAY (ACTIVE pips | HOLDING n/cap + wells) → TUNNELS → ITEMS
+ * One 58pt glass tray carries both pressure readouts and the Holding wells,
+ * directly above the tunnels that feed them. No deck panel: the controls sit
+ * on the blue shell.
  */
 export const ControlDeck = memo(function ControlDeck({
   state,
   activeCount,
   activeCapacity,
+  activeColors,
   layoutVersion,
   disabled,
   blocked,
@@ -96,38 +127,42 @@ export const ControlDeck = memo(function ControlDeck({
   onPressItem,
 }: ControlDeckProps) {
   const holding: Charge[] = state.holding;
+  const { width } = useWindowDimensions();
+  const slot = holdingSlotSize(width, state.holdingCapacity, activeCapacity);
+  const pal = Math.round(slot * 0.8);
 
   return (
     <View style={styles.deck}>
-      {/* Subtle lit edge along the top — hardware seam */}
-      <View pointerEvents="none" style={styles.litEdge} />
-
-      <View style={styles.strip}>
+      <View style={styles.tray}>
         {activeCapacity > 0 ? (
-          <ActiveStatus count={activeCount} capacity={activeCapacity} refusalSeq={capacityRefusalSeq} />
-        ) : <View />}
+          <ActiveStatus
+            count={activeCount}
+            capacity={activeCapacity}
+            colors={activeColors}
+            refusalSeq={capacityRefusalSeq}
+          />
+        ) : null}
+        <View style={styles.flex} />
+        {activeCapacity > 0 ? <View style={styles.divider} /> : null}
         <HoldingStatus count={holding.length} capacity={state.holdingCapacity} />
+        <HoldingTray
+          layoutVersion={layoutVersion}
+          holding={holding}
+          capacity={state.holdingCapacity}
+          disabled={disabled}
+          usefulIds={usefulIds}
+          colorAssist={colorAssist}
+          pixelPal={pixelPal}
+          onSourceLayout={onSourceLayout}
+          onLaunch={onLaunchHeld}
+          message=""
+          tutorial={tutorial}
+          slotSize={slot}
+          palSize={pal}
+          embedded
+        />
         <DeckNotice denial={denial} />
       </View>
-
-      {/* Holding sits above tunnels — the hierarchy is Board → Status → Holding → Tunnels → Items */}
-      <HoldingTray
-        layoutVersion={layoutVersion}
-        holding={holding}
-        capacity={state.holdingCapacity}
-        disabled={disabled}
-        usefulIds={usefulIds}
-        colorAssist={colorAssist}
-        pixelPal={pixelPal}
-        onSourceLayout={onSourceLayout}
-        onLaunch={onLaunchHeld}
-        message=""
-        tutorial={tutorial}
-        embedded
-      />
-
-      {/* Separator between holding and tunnels */}
-      <View pointerEvents="none" style={styles.separator} />
 
       <TunnelBar
         layoutVersion={layoutVersion}
@@ -154,6 +189,7 @@ export const ControlDeck = memo(function ControlDeck({
 }, (prev, next) => (
   prev.activeCount === next.activeCount
   && prev.activeCapacity === next.activeCapacity
+  && colorsEqual(prev.activeColors, next.activeColors)
   && prev.layoutVersion === next.layoutVersion
   && prev.disabled === next.disabled
   && prev.blocked === next.blocked
@@ -178,9 +214,9 @@ export const ControlDeck = memo(function ControlDeck({
 ));
 
 /**
- * A refusal notice that crossfades over the status strip for ~1.3 s. Fixed
- * height and absolutely positioned: it never adds a row, so it can never
- * re-measure (and resize) the board the way the old status line did.
+ * A refusal notice that crossfades over the tray for ~1.3 s. Absolutely
+ * positioned: it never adds a row, so it can never re-measure (and resize)
+ * the board the way the old status line did.
  */
 const DeckNotice = memo(function DeckNotice({ denial }: { denial: LaunchDenial | null }) {
   const text = denial ? DENIAL_NOTICE[denial.reason] : '';
@@ -205,41 +241,30 @@ const DeckNotice = memo(function DeckNotice({ denial }: { denial: LaunchDenial |
 const styles = StyleSheet.create({
   deck: {
     width: '100%',
-    // One ink control surface with a lit top edge — sections, never cards.
-    backgroundColor: GP.deck,
     paddingTop: GAMEPLAY.deckPadTop,
     paddingHorizontal: GAMEPLAY.deckPadX,
     paddingBottom: GAMEPLAY.deckPadBottom,
     gap: GAMEPLAY.deckGap,
-    borderTopWidth: 1,
-    borderTopColor: GP.hairline,
   },
-  litEdge: {
-    position: 'absolute',
-    top: -1,
-    left: 24,
-    right: 24,
-    height: 1.5,
-    borderRadius: 1,
-    backgroundColor: GP.litEdge,
-  },
-  strip: {
+  // v2 tray: one 58pt glass bar — Active left, Holding right.
+  tray: {
+    height: AV_SIZE.tray,
+    borderRadius: 18,
+    backgroundColor: AV.glassSoft,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 4,
+    paddingLeft: TRAY_PAD_L,
+    paddingRight: TRAY_PAD_R,
+    gap: TRAY_GAP,
   },
-  // Deliberately a hairline, not a card border — Holding/Tunnels/Items are
-  // one deck with sections, never separately-framed cards.
-  separator: {
-    height: 1,
-    marginHorizontal: 8,
-    backgroundColor: GP.hairline,
-    opacity: 0.6,
-  },
+  flex: { flex: 1 },
+  divider: { width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.12)' },
   notice: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: GP.deck,
+    borderRadius: 18,
+    backgroundColor: AV.shellMid,
     alignItems: 'center',
     justifyContent: 'center',
   },

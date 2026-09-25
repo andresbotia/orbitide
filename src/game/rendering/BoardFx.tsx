@@ -20,8 +20,8 @@ import { entryWaitEndAt } from './railPath';
  *
  *  - Combo: every flight reports its landed shots into one board-wide chain
  *    (`useComboHits`). Hits ≤ `comboWindowMs` apart extend it, across Pals.
- *    The chain drives a restrained board-edge pulse and, for longer chains, a
- *    small COMBO ×N chip on the top rail band — never over the artwork.
+ *    For longer chains it shows a small COMBO ×N chip on the top rail band —
+ *    never over the artwork, and never a whole-board outline.
  *  - Gate: each flight plays its own GateTerminal response (transit on rail
  *    entry, gold capture into Holding, danger burst on reject) off its own
  *    pass clock, so it lands on the exact frame of the beat it represents.
@@ -30,7 +30,7 @@ import { entryWaitEndAt } from './railPath';
 export interface ComboState {
   chain: SharedValue<number>;
   lastHitAt: SharedValue<number>;
-  /** 0..1 one-shot per hit — edge pulse / chip punch. */
+  /** 0..1 one-shot per hit — chip punch. */
   beat: SharedValue<number>;
   /** 0..1 — chip visibility (holds, then fades on its own). */
   chip: SharedValue<number>;
@@ -89,20 +89,13 @@ const COMBO_NUMERAL = {
   fontVariant: ['tabular-nums' as const],
 };
 
-/** Board-edge momentum pulse + COMBO ×N chip. Two views plus the digit strip. */
+/** COMBO ×N chip. One view plus the digit strip. */
 export const ComboLayer = memo(function ComboLayer({ combo, geo, reducedMotion }: {
   combo: ComboState;
   geo: BoardGeometry;
   reducedMotion: boolean;
 }) {
   const gold = useDerivedValue(() => (combo.chain.value >= GP_MOTION.comboGoldAt ? 1 : 0));
-  const edgeStyle = useAnimatedStyle(() => {
-    const strength = Math.min(1, combo.chain.value / 12);
-    return {
-      opacity: combo.chain.value >= GP_MOTION.comboEdgeAt ? combo.beat.value * (0.25 + strength * 0.4) : 0,
-      borderColor: gold.value ? GP.gold : GP.cyan,
-    };
-  });
   const chipStyle = useAnimatedStyle(() => ({
     opacity: combo.chip.value,
     borderColor: gold.value ? GP.gold : GP.hairlineStrong,
@@ -112,15 +105,12 @@ export const ComboLayer = memo(function ComboLayer({ combo, geo, reducedMotion }
 
   const top = geo.perimeter ? geo.perimeter.y - CHIP_H / 2 : 2;
   return (
-    <>
-      <Animated.View pointerEvents="none" style={[styles.edge, edgeStyle]} />
-      <View pointerEvents="none" style={[styles.chipRow, { top }]}>
-        <Animated.View style={[styles.chip, chipStyle]}>
-          <Animated.Text style={[styles.chipLabel, labelStyle]}>COMBO ×</Animated.Text>
-          <DigitStrip count={combo.chain} columns={3} numeral={COMBO_NUMERAL} />
-        </Animated.View>
-      </View>
-    </>
+    <View pointerEvents="none" style={[styles.chipRow, { top }]}>
+      <Animated.View style={[styles.chip, chipStyle]}>
+        <Animated.Text style={[styles.chipLabel, labelStyle]}>COMBO ×</Animated.Text>
+        <DigitStrip count={combo.chain} columns={3} numeral={COMBO_NUMERAL} />
+      </Animated.View>
+    </View>
   );
 });
 
@@ -191,12 +181,6 @@ export const GateFx = memo(function GateFx({ pass, clock, geo, reducedMotion }: 
 });
 
 const styles = StyleSheet.create({
-  edge: {
-    position: 'absolute',
-    top: -2, left: -2, right: -2, bottom: -2,
-    borderRadius: 18,
-    borderWidth: 2,
-  },
   chipRow: {
     position: 'absolute',
     left: 0,

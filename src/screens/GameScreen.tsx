@@ -30,15 +30,13 @@ import { isCoreV2 } from '@/game/engine/ruleset';
 import type { LevelDefinition } from '@/game/engine/types';
 import { type GameplayItemId } from '@/game/economy/config';
 import { feedback } from '@/game/feedback';
-import { useAmbientActive } from '@/hooks/useAmbientActive';
 import { useColorAssist } from '@/hooks/useColorAssist';
 import { useEconomy } from '@/hooks/useEconomy';
 import { useGameSession } from '@/hooks/useGameSession';
 import { useTutorialCompletion } from '@/hooks/useTutorialCompletion';
 import { GAMEPLAY } from '@/theme/gameplayLayout';
-import { GP, GP_RADIUS, GP_TYPE } from '@/theme/gameplayUi';
+import { GP, GP_TYPE } from '@/theme/gameplayUi';
 import { GP_MOTION } from '@/theme/gameplayMotion';
-import { worldSkin } from '@/theme/worldSkins';
 
 interface GameScreenProps {
   levelId: number;
@@ -87,9 +85,6 @@ export function GameScreen({
     [levelOverride, levelId],
   );
   const reducedMotion = useReducedMotion();
-  const active = useAmbientActive();
-  const skin = worldSkin(level.themeId);
-  const worldAccent = skin.accent;
   const { enabled: colorAssist } = useColorAssist();
 
   // UI-R6 celebration tier — derived from the same campaign manifest World
@@ -411,19 +406,16 @@ export function GameScreen({
   // pending result cannot masquerade as capacity pressure.
   const railFull = !controlsLocked && !resultPending && session.activeCount >= session.activeCapacity;
   const capacityRefusalSeq = session.lastDenial?.reason === 'activeFull' ? session.lastDenial.seq : 0;
+  // Presentation only: the colours of the Pals on the track fill the ACTIVE pips.
+  const activeColors = useMemo(() => session.flights.map((f) => f.charge.color), [session.flights]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <GameplayEnvironment
-        worldAccent={worldAccent}
-        worldSecondaryAccent={skin.secondaryAccent}
-        ambientId={skin.ambientId}
-        active={active}
-        reducedMotion={reducedMotion}
-      />
+      <GameplayEnvironment />
 
       <Hud
         levelId={state.levelId}
+        difficulty={level.difficulty}
         cleared={cleared}
         total={total}
         coins={economyApi.economy.coins}
@@ -433,14 +425,14 @@ export function GameScreen({
 
       <View collapsable={false} style={styles.boardArea} onLayout={onBoardArea}>
         {boardBox.width > 0 ? (
-          // Restrained board frame — a single ink panel + hairline cyan border
-          // so the board reads as sitting inside the same machine as the HUD/
-          // deck, not floating. `boardWrap` (measured for launch/holding
-          // coordinates) is unchanged and has no padding of its own; this is a
-          // new, uninvolved parent, so `boardOrigin` still measures the
-          // board's own true position.
-          <Animated.View style={[styles.boardFrame, boardEntryStyle]}>
-            <View pointerEvents="none" style={styles.boardLitEdge} />
+          // v2: the board canvas paints its own track band and well, so the
+          // frame is only a soft lift — no ink panel, no cyan outline, no
+          // padding. `boardWrap` (measured for launch/holding coordinates) is
+          // unchanged; this is an uninvolved parent, so `boardOrigin` still
+          // measures the board's own true position.
+          <Animated.View style={boardEntryStyle}>
+            {/* Core V2 paints its own lift at the track's corner radius. */}
+            {isCoreV2(state.ruleset) ? null : <View pointerEvents="none" style={styles.boardLift} />}
             <View
               ref={boardWrap}
               collapsable={false}
@@ -514,6 +506,7 @@ export function GameScreen({
           state={state}
           activeCount={session.activeCount}
           activeCapacity={isCoreV2(state.ruleset) ? session.activeCapacity : 0}
+          activeColors={activeColors}
           layoutVersion={boardBox.width + boardBox.height}
           disabled={controlsLocked || session.bombTargeting}
           blocked={railFull}
@@ -595,23 +588,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: GAMEPLAY.boardSidePad,
     paddingBottom: GAMEPLAY.boardDeckGap,
   },
-  // One thin ink panel + hairline + a lit top edge — the same "lit edge"
-  // motif as the deck and panels, not a cabinet. No shadow/blur: free per frame.
-  boardFrame: {
-    padding: 2,
-    borderRadius: GP_RADIUS.panel,
-    backgroundColor: GP.wellDeep,
-    borderWidth: 1,
-    borderColor: GP.hairline,
-  },
-  boardLitEdge: {
+  // v2 lift: 0 14 28 rgba(10,25,70,.35). Cast by a static, opaque sibling
+  // behind the board — a shadow on the board's own container would be
+  // re-rasterised from its moving content every frame.
+  boardLift: {
     position: 'absolute',
-    top: -1,
-    left: 28,
-    right: 28,
-    height: 1.5,
-    borderRadius: 1,
-    backgroundColor: GP.litEdge,
+    top: 6,
+    left: 6,
+    right: 6,
+    bottom: 6,
+    borderRadius: 30,
+    backgroundColor: '#5F86FF',
+    shadowColor: '#0A1946',
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 14 },
   },
   controls: {
     width: '100%',
@@ -620,7 +611,7 @@ const styles = StyleSheet.create({
   failDim: {
     position: 'absolute',
     top: -2, left: -2, right: -2, bottom: -2,
-    borderRadius: 18,
+    borderRadius: 24,
     backgroundColor: GP.canvas,
   },
   exitFade: {

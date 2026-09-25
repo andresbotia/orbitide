@@ -1,21 +1,21 @@
-import { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
+import { useCallback, useMemo } from 'react';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useReducedMotion } from 'react-native-reanimated';
 
 import { HomeBottomNav } from '@/components/home/HomeBottomNav';
-import { HomeEnvironment } from '@/components/home/HomeEnvironment';
-import { sceneHorizonY } from '@/components/home/environment/sceneGeometry';
 import { HomeHud } from '@/components/home/HomeHud';
 import { computeHomeV2Layout } from '@/components/home/homeLayout';
 import { HomeLevelCard } from '@/components/home/HomeLevelCard';
 import { HomeMarquee } from '@/components/home/HomeMarquee';
-import { HomePixelPalHero, palHeroMetrics } from '@/components/home/HomePixelPalHero';
+import { HomeMascot, mascotMetrics } from '@/components/home/HomeMascot';
 import { HomePlayButton } from '@/components/home/HomePlayButton';
-import { getLevel, requireLevel } from '@/game/levels/levels';
+import { HomeSkyBackdrop, HomeSkyline } from '@/components/home/HomeSkyBackdrop';
+import { M6_ECONOMY } from '@/game/economy/config';
+import { getLevel, nextLevelId, requireLevel } from '@/game/levels/levels';
 import { useAmbientActive } from '@/hooks/useAmbientActive';
+import { AV } from '@/theme/arcadiaV2';
 import { HOME_COINS_PLACEHOLDER, HOME_HEARTS_PLACEHOLDER } from '@/theme/homeV2';
-import { NEON } from '@/theme/neon';
 
 interface HomeScreenProps {
   highestUnlockedLevel: number;
@@ -29,13 +29,16 @@ interface HomeScreenProps {
   onSecretReset?: () => void;
 }
 
-/** Gap between the painted horizon and the podium's top edge. */
-const PODIUM_CLEARANCE = 2;
+/** How far the mascot's podium sits above the skyline's horizon line (pt). */
+const HORIZON_CLEARANCE = 30;
 
 /**
- * PIXEL ARCADIA HOME — tiled looping background + cabinet chrome. Presentation
- * only: progression, PLAY navigation, and storage are unchanged. Home-scoped
- * V2 tokens only; Worlds / Gameplay token systems are not rewritten here.
+ * PIXEL ARCADIA HOME — M7A v2 (B1): open blue sky, resource bar, logo, the
+ * mascot on its podium over a soft skyline, the progression strip with the
+ * pixel-stepped level badge, level title + difficulty, the gold PLAY CTA and
+ * the floating nav tray. Presentation only: progression, PLAY navigation and
+ * storage are unchanged. Static by default — the mascot's 2pt bob is the only
+ * idle motion.
  */
 export function HomeScreen({
   highestUnlockedLevel,
@@ -56,27 +59,7 @@ export function HomeScreen({
   );
 
   const level = getLevel(highestUnlockedLevel) ?? requireLevel(1);
-
-  // Stand the mascot's podium just below the painted horizon. The hero's
-  // layout y is its window y: the SafeAreaView is the root's first in-flow
-  // child, at y 0, and the hero is its direct child. The clamp keeps the hero
-  // inside its own margins, so on short screens the podium yields before it
-  // would overlap the logo or the level card.
-  const [hero, setHero] = useState<{ y: number; height: number } | null>(null);
-  const handleHeroLayout = useCallback((event: LayoutChangeEvent) => {
-    const { y, height } = event.nativeEvent.layout;
-    setHero((prev) => (prev && prev.y === y && prev.height === height ? prev : { y, height }));
-  }, []);
-  const palMetrics = palHeroMetrics(layout.palSize);
-  const palTop = hero
-    ? Math.min(
-        hero.height + layout.gap - palMetrics.height,
-        Math.max(
-          -layout.gap,
-          sceneHorizonY(window.height) + PODIUM_CLEARANCE - hero.y - palMetrics.podiumTop,
-        ),
-      )
-    : null;
+  const mascot = mascotMetrics(layout.palSize);
 
   const handleHomeTab = useCallback(() => {
     // Already on Home.
@@ -84,56 +67,53 @@ export function HomeScreen({
 
   return (
     <View style={styles.root}>
-      <HomeEnvironment
-        width={window.width}
-        height={window.height}
-        active={active}
-        reducedMotion={!!reducedMotion}
-      />
+      <HomeSkyBackdrop width={window.width} height={window.height} />
 
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.hud}>
-          <HomeHud
-            hearts={HOME_HEARTS_PLACEHOLDER}
-            coins={coins ?? HOME_COINS_PLACEHOLDER}
-            onSettings={onSettings}
-          />
-        </View>
+        <HomeHud
+          hearts={HOME_HEARTS_PLACEHOLDER}
+          coins={coins ?? HOME_COINS_PLACEHOLDER}
+          onAddCoins={onShop}
+          onSettings={onSettings}
+        />
 
-        <View style={styles.marquee}>
+        <View style={[styles.marquee, { marginTop: layout.gap }]}>
           <HomeMarquee
-            width={layout.marqueeWidth}
+            width={layout.logoWidth}
             onSecretReset={__DEV__ ? onSecretReset : undefined}
           />
         </View>
 
-        <View
-          style={[styles.hero, { minHeight: palMetrics.height, marginVertical: layout.gap }]}
-          onLayout={handleHeroLayout}
-        >
-          {/* Hidden for the single frame before the hero is measured. */}
-          <View style={palTop === null ? styles.palPending : [styles.palPinned, { top: palTop }]}>
-            <HomePixelPalHero size={layout.palSize} active={active} reducedMotion={!!reducedMotion} />
+        <View style={[styles.hero, { minHeight: mascot.height + HORIZON_CLEARANCE + 8 }]}>
+          <HomeSkyline width={window.width} />
+          <View style={[styles.mascot, { bottom: HORIZON_CLEARANCE }]}>
+            <HomeMascot size={layout.palSize} active={active} reducedMotion={!!reducedMotion} />
           </View>
         </View>
 
-        <View style={[styles.progress, { marginBottom: layout.gap }]}>
+        <View style={[styles.progress, { marginTop: layout.gap }]}>
           <HomeLevelCard
             levelId={level.id}
             title={level.title}
             difficulty={level.difficulty}
-            medallionSize={layout.medallion}
+            nextLevelId={nextLevelId(level.id)}
+            clearReward={M6_ECONOMY.firstClearReward}
+            compact={layout.compact}
           />
         </View>
 
-        <View style={styles.playWrap}>
-          <HomePlayButton onPress={onPlay} disabled={loading} capHeight={layout.playCap} />
+        <View style={[styles.playWrap, { marginTop: layout.compact ? 12 : 18 }]}>
+          <HomePlayButton
+            onPress={onPlay}
+            disabled={loading}
+            width={layout.ctaWidth}
+            height={layout.ctaHeight}
+          />
         </View>
       </SafeAreaView>
 
       <HomeBottomNav
         active="home"
-        plinth={layout.plinth}
         onShop={onShop}
         onHome={handleHomeTab}
         onLeaderboard={onLeaderboard}
@@ -143,27 +123,15 @@ export function HomeScreen({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: NEON.inkDeep },
+  root: { flex: 1, backgroundColor: AV.skyTop },
   safe: { flex: 1 },
-  hud: { flexShrink: 0 },
-  marquee: { flexShrink: 1 },
+  marquee: { flexShrink: 1, alignItems: 'center' },
   hero: {
     flex: 1,
-    flexShrink: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'visible',
+    justifyContent: 'flex-end',
   },
-  palPending: { opacity: 0 },
-  palPinned: { position: 'absolute' },
-  progress: {
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  playWrap: {
-    alignItems: 'center',
-    flexShrink: 0,
-    marginTop: 4,
-    marginBottom: 12,
-  },
+  mascot: { position: 'absolute', alignSelf: 'center' },
+  progress: { alignItems: 'center', flexShrink: 0 },
+  playWrap: { alignItems: 'center', flexShrink: 0 },
 });

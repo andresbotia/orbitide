@@ -1,10 +1,10 @@
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { HomeBottomNav, type HomeTab } from '@/components/home/HomeBottomNav';
-import { computeHomeV2Layout } from '@/components/home/homeLayout';
-import { homeAlpha, homeV2 } from '@/theme/homeV2';
+import { HomeSkyBackdrop } from '@/components/home/HomeSkyBackdrop';
+import { AV, AV_FONT } from '@/theme/arcadiaV2';
 
 interface HomePlaceholderScreenProps {
   title: string;
@@ -27,13 +27,10 @@ export const HomePlaceholderScreen = memo(function HomePlaceholderScreen({
   onBack,
 }: HomePlaceholderScreenProps) {
   const window = useWindowDimensions();
-  const layout = useMemo(
-    () => computeHomeV2Layout(window.width, window.height),
-    [window.width, window.height],
-  );
 
   return (
     <View style={styles.root}>
+      <HomeSkyBackdrop width={window.width} height={window.height} />
       <SafeAreaView style={styles.safe} edges={['top']}>
         {onBack ? (
           <Pressable onPress={onBack} accessibilityRole="button" accessibilityLabel="Back" style={styles.back}>
@@ -47,7 +44,6 @@ export const HomePlaceholderScreen = memo(function HomePlaceholderScreen({
       </SafeAreaView>
       <HomeBottomNav
         active={tab}
-        plinth={layout.plinth}
         onShop={onShop}
         onHome={onHome}
         onLeaderboard={onLeaderboard}
@@ -57,7 +53,7 @@ export const HomePlaceholderScreen = memo(function HomePlaceholderScreen({
 });
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: homeV2.deepNavy },
+  root: { flex: 1, backgroundColor: AV.skyTop },
   safe: { flex: 1 },
   back: {
     paddingHorizontal: 16,
@@ -66,9 +62,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backLabel: {
-    color: homeAlpha(homeV2.white, 0.8),
+    color: AV.white,
+    fontFamily: AV_FONT.semibold,
     fontSize: 16,
-    fontWeight: '600',
   },
   body: {
     flex: 1,
@@ -78,13 +74,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   title: {
-    color: homeV2.white,
-    fontFamily: 'SpaceGrotesk_700Bold',
+    color: AV.ink,
+    fontFamily: AV_FONT.extraBold,
     fontSize: 28,
-    fontWeight: '700',
   },
   copy: {
-    color: homeAlpha(homeV2.white, 0.7),
+    color: AV.ink,
+    fontFamily: AV_FONT.regular,
     fontSize: 16,
     textAlign: 'center',
     lineHeight: 22,

@@ -1,141 +1,144 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { AvHeartIcon, AvIcon } from '@/components/v2/AvIcon';
+import { CoinMedallion } from '@/components/v2/primitives';
+import { AV, AV_FONT, AV_TYPE, formatCount } from '@/theme/arcadiaV2';
 import { HOME_COINS_PLACEHOLDER, HOME_HEARTS_PLACEHOLDER } from '@/theme/homeV2';
-import { NEON, neonAlpha } from '@/theme/neon';
-
-import { NeonPill } from './NeonPill';
 
 interface HomeHudProps {
   hearts?: number;
   coins?: number;
+  /** Mint "+" on the coin pill. Omitted → the "+" is not drawn. */
+  onAddCoins?: () => void;
   onSettings?: () => void;
 }
 
+/** Lives are presentation placeholders (no heart-loss logic yet); 5 reads as full. */
+const HEARTS_MAX = 5;
+
 /**
- * Top HUD: Hearts left, Coins + Settings right. Hearts and coins sit in neon
- * pills so they hold up against the busy scene; accessibility labels stay on
- * the counters themselves, not the housings.
+ * M7A — v2 Home resource bar: white 92% pills, 36pt tall, each led by a 28pt
+ * medallion with a 2pt inner lip. Lives left; coins (+ mint "+") and a glass
+ * settings button right. Accessibility labels sit on the counters.
  */
 export const HomeHud = memo(function HomeHud({
   hearts = HOME_HEARTS_PLACEHOLDER,
   coins = HOME_COINS_PLACEHOLDER,
+  onAddCoins,
   onSettings,
 }: HomeHudProps) {
+  const full = hearts >= HEARTS_MAX;
   return (
     <View style={styles.row}>
-      <NeonPill tone="magenta">
-        <View style={styles.counter} accessibilityLabel={`${hearts} hearts`}>
-          <Text style={styles.heartGlyph}>♥</Text>
+      <View style={[styles.pill, styles.heartPill]} accessible accessibilityLabel={`${hearts} lives${full ? ', full' : ''}`}>
+        <LinearGradient colors={[AV.heartTop, AV.heartBottom]} style={[styles.medallion, styles.heartMedallion]}>
+          <View style={[styles.innerLip, { backgroundColor: AV.heartLip }]} />
+          <AvHeartIcon size={15} />
+        </LinearGradient>
+        <View style={styles.stack}>
           <Text style={styles.count}>{hearts}</Text>
+          {full ? <Text style={styles.sub}>FULL</Text> : null}
         </View>
-      </NeonPill>
-
-      <View style={styles.right}>
-        <NeonPill tone="gold">
-          <View style={styles.counter} accessibilityLabel={`${coins} coins`}>
-            <OctagonCoin />
-            <Text style={styles.count}>{coins}</Text>
-          </View>
-        </NeonPill>
-        <Pressable
-          onPress={onSettings}
-          disabled={!onSettings}
-          hitSlop={10}
-          pressRetentionOffset={12}
-          accessibilityRole="button"
-          accessibilityLabel="Settings"
-          accessibilityState={{ disabled: !onSettings }}
-          style={({ pressed }) => [styles.gearHit, pressed && onSettings ? styles.gearPressed : null]}
-        >
-          <Text style={styles.gear}>⚙</Text>
-        </Pressable>
       </View>
-    </View>
-  );
-});
 
-const OctagonCoin = memo(function OctagonCoin() {
-  return (
-    <View style={styles.coin} accessibilityElementsHidden>
-      <View style={styles.coinDiamond} />
-      <View style={styles.coinFace} />
-      <View style={styles.coinGlint} />
+      <View style={styles.spacer} />
+
+      <View style={[styles.pill, styles.coinPill, !onAddCoins && styles.coinPillBare]}>
+        <View style={styles.coinValue} accessible accessibilityLabel={`${coins} coins`}>
+          <CoinMedallion size={28} />
+          <Text style={[styles.count, styles.coinCount]}>{formatCount(coins)}</Text>
+        </View>
+        {onAddCoins ? (
+          <Pressable
+            onPress={onAddCoins}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Get more coins"
+            style={({ pressed }) => [styles.plus, pressed && styles.pressed]}
+          >
+            <View style={[styles.innerLip, styles.plusLip]} />
+            <Text style={styles.plusText}>+</Text>
+          </Pressable>
+        ) : null}
+      </View>
+
+      <Pressable
+        onPress={onSettings}
+        disabled={!onSettings}
+        hitSlop={6}
+        pressRetentionOffset={12}
+        accessibilityRole="button"
+        accessibilityLabel="Settings"
+        accessibilityState={{ disabled: !onSettings }}
+        style={({ pressed }) => [styles.gear, pressed && onSettings ? styles.pressed : null]}
+      >
+        <AvIcon name="gear" size={20} color={AV.white} stroke={2} />
+      </Pressable>
     </View>
   );
 });
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    height: 40,
+    marginTop: 7,
     paddingHorizontal: 16,
-  },
-  counter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  heartGlyph: {
-    color: NEON.magenta,
-    fontSize: 18,
-    lineHeight: 22,
-  },
-  count: {
-    color: NEON.cyanPale,
-    fontSize: 18,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-    lineHeight: 22,
-  },
-  right: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  coin: {
-    width: 16,
-    height: 16,
+  spacer: { flex: 1 },
+  pill: {
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    // Solid 3pt drop — the design's pill lip, not a blur.
+    shadowColor: AV.ink,
+    shadowOpacity: 0.15,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  heartPill: { paddingLeft: 4, paddingRight: 12 },
+  coinPill: { paddingHorizontal: 4 },
+  coinPillBare: { paddingRight: 8 },
+  coinValue: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  medallion: {
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
-  coinDiamond: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    backgroundColor: NEON.gold,
-    transform: [{ rotate: '45deg' }],
-    borderRadius: 1,
-  },
-  coinFace: {
-    width: 14,
-    height: 14,
-    borderRadius: 3,
-    backgroundColor: NEON.gold,
-    borderWidth: 1,
-    borderColor: NEON.goldDeep,
-  },
-  coinGlint: {
-    position: 'absolute',
-    top: 3,
-    left: 4,
-    width: 4,
-    height: 3,
-    borderRadius: 1,
-    backgroundColor: NEON.cyanPale,
-    opacity: 0.7,
-  },
-  gearHit: {
-    width: 40,
-    height: 40,
+  heartMedallion: { borderRadius: 14 },
+  innerLip: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 2 },
+  stack: { justifyContent: 'center' },
+  count: { ...AV_TYPE.counter, color: AV.ink, lineHeight: 17 },
+  coinCount: { minWidth: 44 },
+  sub: { fontFamily: AV_FONT.bold, fontSize: 9, lineHeight: 10, letterSpacing: 0.5, color: AV.inkMuted },
+  plus: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: AV.mint,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
-  gearPressed: { opacity: 0.7 },
+  plusLip: { backgroundColor: AV.mintLip },
+  plusText: { fontFamily: AV_FONT.black, fontSize: 18, lineHeight: 20, color: AV.white, marginTop: -1 },
   gear: {
-    color: neonAlpha(NEON.cyanPale, 0.7),
-    fontSize: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  pressed: { opacity: 0.75, transform: [{ scale: 0.96 }] },
 });

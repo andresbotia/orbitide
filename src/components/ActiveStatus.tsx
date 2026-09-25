@@ -1,42 +1,43 @@
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   cancelAnimation, interpolateColor, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming,
-  type SharedValue,
 } from 'react-native-reanimated';
 
-import { flash } from '@/components/gameplay/motionKit';
+import type { OrbColor } from '@/game/engine/types';
+import { orbColors } from '@/theme/colors';
+import { AV, AV_SIZE } from '@/theme/arcadiaV2';
 import { GP, GP_TYPE } from '@/theme/gameplayUi';
 import { GP_MOTION } from '@/theme/gameplayMotion';
 
+const PIP_EMPTY = 'rgba(255,255,255,0.14)';
+/** Full: empty-pip colour tinted coral at 30% (static, never blinking). */
+const PIP_EMPTY_FULL = 'rgba(255,90,122,0.3)';
+const PIP_FALLBACK = '#FFFFFF';
+
 /**
- * Core V2 ACTIVE occupancy: label, one pip per rail slot, and `n/cap`.
- * Capacity is passed in; never hardcoded. Pips fill cyan as Pals launch and
- * the whole meter warms to gold at capacity (pressure, not failure).
+ * Core V2 ACTIVE occupancy — the left half of the v2 tray: "ACTIVE n/cap"
+ * over one pip per rail slot. A pip fills with the colour of the Pal on the
+ * track, so players can read what is circling without looking at the board.
+ * Capacity is passed in; never hardcoded. At capacity the count turns coral —
+ * a static state, no pulse.
  *
- * Capacity refusal (a tap while ACTIVE is full) is one restrained danger flash
- * of this readout with a ~1.14× pulse — never the screen. `refusalSeq` bumps
- * once per refused tap; the Error haptic and its throttle live in the session.
+ * Capacity refusal (a tap while ACTIVE is full) is one restrained coral flash
+ * of this readout — a response to the tap, never an idle loop. `refusalSeq`
+ * bumps once per refused tap; the Error haptic lives in the session.
  */
 export const ActiveStatus = memo(function ActiveStatus({
-  count, capacity, refusalSeq = 0,
+  count, capacity, colors, refusalSeq = 0,
 }: {
   count: number;
   capacity: number;
+  /** Colours of the Pals currently on the track, launch order. */
+  colors?: readonly OrbColor[];
   /** Bumped by the session each time a tap is refused because ACTIVE is full. */
   refusalSeq?: number;
 }) {
   const reducedMotion = useReducedMotion();
   const full = capacity > 0 && count >= capacity;
-  const wasFull = useRef(full);
-  const pop = useSharedValue(0);
-  const warm = useSharedValue(full ? 1 : 0);
-  useEffect(() => {
-    warm.set(withTiming(full ? 1 : 0, { duration: 160 }));
-    // One-shot pop only on the transition into full — never a standing state.
-    if (full && !wasFull.current && !reducedMotion) flash(pop, 90, 220);
-    wasFull.current = full;
-  }, [full, pop, warm, reducedMotion]);
 
   const alarm = useSharedValue(0);
   useEffect(() => {
@@ -48,68 +49,73 @@ export const ActiveStatus = memo(function ActiveStatus({
     ));
   }, [refusalSeq, alarm]);
 
-  const meterStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: reducedMotion ? 1 : 1 + Math.max(pop.value * 0.1, alarm.value * GP_MOTION.capacityScale) }],
-  }));
   const labelStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(alarm.value, [0, 1], [GP.textSecondary, GP.danger]),
+    color: interpolateColor(alarm.value, [0, 1], [AV.textSecondary, GP.danger]),
   }));
-  const numStyle = useAnimatedStyle(() => {
-    const base = interpolateColor(warm.value, [0, 1], [GP.cyan, GP.gold]);
-    return { color: interpolateColor(alarm.value, [0, 1], [base, GP.danger]) };
-  });
+  const restNum = full ? GP.danger : AV.white;
+  const numStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(alarm.value, [0, 1], [restNum, GP.danger]),
+  }));
 
   if (capacity <= 0) return null;
+  const pipW = capacity <= 5 ? AV_SIZE.activePipW : Math.max(8, Math.floor(92 / capacity) - 3);
+  const empty = full ? PIP_EMPTY_FULL : PIP_EMPTY;
   return (
     <View
       accessible
       accessibilityRole="text"
       accessibilityLabel={`Active ${count} of ${capacity}${full ? ', full' : ''}`}
       accessibilityLiveRegion="polite"
-      style={styles.row}
+      style={styles.block}
     >
-      <Animated.Text style={[styles.label, labelStyle]}>ACTIVE</Animated.Text>
-      <Animated.View style={[styles.meter, meterStyle]}>
-        <View style={styles.pips}>
-          {Array.from({ length: capacity }, (_, i) => (
-            <Pip key={i} on={i < count} warm={warm} alarm={alarm} reducedMotion={reducedMotion} />
-          ))}
-        </View>
+      <View style={styles.head}>
+        <Animated.Text style={[styles.label, labelStyle]}>ACTIVE</Animated.Text>
         <Animated.Text style={[styles.num, numStyle]}>{count}/{capacity}</Animated.Text>
-      </Animated.View>
+      </View>
+      <View style={styles.pips}>
+        {Array.from({ length: capacity }, (_, i) => {
+          const c = colors?.[i];
+          return (
+            <Pip
+              key={i}
+              on={i < count}
+              color={c ? orbColors[c] : PIP_FALLBACK}
+              empty={empty}
+              width={pipW}
+              reducedMotion={reducedMotion}
+            />
+          );
+        })}
+      </View>
     </View>
   );
 });
 
-const Pip = memo(function Pip({ on, warm, alarm, reducedMotion }: {
-  on: boolean; warm: SharedValue<number>; alarm: SharedValue<number>; reducedMotion: boolean;
+const Pip = memo(function Pip({ on, color, empty, width, reducedMotion }: {
+  on: boolean; color: string; empty: string; width: number; reducedMotion: boolean;
 }) {
   const fill = useSharedValue(on ? 1 : 0);
   useEffect(() => {
     fill.set(withTiming(on ? 1 : 0, { duration: reducedMotion ? 0 : 140 }));
   }, [on, fill, reducedMotion]);
-  const style = useAnimatedStyle(() => {
-    const lit = interpolateColor(warm.value, [0, 1], [GP.cyan, GP.gold]);
-    const body = interpolateColor(fill.value, [0, 1], [GP.wellDeep, lit]);
-    return {
-      backgroundColor: interpolateColor(alarm.value, [0, 1], [body, GP.danger]),
-      borderColor: fill.value > 0.5 ? 'transparent' : GP.hairlineStrong,
-      transform: [{ scaleY: reducedMotion ? 1 : 0.7 + fill.value * 0.3 }],
-    };
-  });
-  return <Animated.View style={[styles.pip, style]} />;
+  const style = useAnimatedStyle(() => ({ opacity: fill.value }));
+  return (
+    <View style={[styles.pip, { width, backgroundColor: empty }]}>
+      <Animated.View style={[StyleSheet.absoluteFill, styles.pipFill, { backgroundColor: color }, style]} />
+    </View>
+  );
 });
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 18 },
-  label: { ...GP_TYPE.label, color: GP.textSecondary },
-  meter: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  pips: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  block: { gap: 7 },
+  head: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  label: { ...GP_TYPE.label },
+  num: { ...GP_TYPE.numeral },
+  pips: { flexDirection: 'row', gap: 3 },
   pip: {
-    width: 11,
-    height: 8,
-    borderRadius: 2.5,
-    borderWidth: 1,
+    height: AV_SIZE.activePipH,
+    borderRadius: 3,
+    overflow: 'hidden',
   },
-  num: { ...GP_TYPE.numeral, color: GP.cyan, minWidth: 26 },
+  pipFill: { borderRadius: 3 },
 });

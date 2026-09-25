@@ -1,41 +1,29 @@
-/** Locked Home layout metrics. Reference frame: 393 × 852pt. */
+import { AV_COMPACT_HEIGHT, AV_SIZE } from '@/theme/arcadiaV2';
+
+/** v2 Home layout metrics. Reference frame: 390 × 844pt (iPhone 14/15). */
 
 export interface HomeV2Layout {
   width: number;
   height: number;
+  /** Small phones (≤667pt tall): mascot, logo and badge step down. */
   compact: boolean;
-  heroHeight: number;
   palSize: number;
-  medallion: number;
-  bezel: number;
-  plinth: number;
-  playCap: number;
-  marqueeWidth: number;
+  logoWidth: number;
+  ctaWidth: number;
+  ctaHeight: number;
   gap: number;
-  hudHeight: number;
-  navHeight: number;
 }
 
-const SMALL_W = 375;
-const SMALL_H = 667;
-
 export function computeHomeV2Layout(width: number, height: number): HomeV2Layout {
-  const compact = width <= SMALL_W && height <= SMALL_H;
-  // Shrink order on small phones: hero stage, then marquee, then breathing gap.
-  const heroRatio = compact ? 0.32 : 0.4;
+  const compact = height <= AV_COMPACT_HEIGHT;
   return {
     width,
     height,
     compact,
-    heroHeight: Math.round(height * heroRatio),
-    palSize: compact ? 112 : Math.min(150, Math.round(width * 0.38)),
-    medallion: 72,
-    bezel: compact ? 10 : 14,
-    plinth: compact ? 66 : 76,
-    playCap: Math.max(56, compact ? 56 : 64),
-    marqueeWidth: compact ? Math.round(width * 0.66) : Math.min(320, Math.round(width * 0.72)),
+    palSize: compact ? 96 : Math.min(128, Math.round(width * 0.33)),
+    logoWidth: compact ? Math.round(width * 0.48) : Math.min(260, Math.round(width * 0.66)),
+    ctaWidth: Math.min(AV_SIZE.cta.width, width - 64),
+    ctaHeight: compact ? 58 : AV_SIZE.cta.height,
     gap: compact ? 6 : 12,
-    hudHeight: 48,
-    navHeight: 80,
   };
 }

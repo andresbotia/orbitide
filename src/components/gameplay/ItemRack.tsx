@@ -1,7 +1,7 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { memo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
-  interpolateColor,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -12,13 +12,13 @@ import {
   GAMEPLAY_ITEMS,
   type GameplayItemId,
 } from '@/game/presentation/itemPlaceholders';
-import { GAMEPLAY } from '@/theme/gameplayLayout';
-import { GP, GP_RADIUS, GP_TYPE, gpAlpha } from '@/theme/gameplayUi';
+import { AV, AV_COMPACT_HEIGHT, AV_DEPTH, AV_FONT, AV_SIZE, AV_SIZE_COMPACT } from '@/theme/arcadiaV2';
+import { GP } from '@/theme/gameplayUi';
 import { GP_MOTION } from '@/theme/gameplayMotion';
 import { BombGlyph, SlotGlyph, UndoGlyph } from './glyphs';
 import { flash, shake, usePressDepth } from './motionKit';
 
-const SIZE = GAMEPLAY.itemButton;
+const LIP = AV_DEPTH.plateLip;
 
 export interface ItemRackProps {
   inventory?: Record<GameplayItemId, number>;
@@ -30,9 +30,10 @@ export interface ItemRackProps {
 }
 
 /**
- * Production booster deck for M6: Undo, Extra Slot, Bomb.
+ * Production booster deck (M6 logic, M7A v2 look): Undo, Extra Slot, Bomb.
  * Displays real inventory quantities, active/armed states, disabled states,
- * and zero-inventory restock affordances.
+ * and zero-inventory restock affordances. 56pt plates, 20pt apart (48pt on
+ * small phones); 64pt tap targets.
  */
 export const ItemRack = memo(function ItemRack({
   inventory = { undo: 2, extraSlot: 2, bomb: 2 },
@@ -42,6 +43,8 @@ export const ItemRack = memo(function ItemRack({
   disabled = false,
   onPressItem,
 }: ItemRackProps) {
+  const { height } = useWindowDimensions();
+  const size = height <= AV_COMPACT_HEIGHT ? AV_SIZE_COMPACT.item : AV_SIZE.item;
   if (!ENABLE_GAMEPLAY_ITEM_PLACEHOLDERS) return null;
 
   return (
@@ -77,6 +80,7 @@ export const ItemRack = memo(function ItemRack({
             count={count}
             disabled={isItemDisabled}
             selected={isSelected}
+            size={size}
             onPress={() => onPressItem?.(item.id)}
           />
         );
@@ -86,10 +90,13 @@ export const ItemRack = memo(function ItemRack({
 });
 
 /**
- * One booster bay.
- * - Touch-down depth + rim glow.
- * - Empty items (count 0) show a [+] badge that opens restock on tap.
- * - Armed items show a steady cyan/gold highlight ring.
+ * One v2 item plate: 56pt light plate, radius 18, 4pt #AFC5F5 lip, soft
+ * lift, blue stroke icon, amber count badge (22pt) top-right. Count 0 → the
+ * badge becomes a mint "+" (restock) and the plate stays full opacity.
+ * - Touch-down: the plate seats into its lip.
+ * - Use: one cyan ring pulse (a response to the tap, never idle).
+ * - Armed / active: a static cyan selection ring.
+ * - Unavailable (e.g. nothing to undo): icon dims; a tap gives a soft shake.
  */
 const ItemButton = memo(function ItemButton({
   id,
@@ -97,6 +104,7 @@ const ItemButton = memo(function ItemButton({
   count,
   disabled,
   selected,
+  size,
   onPress,
 }: {
   id: GameplayItemId;
@@ -104,6 +112,7 @@ const ItemButton = memo(function ItemButton({
   count: number;
   disabled: boolean;
   selected: boolean;
+  size: number;
   onPress?: () => void;
 }) {
   const empty = count <= 0;
@@ -123,67 +132,52 @@ const ItemButton = memo(function ItemButton({
     onPress?.();
   };
 
-  const bayStyle = useAnimatedStyle(() => {
-    let borderColor = empty
-      ? GP.hairline
-      : disabled
-        ? GP.hairline
-        : interpolateColor(depth.value, [0, 1], [GP.hairlineStrong, GP.cyan]);
+  const faceStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: shakeX.value },
+      { translateY: depth.value * (reducedMotion ? 1.5 : LIP - 1) },
+    ],
+  }));
 
-    if (selected) {
-      borderColor = GP.gold;
-    }
+  const ringStyle = useAnimatedStyle(() => ({
+    opacity: selected ? 1 : ring.value * 0.9,
+    transform: [{ scale: reducedMotion || selected ? 1 : 1 + (1 - ring.value) * 0.18 }],
+  }));
 
-    return {
-      borderColor,
-      transform: [
-        { translateX: shakeX.value },
-        { scale: 1 - depth.value * (reducedMotion ? 0.04 : 0.08) },
-      ],
-    };
-  });
-
-  const ringStyle = useAnimatedStyle(() => {
-    const activeRing = selected ? 1 : ring.value;
-    return {
-      opacity: activeRing * 0.9,
-      borderColor: selected ? GP.gold : GP.cyan,
-      transform: [{ scale: reducedMotion ? 1 : 1 + (1 - ring.value) * (selected ? 0.04 : 0.18) }],
-    };
-  });
-
-  const ink = empty
-    ? GP.textFaint
-    : disabled
-      ? GP.textMuted
-      : selected
-        ? GP.gold
-        : GP.cyan;
+  const dim = disabled && !empty && !selected;
+  const icon = size * 0.5;
+  const radius = Math.round(size * 0.32);
+  const hitSlop = Math.max(0, Math.ceil((AV_SIZE.itemTap - size) / 2));
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${label}, ${count}`}
+      accessibilityLabel={empty ? `${label}, none left, tap to restock` : `${label}, ${count}`}
       accessibilityState={{ disabled: disabled && !empty, selected }}
-      hitSlop={4}
+      hitSlop={hitSlop}
       onPressIn={pressIn}
       onPressOut={pressOut}
       onPress={handlePress}
     >
-      <Animated.View style={[styles.btn, empty && styles.btnEmpty, selected && styles.btnSelected, bayStyle]}>
-        {id === 'undo' ? <UndoGlyph color={ink} /> : null}
-        {id === 'extraSlot' ? <SlotGlyph color={ink} /> : null}
-        {id === 'bomb' ? <BombGlyph color={ink} spark={empty || disabled ? GP.textFaint : GP.gold} /> : null}
-
-        <Animated.View pointerEvents="none" style={[styles.ring, ringStyle]} />
-
-        {/* Badge: count or [+] restock affordance */}
-        <View style={[styles.badge, empty && styles.badgeEmpty]} pointerEvents="none">
-          <Text style={[styles.badgeNum, empty && styles.badgeNumEmpty]}>
-            {empty ? '+' : count}
-          </Text>
-        </View>
-      </Animated.View>
+      <View style={[styles.lift, { width: size, height: size + LIP }]}>
+        <View style={[styles.lip, { top: LIP, height: size, borderRadius: radius }]} />
+        <Animated.View style={faceStyle}>
+          <LinearGradient colors={[AV.plate, AV.plateLow]} style={[styles.face, { width: size, height: size, borderRadius: radius }]}>
+            <View style={dim ? styles.iconDim : null}>
+              {id === 'undo' ? <UndoGlyph size={icon} /> : null}
+              {id === 'extraSlot' ? <SlotGlyph size={icon} /> : null}
+              {id === 'bomb' ? <BombGlyph size={icon} /> : null}
+            </View>
+          </LinearGradient>
+          <Animated.View pointerEvents="none" style={[styles.ring, { borderRadius: radius + 4 }, ringStyle]} />
+          {/* Badge: count, or a mint "+" restock affordance at zero. */}
+          <View style={[styles.badge, empty && styles.badgeEmpty]} pointerEvents="none">
+            <Text style={[styles.badgeNum, empty && styles.badgeNumEmpty]}>
+              {empty ? '+' : count}
+            </Text>
+          </View>
+        </Animated.View>
+      </View>
     </Pressable>
   );
 });
@@ -193,64 +187,63 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 14,
+    gap: AV_SIZE.itemGap,
     alignSelf: 'center',
     paddingTop: 6,
   },
-  btn: {
-    width: SIZE,
-    height: SIZE,
-    borderRadius: GP_RADIUS.bay,
-    backgroundColor: GP.well,
-    borderWidth: 1.5,
+  lift: {
+    ...AV_DEPTH.lift,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  lip: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    backgroundColor: AV.plateLip,
+  },
+  face: {
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
-  btnEmpty: {
-    borderStyle: 'dashed',
-    backgroundColor: gpAlpha(GP.well, 0.4),
-  },
-  btnSelected: {
-    backgroundColor: gpAlpha(GP.wellDeep, 0.9),
-  },
+  iconDim: { opacity: 0.4 },
   ring: {
     position: 'absolute',
-    top: -3,
-    left: -3,
-    right: -3,
-    bottom: -3,
-    borderRadius: GP_RADIUS.bay + 3,
+    top: -4,
+    left: -4,
+    right: -4,
+    bottom: -4,
     borderWidth: 2,
     borderColor: GP.cyan,
   },
   badge: {
     position: 'absolute',
     right: -6,
-    bottom: -6,
-    minWidth: 22,
-    height: 22,
+    top: -6,
+    minWidth: AV_SIZE.itemBadge,
+    height: AV_SIZE.itemBadge,
     paddingHorizontal: 4,
-    borderRadius: 11,
-    backgroundColor: GP.canvas,
+    borderRadius: AV_SIZE.itemBadge / 2,
+    backgroundColor: AV.gold,
     borderWidth: 2,
-    borderColor: GP.gold,
+    borderColor: AV.shellBottom,
     alignItems: 'center',
     justifyContent: 'center',
   },
   badgeEmpty: {
-    borderColor: GP.hairlineStrong,
-    backgroundColor: GP.panel,
+    backgroundColor: AV.mint,
   },
   badgeNum: {
-    ...GP_TYPE.numeral,
-    color: GP.text,
+    fontFamily: AV_FONT.black,
+    color: AV.goldInk,
     fontSize: 11,
-    lineHeight: 15,
+    lineHeight: 14,
+    fontVariant: ['tabular-nums'],
   },
   badgeNumEmpty: {
-    color: GP.gold,
-    fontSize: 13,
-    lineHeight: 14,
-    fontWeight: '700',
+    color: AV.white,
+    fontSize: 14,
+    lineHeight: 16,
   },
 });

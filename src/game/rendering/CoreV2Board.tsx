@@ -1,4 +1,4 @@
-import { Canvas, Group, LinearGradient, RadialGradient, Rect, vec } from '@shopify/react-native-skia';
+import { Canvas, Group } from '@shopify/react-native-skia';
 import { memo, useMemo, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
@@ -18,7 +18,7 @@ import { cellCenter, computeBoardGeometry, type BoardGeometry } from './boardGeo
 import { assignLaneSlots, laneOffset } from './laneAssignment';
 import { RejectPulse } from './RejectPulse';
 import { usePassClock, usePresentationClock, type PresentationClock } from './usePresentationClock';
-import { RoundedLauncherGate, RoundedRail } from './RoundedRail';
+import { RoundedLauncherGate, RoundedRail, RoundedTrack, trackOuterRadius } from './RoundedRail';
 import { Pixel } from './Pixel';
 import { PixelPal } from './pixelPal/PixelPal';
 
@@ -99,7 +99,13 @@ export const CoreV2Board = memo(function CoreV2Board({ size, width, height, stat
 
   return (
     <View style={{ width: canvasW, height: canvasH, overflow: 'visible' }}>
-      <CoreV2Field geo={geo} width={canvasW} height={canvasH} />
+      {/* Soft lift under the track band. Its radius follows the band's own
+          outer radius so no corner of it shows outside the rounded track. */}
+      <View
+        pointerEvents="none"
+        style={[styles.lift, { borderRadius: Math.max(0, trackOuterRadius(geo) - LIFT_INSET) }]}
+      />
+      <CoreV2Field geo={geo} />
 
       <BoardActors
         state={state}
@@ -131,24 +137,14 @@ export const CoreV2Board = memo(function CoreV2Board({ size, width, height, stat
   );
 });
 
-/** Static Skia field + rail. Memoised so pixel-clear React updates don't redraw it. */
-const CoreV2Field = memo(function CoreV2Field({ geo, width, height }: { geo: BoardGeometry; width: number; height: number }) {
+/**
+ * Static Skia field: v2 track band, deep well, direction chevrons and the
+ * launch gate. Memoised so pixel-clear React updates don't redraw it.
+ */
+const CoreV2Field = memo(function CoreV2Field({ geo }: { geo: BoardGeometry }) {
   return (
     <Canvas style={StyleSheet.absoluteFill}>
-      <Rect x={0} y={0} width={width} height={height}>
-        <LinearGradient
-          start={vec(0, 0)}
-          end={vec(0, height)}
-          colors={[coreV2Board.fieldCenter, coreV2Board.fieldEdge]}
-        />
-      </Rect>
-      <Rect x={0} y={0} width={width} height={height} opacity={0.22}>
-        <RadialGradient
-          c={vec(width * 0.5, height * 0.42)}
-          r={Math.min(width, height) * 0.62}
-          colors={['#00407A', 'rgba(0,0,0,0)']}
-        />
-      </Rect>
+      <RoundedTrack geo={geo} />
       <Group>
         <RoundedRail geo={geo} />
         <RoundedLauncherGate geo={geo} />
@@ -246,6 +242,21 @@ const FinalClearFlash = memo(function FinalClearFlash({ clock, at }: { clock: Sh
   return <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.finalFlash, style]} />;
 });
 
+/** How far the lift sits inside the canvas edge, so it never fringes the band. */
+const LIFT_INSET = 6;
+
 const styles = StyleSheet.create({
   finalFlash: { backgroundColor: NEON.gold },
+  lift: {
+    position: 'absolute',
+    top: LIFT_INSET,
+    left: LIFT_INSET,
+    right: LIFT_INSET,
+    bottom: LIFT_INSET,
+    backgroundColor: coreV2Board.trackBottom,
+    shadowColor: '#0A1946',
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 14 },
+  },
 });

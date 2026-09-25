@@ -98,6 +98,9 @@ export const SpecialPixelLayer = memo(function SpecialPixelLayer({ geo, specials
   );
 });
 
+/** v2 "static by default": modifier idle loops (bomb pulse, wild shimmer, link pulse) are off. */
+const IDLE_MODIFIER_MOTION = false;
+
 function SpecialShell({ center, cell, color, render, idle, reducedMotion }: {
   center: { x: number; y: number };
   cell: number;
@@ -112,7 +115,9 @@ function SpecialShell({ center, cell, color, render, idle, reducedMotion }: {
   const y = center.y - outer / 2;
   const fill = orbColors[color];
   const glow = orbGlow[color];
-  const pulse = useIdleMotion(render.motion ?? 'bombPulse', idle && render.motion !== null, reducedMotion);
+  // M7A: nothing on the board animates by itself. Special shells rest at the
+  // same static frame Reduce Motion already uses; motion comes from play.
+  const pulse = useIdleMotion(render.motion ?? 'bombPulse', IDLE_MODIFIER_MOTION && idle && render.motion !== null, reducedMotion);
   const pulseOpacity = useDerivedValue(() => 0.4 + pulse.value * 0.5);
 
   // Frozen ice fully cracked — the base pixel (Pixel.tsx) renders as normal.

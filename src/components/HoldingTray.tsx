@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -7,7 +7,6 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
-  withRepeat,
   withSequence,
   withSpring,
   withTiming,
@@ -23,8 +22,9 @@ import type { TutorialView } from '@/game/tutorial';
 import { markContrast } from '@/theme/colorAssist';
 import { orbColors, orbGlow, orbLabel } from '@/theme/colors';
 import { flash, kick, shake, usePressDepth } from '@/components/gameplay/motionKit';
+import { AV, AV_SIZE } from '@/theme/arcadiaV2';
 import { GAMEPLAY } from '@/theme/gameplayLayout';
-import { GP, GP_RADIUS, GP_TYPE, gpAlpha } from '@/theme/gameplayUi';
+import { GP, GP_TYPE, gpAlpha } from '@/theme/gameplayUi';
 import { GP_MOTION } from '@/theme/gameplayMotion';
 
 interface HoldingTrayProps {
@@ -45,6 +45,10 @@ interface HoldingTrayProps {
   tutorial?: TutorialView;
   /** Recessed wells in the control deck — no card chrome, no helper copy. */
   embedded?: boolean;
+  /** v2 slot edge (pt). The tray may step this down so a 4th (Extra Slot) well fits. */
+  slotSize?: number;
+  /** Held Pal size (pt). */
+  palSize?: number;
 }
 
 function setsEqual(a: Set<string>, b: Set<string>): boolean {
@@ -55,8 +59,6 @@ function setsEqual(a: Set<string>, b: Set<string>): boolean {
 }
 
 type HoldingTier = 'calm' | 'occupied' | 'warning' | 'danger';
-/** Pressure ranking — used only to detect an *escalation* worth a one-shot pulse. */
-const TIER_RANK: Record<HoldingTier, number> = { calm: 0, occupied: 1, warning: 2, danger: 3 };
 
 /**
  * Pure gameplay-pressure ladder — a function of occupancy only, never of
@@ -70,43 +72,32 @@ function holdingTier(count: number, capacity: number): HoldingTier {
 }
 
 const TIER_COLOR: Record<HoldingTier, string> = {
-  calm: GP.textMuted,
-  occupied: GP.cyanPale,
+  calm: AV.white,
+  occupied: AV.white,
   warning: GP.gold,
   danger: GP.danger,
 };
 
 /**
- * HOLDING n/cap for the deck's status strip. Colour follows the tier; FULL
- * gets a small danger chip. A one-shot pop on *escalation* into warning/full —
- * never a standing pulse, never on de-escalation.
+ * "HOLDING n/cap" for the v2 tray, right-aligned beside the wells. The count
+ * colour follows the tier (gold at the warning tier, coral when full). Static:
+ * no pop, no pulse — the wells' rims carry the pressure too, so colour is
+ * never the only signal.
  */
 export const HoldingStatus = memo(function HoldingStatus({ count, capacity }: { count: number; capacity: number }) {
-  const reducedMotion = useReducedMotion();
   const tier = holdingTier(count, capacity);
-  const prevRank = useRef(TIER_RANK[tier]);
-  const tierPulse = useSharedValue(0);
-  useEffect(() => {
-    const rank = TIER_RANK[tier];
-    if (rank >= TIER_RANK.warning && rank > prevRank.current && !reducedMotion) flash(tierPulse, 100, 240);
-    prevRank.current = rank;
-  }, [tier, tierPulse, reducedMotion]);
-  const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: 1 + tierPulse.value * 0.1 }] }));
-  const color = TIER_COLOR[tier];
-
   return (
-    <Animated.View
+    <View
       accessible
       accessibilityRole="text"
       accessibilityLabel={`Holding ${count} of ${capacity}${tier === 'danger' ? ', full' : ''}`}
-      style={[styles.status, pulseStyle]}
+      style={styles.status}
     >
-      <Text style={[styles.label, { color: tier === 'calm' ? GP.textSecondary : color }]}>HOLDING</Text>
-      {tier === 'danger' ? (
-        <View style={styles.fullChip}><Text style={styles.fullText}>FULL</Text></View>
-      ) : null}
-      <Text style={[styles.labelCount, { color }]}>{count}/{capacity}</Text>
-    </Animated.View>
+      <Text style={[styles.label, { color: AV.textSecondary }]}>HOLDING</Text>
+      <Text style={[styles.labelCount, { color: TIER_COLOR[tier] }]}>
+        {tier === 'danger' ? 'FULL' : `${count}/${capacity}`}
+      </Text>
+    </View>
   );
 });
 
@@ -117,9 +108,10 @@ export const HoldingStatus = memo(function HoldingStatus({ count, capacity }: { 
  */
 export const HoldingTray = memo(function HoldingTray({
   holding, capacity, disabled, usefulIds, colorAssist, onLaunch, onSourceLayout, layoutVersion, boosterSlot, pixelPal,
-  tutorial,
+  tutorial, slotSize = SLOT, palSize = PAL,
 }: HoldingTrayProps) {
   const reducedMotion = useReducedMotion();
+  const geom = useMemo(() => ({ slot: slotSize, pal: palSize }), [slotSize, palSize]);
 
   const prevIds = useRef<Set<string>>(new Set(holding.map((c) => c.id)));
   const [arrivedIds, setArrivedIds] = useState<Set<string>>(() => new Set());
@@ -150,6 +142,7 @@ export const HoldingTray = memo(function HoldingTray({
                 useful={!!charge && usefulIds.has(charge.id)}
                 captured={!!charge && arrivedIds.has(charge.id)}
                 rim={tier === 'danger' ? 'danger' : tier === 'warning' && index === holding.length ? 'warning' : 'normal'}
+                slot={slotSize}
                 disabled={disabled}
                 reducedMotion={reducedMotion}
                 onLaunch={onLaunch}
@@ -176,13 +169,14 @@ export const HoldingTray = memo(function HoldingTray({
                 reducedMotion={reducedMotion}
                 subdued={!!tutorial && isHeldChargeSubdued(tutorial, charge.id)}
                 shakeSeq={denied.id === charge.id ? denied.seq : 0}
+                geom={geom}
               />
             ))}
           </View>
         </View>
 
         {boosterSlot ? (
-          <View style={[styles.socket, styles.boosterSlot]}>
+          <View style={[styles.socket, styles.boosterSlot, { width: slotSize, height: slotSize }]}>
             <Text style={styles.boosterMark}>+</Text>
           </View>
         ) : null}
@@ -201,25 +195,32 @@ export const HoldingTray = memo(function HoldingTray({
   && prev.tutorial === next.tutorial
   && prev.onLaunch === next.onLaunch
   && prev.onSourceLayout === next.onSourceLayout
+  && prev.slotSize === next.slotSize
+  && prev.palSize === next.palSize
 ));
 
-const SOCKET = GAMEPLAY.holdingWell;
+/** v2: 40pt recessed slots, 32pt Pal inside. */
+const SLOT = GAMEPLAY.holdingWell;
 const PAL = GAMEPLAY.holdingPal;
+/** Tap target is 48pt: the slop around each 40pt well. */
+const WELL_SLOP = Math.max(0, (AV_SIZE.holdingTap - SLOT) / 2);
 
 /** Horizontal gap between wells (also the tray row gap). */
-const WELL_GAP = 10;
+const WELL_GAP = 6;
 /** TUNABLE — how long a held Pal takes to slide to its new well. Quick, not a show. */
 const RESHUFFLE_MS = 160;
 
+interface WellGeom { slot: number; pal: number }
+
 /** Held Pal's top-left inside the wells row, centred in well `index`. */
-function palX(index: number): number {
-  return index * (SOCKET + WELL_GAP) + (SOCKET - PAL) / 2;
+function palX(index: number, g: WellGeom): number {
+  return index * (g.slot + WELL_GAP) + (g.slot - g.pal) / 2;
 }
-const PAL_Y = (SOCKET - PAL) / 2;
 
 type WellRim = 'normal' | 'warning' | 'danger';
-const RIM_EMPTY: Record<WellRim, string> = { normal: GP.hairline, warning: gpAlpha(GP.gold, 0.55), danger: gpAlpha(GP.danger, 0.45) };
-const RIM_OCCUPIED: Record<WellRim, string> = { normal: GP.hairlineStrong, warning: GP.hairlineStrong, danger: gpAlpha(GP.danger, 0.45) };
+/** v2: rims are invisible at rest; the next free well goes gold at the warning tier; full = coral 2pt, static. */
+const RIM_COLOR: Record<WellRim, string> = { normal: 'transparent', warning: gpAlpha(GP.gold, 0.6), danger: GP.danger };
+const RIM_WIDTH: Record<WellRim, number> = { normal: 0, warning: 1.5, danger: 2 };
 
 /**
  * A physical Holding well: fixed position (keyed by index), owns the press,
@@ -232,10 +233,11 @@ const RIM_OCCUPIED: Record<WellRim, string> = { normal: GP.hairlineStrong, warni
  * tier, every rim goes danger when the tray is full. Static — never flashing.
  */
 const Well = memo(function Well({
-  index, charge, useful, captured, rim, disabled, reducedMotion, onLaunch, onDenied, onSourceLayout, layoutVersion,
+  index, charge, useful, captured, rim, slot, disabled, reducedMotion, onLaunch, onDenied, onSourceLayout, layoutVersion,
   highlighted, subdued,
 }: {
   index: number;
+  slot: number;
   charge: Charge | undefined;
   useful: boolean;
   /** Its Pal just landed from the Gate. */
@@ -259,24 +261,13 @@ const Well = memo(function Well({
   }, [onSourceLayout, key]);
   useEffect(() => { measure(); }, [layoutVersion, measure]);
 
-  const spotlight = useSharedValue(0);
-  const wasHighlighted = useRef(false);
+  // Tutorial spotlight: fades in and holds — a static ring, never a pulse.
+  const spotlight = useSharedValue(highlighted ? 1 : 0);
   useEffect(() => {
     cancelAnimation(spotlight);
-    if (!highlighted) { spotlight.set(withTiming(0, { duration: 160 })); wasHighlighted.current = false; return; }
-    const justBecameTarget = !wasHighlighted.current;
-    wasHighlighted.current = true;
-    if (reducedMotion) { spotlight.set(withTiming(1, { duration: 160 })); return; }
-    const pulse = withRepeat(withTiming(1, { duration: 900, easing: Easing.inOut(Easing.sin) }), -1, true);
-    spotlight.set(justBecameTarget
-      ? withSequence(withTiming(1, { duration: 140, easing: Easing.out(Easing.cubic) }), pulse)
-      : pulse);
-    return () => cancelAnimation(spotlight);
+    spotlight.set(withTiming(highlighted ? 1 : 0, { duration: reducedMotion ? 0 : 160, easing: Easing.out(Easing.cubic) }));
   }, [highlighted, reducedMotion, spotlight]);
-  const spotlightStyle = useAnimatedStyle(() => ({
-    opacity: 0.45 + spotlight.value * 0.55,
-    transform: [{ scale: 1 + spotlight.value * 0.04 }],
-  }));
+  const spotlightStyle = useAnimatedStyle(() => ({ opacity: spotlight.value }));
 
   const { depth, pressIn, pressOut } = usePressDepth();
   const dip = useSharedValue(0);
@@ -315,7 +306,6 @@ const Well = memo(function Well({
     };
   });
 
-  const rimColor = charge ? RIM_OCCUPIED[rim] : RIM_EMPTY[rim];
   return (
     <Pressable
       ref={slotRef}
@@ -324,6 +314,7 @@ const Well = memo(function Well({
       disabled={disabled || !charge}
       onPressIn={onPressIn}
       onPressOut={pressOut}
+      hitSlop={WELL_SLOP}
       accessibilityRole="button"
       accessibilityState={{ disabled: disabled || !charge }}
       accessibilityLabel={charge
@@ -332,11 +323,17 @@ const Well = memo(function Well({
       accessibilityHint={useful ? 'Tap to launch again' : 'Tap to launch again. No matching pixel is exposed yet'}
       style={subdued ? styles.socketSubdued : null}
     >
-      <Animated.View style={[styles.socket, charge ? styles.socketOccupied : null, { borderColor: rimColor }, wellStyle]}>
+      <Animated.View
+        style={[
+          styles.socket,
+          { width: slot, height: slot, borderColor: RIM_COLOR[rim], borderWidth: RIM_WIDTH[rim] },
+          wellStyle,
+        ]}
+      >
+        <View pointerEvents="none" style={styles.socketInset} />
         {highlighted ? (
-          <Animated.View pointerEvents="none" style={[styles.spotlightRing, spotlightStyle]} />
+          <Animated.View pointerEvents="none" style={[styles.spotlightRing, { width: slot + 10, height: slot + 10 }, spotlightStyle]} />
         ) : null}
-        {charge ? null : <View style={styles.socketWell} />}
         <Animated.View pointerEvents="none" style={[styles.ring, ringStyle]} />
       </Animated.View>
     </Pressable>
@@ -349,7 +346,7 @@ const Well = memo(function Well({
  * React commit only changes the target, so there is no snap and no remount.
  */
 const HeldPal = memo(function HeldPal({
-  charge, index, useful, colorAssist, pixelPal, justArrived, reducedMotion, subdued, shakeSeq,
+  charge, index, useful, colorAssist, pixelPal, justArrived, reducedMotion, subdued, shakeSeq, geom,
 }: {
   charge: Charge;
   index: number;
@@ -361,16 +358,24 @@ const HeldPal = memo(function HeldPal({
   subdued: boolean;
   /** Bumped when a tap on this Pal's well was refused. */
   shakeSeq: number;
+  geom: WellGeom;
 }) {
-  const x = useSharedValue(palX(index));
+  const PAL_SIZE = geom.pal;
+  const palY = (geom.slot - geom.pal) / 2;
+  const x = useSharedValue(palX(index, geom));
   const placedAt = useRef(index);
+  const placedGeom = useRef(geom.slot);
   useEffect(() => {
-    if (placedAt.current === index) return;
+    const target = palX(index, geom);
+    if (placedAt.current === index && placedGeom.current === geom.slot) return;
+    // A geometry change (Extra Slot shrinking the wells) re-seats instantly.
+    const resized = placedGeom.current !== geom.slot;
     placedAt.current = index;
-    x.set(reducedMotion
-      ? palX(index)
-      : withTiming(palX(index), { duration: RESHUFFLE_MS, easing: Easing.out(Easing.cubic) }));
-  }, [index, reducedMotion, x]);
+    placedGeom.current = geom.slot;
+    x.set(reducedMotion || resized
+      ? target
+      : withTiming(target, { duration: RESHUFFLE_MS, easing: Easing.out(Easing.cubic) }));
+  }, [index, reducedMotion, x, geom]);
 
   const arrival = useSharedValue(0);
   useEffect(() => {
@@ -394,7 +399,7 @@ const HeldPal = memo(function HeldPal({
   const style = useAnimatedStyle(() => ({
     transform: [
       { translateX: x.value + shakeX.value },
-      { translateY: PAL_Y },
+      { translateY: palY },
       { scale: 1 + arrival.value * 0.1 },
     ],
   }));
@@ -404,20 +409,32 @@ const HeldPal = memo(function HeldPal({
   // Every held Pal may be relaunched now, so none is drawn as disabled.
   // `selected` is the positive hint instead: this one has an exposed match.
   return (
-    <Animated.View style={[styles.heldPal, subdued && styles.socketSubdued, style]}>
+    <Animated.View style={[styles.heldPal, { width: PAL_SIZE, height: PAL_SIZE }, subdued && styles.socketSubdued, style]}>
       {pixelPal ? (
         <View>
           <PixelPalFace
             color={charge.color}
-            size={PAL}
+            size={PAL_SIZE}
             colorAssist={colorAssist}
             mood="calm"
             capacity={charge.capacity}
             selected={useful}
+            animate={false}
           />
         </View>
       ) : (
-        <View style={[styles.orb, { backgroundColor: orbColors[charge.color], borderColor: orbGlow[charge.color] }]}>
+        <View
+          style={[
+            styles.orb,
+            {
+              width: PAL_SIZE,
+              height: PAL_SIZE,
+              borderRadius: PAL_SIZE / 2,
+              backgroundColor: orbColors[charge.color],
+              borderColor: orbGlow[charge.color],
+            },
+          ]}
+        >
           <View style={styles.orbGloss} />
           <Text
             style={[
@@ -444,50 +461,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   status: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    height: 18,
+    alignItems: 'flex-end',
+    gap: 2,
   },
   label: { ...GP_TYPE.label },
-  labelCount: { ...GP_TYPE.numeral, minWidth: 24, textAlign: 'right' },
-  fullChip: {
-    paddingHorizontal: 5,
-    height: 15,
-    borderRadius: 4,
-    justifyContent: 'center',
-    backgroundColor: gpAlpha(GP.danger, 0.16),
-    borderWidth: 1,
-    borderColor: gpAlpha(GP.danger, 0.55),
-  },
-  fullText: { ...GP_TYPE.label, fontSize: 8.5, letterSpacing: 1.2, color: GP.danger },
+  labelCount: { ...GP_TYPE.numeral, textAlign: 'right' },
   slots: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: WELL_GAP,
   },
-  // Recessed ink well + a single hairline rim — the deck's one well material.
+  // v2 recessed slot: dark glass, radius 12, a 2pt inset shade along the top.
   socket: {
-    width: SOCKET,
-    height: SOCKET,
-    borderRadius: GP_RADIUS.well,
-    backgroundColor: GP.well,
-    borderWidth: 1,
+    borderRadius: 12,
+    backgroundColor: AV.recess,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'visible',
   },
-  socketOccupied: {
-    backgroundColor: GP.wellDeep,
-  },
-  socketWell: {
-    width: SOCKET * 0.3,
-    height: SOCKET * 0.3,
-    borderRadius: SOCKET * 0.1,
-    backgroundColor: GP.wellDeep,
-    borderWidth: 1,
-    borderColor: GP.hairline,
+  socketInset: {
+    position: 'absolute',
+    top: 0,
+    left: 3,
+    right: 3,
+    height: 2,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.18)',
   },
   socketSubdued: { opacity: 0.55 },
   ring: {
@@ -496,24 +497,19 @@ const styles = StyleSheet.create({
     left: -3,
     right: -3,
     bottom: -3,
-    borderRadius: GP_RADIUS.well + 3,
+    borderRadius: 15,
     borderWidth: 2,
   },
   spotlightRing: {
     position: 'absolute',
-    width: SOCKET + 10,
-    height: SOCKET + 10,
-    borderRadius: GP_RADIUS.well + 5,
+    borderRadius: 16,
     borderWidth: 2,
     borderColor: GP.cyan,
     backgroundColor: 'transparent',
   },
   wells: { flexDirection: 'row', gap: WELL_GAP },
-  heldPal: { position: 'absolute', left: 0, top: 0, width: PAL, height: PAL, alignItems: 'center', justifyContent: 'center' },
+  heldPal: { position: 'absolute', left: 0, top: 0, alignItems: 'center', justifyContent: 'center' },
   orb: {
-    width: PAL,
-    height: PAL,
-    borderRadius: PAL / 2,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -521,16 +517,16 @@ const styles = StyleSheet.create({
   },
   orbGloss: {
     position: 'absolute',
-    top: PAL * 0.1,
-    left: PAL * 0.14,
-    width: PAL * 0.32,
-    height: PAL * 0.22,
-    borderRadius: PAL * 0.2,
+    top: '10%',
+    left: '14%',
+    width: '32%',
+    height: '22%',
+    borderRadius: 8,
     backgroundColor: '#FFFFFF',
     opacity: 0.4,
   },
   assist: { position: 'absolute', bottom: 2, alignSelf: 'center' },
   boosterSlot: { borderWidth: 1, borderStyle: 'dashed', borderColor: GP.textFaint, opacity: 0.5 },
   boosterMark: { color: GP.textMuted, fontSize: 22, fontWeight: '700' },
-  count: { fontSize: 17, fontWeight: '800' },
+  count: { fontSize: 13, fontWeight: '800' },
 });
