@@ -2,6 +2,7 @@ import { orbitFraction } from '@/game/engine/orbit';
 import { normalizePerimeterProgress, poseAtMeasuredPerimeterProgress } from '@/game/geometry/roundedPerimeter';
 import { HOLDING_RETARGET_MIN_MS } from '@/game/presentation/constants';
 import type { FlightPass, Point } from '@/game/presentation/events';
+import { progressAt } from '@/game/presentation/motion';
 import type { BoardGeometry } from './boardGeometry';
 
 /**
@@ -93,16 +94,16 @@ export function landingPose(pass: FlightPass, time: number, fromX: number, fromY
 }
 
 /**
- * Rail-entry staging (presentation only).
+ * Rail-entry wait (presentation only).
  *
  * When the rail origin is still occupied, the convoy scheduler makes a new Pal
- * wait there (a hold at progress 0 starting exactly at `liftMs`) — which drew
- * it ON TOP of the Pal ahead. Instead, for that wait the Pal is drawn upstream
- * on the rail at `(t - entryAt) / lap`: it rides in at normal rail speed and
- * reaches the origin exactly when its logical wait ends, then continues on its
- * unchanged schedule. The scheduler guarantees `entryAt` is at least one convoy
- * spacing (at rail speed) after the Pal ahead left the origin, so staged Pals
- * keep the convoy's own spacing from each other and from the Pal ahead.
+ * wait there (a hold at progress 0 starting exactly at `liftMs`). M7B: that
+ * wait is spent on the launch approach, never on the rail — the Pal's lift is
+ * stretched so it reaches the canonical Gate exactly when its wait ends, and
+ * only then starts along the rail from progress 0. The scheduler guarantees
+ * `entryAt` is at least one convoy spacing (at rail speed) after the Pal ahead
+ * left the origin, so every Pal enters at the same Gate, in launch order, with
+ * the convoy's own spacing — spacing comes from time, never from position.
  *
  * Returns the end of that wait (== `liftMs` when there is none).
  */
@@ -113,4 +114,37 @@ export function entryWaitEndAt(pass: FlightPass): number {
   const first = holds[0]!;
   if (first.progress > 1e-9 || Math.abs(first.startAt - pass.liftMs) > 0.5) return pass.liftMs;
   return first.endAt;
+}
+
+/** TUNABLE — half-width (ms) of the visual rail-motion smoothing window. */
+export const RAIL_SMOOTH_HALF_MS = 130;
+/** Midpoint samples across the window; speed changes in steps of 1/N. */
+const RAIL_SMOOTH_SAMPLES = 9;
+
+/**
+ * M7B — the rail progress a Core V2 Pal is DRAWN at: its logical
+ * `progressAt` averaged over a ±`RAIL_SMOOTH_HALF_MS` window.
+ *
+ * The logical schedule stops a Pal dead for each shot (and each convoy
+ * bumper wait); every event time, the convoy and Holding admission run on
+ * that schedule and are untouched. Drawing the window average instead turns
+ * an isolated 110ms stop into a brief slowdown (~55% speed at its lowest)
+ * while keeping, exactly:
+ *  - monotonic travel (an average of a non-decreasing function never reverses);
+ *  - the logical position on every constant-speed stretch;
+ *  - progress 0 at `railStart` and the logical end at `orbitEndAt` — the
+ *    window narrows to zero at both ends, so rail entry and the Holding
+ *    landing stay seamless.
+ * A long stop (several shots at one spot) still reads as a stop. The drawn
+ * position is never more than `speed × RAIL_SMOOTH_HALF_MS / 4` (~6pt) from
+ * the logical one — well inside the convoy spacing.
+ */
+export function smoothedRailProgress(pass: FlightPass, time: number, railStart: number): number {
+  'worklet';
+  const half = Math.min(RAIL_SMOOTH_HALF_MS, time - railStart, pass.orbitEndAt - time);
+  if (!(half > 0)) return progressAt(pass, time);
+  const step = (half * 2) / RAIL_SMOOTH_SAMPLES;
+  let sum = 0;
+  for (let k = 0; k < RAIL_SMOOTH_SAMPLES; k += 1) sum += progressAt(pass, time - half + (k + 0.5) * step);
+  return sum / RAIL_SMOOTH_SAMPLES;
 }

@@ -15,6 +15,7 @@ import { GP_MOTION } from '@/theme/gameplayMotion';
 import { homeAlpha } from '@/theme/homeV2';
 import type { BoardGeometry } from '../boardGeometry';
 import { flightPose } from '../flightGeometry';
+import { entryWaitEndAt } from '../railPath';
 import { AnimatedCount } from './AnimatedCount';
 import { PixelPalShell, PixelPalVisor } from './PixelPalFace';
 import { GP, gpAlpha } from '@/theme/gameplayUi';
@@ -68,6 +69,9 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
   const plateH = badge.height;
   // The beat this Pal is spent: its plate leaves as the terminal burst starts.
   const spentAt = pass.shots.find((shot) => shot.remaining <= 0)?.clearAt ?? Number.POSITIVE_INFINITY;
+  // When the Pal reaches the Gate: its launch trail spans the whole approach,
+  // including any wait for the Gate to clear.
+  const gateEntryAt = entryWaitEndAt(pass);
 
   const motionState = useDerivedValue(() => {
     const t = clock.value;
@@ -86,7 +90,7 @@ export const PixelPal = memo(function PixelPal({ layout, pass, clock, colorAssis
       const since = t - shot.clearAt;
       if (since >= 0 && since < GP_MOTION.badgeTickMs) tick = 1 - since / GP_MOTION.badgeTickMs;
     }
-    const trailSpan = pass.liftMs - GP_MOTION.trailStartMs;
+    const trailSpan = gateEntryAt - GP_MOTION.trailStartMs;
     const trailP = (t - GP_MOTION.trailStartMs) / Math.max(1, trailSpan);
     const trail = trailP > 0 && trailP < 1 ? Math.sin(trailP * Math.PI) : 0;
 

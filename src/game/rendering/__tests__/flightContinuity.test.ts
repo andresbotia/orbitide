@@ -5,19 +5,20 @@
  */
 import { computeBoardGeometry } from '../boardGeometry';
 import { flightPose, flightPosition } from '../flightGeometry';
-import { railPoint } from '../railPath';
+import { entryWaitEndAt, RAIL_SMOOTH_HALF_MS, railPoint, smoothedRailProgress } from '../railPath';
 import { progressAt } from '../../presentation/motion';
 import { createGame } from '../../engine/createGame';
 import { resolveLaunch } from '../../engine/resolveLaunch';
 import { buildLaunchScript } from '../../presentation/buildScript';
-import { LAUNCH_HUB } from '../../presentation/constants';
+import { CORE_V2_CONVOY_SPACING, LAUNCH_HUB } from '../../presentation/constants';
+import { applyCoreV2Convoy } from '../../presentation/convoy';
 import type { FlightPass } from '../../presentation/events';
 import type { LevelDefinition } from '../../engine/types';
 
 const level: LevelDefinition = {
   id: 9741, title: 'continuity', themeId: 'test', difficulty: 'easy', holdingCapacity: 3, ruleset: 'coreV2',
   pixelArt: ['WWW', 'WBW', 'WWW'],
-  tunnels: [[{ color: 'blue', capacity: 3 }], [], [], []],
+  tunnels: [[{ color: 'blue', capacity: 3 }], [], []],
 };
 const geo = computeBoardGeometry(360, 3, 3, { roundedRect: true, box: { width: 360, height: 360 } });
 const LANES = [0, 3, -3, 6, -6];
@@ -130,40 +131,45 @@ test('a late retarget glides for at least the minimum leg instead of snapping', 
   expect(flightPose(pass, geo, at + 100)).toMatchObject({ x: 250, y: 470 });
 });
 
-describe('rail-entry staging (origin still occupied)', () => {
-  const WAIT = 300;
-  function stagedPass(): { pass: FlightPass; base: FlightPass } {
-    const base = landingPass();
+describe('Gate wait (origin still occupied) — M7B canonical Gate origin', () => {
+  const WAITS = [150, 300, 900];
+  function waitingPass(wait: number): FlightPass {
     // The convoy scheduler's entry wait: a hold at progress 0 starting at liftMs.
-    const pass: FlightPass = { ...base, convoyHolds: [{ progress: 0, startAt: base.liftMs, endAt: base.liftMs + WAIT }] };
-    return { pass, base };
+    const base = landingPass();
+    return { ...base, convoyHolds: [{ progress: 0, startAt: base.liftMs, endAt: base.liftMs + wait }] };
   }
-  const origin = (lane: number) => flightPose(landingPass(), geo, landingPass().liftMs, lane);
+  const gate = (lane: number) => flightPose(landingPass(), geo, landingPass().liftMs, lane);
 
-  test.each(LANES)('lane %i: never drawn at the occupied origin while waiting; rides in at rail speed', (lane) => {
-    const { pass } = stagedPass();
-    const entryAt = pass.liftMs + WAIT;
-    const railStep = (a: number, b: number) => gap(flightPose(pass, geo, a, lane), flightPose(pass, geo, b, lane));
-    for (let t = pass.liftMs; t < entryAt - 60; t += 10) {
-      expect(gap(flightPose(pass, geo, t, lane), origin(lane))).toBeGreaterThan(8);
+  test.each(LANES)('lane %i: every wait length enters at the same Gate, never on the rail before it', (lane) => {
+    for (const wait of WAITS) {
+      const pass = waitingPass(wait);
+      const entryAt = pass.liftMs + wait;
+      // Exactly the Gate (in this Pal's lane) at the moment it enters.
+      expect(gap(flightPose(pass, geo, entryAt, lane), gate(lane))).toBeLessThan(1e-6);
+      expect(gap(flightPosition(pass, geo, entryAt, lane), gate(lane))).toBeLessThan(1e-6);
+      // Before that: a straight approach closing on the Gate — never past it,
+      // never upstream on the rail, never parked on the occupied Gate early.
+      let prev = Number.POSITIVE_INFINITY;
+      for (let t = 0; t < entryAt; t += 10) {
+        const d = gap(flightPose(pass, geo, t, lane), gate(lane));
+        expect(d).toBeLessThanOrEqual(prev + 1e-9);
+        if (t < entryAt - 100) expect(d).toBeGreaterThan(1);
+        prev = d;
+      }
     }
-    // Constant rail speed through the whole ride-in and across the entry.
-    const v = railStep(entryAt - 60, entryAt - 50);
-    expect(Math.abs(railStep(pass.liftMs + 10, pass.liftMs + 20) - v)).toBeLessThan(0.05);
-    expect(Math.abs(railStep(entryAt, entryAt + 10) - v)).toBeLessThan(0.05);
   });
 
-  test.each(LANES)('lane %i: continuous at lift end and at entry; exact on the logical schedule after entry', (lane) => {
-    const { pass } = stagedPass();
-    const entryAt = pass.liftMs + WAIT;
+  test.each(LANES)('lane %i: continuous at lift end and at entry; then leaves the Gate forward', (lane) => {
+    const pass = waitingPass(300);
+    const entryAt = pass.liftMs + 300;
     for (const b of [pass.liftMs, entryAt]) {
       expect(gap(flightPose(pass, geo, b - 0.01, lane), flightPose(pass, geo, b + 0.01, lane))).toBeLessThan(0.05);
       expect(gap(flightPosition(pass, geo, b - 0.01, lane), flightPosition(pass, geo, b + 0.01, lane))).toBeLessThan(0.05);
+      expect(angleGap(flightPose(pass, geo, b - 0.01, lane).heading, flightPose(pass, geo, b + 0.01, lane).heading)).toBeLessThan(0.01);
     }
-    expect(gap(flightPose(pass, geo, entryAt, lane), origin(lane))).toBeLessThan(1e-6);
-    // After entry: exactly the logical rail schedule; the terminal is untouched.
+    // After entry it rides the rail from progress 0 on the logical schedule.
     for (let t = entryAt; t <= pass.orbitEndAt; t += 97) {
-      expect(gap(flightPose(pass, geo, t, lane), railPoint(geo, progressAt(pass, t), lane))).toBeLessThan(1e-9);
+      expect(gap(flightPose(pass, geo, t, lane), railPoint(geo, smoothedRailProgress(pass, t, entryAt), lane))).toBeLessThan(1e-9);
     }
     expect(flightPose(pass, geo, pass.landingAt, lane)).toMatchObject(pass.terminal.kind === 'toHolding' ? pass.terminal.target! : {});
   });
@@ -174,5 +180,95 @@ describe('rail-entry staging (origin still occupied)', () => {
     for (let t = 0; t <= base.liftMs + 100; t += 20) {
       expect(gap(flightPose(withLaterHold, geo, t), flightPose(base, geo, t))).toBeLessThan(1e-9);
     }
+  });
+});
+
+describe('rapid 5-Pal convoy — M7B', () => {
+  // Two isolated shots per lap, so leaders dwell and followers wait.
+  const convoyLevel: LevelDefinition = {
+    ...level, id: 9743, pixelArt: ['B....', '.....', '.....', '.....', '....B'],
+  };
+  const convoyGeo = computeBoardGeometry(360, 5, 5, { roundedRect: true, box: { width: 360, height: 360 } });
+  function convoy(tapGapMs: number): FlightPass[] {
+    const state = createGame(convoyLevel);
+    const base = buildLaunchScript(resolveLaunch(state, 'tunnel-0'), state).pass;
+    const passes: FlightPass[] = [];
+    for (let k = 0; k < 5; k += 1) {
+      const fresh: FlightPass = { ...base, passId: k + 1, launchedAtMs: 10_000 + k * tapGapMs, from: { x: 180, y: 520 } };
+      passes.push(applyCoreV2Convoy(fresh, passes));
+    }
+    return passes;
+  }
+
+  test.each([60, 120, 250])('taps %ims apart: all enter at the one Gate, in launch order, spaced by time', (tapGap) => {
+    const passes = convoy(tapGap);
+    const gatePoint = convoyGeo.orbitInsertion;
+    let prevEntryAbs = Number.NEGATIVE_INFINITY;
+    for (const pass of passes) {
+      const entryAt = entryWaitEndAt(pass);
+      expect(gap(flightPose(pass, convoyGeo, entryAt), gatePoint)).toBeLessThan(1e-6);
+      // Launch order is entry order.
+      const entryAbs = pass.launchedAtMs + entryAt;
+      expect(entryAbs).toBeGreaterThan(prevEntryAbs);
+      prevEntryAbs = entryAbs;
+    }
+    // On the rail: drawn progress never reverses, and nobody closes on the Pal
+    // ahead by more than the smoothing can account for.
+    const lap = passes[0]!.orbitDurationMs;
+    const maxDrift = RAIL_SMOOTH_HALF_MS / (4 * lap);
+    const drawn = (pass: FlightPass, abs: number) => {
+      const t = abs - pass.launchedAtMs;
+      const entryAt = entryWaitEndAt(pass);
+      if (t < entryAt || t > pass.orbitEndAt) return undefined;
+      return smoothedRailProgress(pass, t, entryAt);
+    };
+    const last: (number | undefined)[] = passes.map(() => undefined);
+    for (let abs = 10_000; abs < 10_000 + 20_000; abs += 16) {
+      passes.forEach((pass, i) => {
+        const p = drawn(pass, abs);
+        if (p === undefined) return;
+        if (last[i] !== undefined) expect(p).toBeGreaterThanOrEqual(last[i]! - 1e-12);
+        last[i] = p;
+        const ahead = i > 0 ? drawn(passes[i - 1]!, abs) : undefined;
+        if (ahead !== undefined) expect(ahead - p).toBeGreaterThanOrEqual(CORE_V2_CONVOY_SPACING - 2 * maxDrift - 1e-9);
+      });
+    }
+  });
+});
+
+describe('shooting keeps the Pal moving — M7B', () => {
+  const shotLevel: LevelDefinition = {
+    ...level, id: 9744, pixelArt: ['B....', '.....', '.....', '.....', '....B'],
+  };
+  const shotGeo = computeBoardGeometry(360, 5, 5, { roundedRect: true, box: { width: 360, height: 360 } });
+  function shooter(): FlightPass {
+    const state = createGame(shotLevel);
+    return buildLaunchScript(resolveLaunch(state, 'tunnel-0'), state).pass;
+  }
+
+  test('an isolated shot slows the drawn Pal instead of freezing it; logical timing is unchanged', () => {
+    const pass = shooter();
+    expect(pass.shots.length).toBeGreaterThan(0);
+    const v = 1 / pass.orbitDurationMs;
+    for (const shot of pass.shots) {
+      // The logical schedule still holds at contact (event timing untouched)…
+      expect(progressAt(pass, shot.anticipateAt)).toBe(shot.progress);
+      expect(progressAt(pass, shot.clearAt)).toBe(shot.progress);
+      // …but the drawn Pal keeps travelling through the whole shot window.
+      for (let t = shot.anticipateAt - 20; t <= shot.clearAt + 20; t += 5) {
+        const speed = (smoothedRailProgress(pass, t + 1, pass.liftMs) - smoothedRailProgress(pass, t, pass.liftMs)) / 1;
+        expect(speed).toBeGreaterThan(v * 0.4);
+      }
+      // It passes the contact point mid-shot and never drifts far from it.
+      const mid = (shot.anticipateAt + shot.clearAt) / 2;
+      expect(Math.abs(smoothedRailProgress(pass, mid, pass.liftMs) - shot.progress)).toBeLessThan(v * RAIL_SMOOTH_HALF_MS / 4);
+    }
+  });
+
+  test('rail entry and the Holding landing stay exact under smoothing', () => {
+    const pass = shooter();
+    expect(smoothedRailProgress(pass, pass.liftMs, pass.liftMs)).toBe(0);
+    expect(smoothedRailProgress(pass, pass.orbitEndAt, pass.liftMs)).toBe(pass.endProgress);
+    expect(gap(flightPose(pass, shotGeo, pass.liftMs), shotGeo.orbitInsertion)).toBeLessThan(1e-6);
   });
 });
