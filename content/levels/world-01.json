@@ -1276,138 +1276,199 @@
       "holding": 3,
       "ruleset": "coreV2",
       "legend": {
-        "R": "red",
-        "N": "indigo",
         "G": "green",
-        "C": "cyan",
-        "Y": "gold"
+        "I": "indigo",
+        "R": "red",
+        "Y": "gold",
+        "C": "cyan"
       },
       "grid": [
-        "....................",
-        "......RR............",
-        "....RRRRR...........",
-        "...RNNGGRR..........",
-        "..RNGGGGGNR.........",
-        "..NGGCYGGGN.........",
-        ".NGGGGGGGGN..RR.....",
-        ".NGGNNGGGGNRRRRR....",
-        ".NGN..NGGGGNRGGR....",
-        ".NGN...NGGGGGGGR....",
-        ".NGGN...NGGGGGN.....",
-        "..NGGNNNNGGGGN......",
-        "...NGGGGGGGGN.......",
-        "....NGGCCGGN........",
-        ".....NGCCGN.........",
-        "....NNGGGGNN........",
-        "...NGGGYYGGN........",
-        "..NGGGGNNGGGN.......",
-        "...NNNN..NNN........",
-        "...................."
+        ".........YY........YY.........",
+        ".........YYY......YYY.........",
+        "..........YY......YY..........",
+        "..........YYY....YYY..........",
+        "....II....YYYGGGGYYY....II....",
+        "...RIII....YYGGGGYY....IIIR...",
+        "..RRRIII..GGGGGGGGGG..IIIRRR..",
+        "..RRRRIII.GGIIIIIIGG.IIIRRRR..",
+        ".RRRRRIII.GGICIICIGG.IIIRRRRR.",
+        ".RRRRRRIIIGGICIICIGGIIIRRRRRR.",
+        ".RIIIRRRIIGGIIIIIIGGIIRRRIIIR.",
+        ".RIIIIIIIIIGGGGGGGGIIIIIIIIIR.",
+        ".RRRIIIIIIIIGGGGGGIIIIIIIIRRR.",
+        ".RRRRRIIIIIIGGGGGGIIIIIIRRRRR.",
+        ".........III.GGGG.III.........",
+        "............GGGGGG............",
+        "...........GGGYYGGG...........",
+        "...........GGYYYYGG...........",
+        "...........GGYYYYGG...........",
+        "...........GGYYYYGG.......CCC.",
+        "...........GGYYYYGG.......CCC.",
+        "...........GGYYYYGG........C..",
+        "...........GGYYYYGG.......GG..",
+        "...........GGGYYGGG.......GG..",
+        "..........GGGGGGGGGG......GG..",
+        "..........GGGG..GGGGG.....GG..",
+        "...........GGG..GGGGGGGGGGGG..",
+        "...................GGGGGGGGG..",
+        ".....................GGGG.....",
+        ".............................."
       ],
       "tunnels": [
         [
           {
-            "color": "green",
-            "capacity": 5
+            "color": "red",
+            "capacity": 16
           },
           {
             "color": "indigo",
-            "capacity": 12
+            "capacity": 16
           },
           {
             "color": "red",
-            "capacity": 9
+            "capacity": 16
+          },
+          {
+            "color": "indigo",
+            "capacity": 16
+          },
+          {
+            "color": "red",
+            "capacity": 16
+          },
+          {
+            "color": "indigo",
+            "capacity": 16
           },
           {
             "color": "green",
-            "capacity": 12
+            "capacity": 16
+          },
+          {
+            "color": "indigo",
+            "capacity": 16
           },
           {
             "color": "indigo",
             "capacity": 4
-          },
-          {
-            "color": "green",
-            "capacity": 7
           }
         ],
         [
           {
+            "color": "green",
+            "capacity": 16
+          },
+          {
             "color": "gold",
+            "capacity": 16
+          },
+          {
+            "color": "gold",
+            "capacity": 14
+          },
+          {
+            "color": "green",
+            "capacity": 16
+          },
+          {
+            "color": "green",
+            "capacity": 16
+          },
+          {
+            "color": "cyan",
             "capacity": 3
           },
           {
-            "color": "green",
-            "capacity": 12
-          },
-          {
             "color": "indigo",
-            "capacity": 12
-          },
-          {
-            "color": "indigo",
-            "capacity": 12
+            "capacity": 16
           },
           {
             "color": "green",
-            "capacity": 12
-          },
-          {
-            "color": "red",
-            "capacity": 1
-          }
-        ],
-        [
-          {
-            "color": "indigo",
-            "capacity": 12
-          },
-          {
-            "color": "red",
-            "capacity": 12
+            "capacity": 16
           },
           {
             "color": "cyan",
             "capacity": 5
           },
           {
+            "color": "red",
+            "capacity": 16
+          }
+        ],
+        [
+          {
             "color": "green",
-            "capacity": 12
+            "capacity": 16
+          },
+          {
+            "color": "cyan",
+            "capacity": 3
+          },
+          {
+            "color": "gold",
+            "capacity": 26
           },
           {
             "color": "green",
-            "capacity": 12
+            "capacity": 16
+          },
+          {
+            "color": "indigo",
+            "capacity": 16
           },
           {
             "color": "green",
-            "capacity": 12
+            "capacity": 16
+          },
+          {
+            "color": "gold",
+            "capacity": 2
+          },
+          {
+            "color": "green",
+            "capacity": 16
+          },
+          {
+            "color": "indigo",
+            "capacity": 16
+          },
+          {
+            "color": "green",
+            "capacity": 11
           }
         ]
       ],
       "winningWitness": [
+        "T2",
         "T1",
         "T2",
+        "T1",
         "T3",
+        "T1",
+        "T3",
+        "T2",
+        "T2",
+        "T1",
+        "T3",
+        "T2",
+        "T3",
+        "T1",
+        "T3",
+        "T2",
+        "T1",
         "T3",
         "H1",
-        "H1",
+        "T2",
+        "T3",
         "T1",
         "T2",
         "T3",
         "T1",
-        "H2",
         "T2",
         "T3",
+        "T1",
         "T2",
-        "T1",
-        "T3",
-        "T2",
-        "T1",
-        "T3",
-        "H1",
-        "H1",
-        "T1",
-        "T2"
+        "T3"
       ]
     }
   ]
